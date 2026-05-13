@@ -46,23 +46,12 @@ async def analyze(video: UploadFile = File(...)):
         tmp_file.close()
         video_path = tmp_file.name
 
-        frames = extract_frames(video_path, num_frames=12)
+        frames = extract_frames(video_path, num_frames=6)
         if not frames:
             raise HTTPException(status_code=400, detail="Impossible d'extraire les frames. Vérifiez que le fichier est une vidéo valide.")
 
-        transcript = None
-        audio_path = extract_audio(video_path)
-        if audio_path:
-            try:
-                transcript = transcribe_audio(audio_path)
-            finally:
-                try:
-                    os.unlink(audio_path)
-                except OSError:
-                    pass
-
-        result = analyze_video(frames, transcript)
-        result["transcript"] = transcript
+        result = analyze_video(frames)
+        result["transcript"] = None
         result["frames_analyzed"] = len(frames)
         return result
 

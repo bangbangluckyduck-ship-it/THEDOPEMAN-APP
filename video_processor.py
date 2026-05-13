@@ -55,7 +55,7 @@ def extract_frames(video_path: str, num_frames: int = 12) -> List[str]:
             [
                 _ffmpeg(), "-ss", str(ts), "-i", video_path,
                 "-vframes", "1", "-q:v", "3",
-                "-vf", "scale=720:-2",
+                "-vf", "scale=480:-2",
                 "-y", tmp_path,
             ],
             capture_output=True,

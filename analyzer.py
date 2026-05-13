@@ -98,7 +98,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     content.append({"type": "text", "text": PROMPT.format(transcript_note=transcript_note)})
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=2000,
         messages=[{"role": "user", "content": content}],
     )
