@@ -380,9 +380,18 @@
   });
 
   function setFile(f) {
+    const mb = f.size / 1024 / 1024;
+    const eb = document.getElementById('error-box');
+    if (mb > 80) {
+      eb.textContent = `❌ Vidéo trop lourde (${mb.toFixed(0)}MB). Exporte-la en qualité réduite depuis TikTok (max 80MB).`;
+      eb.style.display = 'block';
+      return;
+    }
+    eb.style.display = 'none';
     selectedFile = f;
     const tag = document.getElementById('file-tag');
-    tag.textContent = '📎 ' + f.name;
+    const warn = mb > 40 ? ' ⚠️ Fichier lourd, upload lent' : '';
+    tag.textContent = `📎 ${f.name} (${mb.toFixed(1)}MB)${warn}`;
     tag.style.display = 'block';
     document.getElementById('analyze-btn').disabled = false;
   }
@@ -412,7 +421,7 @@
 
     try {
       const ctrl = new AbortController();
-      const timeout = setTimeout(() => ctrl.abort(), 70000); // 70s max
+      const timeout = setTimeout(() => ctrl.abort(), 90000); // 90s max
       const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal });
       clearTimeout(timeout);
       clearInterval(iv);
