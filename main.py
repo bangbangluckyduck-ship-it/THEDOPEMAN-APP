@@ -61,23 +61,29 @@ async def analyze(video: UploadFile = File(...)):
         if not frames:
             raise HTTPException(status_code=400, detail="Impossible d'extraire les frames.")
 
-        # Transcription and Claude analysis in parallel
-        async def get_transcript():
-            if not audio_path:
-                return None
-            return await loop.run_in_executor(None, transcribe_audio, audio_path)
+        # Transcription with 20s timeout — skip gracefully if too slow
+        transcript = None
+        if audio_path:
+            try:
+                transcript = await asyncio.wait_for(
+                    loop.run_in_executor(None, transcribe_audio, audio_path),
+                    timeout=20.0,
+                )
+            except asyncio.TimeoutError:
+                transcript = None
 
-        async def get_analysis(transcript):
-            return await loop.run_in_executor(None, analyze_video, frames, transcript)
-
-        # First get transcript, then analyze (Claude needs the transcript)
-        transcript = await get_transcript()
-        result = await get_analysis(transcript)
+        # Claude analysis (with or without transcript)
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, analyze_video, frames, transcript),
+            timeout=30.0,
+        )
 
         result["transcript"] = transcript
         result["frames_analyzed"] = len(frames)
         return result
 
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="L'analyse a pris trop de temps. Réessaie avec une vidéo plus courte.")
     except HTTPException:
         raise
     except Exception as e:

@@ -411,7 +411,10 @@
     fd.append('video', selectedFile);
 
     try {
-      const res = await fetch('/analyze', { method: 'POST', body: fd });
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 70000); // 70s max
+      const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal });
+      clearTimeout(timeout);
       clearInterval(iv);
       if (!res.ok) {
         const err = await res.json();
