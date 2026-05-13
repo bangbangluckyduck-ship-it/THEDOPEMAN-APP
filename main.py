@@ -32,6 +32,11 @@ async def home():
     return HTMLResponse(_HTML)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/analyze")
 async def analyze(video: UploadFile = File(...)):
     if not os.getenv("ANTHROPIC_API_KEY"):
