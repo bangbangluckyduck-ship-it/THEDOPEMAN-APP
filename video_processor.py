@@ -6,11 +6,10 @@ import base64
 import tempfile
 from typing import List, Optional
 
-import imageio_ffmpeg
-
 
 def _ffmpeg() -> str:
-    return imageio_ffmpeg.get_ffmpeg_exe()
+    # Use system ffmpeg (installed via apt on Render)
+    return "ffmpeg"
 
 
 def get_duration(video_path: str) -> float:
