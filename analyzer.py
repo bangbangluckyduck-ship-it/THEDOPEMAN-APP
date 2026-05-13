@@ -77,7 +77,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     import io
 
     genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     parts = []
     labels = ["🎯 Accroche (début)"] + [f"Frame {i+2}" for i in range(len(frames_b64) - 1)]
