@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>TikTok Shop Analyzer</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#fe2c55">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TT Analyzer">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: #161616;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --muted: #888;
+      --pink: #fe2c55;
+      --cyan: #25f4ee;
+      --yellow: #ffd60a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    header { text-align: center; padding: 28px 0 16px; }
+    header h1 {
+      font-size: 1.7rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--pink) 30%, var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: var(--muted); margin-top: 6px; font-size: 0.88rem; }
+
+    /* UPLOAD ZONE */
+    .upload-zone {
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 18px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin: 18px 0 12px;
+      user-select: none;
+    }
+    .upload-zone.active { border-color: var(--pink); background: rgba(254,44,85,.06); }
+    .upload-icon { font-size: 2.8rem; margin-bottom: 12px; }
+    .upload-zone h3 { font-size: 1rem; margin-bottom: 6px; }
+    .upload-zone p { color: var(--muted); font-size: 0.82rem; }
+    #file-input { display: none; }
+
+    .file-tag {
+      display: none;
+      background: rgba(37,244,238,.12);
+      color: var(--cyan);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.83rem;
+      margin-bottom: 14px;
+      word-break: break-all;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: block; width: 100%; padding: 15px;
+      border: none; border-radius: 14px;
+      font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: opacity .2s, transform .15s;
+      letter-spacing: .3px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--pink), #ff3b6b);
+      color: #fff;
+    }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-primary:not(:disabled):active { transform: scale(.97); }
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid var(--pink);
+      color: var(--pink);
+      margin-top: 12px;
+    }
+
+    /* LOADING */
+    #loading { display: none; text-align: center; padding: 48px 20px; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid var(--border);
+      border-top-color: var(--pink);
+      border-right-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: var(--muted); font-size: .9rem; }
+
+    /* ERROR */
+    .error {
+      display: none;
+      background: rgba(254,44,85,.1);
+      border: 1px solid rgba(254,44,85,.4);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #ff6b8a;
+      font-size: .88rem;
+      margin: 12px 0;
+      line-height: 1.5;
+    }
+
+    /* RESULTS */
+    #results { display: none; }
+
+    .global-score {
+      background: linear-gradient(135deg, var(--pink), var(--cyan));
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+      margin: 18px 0 14px;
+    }
+    .global-score .num {
+      font-size: 4.5rem; font-weight: 900; color: #fff;
+      line-height: 1;
+    }
+    .global-score .lbl {
+      font-size: .85rem; color: rgba(255,255,255,.8);
+      margin-top: 6px;
+    }
+
+    .verdict {
+      background: linear-gradient(135deg, rgba(254,44,85,.08), rgba(37,244,238,.08));
+      border: 1px solid rgba(254,44,85,.25);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: .9rem;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 18px 16px;
+      margin: 12px 0;
+    }
+    .card-title {
+      font-size: .95rem; font-weight: 700;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* CRITERION ROWS */
+    .criterion { margin: 14px 0 4px; }
+    .criterion-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 5px;
+    }
+    .criterion-name { font-size: .83rem; color: var(--muted); }
+    .criterion-score {
+      font-size: .88rem; font-weight: 800;
+    }
+    .bar {
+      height: 7px; background: var(--border);
+      border-radius: 4px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 4px;
+      transition: width 1.2s cubic-bezier(.4,0,.2,1);
+    }
+    .col-high { background: var(--cyan); }
+    .col-mid  { background: var(--yellow); }
+    .col-low  { background: var(--pink); }
+
+    .criterion-comment {
+      font-size: .78rem; color: var(--muted);
+      margin-top: 5px; line-height: 1.45;
+    }
+
+    /* LISTS */
+    .item-list { list-style: none; }
+    .item-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .88rem; line-height: 1.5;
+    }
+    .item-list li:last-child { border-bottom: none; }
+    .item-list .ico { flex-shrink: 0; font-size: .95rem; margin-top: 1px; }
+
+    /* PWA install banner (mobile only) */
+    #pwa-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(254,44,85,.15), rgba(37,244,238,.15));
+      border: 1px solid rgba(254,44,85,.3);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      align-items: center;
+      gap: 12px;
+    }
+    #pwa-banner .pwa-icon { font-size: 1.8rem; flex-shrink: 0; }
+    #pwa-banner .pwa-text { flex: 1; font-size: .82rem; line-height: 1.45; color: var(--muted); }
+    #pwa-banner .pwa-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+    #pwa-banner .btn-install {
+      background: var(--pink); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 8px 14px; font-size: .82rem;
+      font-weight: 700; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* TRANSCRIPT */
+    .transcript-box {
+      background: var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: .8rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>TikTok Shop Analyzer</h1>
+  <p>Analyse IA de tes vidéos de vente</p>
+</header>
+
+<!-- PWA INSTALL BANNER (mobile) -->
+<div id="pwa-banner">
+  <span class="pwa-icon">📲</span>
+  <div class="pwa-text">
+    <strong>Ajouter à l'écran d'accueil</strong>
+    Accède à l'app comme une vraie appli
+  </div>
+  <button class="btn-install" onclick="installPwa()">Installer</button>
+</div>
+
+<!-- UPLOAD SECTION -->
+<div id="upload-section">
+  <div class="upload-zone" id="drop-zone">
+    <div class="upload-icon">🎬</div>
+    <h3>Upload ta vidéo TikTok</h3>
+    <p>MP4, MOV · Clique ou glisse ta vidéo ici</p>
+  </div>
+  <input type="file" id="file-input" accept="video/*" />
+
+  <div class="file-tag" id="file-tag"></div>
+  <div class="error" id="error-box"></div>
+
+  <button class="btn btn-primary" id="analyze-btn" disabled onclick="analyzeVideo()">
+    Analyser la vidéo
+  </button>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p id="loading-text">Extraction des frames…</p>
+</div>
+
+<!-- RESULTS -->
+<div id="results">
+  <div class="global-score">
+    <div class="num" id="global-num">--</div>
+    <div class="lbl">Score global / 100</div>
+  </div>
+
+  <div class="verdict" id="verdict-text"></div>
+
+  <div class="card">
+    <div class="card-title">📊 Analyse détaillée</div>
+    <div id="scores-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✅ Points forts</div>
+    <ul class="item-list" id="strengths"></ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚠️ À améliorer</div>
+    <ul class="item-list" id="improvements"></ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💡 Conseils concrets</div>
+    <ul class="item-list" id="tips"></ul>
+  </div>
+
+  <div class="card" id="transcript-card" style="display:none">
+    <div class="card-title">🎤 Transcription audio</div>
+    <div class="transcript-box" id="transcript-text"></div>
+  </div>
+
+  <button class="btn btn-secondary" onclick="reset()">Analyser une autre vidéo</button>
+</div>
+
+<script>
+  let selectedFile = null;
+
+  const LABELS = {
+    accroche:            '🎯 Accroche',
+    discours:            '🗣️ Discours',
+    qualite_visuelle:    '🎥 Qualité visuelle',
+    visibilite_produit:  '📦 Produit',
+    call_to_action:      '📢 Call to Action',
+    energie_dynamisme:   '⚡ Énergie',
+    credibilite_confiance: '🤝 Crédibilité',
+  };
+
+  const MSGS = [
+    'Extraction des frames…',
+    'Analyse de l\'accroche…',
+    'Évaluation visuelle…',
+    'Analyse du discours de vente…',
+    'Calcul des scores…',
+    'Génération du rapport…',
+  ];
+
+  // File input
+  document.getElementById('file-input').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) setFile(f);
+  });
+
+  // Drop zone click
+  document.getElementById('drop-zone').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+  });
+
+  // Drag & drop
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('active'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('active'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('active');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) setFile(f);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    const tag = document.getElementById('file-tag');
+    tag.textContent = '📎 ' + f.name;
+    tag.style.display = 'block';
+    document.getElementById('analyze-btn').disabled = false;
+  }
+
+  async function analyzeVideo() {
+    if (!selectedFile) return;
+    document.getElementById('error-box').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+
+    let mi = 0;
+    const iv = setInterval(() => {
+      mi = (mi + 1) % MSGS.length;
+      document.getElementById('loading-text').textContent = MSGS[mi];
+    }, 2200);
+
+    const fd = new FormData();
+    fd.append('video', selectedFile);
+
+    try {
+      const res = await fetch('/analyze', { method: 'POST', body: fd });
+      clearInterval(iv);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Erreur serveur');
+      }
+      const data = await res.json();
+      showResults(data);
+    } catch (e) {
+      clearInterval(iv);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('upload-section').style.display = 'block';
+      const eb = document.getElementById('error-box');
+      eb.textContent = '❌ ' + e.message;
+      eb.style.display = 'block';
+    }
+  }
+
+  function scoreColor(n) {
+    if (n >= 7) return 'col-high';
+    if (n >= 5) return 'col-mid';
+    return 'col-low';
+  }
+  function scoreTextColor(n) {
+    if (n >= 7) return 'var(--cyan)';
+    if (n >= 5) return 'var(--yellow)';
+    return 'var(--pink)';
+  }
+
+  function showResults(d) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+
+    document.getElementById('global-num').textContent = d.score_global ?? '--';
+    document.getElementById('verdict-text').textContent = d.verdict || '';
+
+    // Scores
+    const sl = document.getElementById('scores-list');
+    sl.innerHTML = '';
+    if (d.scores) {
+      Object.entries(d.scores).forEach(([k, v]) => {
+        const n = v.note ?? 0;
+        const lbl = LABELS[k] || k;
+        const div = document.createElement('div');
+        div.className = 'criterion';
+        div.innerHTML = `
+          <div class="criterion-header">
+            <span class="criterion-name">${lbl}</span>
+            <span class="criterion-score" style="color:${scoreTextColor(n)}">${n}/10</span>
+          </div>
+          <div class="bar"><div class="bar-fill ${scoreColor(n)}" style="width:0%"></div></div>
+          ${v.commentaire ? `<div class="criterion-comment">${v.commentaire}</div>` : ''}
+        `;
+        sl.appendChild(div);
+        // Animate bar after paint
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            div.querySelector('.bar-fill').style.width = (n * 10) + '%';
+          });
+        });
+      });
+    }
+
+    // Lists
+    function fillList(id, items, icon) {
+      document.getElementById(id).innerHTML = (items || [])
+        .map(t => `<li><span class="ico">${icon}</span><span>${t}</span></li>`)
+        .join('');
+    }
+    fillList('strengths', d.points_forts, '✅');
+    fillList('improvements', d.points_ameliorer, '⚠️');
+    fillList('tips', d.conseils_concrets, '💡');
+
+    // Transcript
+    if (d.transcript) {
+      document.getElementById('transcript-card').style.display = 'block';
+      document.getElementById('transcript-text').textContent = d.transcript;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // PWA
+  let deferredPrompt = null;
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+  }
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const banner = document.getElementById('pwa-banner');
+    banner.style.display = 'flex';
+  });
+
+  function installPwa() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('pwa-banner').style.display = 'none';
+    });
+  }
+
+  function reset() {
+    selectedFile = null;
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'block';
+    document.getElementById('file-tag').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    document.getElementById('analyze-btn').disabled = true;
+    document.getElementById('transcript-card').style.display = 'none';
+    document.getElementById('error-box').style.display = 'none';
+  }
+</script>
+</body>
+</html>
