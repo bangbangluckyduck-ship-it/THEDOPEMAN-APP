@@ -72,20 +72,17 @@ Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).
 
 
 def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
-    import google.generativeai as genai
-    import PIL.Image
-    import io
+    from google import genai
+    from google.genai import types
 
-    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
     parts = []
     labels = ["🎯 Accroche (début)"] + [f"Frame {i+2}" for i in range(len(frames_b64) - 1)]
 
     for label, frame_b64 in zip(labels, frames_b64):
-        img = PIL.Image.open(io.BytesIO(base64.b64decode(frame_b64)))
-        parts.append(f"**{label}**")
-        parts.append(img)
+        parts.append(label)
+        parts.append(types.Part.from_bytes(data=base64.b64decode(frame_b64), mime_type="image/jpeg"))
 
     transcript_note = ""
     if transcript:
@@ -94,7 +91,10 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
 
     parts.append(PROMPT.format(transcript_note=transcript_note))
 
-    response = model.generate_content(parts)
+    response = client.models.generate_content(
+        model="gemini-1.5-flash",
+        contents=parts,
+    )
     raw = response.text
 
     match = re.search(r"\{[\s\S]*\}", raw)
