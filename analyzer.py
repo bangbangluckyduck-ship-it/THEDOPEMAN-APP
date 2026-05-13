@@ -6,6 +6,26 @@ from typing import List, Optional
 
 import anthropic
 
+
+def transcribe_audio(audio_path: str) -> Optional[str]:
+    """Transcribe audio using AssemblyAI (nano model = fastest)."""
+    api_key = os.getenv("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        return None
+    try:
+        import assemblyai as aai
+        aai.settings.api_key = api_key
+        config = aai.TranscriptionConfig(
+            language_code="fr",
+            speech_model=aai.SpeechModel.nano,
+        )
+        result = aai.Transcriber().transcribe(audio_path, config=config)
+        if result.status == aai.TranscriptStatus.error:
+            return None
+        return result.text
+    except Exception:
+        return None
+
 PROMPT = """Tu es un expert en marketing TikTok Shop avec 5 ans d'expérience à optimiser des vidéos de vente.
 
 Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).

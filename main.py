@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import os
 import shutil
 import tempfile
@@ -34,24 +35,41 @@ async def home():
 @app.post("/analyze")
 async def analyze(video: UploadFile = File(...)):
     if not os.getenv("ANTHROPIC_API_KEY"):
-        raise HTTPException(
-            status_code=400,
-            detail="Clé API Anthropic manquante.",
-        )
+        raise HTTPException(status_code=400, detail="Clé API Anthropic manquante.")
 
     suffix = Path(video.filename or "video.mp4").suffix.lower() or ".mp4"
     tmp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=False, dir=UPLOAD_DIR)
+    audio_path = None
     try:
         shutil.copyfileobj(video.file, tmp_file)
         tmp_file.close()
         video_path = tmp_file.name
 
-        frames = extract_frames(video_path, num_frames=6)
-        if not frames:
-            raise HTTPException(status_code=400, detail="Impossible d'extraire les frames. Vérifiez que le fichier est une vidéo valide.")
+        loop = asyncio.get_event_loop()
 
-        result = analyze_video(frames)
-        result["transcript"] = None
+        # Extract frames and audio simultaneously
+        frames, audio_path = await asyncio.gather(
+            loop.run_in_executor(None, extract_frames, video_path, 6),
+            loop.run_in_executor(None, extract_audio, video_path),
+        )
+
+        if not frames:
+            raise HTTPException(status_code=400, detail="Impossible d'extraire les frames.")
+
+        # Transcription and Claude analysis in parallel
+        async def get_transcript():
+            if not audio_path:
+                return None
+            return await loop.run_in_executor(None, transcribe_audio, audio_path)
+
+        async def get_analysis(transcript):
+            return await loop.run_in_executor(None, analyze_video, frames, transcript)
+
+        # First get transcript, then analyze (Claude needs the transcript)
+        transcript = await get_transcript()
+        result = await get_analysis(transcript)
+
+        result["transcript"] = transcript
         result["frames_analyzed"] = len(frames)
         return result
 
@@ -64,6 +82,11 @@ async def analyze(video: UploadFile = File(...)):
             os.unlink(tmp_file.name)
         except OSError:
             pass
+        if audio_path:
+            try:
+                os.unlink(audio_path)
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":
