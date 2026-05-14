@@ -72,30 +72,34 @@ Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).
 
 
 def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
-    from google import genai
-    from google.genai import types
+    import httpx
 
-    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+    api_key = os.getenv("GOOGLE_API_KEY")
+    transcript_note = " + transcription audio" if transcript else ""
 
     parts = []
-    labels = ["🎯 Accroche (début)"] + [f"Frame {i+2}" for i in range(len(frames_b64) - 1)]
+    for i, frame in enumerate(frames_b64):
+        label = "🎯 Accroche (début)" if i == 0 else f"Frame {i+1}"
+        parts.append({"text": label})
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": frame}})
 
-    for label, frame_b64 in zip(labels, frames_b64):
-        parts.append(label)
-        parts.append(types.Part.from_bytes(data=base64.b64decode(frame_b64), mime_type="image/jpeg"))
-
-    transcript_note = ""
     if transcript:
-        parts.append(f"\n\n**Transcription audio :**\n{transcript}")
-        transcript_note = " + transcription audio"
+        parts.append({"text": f"\n\nTranscription audio :\n{transcript}"})
 
-    parts.append(PROMPT.format(transcript_note=transcript_note))
+    parts.append({"text": PROMPT.format(transcript_note=transcript_note)})
 
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=parts,
+    response = httpx.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        params={"key": api_key},
+        json={"contents": [{"parts": parts}]},
+        timeout=30.0,
     )
-    raw = response.text
+
+    if not response.is_success:
+        raise Exception(f"Gemini API error {response.status_code}: {response.text[:300]}")
+
+    data = response.json()
+    raw = data["candidates"][0]["content"]["parts"][0]["text"]
 
     match = re.search(r"\{[\s\S]*\}", raw)
     if match:
