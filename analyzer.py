@@ -89,7 +89,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     parts.append({"text": PROMPT.format(transcript_note=transcript_note)})
 
     response = httpx.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
         params={"key": api_key},
         json={"contents": [{"parts": parts}]},
         timeout=30.0,
