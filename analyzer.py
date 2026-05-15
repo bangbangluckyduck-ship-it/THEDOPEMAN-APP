@@ -99,7 +99,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
             "HTTP-Referer": "https://thedopeman-app.onrender.com",
         },
         json={
-            "model": "google/gemini-2.0-flash-exp:free",
+            "model": "meta-llama/llama-4-maverick:free",
             "messages": [{"role": "user", "content": content}],
         },
         timeout=30.0,
