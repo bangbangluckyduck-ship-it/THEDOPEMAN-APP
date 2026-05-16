@@ -187,7 +187,7 @@
   <span class="pwa-icon">📲</span>
   <div class="pwa-text">
     <strong>Ajouter à l'écran d'accueil</strong>
-    Accède à l'app comme une vraie appli
+    Accède à l'application depuis ton écran d'accueil
   </div>
   <button class="btn-install" onclick="installPwa()">Installer</button>
 </div>
@@ -209,7 +209,7 @@
   <div id="upload-section">
     <div class="upload-zone" id="drop-zone">
       <div class="upload-icon">🎬</div>
-      <h3>Upload ta vidéo TikTok</h3>
+      <h3>Importe ta vidéo TikTok</h3>
       <p>MP4, MOV · Clique ou glisse ta vidéo ici</p>
     </div>
     <input type="file" id="file-input" accept="video/*" />
@@ -222,7 +222,7 @@
 
   <div id="loading">
     <div class="spinner"></div>
-    <p id="loading-text">Extraction des frames…</p>
+    <p id="loading-text">Extraction des images…</p>
   </div>
 
   <div id="results">
@@ -315,14 +315,14 @@
     discours:              '🗣️ Discours',
     qualite_visuelle:      '🎥 Qualité visuelle',
     visibilite_produit:    '📦 Produit',
-    call_to_action:        '📢 Call to Action',
+    call_to_action:        '📢 Appel à l\'action',
     energie_dynamisme:     '⚡ Énergie',
     credibilite_confiance: '🤝 Crédibilité',
   };
   const LABELS_PDF = {
     accroche: 'Accroche', discours: 'Discours',
     qualite_visuelle: 'Qualite visuelle', visibilite_produit: 'Produit',
-    call_to_action: 'Call to Action', energie_dynamisme: 'Energie',
+    call_to_action: 'Appel a l action', energie_dynamisme: 'Energie',
     credibilite_confiance: 'Credibilite',
   };
 
@@ -433,7 +433,7 @@
     }
 
     try {
-      lt.textContent = '🎬 Extraction images & audio…';
+      lt.textContent = '🎬 Extraction des images et de l\'audio…';
       const [frames, audioBlob] = await Promise.all([
         extractFrames(selectedFile, 6),
         extractAudio(selectedFile),
