@@ -367,11 +367,15 @@
       <button class="btn btn-primary btn-block" id="analyze-btn" disabled>
         🚀 Analyser avec l'IA
       </button>
-      <div class="progress-bar" id="progress-bar">
+    </section>
+
+    <!-- Chargement (en dehors de upload-section pour rester visible) -->
+    <div class="section" id="loading-section" style="display:none;text-align:center;padding:30px 22px">
+      <div class="progress-bar" id="progress-bar" style="display:block;margin:0 auto 14px">
         <div class="progress-fill"></div>
       </div>
-      <div id="loading-text"></div>
-    </section>
+      <div id="loading-text" style="display:block;font-size:14px;color:var(--muted)"></div>
+    </div>
 
     <section id="results-section">
 

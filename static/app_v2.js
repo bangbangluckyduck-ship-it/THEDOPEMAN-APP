@@ -168,10 +168,9 @@ async function extractAudio(file) {
 async function analyzeVideo() {
   if (!selectedFile) return;
 
-  document.getElementById('error-box').style.display    = 'none';
-  document.getElementById('upload-section').style.display = 'none';
-  document.getElementById('progress-bar').style.display = 'block';
-  document.getElementById('loading-text').style.display = 'block';
+  document.getElementById('error-box').style.display      = 'none';
+  document.getElementById('upload-section').style.display  = 'none';
+  document.getElementById('loading-section').style.display = 'block';
   setLoadingText('🎬 Extraction des images et de l\'audio…');
 
   if (!serverReady) {
@@ -216,9 +215,8 @@ async function analyzeVideo() {
     showResults(data);
 
   } catch (e) {
-    document.getElementById('progress-bar').style.display  = 'none';
-    document.getElementById('loading-text').style.display  = 'none';
-    document.getElementById('upload-section').style.display = 'block';
+    document.getElementById('loading-section').style.display = 'none';
+    document.getElementById('upload-section').style.display  = 'block';
     showError(e.name === 'AbortError'
       ? '❌ Délai dépassé. Réessaie avec une vidéo plus courte.'
       : '❌ ' + e.message);
@@ -242,9 +240,8 @@ function scoreColor(n) {
 
 // ── SHOW RESULTS ─────────────────────────────────────────────
 function showResults(d) {
-  document.getElementById('progress-bar').style.display  = 'none';
-  document.getElementById('loading-text').style.display  = 'none';
-  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('loading-section').style.display  = 'none';
+  document.getElementById('results-section').style.display  = 'block';
 
   // Score global
   document.getElementById('score-global').textContent = d.score_global ?? '—';
