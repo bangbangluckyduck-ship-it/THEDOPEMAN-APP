@@ -74,7 +74,7 @@ Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).
 def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
     import httpx
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    api_key = os.getenv("MISTRAL_API_KEY")
     transcript_note = " + transcription audio" if transcript else ""
 
     # Build message content (OpenAI-compatible format)
@@ -93,13 +93,13 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     content.append({"type": "text", "text": PROMPT.format(transcript_note=transcript_note)})
 
     response = httpx.post(
-        "https://openrouter.ai/api/v1/chat/completions",
+        "https://api.mistral.ai/v1/chat/completions",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": "https://thedopeman-app.onrender.com",
+            "Content-Type": "application/json",
         },
         json={
-            "model": "google/gemma-4-31b-it:free",
+            "model": "pixtral-12b-2409",
             "messages": [{"role": "user", "content": content}],
         },
         timeout=30.0,

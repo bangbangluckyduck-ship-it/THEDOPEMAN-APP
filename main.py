@@ -39,8 +39,8 @@ async def analyze(
     frames: str = Form(...),       # JSON array of base64 JPEG strings
     audio: Optional[UploadFile] = File(None),  # WAV audio extracted client-side
 ):
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise HTTPException(status_code=400, detail="Clé API Anthropic manquante.")
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
     frames_list: list[str] = json.loads(frames)
     if not frames_list:
