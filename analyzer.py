@@ -28,7 +28,17 @@ def transcribe_audio(audio_path: str) -> Optional[str]:
 
 PROMPT = """Tu es un expert en marketing TikTok Shop avec 5 ans d'expérience à optimiser des vidéos de vente.
 
-Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).
+Analyse cette vidéo TikTok Shop (images extraites{transcript_note}).
+
+IMPORTANT : rédige tous tes commentaires exclusivement en français, sans aucun anglicisme. Utilise uniquement des termes français :
+- "accroche" (pas "hook")
+- "appel à l'action" (pas "CTA" ni "call to action")
+- "images" (pas "frames")
+- "ambiance" (pas "vibe")
+- "tendance" (pas "trend")
+- "abonnés" (pas "followers")
+- "partage" (pas "share")
+- "mise en avant" (pas "highlight")
 
 Évalue chaque critère sur 10 et retourne UNIQUEMENT un JSON valide, sans texte avant ou après :
 
@@ -52,7 +62,7 @@ Analyse cette vidéo TikTok Shop (frames extraites{transcript_note}).
     }},
     "call_to_action": {{
       "note": <0-10>,
-      "commentaire": "<présence, clarté et efficacité du CTA>"
+      "commentaire": "<présence, clarté et efficacité de l'appel à l'action>"
     }},
     "energie_dynamisme": {{
       "note": <0-10>,
