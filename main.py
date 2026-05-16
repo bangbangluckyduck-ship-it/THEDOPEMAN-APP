@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -15,10 +15,12 @@ load_dotenv()
 
 from analyzer import analyze_video, transcribe_audio
 from generate_assets import generate_icons
+from security import rate_limit_middleware, security_logger
 
 generate_icons()
 
 app = FastAPI(title="TikTok Shop Analyzer")
+app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 _HTML = Path("templates/index.html").read_text(encoding="utf-8")
@@ -36,8 +38,9 @@ async def health():
 
 @app.post("/analyze")
 async def analyze(
-    frames: str = Form(...),       # JSON array of base64 JPEG strings
-    audio: Optional[UploadFile] = File(None),  # WAV audio extracted client-side
+    request: Request,
+    frames: str = Form(...),
+    audio: Optional[UploadFile] = File(None),
 ):
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
@@ -74,6 +77,8 @@ async def analyze(
         )
         result["transcript"] = transcript
         result["frames_analyzed"] = len(frames_list)
+        ip = request.client.host if request.client else "unknown"
+        security_logger.analyze_ok(ip, len(frames_list))
         return result
 
     except asyncio.TimeoutError:
@@ -81,6 +86,8 @@ async def analyze(
     except HTTPException:
         raise
     except Exception as e:
+        ip = request.client.host if request.client else "unknown"
+        security_logger.analyze_error(ip, str(e))
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if audio_path:
