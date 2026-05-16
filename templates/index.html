@@ -297,12 +297,28 @@
     .tab.active { background: var(--primary); color: var(--dark); border-color: var(--primary); }
     .tab-badge { display: inline-block; background: var(--gold); color: #000; border-radius: 8px; font-size: 10px; padding: 1px 6px; margin-left: 4px; font-weight: 800; }
 
+    /* Structure de vente */
+    .sv-step {
+      text-align: center; padding: 12px 8px;
+      background: var(--surface2); border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: border-color .3s;
+    }
+    .sv-step.sv-ok    { border-color: var(--primary); }
+    .sv-step.sv-warn  { border-color: var(--warning); }
+    .sv-step.sv-bad   { border-color: var(--danger); }
+    .sv-score { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .sv-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 4px 0; }
+    .sv-feedback { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
     /* Responsive */
     @media (max-width: 640px) {
       .two-column { grid-template-columns: 1fr; }
       .scores-grid { grid-template-columns: 1fr; }
       header { padding: 10px 14px; }
       .logo-sub { display: none; }
+      #structure-vente-section .sv-step { padding: 8px 4px; }
+      #structure-vente-section > div:first-of-type { grid-template-columns: repeat(3, 1fr) !important; }
     }
   </style>
 </head>
@@ -449,6 +465,52 @@
       <div class="section" id="verdict-section" style="display:none">
         <h2>🏆 Verdict</h2>
         <div style="font-size:14px;line-height:1.7;color:var(--text)" id="verdict-text"></div>
+      </div>
+
+      <!-- STRUCTURE DE VENTE -->
+      <div class="section" id="structure-vente-section" style="display:none">
+        <h2>🔄 Structure de vente</h2>
+
+        <!-- Funnel 5 étapes -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+          <div class="sv-step" id="sv-accroche">
+            <div class="sv-score" id="sv-score-accroche">—</div>
+            <div class="sv-label">Accroche</div>
+            <div class="sv-feedback" id="sv-feedback-accroche"></div>
+          </div>
+          <div class="sv-step" id="sv-probleme">
+            <div class="sv-score" id="sv-score-probleme">—</div>
+            <div class="sv-label">Problème</div>
+            <div class="sv-feedback" id="sv-feedback-probleme"></div>
+          </div>
+          <div class="sv-step" id="sv-solution">
+            <div class="sv-score" id="sv-score-solution">—</div>
+            <div class="sv-label">Solution</div>
+            <div class="sv-feedback" id="sv-feedback-solution"></div>
+          </div>
+          <div class="sv-step" id="sv-produit">
+            <div class="sv-score" id="sv-score-produit">—</div>
+            <div class="sv-label">Produit</div>
+            <div class="sv-feedback" id="sv-feedback-produit"></div>
+          </div>
+          <div class="sv-step" id="sv-cta">
+            <div class="sv-score" id="sv-score-cta">—</div>
+            <div class="sv-label">Appel action</div>
+            <div class="sv-feedback" id="sv-feedback-cta"></div>
+          </div>
+        </div>
+
+        <!-- Score structure global + résumé -->
+        <div style="background:var(--surface2);padding:14px 16px;border-radius:8px;border-left:4px solid var(--primary);margin-bottom:14px;display:flex;align-items:center;gap:18px">
+          <div style="text-align:center;min-width:70px">
+            <div style="font-size:32px;font-weight:800;color:var(--primary)" id="score-structure">—</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">/100</div>
+          </div>
+          <div style="flex:1;font-size:13px;color:var(--muted);line-height:1.6" id="structure-summary"></div>
+        </div>
+
+        <!-- Améliorations structure -->
+        <div id="ameliorations-structure"></div>
       </div>
 
       <!-- CTA -->

@@ -60,19 +60,27 @@ def transcribe_audio(audio_path: str) -> Optional[str]:
         return None
 
 
-PROMPT = """Tu es un expert en marketing TikTok Shop avec 8 ans d'expérience en conversion.
+PROMPT = """Tu es un expert en marketing TikTok Shop avec 8 ans d'expérience en conversion et ventes directes.
+
+Analyse cette vidéo TikTok Shop en deux phases.
 
 RÈGLES STRICTES:
-1. Rédige UNIQUEMENT en français pur (zéro anglicisme dans les textes générés)
+1. Rédige UNIQUEMENT en français pur, zéro anglicisme
 2. Retourne UNIQUEMENT un JSON valide parsable
 3. Pas de texte avant ou après le JSON
-4. Tous les scores sur 10 (sauf score_global sur 100)
 
 ================================================================================
 PHASE 1: ANALYSE QUALITÉ (7 CRITÈRES)
 ================================================================================
 
-Évalue chaque critère sur 10 avec un commentaire court et pertinent.
+Score chaque critère sur 10:
+1. "accroche" → Force des 3 premières secondes
+2. "discours" → Clarté message + argumentation + structure vente
+3. "qualite_visuelle" → Éclairage, cadrage, stabilité
+4. "visibilite_produit" → Produit bien montré? Gros plans? Angles?
+5. "call_to_action" → Appel à l'action présent, clair, persuasif
+6. "energie_dynamisme" → Rythme, énergie créateur, engagement
+7. "credibilite_confiance" → Authenticité, preuves sociales
 
 ================================================================================
 PHASE 2: DÉTECTION AUTOMATIQUE
@@ -115,6 +123,25 @@ Pour le produit détecté et le type d'accroche utilisé:
 3. Donne 3 EXEMPLES EXACTS réutilisables directement
 
 ================================================================================
+PHASE 6: ANALYSE STRUCTURE DE VENTE (NOUVEAU)
+================================================================================
+
+La vidéo DOIT suivre ce flux naturel pour convertir:
+1. ACCROCHE (0-5sec) → Capture l'attention immédiatement
+2. PROBLÈME (5-20sec) → Identifie un point de douleur spécifique
+3. SOLUTION (20-45sec) → Montre comment le produit résout
+4. PRODUIT (45-60sec) → Démonstration/présentation du produit
+5. CTA (60+sec) → Appel à l'action clair et persuasif
+
+ÉVALUE CHAQUE ÉTAPE:
+
+Pour ACCROCHE: present (true/false), score (0-10), hook_type (type détecté), feedback (est-ce percutant?)
+Pour PROBLÈME: present (true/false), score (0-10), problem_stated (le problème identifié), clarity (0-10), feedback (clair et relatable?)
+Pour SOLUTION: present (true/false), score (0-10), how_solved (comment le produit résout), product_link (yes/no), feedback (crédible et spécifique?)
+Pour PRODUIT: present (true/false), score (0-10), shown_adequately (yes/no/partially), demo_quality (none/basic/good/excellent), feedback (angles suffisants?)
+Pour CTA: present (true/false), score (0-10), cta_type (type identifié), clarity (0-10), persuasion (faible/moyen/fort), feedback (arrive au bon moment?)
+
+================================================================================
 RETOUR JSON (STRUCTURE EXACTE)
 ================================================================================
 
@@ -141,6 +168,49 @@ RETOUR JSON (STRUCTURE EXACTE)
     "facteur_prix": "<très bas <15€ | bon 15-40€ | élevé 40-100€ | premium 100€+>",
     "explication": "<2-3 lignes>"
   },
+  "structure_vente": {
+    "accroche": {
+      "present": <true/false>,
+      "score": <0-10>,
+      "hook_type": "<type détecté>",
+      "feedback": "<est-ce percutant?>"
+    },
+    "probleme": {
+      "present": <true/false>,
+      "score": <0-10>,
+      "problem_stated": "<le problème identifié>",
+      "clarity": <0-10>,
+      "feedback": "<est-ce clair et relatable?>"
+    },
+    "solution": {
+      "present": <true/false>,
+      "score": <0-10>,
+      "how_solved": "<comment le produit résout>",
+      "product_link": "<yes/no>",
+      "feedback": "<la solution est-elle crédible?>"
+    },
+    "produit": {
+      "present": <true/false>,
+      "score": <0-10>,
+      "shown_adequately": "<yes/no/partially>",
+      "demo_quality": "<none/basic/good/excellent>",
+      "feedback": "<angles suffisants? Démonstration claire?>"
+    },
+    "cta": {
+      "present": <true/false>,
+      "score": <0-10>,
+      "cta_type": "<type identifié>",
+      "clarity": <0-10>,
+      "persuasion": "<faible/moyen/fort>",
+      "feedback": "<le CTA arrive au bon moment?>"
+    },
+    "ordre_naturel": <true/false>,
+    "transitions": "<fluides/abruptes/absentes>",
+    "etapes_presentes": ["accroche", "probleme", "solution", "produit", "cta"],
+    "etapes_manquantes": [],
+    "etapes_faibles": [],
+    "score_structure": <0-100>
+  },
   "score_global": <0-100>,
   "points_forts": ["<1>", "<2>", "<3>", "<4>"],
   "points_ameliorer": ["<1>", "<2>", "<3>"],
@@ -150,6 +220,11 @@ RETOUR JSON (STRUCTURE EXACTE)
     "exemples_concrets": ["<exemple 1>", "<exemple 2>", "<exemple 3>"]
   },
   "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"],
+  "ameliorations_structure": [
+    "<conseil 1 sur l'ordre/flux>",
+    "<conseil 2 sur étapes manquantes>",
+    "<conseil 3 sur transitions>"
+  ],
   "verdict": "<Résumé 3-4 phrases: potentiel viral? Problème principal? Priorité? Refaire ou publier?>"
 }
 
@@ -196,7 +271,14 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     match = re.search(r"\{[\s\S]*\}", raw)
     if match:
         try:
-            return json.loads(match.group())
+            parsed = json.loads(match.group())
+            # Extraire les champs structure au niveau racine pour faciliter le frontend
+            if "structure_vente" in parsed:
+                sv = parsed["structure_vente"]
+                parsed["structure_score"]    = sv.get("score_structure", 0)
+                parsed["etapes_manquantes"]  = sv.get("etapes_manquantes", [])
+                parsed["etapes_faibles"]     = sv.get("etapes_faibles", [])
+            return parsed
         except json.JSONDecodeError:
             pass
 

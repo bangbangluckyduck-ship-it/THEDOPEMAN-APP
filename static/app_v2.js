@@ -314,6 +314,62 @@ function showResults(d) {
   // Conseils
   fillList('conseils-list', d.conseils_concrets, '', true);
 
+  // Structure de vente
+  const sv = d.structure_vente;
+  if (sv) {
+    document.getElementById('structure-vente-section').style.display = 'block';
+
+    // Étapes du funnel
+    const etapes = ['accroche', 'probleme', 'solution', 'produit', 'cta'];
+    etapes.forEach(k => {
+      const step = sv[k];
+      if (!step) return;
+      const n = step.score ?? 0;
+      const el = document.getElementById(`sv-step-${k}`) || document.getElementById(`sv-${k}`);
+      if (el) {
+        el.classList.remove('sv-ok', 'sv-warn', 'sv-bad');
+        el.classList.add(!step.present ? 'sv-bad' : n >= 7 ? 'sv-ok' : n >= 5 ? 'sv-warn' : 'sv-bad');
+      }
+      const scoreEl = document.getElementById(`sv-score-${k}`);
+      if (scoreEl) scoreEl.textContent = step.present ? `${n}/10` : '—';
+      scoreEl && (scoreEl.style.color = !step.present ? 'var(--danger)' : scoreColor(n));
+
+      const feedEl = document.getElementById(`sv-feedback-${k}`);
+      if (feedEl) feedEl.textContent = step.feedback || '';
+    });
+
+    // Score global structure
+    const scoreStrEl = document.getElementById('score-structure');
+    if (scoreStrEl) {
+      scoreStrEl.textContent = sv.score_structure ?? '—';
+      const s = sv.score_structure ?? 0;
+      scoreStrEl.style.color = s >= 70 ? 'var(--primary)' : s >= 50 ? 'var(--warning)' : 'var(--danger)';
+    }
+
+    // Résumé
+    const summaryEl = document.getElementById('structure-summary');
+    if (summaryEl) {
+      const parts = [];
+      if (sv.ordre_naturel) parts.push('✅ Ordre naturel respecté');
+      else parts.push('⚠️ Ordre du flux non respecté');
+      if (sv.transitions === 'fluides') parts.push('✅ Transitions fluides');
+      else if (sv.transitions) parts.push(`⚠️ Transitions : ${sv.transitions}`);
+      if (sv.etapes_manquantes?.length) parts.push(`❌ Étapes absentes : ${sv.etapes_manquantes.join(', ')}`);
+      if (sv.etapes_faibles?.length) parts.push(`⚠️ Étapes faibles : ${sv.etapes_faibles.join(', ')}`);
+      summaryEl.textContent = parts.join(' · ') || 'Structure correcte ✅';
+    }
+
+    // Améliorations structure
+    const amelioEl = document.getElementById('ameliorations-structure');
+    if (amelioEl && d.ameliorations_structure?.length) {
+      amelioEl.innerHTML = `
+        <h3 style="color:var(--warning);margin-bottom:8px">💡 Améliorer le flux de vente</h3>
+        <ul class="points-list neg">${(d.ameliorations_structure).map(a => `<li>${a}</li>`).join('')}</ul>`;
+    }
+  } else {
+    document.getElementById('structure-vente-section').style.display = 'none';
+  }
+
   // Transcription
   if (d.transcript) {
     document.getElementById('transcript-section').style.display = 'block';
@@ -343,9 +399,10 @@ function resetAnalysis() {
   document.getElementById('file-tag').style.display           = 'none';
   document.getElementById('video-file').value                 = '';
   document.getElementById('analyze-btn').disabled             = true;
-  document.getElementById('transcript-section').style.display = 'none';
-  document.getElementById('verdict-section').style.display    = 'none';
-  document.getElementById('error-box').style.display          = 'none';
+  document.getElementById('transcript-section').style.display      = 'none';
+  document.getElementById('verdict-section').style.display          = 'none';
+  document.getElementById('structure-vente-section').style.display  = 'none';
+  document.getElementById('error-box').style.display                = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
