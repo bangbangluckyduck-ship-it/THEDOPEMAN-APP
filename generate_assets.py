@@ -24,41 +24,40 @@ def make_icon(size: int) -> Image.Image:
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Rounded background gradient (simulate with two rects)
-    r = size // 6
-    draw.rounded_rectangle([0, 0, size, size], radius=r, fill="#0a0a0a")
+    # Dark rounded background
+    r = size // 5
+    draw.rounded_rectangle([0, 0, size, size], radius=r, fill="#0d1220")
 
-    # Pink glow circle
-    pad = size // 8
-    draw.ellipse([pad, pad, size - pad, size - pad], fill="#fe2c55")
+    # Royal blue outer ring
+    pad = size // 12
+    draw.ellipse([pad, pad, size - pad, size - pad], fill="#2952cc")
 
-    # Cyan accent circle (offset)
-    off = size // 10
-    draw.ellipse([pad + off, pad + off, size - pad + off, size - pad + off],
-                 fill="#25f4ee")
+    # Slightly smaller darker blue inner circle
+    pad2 = size // 6
+    draw.ellipse([pad2, pad2, size - pad2, size - pad2], fill="#1a3a9e")
 
-    # Re-draw pink on top slightly smaller for overlap effect
-    inner = size // 5
-    draw.ellipse([inner, inner, size - inner, size - inner], fill="#fe2c55")
+    # Gold ring accent
+    ring = size // 7
+    draw.ellipse([ring, ring, size - ring, size - ring], outline="#d4af37",
+                 width=max(2, size // 32))
 
-    # Play triangle
+    # Gold play triangle
     cx, cy = size // 2, size // 2
     half = size // 5
     draw.polygon([
-        (cx - half + 4, cy - half),
-        (cx - half + 4, cy + half),
-        (cx + half + 4, cy),
-    ], fill="white")
+        (cx - half + size // 20, cy - half),
+        (cx - half + size // 20, cy + half),
+        (cx + half + size // 20, cy),
+    ], fill="#d4af37")
 
     return img
 
 
 def generate_icons():
     static = Path(__file__).parent / "static"
+    static.mkdir(exist_ok=True)
     for sz in (192, 512):
-        path = static / f"icon-{sz}.png"
-        if not path.exists():
-            make_icon(sz).save(path, "PNG")
+        make_icon(sz).save(static / f"icon-{sz}.png", "PNG")
 
 
 def generate_qr_b64(url: str) -> str:
