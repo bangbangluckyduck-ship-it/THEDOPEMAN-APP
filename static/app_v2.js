@@ -191,9 +191,12 @@ async function analyzeVideo() {
     fd.append('frames', JSON.stringify(frames));
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
 
-    const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 65000);
-    const res   = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal });
+    const ctrl    = new AbortController();
+    const timer   = setTimeout(() => ctrl.abort(), 65000);
+    const headers = {};
+    const email   = localStorage.getItem(USER_KEY);
+    if (email) headers['Authorization'] = `Bearer ${email}`;
+    const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal, headers });
     clearTimeout(timer);
 
     if (!res.ok) throw new Error((await res.json()).detail || 'Erreur serveur');
@@ -202,7 +205,13 @@ async function analyzeVideo() {
     currentData     = data;
     currentFilename = selectedFile.name;
 
-    incrementUsage();
+    // Sync le compteur avec la réponse serveur si disponible
+    if (data.usage?.used !== undefined) {
+      localStorage.setItem(USAGE_KEY, data.usage.used);
+      updateUsageCounter();
+    } else {
+      incrementUsage();
+    }
     saveToHistory(data, currentFilename);
     showResults(data);
 

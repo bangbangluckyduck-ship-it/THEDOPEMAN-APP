@@ -16,6 +16,7 @@ load_dotenv()
 from analyzer import analyze_video, transcribe_audio
 from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
+from auth import get_user_from_request, check_quota, increment_usage, usage_info
 
 generate_icons()
 
@@ -44,6 +45,9 @@ async def analyze(
 ):
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+
+    user = get_user_from_request(request)
+    check_quota(user)
 
     frames_list: list[str] = json.loads(frames)
     if not frames_list:
@@ -75,8 +79,12 @@ async def analyze(
             loop.run_in_executor(None, analyze_video, frames_list, transcript),
             timeout=30.0,
         )
-        result["transcript"] = transcript
+        if user["valid"]:
+            increment_usage(user["email"])
+
+        result["transcript"]      = transcript
         result["frames_analyzed"] = len(frames_list)
+        result["usage"]           = usage_info(user)
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, len(frames_list))
         return result
