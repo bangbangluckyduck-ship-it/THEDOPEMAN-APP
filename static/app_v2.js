@@ -10,7 +10,7 @@ const STORAGE_KEY   = 'dv_history';
 const USAGE_KEY     = 'dv_usage';
 const USER_KEY      = 'dv_user';
 const MAX_HISTORY   = 20;
-const FREE_LIMIT    = 5;
+const FREE_LIMIT    = 999; // limite levée pendant la beta
 
 const LABELS = {
   accroche:              '🎯 Accroche',

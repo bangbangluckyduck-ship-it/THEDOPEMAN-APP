@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import HTTPException, Request
 
 # ── CONFIGURATION ─────────────────────────────────────────────
-FREE_LIMIT = 5  # analyses gratuites par session serveur
+FREE_LIMIT = 999  # limite levée pendant la beta
 
 # Comptage in-memory par email (resets au redémarrage Render — OK pour beta)
 _usage_store: dict[str, int] = {}
