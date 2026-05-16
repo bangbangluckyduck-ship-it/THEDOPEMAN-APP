@@ -149,6 +149,57 @@
     /* TRANSCRIPT */
     .transcript-box { background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:10px; padding:12px; font-size:.8rem; color:var(--muted); font-style:italic; line-height:1.55; }
 
+    /* DETECTION STRIP */
+    .detection-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
+    .det-badge {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:14px; padding:12px 14px;
+    }
+    .det-badge .det-lbl { font-size:.68rem; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+    .det-badge .det-val { font-size:.9rem; font-weight:700; color:var(--text); }
+    .det-badge .det-val.ok  { color:#4ade80; }
+    .det-badge .det-val.bad { color:var(--col-low); }
+    .hook-force-bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; margin-top:6px; }
+    .hook-force-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--blue),var(--gold)); }
+
+    /* VIRAL POTENTIAL */
+    .viral-card {
+      background:linear-gradient(135deg,rgba(41,82,204,.12),rgba(212,175,55,.07));
+      border:1px solid rgba(212,175,55,.2); border-radius:20px;
+      padding:18px 16px; margin:12px 0;
+      display:flex; align-items:center; gap:16px;
+    }
+    .viral-score-ring {
+      min-width:68px; height:68px; border-radius:50%; flex-shrink:0;
+      background:conic-gradient(var(--gold) 0%, var(--border) 0%);
+      display:flex; align-items:center; justify-content:center;
+      position:relative;
+    }
+    .viral-score-ring::before {
+      content:''; position:absolute; inset:6px;
+      background:var(--bg); border-radius:50%;
+    }
+    .viral-score-ring span { position:relative; font-size:1.1rem; font-weight:900; color:var(--gold-2); z-index:1; }
+    .viral-info { flex:1; }
+    .viral-info .viral-title { font-size:.85rem; font-weight:700; color:var(--gold-2); margin-bottom:4px; }
+    .viral-info .viral-prix  { font-size:.75rem; color:var(--muted); margin-bottom:6px; }
+    .viral-info .viral-expl  { font-size:.78rem; color:var(--muted); line-height:1.45; }
+
+    /* RECO HOOKS */
+    .reco-type-badge {
+      display:inline-block; background:linear-gradient(135deg,var(--blue),var(--blue-2));
+      color:#fff; border-radius:20px; padding:4px 14px;
+      font-size:.8rem; font-weight:700; margin-bottom:10px;
+    }
+    .reco-raison { font-size:.83rem; color:var(--muted); font-style:italic; line-height:1.5; margin-bottom:12px; }
+    .exemple-list { list-style:none; }
+    .exemple-list li {
+      background:rgba(41,82,204,.08); border:1px solid rgba(41,82,204,.2);
+      border-radius:10px; padding:10px 12px; margin:7px 0;
+      font-size:.84rem; line-height:1.45; color:var(--text);
+    }
+    .exemple-list li::before { content:'→ '; color:var(--gold); font-weight:700; }
+
     /* HISTORY */
     #tab-content-history { display:none; }
     .history-empty { text-align:center; padding:48px 20px; color:var(--muted); font-size:.9rem; }
@@ -231,6 +282,41 @@
       <div class="lbl">Score global / 100</div>
     </div>
 
+    <!-- DÉTECTION -->
+    <div id="detection-section" style="display:none">
+      <div class="detection-grid">
+        <div class="det-badge">
+          <div class="det-lbl">📦 Produit</div>
+          <div class="det-val" id="det-produit">—</div>
+        </div>
+        <div class="det-badge">
+          <div class="det-lbl">💶 Prix estimé</div>
+          <div class="det-val" id="det-prix">—</div>
+        </div>
+        <div class="det-badge">
+          <div class="det-lbl">🎯 Type d'accroche</div>
+          <div class="det-val" id="det-hook-type">—</div>
+        </div>
+        <div class="det-badge">
+          <div class="det-lbl">⚡ Force accroche</div>
+          <div class="det-val" id="det-hook-force">—</div>
+          <div class="hook-force-bar"><div class="hook-force-fill" id="det-hook-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POTENTIEL VIRAL -->
+    <div class="viral-card" id="viral-section" style="display:none">
+      <div class="viral-score-ring" id="viral-ring">
+        <span id="viral-score-num">--</span>
+      </div>
+      <div class="viral-info">
+        <div class="viral-title">🚀 Potentiel viral</div>
+        <div class="viral-prix" id="viral-prix-facteur"></div>
+        <div class="viral-expl" id="viral-explication"></div>
+      </div>
+    </div>
+
     <div class="verdict" id="verdict-text"></div>
 
     <div class="card">
@@ -246,6 +332,14 @@
     <div class="card">
       <div class="card-title">⚠️ À améliorer</div>
       <ul class="item-list" id="improvements"></ul>
+    </div>
+
+    <!-- RECOMMANDATIONS ACCROCHES -->
+    <div class="card" id="reco-card" style="display:none">
+      <div class="card-title">🎯 Meilleure accroche pour ce produit</div>
+      <div class="reco-type-badge" id="reco-type">—</div>
+      <div class="reco-raison" id="reco-raison"></div>
+      <ul class="exemple-list" id="reco-exemples"></ul>
     </div>
 
     <div class="card">
@@ -472,11 +566,43 @@
   // ── SHOW RESULTS ─────────────────────────────────────────
   function showResults(d) {
     currentData = d;
-    document.getElementById('loading').style.display   = 'none';
-    document.getElementById('results').style.display   = 'block';
-    document.getElementById('global-num').textContent  = d.score_global ?? '--';
+    document.getElementById('loading').style.display    = 'none';
+    document.getElementById('results').style.display    = 'block';
+    document.getElementById('global-num').textContent   = d.score_global ?? '--';
     document.getElementById('verdict-text').textContent = d.verdict || '';
 
+    // Détection
+    const det = d.detection;
+    if (det) {
+      document.getElementById('detection-section').style.display = 'block';
+      document.getElementById('det-produit').textContent = det.produit || '—';
+      const prixEl = document.getElementById('det-prix');
+      prixEl.textContent = det.prix_estime !== 'non détecté' && det.prix_estime
+        ? det.prix_estime + (det.prix_rentable ? ' ✓' : ' ✗') : det.prix_estime || '—';
+      prixEl.className = 'det-val ' + (det.prix_rentable ? 'ok' : '');
+      document.getElementById('det-hook-type').textContent = det.hook_type || '—';
+      const hf = det.hook_force ?? 0;
+      document.getElementById('det-hook-force').textContent = hf + '/10';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.getElementById('det-hook-bar').style.width = (hf * 10) + '%';
+      }));
+    }
+
+    // Potentiel viral
+    const vp = d.viral_potential;
+    if (vp) {
+      document.getElementById('viral-section').style.display = 'flex';
+      const vs = vp.score ?? 0;
+      document.getElementById('viral-score-num').textContent = vs;
+      const ring = document.getElementById('viral-ring');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        ring.style.background = `conic-gradient(var(--gold) ${vs * 3.6}deg, var(--border) 0deg)`;
+      }));
+      document.getElementById('viral-prix-facteur').textContent = vp.facteur_prix || '';
+      document.getElementById('viral-explication').textContent  = vp.explication || '';
+    }
+
+    // Scores
     const sl = document.getElementById('scores-list');
     sl.innerHTML = '';
     if (d.scores) {
@@ -508,6 +634,16 @@
     fillList('improvements', d.points_ameliorer, '⚠️');
     fillList('tips',         d.conseils_concrets,'💡');
 
+    // Recommandations accroches
+    const reco = d.recommendations_hooks;
+    if (reco) {
+      document.getElementById('reco-card').style.display = 'block';
+      document.getElementById('reco-type').textContent   = reco.hook_type_propose || '—';
+      document.getElementById('reco-raison').textContent = reco.raison || '';
+      document.getElementById('reco-exemples').innerHTML = (reco.exemples_concrets || [])
+        .map(e => `<li>${e}</li>`).join('');
+    }
+
     if (d.transcript) {
       document.getElementById('transcript-card').style.display = 'block';
       document.getElementById('transcript-text').textContent = d.transcript;
@@ -527,13 +663,16 @@
       id: Date.now(),
       date: new Date().toISOString(),
       filename: filename || 'vidéo',
-      score_global:      data.score_global,
-      verdict:           data.verdict,
-      scores:            data.scores,
-      points_forts:      data.points_forts,
-      points_ameliorer:  data.points_ameliorer,
-      conseils_concrets: data.conseils_concrets,
-      transcript:        data.transcript,
+      score_global:          data.score_global,
+      verdict:               data.verdict,
+      scores:                data.scores,
+      detection:             data.detection,
+      viral_potential:       data.viral_potential,
+      points_forts:          data.points_forts,
+      points_ameliorer:      data.points_ameliorer,
+      recommendations_hooks: data.recommendations_hooks,
+      conseils_concrets:     data.conseils_concrets,
+      transcript:            data.transcript,
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
     updateHistoryBadge();
@@ -741,13 +880,16 @@
   // ── RESET ────────────────────────────────────────────────
   function reset() {
     selectedFile = null; currentData = null;
-    document.getElementById('results').style.display        = 'none';
-    document.getElementById('upload-section').style.display = 'block';
-    document.getElementById('file-tag').style.display       = 'none';
-    document.getElementById('file-input').value             = '';
-    document.getElementById('analyze-btn').disabled         = true;
-    document.getElementById('transcript-card').style.display = 'none';
-    document.getElementById('error-box').style.display      = 'none';
+    document.getElementById('results').style.display           = 'none';
+    document.getElementById('upload-section').style.display    = 'block';
+    document.getElementById('file-tag').style.display          = 'none';
+    document.getElementById('file-input').value                = '';
+    document.getElementById('analyze-btn').disabled            = true;
+    document.getElementById('transcript-card').style.display   = 'none';
+    document.getElementById('error-box').style.display         = 'none';
+    document.getElementById('detection-section').style.display = 'none';
+    document.getElementById('viral-section').style.display     = 'none';
+    document.getElementById('reco-card').style.display         = 'none';
   }
 
   // ── PWA ──────────────────────────────────────────────────
