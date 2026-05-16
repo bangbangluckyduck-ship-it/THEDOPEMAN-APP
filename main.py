@@ -46,6 +46,12 @@ async def analyze(
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
+    # Log les agents suspects sans bloquer (monitoring uniquement)
+    ua = request.headers.get("User-Agent", "").lower()
+    if any(w in ua for w in ["scrapy", "spider", "crawler"]):
+        ip = request.client.host if request.client else "unknown"
+        security_logger.suspicious_agent(ip, ua)
+
     user = get_user_from_request(request)
     check_quota(user)
 

@@ -61,6 +61,9 @@ class SecurityLogger:
     def analyze_error(self, ip: str, error: str):
         self._write("analyze_error", {"ip": ip, "error": error[:120]})
 
+    def suspicious_agent(self, ip: str, user_agent: str):
+        self._write("suspicious_agent", {"ip": ip, "ua": user_agent[:120]})
+
 
 # ── MIDDLEWARE ────────────────────────────────────────────────────────────────
 
