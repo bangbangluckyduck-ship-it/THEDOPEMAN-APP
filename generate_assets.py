@@ -56,8 +56,13 @@ def make_icon(size: int) -> Image.Image:
 def generate_icons():
     static = Path(__file__).parent / "static"
     static.mkdir(exist_ok=True)
+    logo = static / "logo.png"
     for sz in (192, 512):
-        make_icon(sz).save(static / f"icon-{sz}.png", "PNG")
+        if logo.exists():
+            img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        else:
+            img = make_icon(sz)
+        img.save(static / f"icon-{sz}.png", "PNG")
 
 
 def generate_qr_b64(url: str) -> str:
