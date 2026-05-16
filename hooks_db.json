@@ -1,0 +1,224 @@
+{
+  "version": "1.0",
+  "last_updated": "2024-05-16",
+
+  "categories": [
+    {
+      "id": "controverse_douce",
+      "nom": "Controverse Douce",
+      "description": "Cadrage contre-intuitif, objection handling, 'n'achète pas ça'",
+      "performance_score": 0.18,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["health", "tech", "home", "supplement"],
+      "warning": null,
+      "examples": [
+        "n'achète pas ça si tu veux juste...",
+        "avant d'acheter, sache que...",
+        "tout le monde achète ça mal",
+        "une chose que personne ne dit sur ça",
+        "pourquoi la plupart se trompent en achetant ça",
+        "j'aurais voulu savoir ça avant d'acheter",
+        "l'erreur que 90% font avec ça",
+        "c'est dangereux d'acheter ça sans savoir ça"
+      ]
+    },
+    {
+      "id": "urgence_tarifaire",
+      "nom": "Urgence Tarifaire",
+      "description": "Stock limité, promo limité, FOMO prix",
+      "performance_score": 0.14,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["home", "tech", "fitness"],
+      "warning": "Doit être VRAI. Perdre confiance si mensonge.",
+      "examples": [
+        "stock limité, avant que ça disparaisse",
+        "promo valable jusqu'à demain",
+        "les prix ne vont que monter",
+        "dernières pièces en stock",
+        "prix augmente dans 3 jours",
+        "promotion flash, ne dure que 24h",
+        "rupture de stock prévue demain",
+        "quantités très limitées"
+      ]
+    },
+    {
+      "id": "reponse_commentaire",
+      "nom": "Réponse Commentaire",
+      "description": "Adresse une question/problème spécifique des abonnés",
+      "performance_score": 0.12,
+      "best_for_prices": ["<15", "15-40", "40-100"],
+      "best_for_categories": ["health", "tech", "home", "beauty"],
+      "warning": null,
+      "examples": [
+        "beaucoup me demandent comment...",
+        "vous me posez TOUJOURS cette question",
+        "le problème qu'on me signale le plus",
+        "la question que vous avez tous",
+        "voici comment j'ai résolu ça",
+        "j'ai la réponse à votre question",
+        "je vous explique comment fonctionner ça",
+        "réponse à vos 10 questions les plus posées"
+      ]
+    },
+    {
+      "id": "curiosite",
+      "nom": "Curiosité",
+      "description": "Révélation, secret, 'tu ne savais pas'",
+      "performance_score": 0.10,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["tech", "home", "health", "supplement"],
+      "warning": "Doit être vrai, expert crédible",
+      "examples": [
+        "tu ne savais pas que...",
+        "la plupart achètent ça mal",
+        "ce détail que PERSONNE connaît",
+        "seuls les pros savent ça",
+        "je te montre comment c'est vraiment utilisé",
+        "personne ne parle de ça",
+        "le secret que les marques cachent",
+        "pourquoi tout le monde devrait savoir ça"
+      ]
+    },
+    {
+      "id": "peur",
+      "nom": "Peur",
+      "description": "Peur manque/dégât, conséquences négatives",
+      "performance_score": 0.08,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["health", "supplement", "home", "beauty"],
+      "warning": "RISQUÉ. Utiliser prudemment, être honnête",
+      "examples": [
+        "évite cette erreur COÛTEUSE",
+        "si tu continues comme ça tu vas...",
+        "c'est dangereux de ne pas avoir ça",
+        "tu risques de perdre...",
+        "attention au piège principal",
+        "j'ai évité un désastre grâce à ça",
+        "la conséquence que personne n'évoque",
+        "ce que tu rates en ne l'ayant pas"
+      ]
+    },
+    {
+      "id": "temoignage",
+      "nom": "Témoignage",
+      "description": "Before/after, résultats réels, transformation",
+      "performance_score": 0.11,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["health", "fitness", "beauty", "supplement"],
+      "warning": null,
+      "examples": [
+        "voici comment ça a changé ma vie",
+        "avant/après en 30 jours",
+        "résultat bien au-delà de mes attentes",
+        "mon avis honnête après 3 mois d'utilisation",
+        "j'étais sceptique mais...",
+        "résultats que j'ai eu",
+        "transformation visible en photos",
+        "je ne pensais pas que c'était possible"
+      ]
+    },
+    {
+      "id": "cas_usage",
+      "nom": "Cas d'Usage",
+      "description": "Comment l'utiliser, démo pratique",
+      "performance_score": 0.09,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["tech", "home", "fitness"],
+      "warning": null,
+      "examples": [
+        "voici comment l'utiliser au quotidien",
+        "démo pratique du produit",
+        "cas d'usage que tu n'avais pas pensé",
+        "comment faire ça avec ça",
+        "utilisation au quotidien",
+        "setup complet pour débuter",
+        "pas à pas pour optimiser",
+        "technique que j'utilise quotidiennement"
+      ]
+    },
+    {
+      "id": "tendance",
+      "nom": "Tendance",
+      "description": "Suit une tendance TikTok, meme, son viral",
+      "performance_score": 0.13,
+      "best_for_prices": ["<15", "15-40"],
+      "best_for_categories": ["fitness", "beauty", "tech"],
+      "warning": "Durée limitée. Rapide péremption.",
+      "examples": [
+        "[suit tendance TikTok du moment]",
+        "[utilise son viral]",
+        "[format tendance TikTok]",
+        "[challenge TikTok adapté au produit]",
+        "[transition tendance + produit]"
+      ]
+    }
+  ],
+
+  "product_categories": {
+    "complement_sante": {
+      "names": ["shilajit", "creatine", "lion's mane", "maca", "vitamine", "collagene", "bcaa", "whey", "supplement"],
+      "recommended_hooks": ["controverse_douce", "temoignage", "curiosite"],
+      "price_range": "15-100",
+      "notes": "Authenticité CRITIQUE. Éviter peur excessive."
+    },
+    "electromenager": {
+      "names": ["air fryer", "robot", "table pliante", "cafetière", "aspirateur", "friteuse", "mixeur"],
+      "recommended_hooks": ["controverse_douce", "urgence_tarifaire", "cas_usage"],
+      "price_range": "25-300",
+      "notes": "Montrer le produit. Démo visuelle importante."
+    },
+    "tech": {
+      "names": ["drone", "montre", "chargeur", "câble", "batterie", "ecouteurs", "téléphone", "smartwatch"],
+      "recommended_hooks": ["curiosite", "cas_usage", "controverse_douce"],
+      "price_range": "20-200",
+      "notes": "Innovation + facilité d'utilisation. Specs moins importants."
+    },
+    "fitness": {
+      "names": ["barre traction", "tapis", "haltères", "kettlebell", "élastique", "corde", "musculation"],
+      "recommended_hooks": ["temoignage", "peur", "cas_usage"],
+      "price_range": "15-80",
+      "notes": "Avant/après fort. Récit de transformation."
+    },
+    "beaute": {
+      "names": ["soin", "cheveux", "maquillage", "sérum", "crème", "huile", "masque"],
+      "recommended_hooks": ["temoignage", "curiosite", "reponse_commentaire"],
+      "price_range": "10-100",
+      "notes": "Transformation visuelle. Authenticité = confiance."
+    },
+    "alimentation": {
+      "names": ["snack", "barre protéinée", "thé", "café", "boisson", "energie"],
+      "recommended_hooks": ["curiosite", "reponse_commentaire", "tendance"],
+      "price_range": "<25",
+      "notes": "Goût + praticité. Tendance souvent efficace."
+    },
+    "luxe": {
+      "names": ["the watery", "premium", "luxe", "exclusif", "designer", "high-end"],
+      "recommended_hooks": ["controverse_douce", "curiosite", "temoignage"],
+      "price_range": "80-500",
+      "notes": "Positionnement important. Premium = objection fréquente."
+    }
+  },
+
+  "price_factors": {
+    "tres_bas": {
+      "range": "<10",
+      "viral_multiplier": 0.8,
+      "note": "Facile à vendre mais marge basse. Volume clé."
+    },
+    "optimal": {
+      "range": "15-40",
+      "viral_multiplier": 1.3,
+      "note": "SWEET SPOT. Meilleur rapport conversion/clic."
+    },
+    "milieu_gamme": {
+      "range": "40-100",
+      "viral_multiplier": 1.1,
+      "note": "Bon potentiel viral. Objection plus haute."
+    },
+    "premium": {
+      "range": "100+",
+      "viral_multiplier": 0.7,
+      "note": "Objection majeure. Positionnement + preuve critique."
+    }
+  }
+}

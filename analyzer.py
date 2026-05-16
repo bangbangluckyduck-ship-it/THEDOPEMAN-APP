@@ -3,7 +3,41 @@ import base64
 import json
 import os
 import re
+from pathlib import Path
 from typing import List, Optional
+
+
+def _load_hooks_context() -> str:
+    """Charge la base de données des accroches et retourne un résumé condensé pour le prompt."""
+    try:
+        db_path = Path(__file__).parent / "hooks_db.json"
+        db = json.loads(db_path.read_text(encoding="utf-8"))
+
+        lines = ["\n================================================================================",
+                 "BASE DE DONNÉES ACCROCHES (utilise ces données pour tes recommandations)",
+                 "================================================================================"]
+
+        lines.append("\nPERFORMANCE DES TYPES D'ACCROCHE (score = taux de conversion moyen):")
+        for cat in sorted(db["categories"], key=lambda c: c["performance_score"], reverse=True):
+            warn = f" ⚠️ {cat['warning']}" if cat.get("warning") else ""
+            lines.append(f"- {cat['nom']} (score {cat['performance_score']:.0%}): {cat['description']}{warn}")
+            lines.append(f"  Exemples: {' | '.join(cat['examples'][:3])}")
+
+        lines.append("\nRECOMMANDATIONS PAR CATÉGORIE PRODUIT:")
+        for key, cat in db["product_categories"].items():
+            hooks = ", ".join(cat["recommended_hooks"])
+            lines.append(f"- {key} ({', '.join(cat['names'][:4])}…): meilleurs types → {hooks}. {cat['notes']}")
+
+        lines.append("\nFACTEURS PRIX:")
+        for key, pf in db["price_factors"].items():
+            lines.append(f"- {pf['range']}€: multiplicateur viral ×{pf['viral_multiplier']} — {pf['note']}")
+
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+_HOOKS_CONTEXT = _load_hooks_context()
 
 
 def transcribe_audio(audio_path: str) -> Optional[str]:
@@ -139,7 +173,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     if transcript:
         content.append({"type": "text", "text": f"\n\nTranscription audio :\n{transcript}"})
 
-    content.append({"type": "text", "text": PROMPT})
+    content.append({"type": "text", "text": PROMPT + _HOOKS_CONTEXT})
 
     response = httpx.post(
         "https://api.mistral.ai/v1/chat/completions",
