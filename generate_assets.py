@@ -56,7 +56,10 @@ def make_icon(size: int) -> Image.Image:
 def generate_icons():
     static = Path(__file__).parent / "static"
     static.mkdir(exist_ok=True)
-    logo = static / "logo.png"
+    # Priorité : TTS-LOGO.jpg > logo.png > icône générée
+    logo = static / "TTS-LOGO.jpg"
+    if not logo.exists():
+        logo = static / "logo.png"
     for sz in (192, 512):
         if logo.exists():
             img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
