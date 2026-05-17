@@ -55,6 +55,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Délai dépassé. Réessaie avec une vidéo plus courte.',
     saved_ok:'Sauvegardé !',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Tous droits réservés',
+    ios_title:'Installer sur iPhone / iPad',
+    ios_s1:'Appuie sur <strong style="color:var(--text)">Partager</strong> ⎋ en bas de Safari',
+    ios_s2:'Fais défiler et appuie sur <strong style="color:var(--text)">"Sur l\'écran d\'accueil"</strong>',
+    ios_s3:'Appuie sur <strong style="color:var(--text)">"Ajouter"</strong> en haut à droite',
   },
   en: {
     app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
@@ -94,6 +98,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Try again with a shorter video.',
     saved_ok:'Saved!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · All rights reserved',
+    ios_title:'Install on iPhone / iPad',
+    ios_s1:'Tap <strong style="color:var(--text)">Share</strong> ⎋ at the bottom of Safari',
+    ios_s2:'Scroll down and tap <strong style="color:var(--text)">"Add to Home Screen"</strong>',
+    ios_s3:'Tap <strong style="color:var(--text)">"Add"</strong> in the top right corner',
   },
   'pt-br': {
     app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
@@ -133,6 +141,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tempo esgotado. Tente com um vídeo mais curto.',
     saved_ok:'Salvo!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Todos os direitos reservados',
+    ios_title:'Instalar no iPhone / iPad',
+    ios_s1:'Toque em <strong style="color:var(--text)">Compartilhar</strong> ⎋ na parte inferior do Safari',
+    ios_s2:'Role para baixo e toque em <strong style="color:var(--text)">"Tela de Início"</strong>',
+    ios_s3:'Toque em <strong style="color:var(--text)">"Adicionar"</strong> no canto superior direito',
   },
   es: {
     app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
@@ -172,6 +184,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tiempo agotado. Intenta con un vídeo más corto.',
     saved_ok:'¡Guardado!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Todos los derechos reservados',
+    ios_title:'Instalar en iPhone / iPad',
+    ios_s1:'Pulsa <strong style="color:var(--text)">Compartir</strong> ⎋ en la parte inferior de Safari',
+    ios_s2:'Desplázate y pulsa <strong style="color:var(--text)">"En pantalla de inicio"</strong>',
+    ios_s3:'Pulsa <strong style="color:var(--text)">"Añadir"</strong> arriba a la derecha',
   },
   it: {
     app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
@@ -211,6 +227,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Riprova con un video più breve.',
     saved_ok:'Salvato!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Tutti i diritti riservati',
+    ios_title:'Installa su iPhone / iPad',
+    ios_s1:'Tocca <strong style="color:var(--text)">Condividi</strong> ⎋ in fondo a Safari',
+    ios_s2:'Scorri e tocca <strong style="color:var(--text)">"Aggiungi a Home"</strong>',
+    ios_s3:'Tocca <strong style="color:var(--text)">"Aggiungi"</strong> in alto a destra',
   },
   de: {
     app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
@@ -250,6 +270,10 @@ const TRANSLATIONS = {
     err_timeout:'❌ Zeitüberschreitung. Versuche mit einem kürzeren Video.',
     saved_ok:'Gespeichert!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Alle Rechte vorbehalten',
+    ios_title:'Auf iPhone / iPad installieren',
+    ios_s1:'Tippe auf <strong style="color:var(--text)">Teilen</strong> ⎋ unten in Safari',
+    ios_s2:'Scrolle und tippe auf <strong style="color:var(--text)">"Zum Home-Bildschirm"</strong>',
+    ios_s3:'Tippe oben rechts auf <strong style="color:var(--text)">"Hinzufügen"</strong>',
   },
 };
 
@@ -334,6 +358,28 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault(); deferredPrompt = e;
     document.getElementById('pwa-banner').style.display = 'flex';
   });
+
+  // Détection iOS : afficher guide d'installation si pas déjà installé
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  const iosBannerDismissed = localStorage.getItem('ios_banner_dismissed');
+
+  if (isIOS && !isStandalone && !iosBannerDismissed) {
+    const banner = document.getElementById('ios-banner');
+    if (banner) {
+      // Mettre à jour les textes avec la langue courante
+      document.getElementById('ios-banner-title').textContent = t('ios_title');
+      const steps = document.getElementById('ios-banner-steps');
+      steps.innerHTML = `<li>${t('ios_s1')}</li><li>${t('ios_s2')}</li><li>${t('ios_s3')}</li>`;
+      banner.style.display = 'block';
+      // Fermeture mémorisée
+      banner.querySelector('button').addEventListener('click', () => {
+        localStorage.setItem('ios_banner_dismissed', '1');
+      });
+    }
+  }
 });
 
 // ── SERVER WAKE ───────────────────────────────────────────────
