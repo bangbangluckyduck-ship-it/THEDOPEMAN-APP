@@ -62,7 +62,12 @@ def transcribe_audio(audio_path: str) -> Optional[str]:
 
 PROMPT = """Tu es un expert en marketing TikTok Shop avec 8 ans d'expérience en conversion et ventes directes.
 
-Analyse cette vidéo TikTok Shop en deux phases.
+IMPORTANT — NUANCE ET HUMILITÉ:
+Sois nuancé dans tes analyses. On peut toujours se tromper.
+Des vidéos "mauvaises" vendent très bien, des "excellentes" floppent. L'algo TikTok est imprévisible.
+Utilise du langage probabiliste ("semble", "laisse penser", "tend à", "probablement") — jamais affirmatif.
+
+Analyse cette vidéo TikTok Shop.
 
 RÈGLES STRICTES:
 1. Rédige UNIQUEMENT en français pur, zéro anglicisme
@@ -219,16 +224,28 @@ RETOUR JSON (STRUCTURE EXACTE)
     "raison": "<pourquoi (1-2 phrases)>",
     "exemples_concrets": ["<exemple 1>", "<exemple 2>", "<exemple 3>"]
   },
+  "prix_conversion": {
+    "montant": <prix en EUR ou null>,
+    "categorie": "<economique | moyen | premium>",
+    "potentiel_conversion": {
+      "niveau": "<rapide | moyen | lent>",
+      "description": "<texte nuancé basé sur prix + score vidéo>",
+      "temps_attendre": "<j7 | j30>",
+      "confiance_prechampion": <true/false>
+    },
+    "conseil_prix": "<conseil contextuel et nuancé sur le timing d'évaluation>"
+  },
   "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"],
   "ameliorations_structure": [
     "<conseil 1 sur l'ordre/flux>",
     "<conseil 2 sur étapes manquantes>",
     "<conseil 3 sur transitions>"
   ],
-  "verdict": "<Résumé 3-4 phrases: potentiel viral? Problème principal? Priorité? Refaire ou publier?>"
+  "disclaimer_realisme": "Cette analyse est un guide, pas une certitude. L'algo TikTok surprend toujours : des vidéos considérées mauvaises vendent bien, des excellentes floppent. Utilise ces données comme repère, pas comme vérité absolue.",
+  "verdict": "<Résumé réaliste 3-4 phrases avec langage probabiliste : potentiel apparent? Point faible principal? Priorité? Refaire ou tester?>"
 }
 
-IMPORTANT: JSON uniquement, pas de markdown, français pur, sois direct et applicable."""
+IMPORTANT: JSON uniquement, pas de markdown, français pur, langage probabiliste."""
 
 
 def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
@@ -272,12 +289,86 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     if match:
         try:
             parsed = json.loads(match.group())
-            # Extraire les champs structure au niveau racine pour faciliter le frontend
+
+            # Extraire les champs structure au niveau racine
             if "structure_vente" in parsed:
                 sv = parsed["structure_vente"]
-                parsed["structure_score"]    = sv.get("score_structure", 0)
-                parsed["etapes_manquantes"]  = sv.get("etapes_manquantes", [])
-                parsed["etapes_faibles"]     = sv.get("etapes_faibles", [])
+                parsed["structure_score"]   = sv.get("score_structure", 0)
+                parsed["etapes_manquantes"] = sv.get("etapes_manquantes", [])
+                parsed["etapes_faibles"]    = sv.get("etapes_faibles", [])
+
+            # Logique humanisée prix/conversion (côté serveur, plus fiable qu'IA)
+            prix_str = parsed.get("detection", {}).get("prix_estime", "") or ""
+            score    = parsed.get("score_global", 0) or 0
+
+            # Extraire la valeur numérique du prix
+            prix_num = 0.0
+            prix_match = re.search(r"(\d+(?:[.,]\d+)?)", str(prix_str))
+            if prix_match:
+                prix_num = float(prix_match.group(1).replace(",", "."))
+
+            # Calcul du conseil nuancé
+            if prix_num > 0:
+                if prix_num <= 40:
+                    cat = "economique"
+                    if score >= 70:
+                        conseil = (f"Potentiel de conversion rapide probable à {prix_str}. "
+                                   "La gamme de prix semble favorable et la vidéo laisse penser "
+                                   "à de bons résultats. À confirmer sur J3/J7 — l'algo reste imprévisible.")
+                        niveau, delai, champion = "rapide", "j7", False
+                    else:
+                        conseil = (f"Potentiel de conversion limité malgré le prix accessible ({prix_str}). "
+                                   "Une vidéo moins convaincante réduit les chances, même à bas prix. "
+                                   "Teste quand même sur J3 — TikTok peut surprendre.")
+                        niveau, delai, champion = "moyen", "j7", False
+
+                elif prix_num <= 100:
+                    cat = "moyen"
+                    if score >= 75:
+                        conseil = (f"Bon potentiel apparent, mais à {prix_str} la conversion tend à être lente. "
+                                   "J7 ne sera probablement pas représentatif — attends J+30 pour tirer une conclusion.")
+                        niveau, delai, champion = "moyen", "j30", False
+                    elif score >= 60:
+                        conseil = (f"Potentiel modéré. À {prix_str}, les premiers jours peuvent être trompeurs. "
+                                   "Attends J+30 avant de conclure sur les performances.")
+                        niveau, delai, champion = "moyen", "j30", False
+                    else:
+                        conseil = (f"Potentiel limité. Prix moyen + vidéo moyenne = combinaison difficile. "
+                                   "Peu probable mais l'algo peut surprendre. Reste vigilant si ça décolle en J3.")
+                        niveau, delai, champion = "lent", "j30", False
+
+                else:  # prix > 100
+                    cat = "premium"
+                    if score >= 90:
+                        conseil = (f"Potentiel fort malgré le prix premium ({prix_str}). "
+                                   "La structure et l'accroche semblent solides, ce qui peut compenser le prix élevé. "
+                                   "Reste prudent — même une excellente vidéo ne garantit rien.")
+                        niveau, delai, champion = "moyen", "j30", True
+                    elif score >= 75:
+                        conseil = (f"Potentiel modéré. À {prix_str}, la conversion sera très lente. "
+                                   "Attends absolument J+30 — J7 ne veut rien dire à ce niveau de prix.")
+                        niveau, delai, champion = "lent", "j30", False
+                    else:
+                        conseil = (f"Potentiel faible. Prix premium + vidéo moyenne = combinaison difficile. "
+                                   "J+30 sera décisif, mais les attentes doivent rester modérées.")
+                        niveau, delai, champion = "lent", "j30", False
+            else:
+                cat     = "inconnu"
+                conseil = ("Prix non détecté — impossible d'évaluer le potentiel de conversion avec précision. "
+                           "Analyse la vidéo sur J7 pour les produits < 40€, J30 pour les autres.")
+                niveau, delai, champion = "inconnu", "j7", False
+
+            # Injecter dans le résultat (remplace ou complète ce que l'IA a mis)
+            pc = parsed.setdefault("prix_conversion", {})
+            pc["montant"]   = prix_num if prix_num > 0 else None
+            pc["categorie"] = cat
+            pc.setdefault("potentiel_conversion", {}).update({
+                "niveau":               niveau,
+                "temps_attendre":       delai,
+                "confiance_prechampion": champion,
+            })
+            pc["conseil_prix"] = conseil
+
             return parsed
         except json.JSONDecodeError:
             pass

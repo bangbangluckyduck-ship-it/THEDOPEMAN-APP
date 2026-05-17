@@ -370,6 +370,29 @@ function showResults(d) {
     document.getElementById('structure-vente-section').style.display = 'none';
   }
 
+  // Potentiel de conversion par prix
+  const pc = d.prix_conversion;
+  if (pc) {
+    document.getElementById('prix-conversion-section').style.display = 'block';
+
+    document.getElementById('pc-montant').textContent =
+      pc.montant ? `${pc.montant} €` : 'Non détecté';
+
+    const catLabels = { economique: '🟢 Économique', moyen: '🟡 Moyen', premium: '🔴 Premium', inconnu: '— Inconnu' };
+    document.getElementById('pc-categorie').textContent = catLabels[pc.categorie] || pc.categorie || '—';
+
+    const pot = pc.potentiel_conversion || {};
+    const delaiLabels = { j7: 'Jour 7', j30: 'Jour 30', inconnu: '—' };
+    document.getElementById('pc-delai').textContent = delaiLabels[pot.temps_attendre] || pot.temps_attendre || '—';
+
+    document.getElementById('pc-conseil').textContent = pc.conseil_prix || '—';
+
+    document.getElementById('pc-disclaimer').textContent =
+      d.disclaimer_realisme || '⚠️ Cette analyse est un guide, pas une certitude. L\'algo TikTok surprend toujours.';
+  } else {
+    document.getElementById('prix-conversion-section').style.display = 'none';
+  }
+
   // Transcription
   if (d.transcript) {
     document.getElementById('transcript-section').style.display = 'block';
@@ -399,9 +422,10 @@ function resetAnalysis() {
   document.getElementById('file-tag').style.display           = 'none';
   document.getElementById('video-file').value                 = '';
   document.getElementById('analyze-btn').disabled             = true;
-  document.getElementById('transcript-section').style.display      = 'none';
-  document.getElementById('verdict-section').style.display          = 'none';
-  document.getElementById('structure-vente-section').style.display  = 'none';
+  document.getElementById('transcript-section').style.display       = 'none';
+  document.getElementById('verdict-section').style.display           = 'none';
+  document.getElementById('structure-vente-section').style.display   = 'none';
+  document.getElementById('prix-conversion-section').style.display   = 'none';
   document.getElementById('error-box').style.display                = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
