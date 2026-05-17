@@ -311,6 +311,32 @@
     .sv-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 4px 0; }
     .sv-feedback { font-size: 11px; color: var(--muted); line-height: 1.4; }
 
+    /* Lang selector */
+    .lang-select {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 4px; padding: 5px 8px;
+      font-size: 12px; font-family: inherit; cursor: pointer;
+      height: 32px;
+    }
+    .lang-select:focus { outline: none; border-color: var(--primary); }
+
+    /* Footer */
+    #app-footer {
+      text-align: center; padding: 18px 20px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #app-footer img { width: 18px; height: 18px; border-radius: 3px; opacity: .45; }
+    #app-footer span { font-size: 11px; color: var(--muted); opacity: .6; letter-spacing: .03em; }
+
+    /* iOS / touch */
+    .btn, .tab, .btn-upgrade, .btn-cta, .btn-pwa-install { min-height: 44px; }
+    input, select, textarea { font-size: 16px; } /* Empêche le zoom iOS */
+    @media (hover: none) and (pointer: coarse) {
+      .btn:hover, .tab:hover, .btn-upgrade:hover, .btn-cta:hover { transform: none !important; box-shadow: none !important; opacity: 1 !important; }
+      .upload-area:hover { border-color: var(--border); background: rgba(0,229,160,.02); }
+    }
+
     /* Responsive */
     @media (max-width: 640px) {
       .two-column { grid-template-columns: 1fr; }
@@ -319,6 +345,12 @@
       .logo-sub { display: none; }
       #structure-vente-section .sv-step { padding: 8px 4px; }
       #structure-vente-section > div:first-of-type { grid-template-columns: repeat(3, 1fr) !important; }
+      #prix-conversion-section > div:first-of-type { grid-template-columns: 1fr 1fr !important; }
+      .lang-select { font-size: 12px; padding: 4px 6px; }
+    }
+    @media (max-width: 375px) {
+      main { padding: 12px; }
+      .section { padding: 14px; }
     }
   </style>
 </head>
@@ -329,58 +361,66 @@
   <div class="logo">
     <img src="/static/logo.png" alt="Dope Ventures">
     <div>
-      <div class="logo-text">TikTok Shop <span>Analyzer</span></div>
-      <span class="logo-sub">by Dope Ventures</span>
+      <div class="logo-text"><span data-i18n="app_title">TikTok Shop</span> <span style="color:var(--primary)" data-i18n="app_title_hl">Analyzer</span></div>
+      <span class="logo-sub" data-i18n="app_sub">by Dope Ventures</span>
     </div>
   </div>
   <div class="header-right">
+    <select id="lang-select" class="lang-select" aria-label="Language">
+      <option value="fr">🇫🇷 FR</option>
+      <option value="en">🇬🇧 EN</option>
+      <option value="pt-br">🇧🇷 PT</option>
+      <option value="es">🇪🇸 ES</option>
+      <option value="it">🇮🇹 IT</option>
+      <option value="de">🇩🇪 DE</option>
+    </select>
     <span class="auth-status" id="auth-status">
       <span id="user-email">Gratuit</span>
     </span>
-    <button class="btn-upgrade" id="btn-auth">Se connecter</button>
+    <button class="btn-upgrade" id="btn-auth" data-i18n="btn_connect">Se connecter</button>
   </div>
 </header>
 
 <main>
 
-  <div id="server-status">⏳ Réveil du serveur en cours… (~30 sec)</div>
+  <div id="server-status" data-i18n="server_waking">⏳ Réveil du serveur en cours… (~30 sec)</div>
 
   <div id="pwa-banner">
     <span style="font-size:1.6rem;flex-shrink:0">📲</span>
     <div class="pwa-text">
-      <strong>Ajouter à l'écran d'accueil</strong>
-      Accède à l'application depuis ton téléphone
+      <strong data-i18n="pwa_title">Ajouter à l'écran d'accueil</strong>
+      <span data-i18n="pwa_desc">Accède à l'application depuis ton téléphone</span>
     </div>
-    <button class="btn-pwa-install" onclick="installPwa()">Installer</button>
+    <button class="btn-pwa-install" onclick="installPwa()" data-i18n="pwa_install">Installer</button>
   </div>
 
   <!-- FREEMIUM BANNER -->
   <div class="freemium-banner" id="freemium-banner">
-    <strong>🎁 Gratuit jusqu'au lancement officiel</strong>
-    Analyses utilisées : <span class="usage-count" id="usage-count">0 / 5</span>
+    <strong id="freemium-title" data-i18n="freemium_title">🎁 Gratuit jusqu'au lancement officiel</strong>
+    <span id="freemium-count-label" data-i18n="freemium_count">Analyses utilisées :</span> <span class="usage-count" id="usage-count">0 / 999</span>
   </div>
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" id="tab-analyze" onclick="switchTab('analyze')">🎬 Analyser</button>
-    <button class="tab" id="tab-history" onclick="switchTab('history')">📋 Historique <span class="tab-badge" id="history-badge" style="display:none">0</span></button>
+    <button class="tab active" id="tab-analyze" onclick="switchTab('analyze')" data-i18n="tab_analyze">🎬 Analyser</button>
+    <button class="tab" id="tab-history" onclick="switchTab('history')"><span data-i18n="tab_history">📋 Historique</span> <span class="tab-badge" id="history-badge" style="display:none">0</span></button>
   </div>
 
   <!-- ── ONGLET ANALYSER ── -->
   <div id="tab-analyze-content">
 
     <section id="upload-section" class="section">
-      <h2>📹 Analyse ta vidéo TikTok Shop</h2>
-      <h3>Importe ta vidéo</h3>
+      <h2 data-i18n="upload_title">📹 Analyse ta vidéo TikTok Shop</h2>
+      <h3 data-i18n="upload_sub">Importe ta vidéo</h3>
       <div class="upload-area" id="upload-area">
         <input type="file" id="video-file" accept="video/*">
         <div class="upload-icon">🎬</div>
-        <p>Clique ici ou glisse ta vidéo</p>
-        <p style="font-size:11px;margin-top:4px">MP4, MOV</p>
+        <p data-i18n="upload_hint">Clique ici ou glisse ta vidéo</p>
+        <p style="font-size:11px;margin-top:4px" data-i18n="upload_fmt">MP4, MOV</p>
       </div>
       <div class="file-tag" id="file-tag"></div>
       <div class="error-box" id="error-box"></div>
-      <button class="btn btn-primary btn-block" id="analyze-btn" disabled>
+      <button class="btn btn-primary btn-block" id="analyze-btn" disabled data-i18n="btn_analyze">
         🚀 Analyser avec l'IA
       </button>
     </section>
@@ -397,17 +437,17 @@
 
       <!-- SCORES QUALITÉ -->
       <div class="section">
-        <h2>🎯 Scores de qualité</h2>
+        <h2 data-i18n="sec_quality">🎯 Scores de qualité</h2>
         <div class="scores-grid" id="scores-grid"></div>
         <div class="score-global-box">
-          <div class="score-label">Score global</div>
+          <div class="score-label" data-i18n="score_global_lbl">Score global</div>
           <div class="score-value" id="score-global" style="font-size:42px;color:var(--primary)">—</div>
         </div>
       </div>
 
       <!-- DÉTECTION -->
       <div class="section">
-        <h2>🔍 Détection automatique</h2>
+        <h2 data-i18n="sec_detection">🔍 Détection automatique</h2>
         <div class="detection-grid" id="detection-grid"></div>
       </div>
 
@@ -415,7 +455,7 @@
       <div class="section">
         <div class="viral-container">
           <div class="viral-score" id="viral-score">—</div>
-          <div class="viral-label">Potentiel viral / 100</div>
+          <div class="viral-label" data-i18n="viral_label">Potentiel viral / 100</div>
           <div class="viral-prix" id="viral-prix"></div>
           <p class="viral-expl" id="viral-explication"></p>
         </div>
@@ -425,11 +465,11 @@
       <div class="section">
         <div class="two-column">
           <div>
-            <h3>✅ Points forts</h3>
+            <h3 data-i18n="sec_forts">✅ Points forts</h3>
             <ul class="points-list" id="points-forts"></ul>
           </div>
           <div>
-            <h3>⚠️ À améliorer</h3>
+            <h3 data-i18n="sec_ameliorer">⚠️ À améliorer</h3>
             <ul class="points-list neg" id="points-faibles"></ul>
           </div>
         </div>
@@ -437,65 +477,65 @@
 
       <!-- CONSEILS IA -->
       <div class="section">
-        <h2>💡 Conseils personnalisés</h2>
+        <h2 data-i18n="sec_advice">💡 Conseils personnalisés</h2>
 
         <div class="conseils-section">
-          <h4>📌 Meilleure accroche pour ce produit</h4>
+          <h4 data-i18n="hook_best">📌 Meilleure accroche pour ce produit</h4>
           <div class="hook-box">
             <div class="hook-type" id="hook-type-propose">—</div>
             <p class="hook-reason" id="hook-reason">—</p>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">3 exemples à tester :</p>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em" data-i18n="hook_ex">3 exemples à tester :</p>
             <ul class="examples-list" id="hook-examples"></ul>
           </div>
         </div>
 
         <div class="conseils-section">
-          <h4>🎬 Actions prioritaires</h4>
+          <h4 data-i18n="advice_actions">🎬 Actions prioritaires</h4>
           <ul class="points-list" id="conseils-list"></ul>
         </div>
       </div>
 
       <!-- TRANSCRIPTION -->
       <div class="section" id="transcript-section" style="display:none">
-        <h2>🎤 Transcription audio</h2>
+        <h2 data-i18n="sec_transcript">🎤 Transcription audio</h2>
         <div class="transcript-box" id="transcript-text"></div>
       </div>
 
       <!-- VERDICT -->
       <div class="section" id="verdict-section" style="display:none">
-        <h2>🏆 Verdict</h2>
+        <h2 data-i18n="sec_verdict">🏆 Verdict</h2>
         <div style="font-size:14px;line-height:1.7;color:var(--text)" id="verdict-text"></div>
       </div>
 
       <!-- STRUCTURE DE VENTE -->
       <div class="section" id="structure-vente-section" style="display:none">
-        <h2>🔄 Structure de vente</h2>
+        <h2 data-i18n="sec_structure">🔄 Structure de vente</h2>
 
         <!-- Funnel 5 étapes -->
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
           <div class="sv-step" id="sv-accroche">
             <div class="sv-score" id="sv-score-accroche">—</div>
-            <div class="sv-label">Accroche</div>
+            <div class="sv-label" data-i18n="sv_accroche">Accroche</div>
             <div class="sv-feedback" id="sv-feedback-accroche"></div>
           </div>
           <div class="sv-step" id="sv-probleme">
             <div class="sv-score" id="sv-score-probleme">—</div>
-            <div class="sv-label">Problème</div>
+            <div class="sv-label" data-i18n="sv_probleme">Problème</div>
             <div class="sv-feedback" id="sv-feedback-probleme"></div>
           </div>
           <div class="sv-step" id="sv-solution">
             <div class="sv-score" id="sv-score-solution">—</div>
-            <div class="sv-label">Solution</div>
+            <div class="sv-label" data-i18n="sv_solution">Solution</div>
             <div class="sv-feedback" id="sv-feedback-solution"></div>
           </div>
           <div class="sv-step" id="sv-produit">
             <div class="sv-score" id="sv-score-produit">—</div>
-            <div class="sv-label">Produit</div>
+            <div class="sv-label" data-i18n="sv_produit">Produit</div>
             <div class="sv-feedback" id="sv-feedback-produit"></div>
           </div>
           <div class="sv-step" id="sv-cta">
             <div class="sv-score" id="sv-score-cta">—</div>
-            <div class="sv-label">Appel action</div>
+            <div class="sv-label" data-i18n="sv_cta">Appel action</div>
             <div class="sv-feedback" id="sv-feedback-cta"></div>
           </div>
         </div>
@@ -515,19 +555,19 @@
 
       <!-- POTENTIEL DE CONVERSION PAR PRIX -->
       <div class="section" id="prix-conversion-section" style="display:none">
-        <h2>💰 Potentiel de conversion</h2>
+        <h2 data-i18n="sec_conversion">💰 Potentiel de conversion</h2>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
           <div style="background:var(--surface2);padding:12px;border-radius:8px;text-align:center">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Prix détecté</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-i18n="pc_price_lbl">Prix détecté</div>
             <div style="font-size:22px;font-weight:800;color:var(--primary)" id="pc-montant">—</div>
           </div>
           <div style="background:var(--surface2);padding:12px;border-radius:8px;text-align:center">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Catégorie</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-i18n="pc_cat_lbl">Catégorie</div>
             <div style="font-size:16px;font-weight:700;color:var(--accent)" id="pc-categorie">—</div>
           </div>
           <div style="background:var(--surface2);padding:12px;border-radius:8px;text-align:center">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Évaluer à</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px" data-i18n="pc_timing_lbl">Évaluer à</div>
             <div style="font-size:16px;font-weight:700;color:var(--warning)" id="pc-delai">—</div>
           </div>
         </div>
@@ -541,17 +581,17 @@
 
       <!-- CTA -->
       <div class="cta-fidelization">
-        <h2>🔄 Refais ta vidéo et reviens l'analyser</h2>
-        <p>Applique les recommandations IA, re-filme, et analyse à nouveau pour mesurer tes progrès.</p>
-        <button class="btn-cta" onclick="resetAnalysis()">Nouvelle analyse ➜</button>
+        <h2 data-i18n="cta_title">🔄 Refais ta vidéo et reviens l'analyser</h2>
+        <p data-i18n="cta_desc">Applique les recommandations IA, re-filme, et analyse à nouveau pour mesurer tes progrès.</p>
+        <button class="btn-cta" onclick="resetAnalysis()" data-i18n="cta_btn">Nouvelle analyse ➜</button>
       </div>
 
       <!-- EXPORT -->
       <div class="section">
-        <h3>📥 Exporter</h3>
+        <h3 data-i18n="sec_export">📥 Exporter</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="exportPDF()">📄 Télécharger PDF</button>
-          <button class="btn btn-accent" onclick="saveToHistory(currentData, currentFilename); alert('Sauvegardé !')">💾 Sauvegarder</button>
+          <button class="btn btn-primary" onclick="exportPDF()" data-i18n="btn_pdf">📄 Télécharger PDF</button>
+          <button class="btn btn-accent" onclick="saveToHistory(currentData, currentFilename); alert(t('saved_ok'))" data-i18n="btn_save">💾 Sauvegarder</button>
         </div>
       </div>
 
@@ -562,26 +602,32 @@
   <!-- ── ONGLET HISTORIQUE ── -->
   <div id="tab-history-content" style="display:none">
     <div class="section">
-      <h2>📋 Historique des analyses</h2>
+      <h2 data-i18n="hist_title">📋 Historique des analyses</h2>
       <div id="history-list"></div>
     </div>
   </div>
 
 </main>
 
+<!-- FOOTER -->
+<footer id="app-footer">
+  <img src="/static/logo.png" alt="Dope Ventures">
+  <span data-i18n="footer">© 2026 Dope Ventures · TTS Analyzer · Tous droits réservés</span>
+</footer>
+
 <!-- AUTH MODAL -->
 <div class="modal" id="auth-modal">
   <div class="modal-content">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <h2>Se connecter</h2>
+    <h2 data-i18n="auth_title">Se connecter</h2>
     <form id="auth-form" onsubmit="handleAuth(event)">
       <div class="input-group">
-        <label>Adresse e-mail</label>
-        <input type="email" id="email-input" placeholder="toi@exemple.com" required>
+        <label data-i18n="auth_email_lbl">Adresse e-mail</label>
+        <input type="email" id="email-input" data-i18n-ph="auth_email_ph" placeholder="toi@exemple.com" required>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px">Continuer</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px" data-i18n="auth_submit">Continuer</button>
     </form>
-    <p class="modal-note">Lien de connexion par e-mail — disponible lors du lancement.</p>
+    <p class="modal-note" data-i18n="auth_note">Lien de connexion par e-mail — disponible lors du lancement.</p>
   </div>
 </div>
 
