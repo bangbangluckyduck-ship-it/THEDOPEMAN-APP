@@ -529,7 +529,7 @@ async function analyzeVideo() {
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
 
     const ctrl    = new AbortController();
-    const timer   = setTimeout(() => ctrl.abort(), 65000);
+    const timer   = setTimeout(() => ctrl.abort(), 100000);
     const headers = {};
     const email   = localStorage.getItem(USER_KEY);
     if (email) headers['Authorization'] = `Bearer ${email}`;

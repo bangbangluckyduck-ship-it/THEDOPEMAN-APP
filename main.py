@@ -83,7 +83,7 @@ async def analyze(
         # Claude analysis
         result = await asyncio.wait_for(
             loop.run_in_executor(None, analyze_video, frames_list, transcript),
-            timeout=30.0,
+            timeout=90.0,
         )
         if user["valid"]:
             increment_usage(user["email"])

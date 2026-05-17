@@ -277,7 +277,7 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
             "model": "pixtral-12b-2409",
             "messages": [{"role": "user", "content": content}],
         },
-        timeout=30.0,
+        timeout=85.0,
     )
 
     if not response.is_success:
