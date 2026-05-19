@@ -629,9 +629,9 @@ function showError(msg) {
 
 // ── SCORE COLORS ─────────────────────────────────────────────
 function scoreColor(n) {
-  if (n >= 7) return '#00e5a0';
-  if (n >= 5) return '#ffc107';
-  return '#ff4757';
+  if (n >= 7) return '#059669'; // vert accessible sur fond blanc
+  if (n >= 5) return '#D97706'; // ambre accessible
+  return '#DC2626';             // rouge accessible
 }
 
 // ── SHOW RESULTS ─────────────────────────────────────────────
@@ -880,7 +880,7 @@ function renderHistory() {
   }
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span style="font-size:13px;color:var(--muted)">${entries.length} analyse${entries.length > 1 ? 's' : ''}</span>
-    <button onclick="clearHistory()" style="background:none;border:1px solid rgba(255,71,87,.3);color:#ff6b7a;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">${t('hist_clear')}</button>
+    <button onclick="clearHistory()" style="background:none;border:1px solid rgba(239,68,68,.25);color:#DC2626;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">${t('hist_clear')}</button>
   </div>`;
   entries.forEach((e, i) => {
     const d = new Date(e.date);
@@ -926,29 +926,29 @@ function exportPDF() {
   if (!currentData || !window.jspdf) return;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const GREEN = [0, 229, 160];
-  const DARK  = [13, 15, 20];
-  const BLUE  = [77, 159, 255];
+  const GOLD  = [212, 175, 55];
+  const NAVY  = [31, 58, 112];
+  const BLUE  = [37, 99, 235];
   let y = 0;
 
-  // En-tête
-  doc.setFillColor(...DARK);
+  // En-tête premium
+  doc.setFillColor(...NAVY);
   doc.rect(0, 0, 210, 36, 'F');
-  doc.setFillColor(...GREEN);
+  doc.setFillColor(...GOLD);
   doc.rect(0, 34, 210, 2, 'F');
-  doc.setTextColor(...GREEN);
+  doc.setTextColor(...GOLD);
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
   doc.text('TikTok Shop Vidéo Analyzer', 105, 14, { align: 'center' });
   doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-  doc.setTextColor(140, 140, 140);
+  doc.setTextColor(200, 210, 230);
   doc.text('by Dope Ventures', 105, 21, { align: 'center' });
   doc.text(`${new Date().toLocaleDateString('fr-FR')} · ${currentFilename}`, 105, 28, { align: 'center' });
   y = 46;
 
   // Score global
-  doc.setFillColor(...BLUE);
+  doc.setFillColor(...NAVY);
   doc.roundedRect(15, y, 180, 20, 3, 3, 'F');
-  doc.setTextColor(212, 175, 55);
+  doc.setTextColor(...GOLD);
   doc.setFontSize(20); doc.setFont('helvetica', 'bold');
   doc.text(`Score global : ${currentData.score_global ?? '—'} / 100`, 105, y + 13, { align: 'center' });
   y += 26;
@@ -970,13 +970,13 @@ function exportPDF() {
   };
 
   // Scores détaillés
-  section('Analyse détaillée', BLUE);
+  section('Analyse détaillée', NAVY);
   if (currentData.scores) {
     const LABELS_PDF = { accroche:'Accroche', discours:'Discours', qualite_visuelle:'Qualité visuelle', visibilite_produit:'Produit', call_to_action:'Appel à l\'action', energie_dynamisme:'Énergie', credibilite_confiance:'Crédibilité' };
     Object.entries(currentData.scores).forEach(([k, v]) => {
       if (y > 265) { doc.addPage(); y = 15; }
       const n = v.note ?? 0;
-      const col = n >= 7 ? [0,229,160] : n >= 5 ? [255,193,7] : [255,71,87];
+      const col = n >= 7 ? [5,150,105] : n >= 5 ? [217,119,6] : [220,38,38];
       doc.setTextColor(40,40,40); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
       doc.text(LABELS_PDF[k] || k, 15, y);
       doc.setTextColor(...col); doc.text(`${n}/10`, 195, y, { align:'right' });
@@ -1002,15 +1002,15 @@ function exportPDF() {
     });
   };
 
-  listSection('Points forts',     [34,139,34],    currentData.points_forts,     '+');
-  listSection('À améliorer',      [200,100,0],    currentData.points_ameliorer, '!');
-  listSection('Conseils concrets', BLUE,           currentData.conseils_concrets,'→');
+  listSection('Points forts',     [5,150,105],   currentData.points_forts,     '+');
+  listSection('À améliorer',      [217,119,6],   currentData.points_ameliorer, '!');
+  listSection('Conseils concrets', BLUE,          currentData.conseils_concrets,'→');
 
   // Recommandations accroches
   const reco = currentData.recommendations_hooks;
   if (reco) {
-    section('Recommandation accroche', [77,159,255]);
-    doc.setTextColor(0,229,160); doc.setFontSize(10); doc.setFont('helvetica','bold');
+    section('Recommandation accroche', BLUE);
+    doc.setTextColor(...GOLD); doc.setFontSize(10); doc.setFont('helvetica','bold');
     doc.text(reco.hook_type_propose || '', 15, y); y += 6;
     if (reco.raison) {
       doc.setTextColor(100,100,100); doc.setFont('helvetica','italic'); doc.setFontSize(8);
