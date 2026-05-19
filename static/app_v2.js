@@ -404,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUsageCounter();
   updateHistoryBadge();
   restoreUser();
+  handleCheckoutReturn();
 
   // Sélecteur de langue
   const sel = document.getElementById('lang-select');
@@ -462,11 +463,14 @@ async function wakeServer() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('tab-analyze-content').style.display  = tab === 'analyze'  ? 'block' : 'none';
-  document.getElementById('tab-history-content').style.display  = tab === 'history'  ? 'block' : 'none';
-  document.getElementById('tab-analyze').classList.toggle('active',  tab === 'analyze');
-  document.getElementById('tab-history').classList.toggle('active',  tab === 'history');
+  ['analyze', 'pricing', 'history'].forEach(t => {
+    const content = document.getElementById(`tab-${t}-content`);
+    const btn     = document.getElementById(`tab-${t}`);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn)     btn.classList.toggle('active', t === tab);
+  });
   if (tab === 'history') renderHistory();
+  if (tab === 'pricing') updatePricingCTA();
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────
@@ -605,7 +609,9 @@ async function analyzeVideo() {
     // Sync le compteur avec la réponse serveur si disponible
     if (data.usage?.used !== undefined) {
       localStorage.setItem(USAGE_KEY, data.usage.used);
+      window.__usage = data.usage; // stocke tier + customer_id pour le portail
       updateUsageCounter();
+      updateUsageBadge(data.usage);
     } else {
       incrementUsage();
     }
@@ -831,9 +837,30 @@ function resetAnalysis() {
 function getUsage()       { return parseInt(localStorage.getItem(USAGE_KEY) || '0', 10); }
 function incrementUsage() { localStorage.setItem(USAGE_KEY, getUsage() + 1); updateUsageCounter(); }
 function updateUsageCounter() {
-  const n = getUsage();
+  const n  = getUsage();
   const el = document.getElementById('usage-count');
   if (el) el.textContent = `${n} / ${FREE_LIMIT}`;
+}
+
+function updateUsageBadge(usage) {
+  if (!usage) return;
+  const tierLabels = { free:'FREE', pro:'PRO', gold:'GOLD ⭐', agency:'AGENCY' };
+  const label = tierLabels[usage.tier] || 'FREE';
+  const badge = document.getElementById('user-email');
+  if (badge && usage.email) {
+    badge.textContent = usage.email;
+  }
+  // Affiche le tier dans l'auth-status
+  const statusEl = document.getElementById('auth-status');
+  if (statusEl && usage.tier && usage.tier !== 'free') {
+    statusEl.innerHTML = `<span style="color:var(--primary);font-weight:700">${label}</span>`;
+  }
+  // Affiche le bouton "Gérer mon abonnement" si tier payant
+  const upgradeBtn = document.getElementById('btn-auth');
+  if (upgradeBtn && usage.tier && usage.tier !== 'free') {
+    upgradeBtn.textContent = '⚙️ Mon abonnement';
+    upgradeBtn.onclick = openCustomerPortal;
+  }
 }
 
 // ── HISTORY ──────────────────────────────────────────────────
@@ -1067,6 +1094,66 @@ function restoreUser() {
     document.getElementById('user-email').textContent = email;
     document.getElementById('btn-auth').textContent = t('btn_account');
     document.getElementById('btn-auth').removeAttribute('data-i18n'); // géré manuellement
+  }
+}
+
+// ── STRIPE / PRICING ─────────────────────────────────────────
+async function startCheckout(plan) {
+  const email = localStorage.getItem(USER_KEY) || '';
+  try {
+    const res = await fetch('/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan, email }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert('❌ ' + (err.detail || 'Erreur Stripe'));
+      return;
+    }
+    const { url } = await res.json();
+    window.location.href = url;
+  } catch (e) {
+    alert('❌ Impossible de contacter Stripe. Réessaie.');
+  }
+}
+
+async function openCustomerPortal() {
+  const email       = localStorage.getItem(USER_KEY) || '';
+  const customer_id = (window.__usage || {}).customer_id || '';
+  try {
+    const res = await fetch('/customer-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, customer_id }),
+    });
+    if (!res.ok) { alert('❌ Portail indisponible.'); return; }
+    const { url } = await res.json();
+    window.location.href = url;
+  } catch { alert('❌ Erreur réseau.'); }
+}
+
+function updatePricingCTA() {
+  // Met à jour le bouton FREE selon le tier actuel
+  const tier = (window.__usage || {}).tier || 'free';
+  const freeBtn = document.querySelector('.pc-btn-free');
+  if (!freeBtn) return;
+  if (tier !== 'free') {
+    freeBtn.textContent = '✓ Inclus dans votre plan';
+  }
+}
+
+function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === 'success') {
+    switchTab('pricing');
+    const box = document.getElementById('checkout-success');
+    if (box) box.style.display = 'block';
+    // Nettoie l'URL
+    window.history.replaceState({}, '', '/');
+  } else if (params.get('checkout') === 'cancel') {
+    switchTab('pricing');
+    window.history.replaceState({}, '', '/');
   }
 }
 

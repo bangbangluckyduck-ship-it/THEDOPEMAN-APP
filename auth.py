@@ -1,17 +1,111 @@
 """
-Authentification et gestion des quotas.
-Phase 1 (beta) : token = email simple, comptage in-memory.
-Phase 2 (juillet) : magic link + Stripe + base de données.
+Authentification et gestion des quotas par tier.
+
+Tiers :
+  free   → 3 analyses/mois   (0 €)
+  pro    → 20 analyses/mois  (9,99 €/mois)
+  gold   → 25 analyses/jour  (99 €/mois)
+  agency → 125 analyses/jour (249 €/mois — 5 sièges × 25)
+
+Stockage : in-memory (resets au redémarrage Render — acceptable en beta).
+Phase 2 (juillet) : migration vers PostgreSQL + magic link.
 """
 from __future__ import annotations
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException, Request
 
-# ── CONFIGURATION ─────────────────────────────────────────────
-FREE_LIMIT = 999  # limite levée pendant la beta
+# ── CONFIGURATION DES TIERS ───────────────────────────────────
+TIER_CONFIG: dict[str, dict] = {
+    "free":   {"monthly": 3,    "daily": None, "seats": 1,  "label": "FREE"},
+    "pro":    {"monthly": 20,   "daily": None, "seats": 1,  "label": "PRO"},
+    "gold":   {"monthly": None, "daily": 25,   "seats": 1,  "label": "GOLD"},
+    "agency": {"monthly": None, "daily": 125,  "seats": 5,  "label": "AGENCY"},
+}
 
-# Comptage in-memory par email (resets au redémarrage Render — OK pour beta)
-_usage_store: dict[str, int] = {}
+# ── STORES in-memory ──────────────────────────────────────────
+# { email: { "tier": str, "customer_id": str|None, "subscription_id": str|None } }
+_user_tiers: dict[str, dict] = {}
+
+# { email: { "month": "YYYY-MM", "count": int } }
+_monthly_usage: dict[str, dict] = {}
+
+# { email: { "day": "YYYY-MM-DD", "count": int } }
+_daily_usage: dict[str, dict] = {}
+
+
+# ── GESTION DES TIERS ─────────────────────────────────────────
+
+def set_user_tier(
+    email: str,
+    tier: str,
+    customer_id: Optional[str] = None,
+    subscription_id: Optional[str] = None,
+) -> None:
+    """Appelé par le webhook Stripe lors d'un paiement réussi."""
+    if tier not in TIER_CONFIG:
+        tier = "free"
+    _user_tiers[email] = {
+        "tier":            tier,
+        "customer_id":     customer_id,
+        "subscription_id": subscription_id,
+    }
+
+
+def get_user_tier(email: str) -> str:
+    return _user_tiers.get(email, {}).get("tier", "free")
+
+
+def get_customer_id(email: str) -> Optional[str]:
+    return _user_tiers.get(email, {}).get("customer_id")
+
+
+def revoke_by_customer(customer_id: str) -> None:
+    """Downgrade vers free quand l'abonnement est annulé (webhook)."""
+    for data in _user_tiers.values():
+        if data.get("customer_id") == customer_id:
+            data["tier"] = "free"
+            break
+
+
+# ── COMPTEURS MENSUELS / JOURNALIERS ──────────────────────────
+
+def _today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _this_month() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m")
+
+
+def _get_monthly_count(email: str) -> int:
+    rec = _monthly_usage.get(email, {})
+    return rec.get("count", 0) if rec.get("month") == _this_month() else 0
+
+
+def _get_daily_count(email: str) -> int:
+    rec = _daily_usage.get(email, {})
+    return rec.get("count", 0) if rec.get("day") == _today() else 0
+
+
+def _increment_monthly(email: str) -> int:
+    month = _this_month()
+    rec   = _monthly_usage.get(email, {})
+    if rec.get("month") != month:
+        rec = {"month": month, "count": 0}
+    rec["count"] += 1
+    _monthly_usage[email] = rec
+    return rec["count"]
+
+
+def _increment_daily(email: str) -> int:
+    day = _today()
+    rec = _daily_usage.get(email, {})
+    if rec.get("day") != day:
+        rec = {"day": day, "count": 0}
+    rec["count"] += 1
+    _daily_usage[email] = rec
+    return rec["count"]
 
 
 # ── TOKEN / UTILISATEUR ───────────────────────────────────────
@@ -19,8 +113,8 @@ _usage_store: dict[str, int] = {}
 def get_user_from_request(request: Request) -> dict:
     """
     Extrait l'utilisateur depuis le header Authorization.
-    Format attendu : Bearer <email>
-    Retourne un dict user (jamais d'exception si pas de token — anonyme autorisé).
+    Format : Bearer <email>
+    Retourne un dict user (jamais d'exception si pas de token — anonyme OK).
     """
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -30,53 +124,91 @@ def get_user_from_request(request: Request) -> dict:
     if not token or "@" not in token or len(token) < 5:
         raise HTTPException(status_code=401, detail="Token invalide.")
 
+    tier = get_user_tier(token)
     return {
         "email": token,
-        "tier":  "free",   # → "pro" une fois Stripe intégré
+        "tier":  tier,
         "valid": True,
     }
 
 
 # ── QUOTA ─────────────────────────────────────────────────────
 
-def get_usage(email: str) -> int:
-    return _usage_store.get(email, 0)
-
-
-def increment_usage(email: str) -> int:
-    _usage_store[email] = get_usage(email) + 1
-    return _usage_store[email]
-
-
 def check_quota(user: dict) -> None:
-    """
-    Lève une HTTPException 429 si l'utilisateur a atteint sa limite.
-    Les anonymes (non connectés) ne sont pas bloqués ici — le client gère.
-    Les utilisateurs pro ont un quota illimité.
-    """
+    """Lève 429 si l'utilisateur a atteint sa limite."""
     if not user["valid"]:
-        return  # Anonyme : limite gérée côté client uniquement
+        return  # Anonyme : pas bloqué côté serveur
 
-    if user["tier"] == "pro":
-        return  # Illimité
+    tier   = user["tier"]
+    email  = user["email"]
+    cfg    = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
 
-    count = get_usage(user["email"])
-    if count >= FREE_LIMIT:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Limite gratuite atteinte ({FREE_LIMIT} analyses). Reviens en juillet pour le plan premium."
-        )
+    # Quota mensuel
+    if cfg["monthly"] is not None:
+        count = _get_monthly_count(email)
+        if count >= cfg["monthly"]:
+            label = cfg["label"]
+            raise HTTPException(
+                status_code=429,
+                detail=f"Quota {label} atteint ({cfg['monthly']} analyses/mois). "
+                       f"Passe au plan supérieur sur tts-analyzer.fr",
+            )
+
+    # Quota journalier
+    if cfg["daily"] is not None:
+        count = _get_daily_count(email)
+        if count >= cfg["daily"]:
+            label = cfg["label"]
+            raise HTTPException(
+                status_code=429,
+                detail=f"Quota journalier {label} atteint ({cfg['daily']}/jour). "
+                       f"Reviens demain ou upgrade.",
+            )
+
+
+def increment_usage(email: str) -> None:
+    """Incrémente les compteurs appropriés selon le tier."""
+    tier = get_user_tier(email)
+    cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+
+    if cfg["monthly"] is not None:
+        _increment_monthly(email)
+    if cfg["daily"] is not None:
+        _increment_daily(email)
 
 
 def usage_info(user: dict) -> dict:
-    """Retourne les infos de quota pour l'utilisateur."""
+    """Retourne les infos de quota pour l'UI."""
     if not user["valid"]:
         return {"tracked": False}
-    count = get_usage(user["email"])
+
+    email = user["email"]
+    tier  = user["tier"]
+    cfg   = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+
+    used = (
+        _get_monthly_count(email) if cfg["monthly"] is not None
+        else _get_daily_count(email)
+    )
+    limit = cfg["monthly"] if cfg["monthly"] is not None else cfg["daily"]
+
     return {
-        "tracked":   True,
-        "email":     user["email"],
-        "used":      count,
-        "limit":     None if user["tier"] == "pro" else FREE_LIMIT,
-        "remaining": None if user["tier"] == "pro" else max(0, FREE_LIMIT - count),
+        "tracked":     True,
+        "email":       email,
+        "tier":        tier,
+        "label":       cfg["label"],
+        "used":        used,
+        "limit":       limit,
+        "remaining":   max(0, limit - used) if limit else None,
+        "customer_id": get_customer_id(email),
     }
+
+
+# ── LEGACY (compatibilité main.py existant) ───────────────────
+def get_usage(email: str) -> int:
+    """Compat : retourne le compteur mensuel ou journalier selon le tier."""
+    tier = get_user_tier(email)
+    cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+    if cfg["monthly"] is not None:
+        return _get_monthly_count(email)
+    return _get_daily_count(email)
