@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Analyse IA vidéo TikTok Shop – Conseils personnalisés pour créateurs">
   <title>TikTok Shop Vidéo Analyzer — Dope Ventures</title>
 
@@ -19,24 +19,162 @@
 
     :root {
       --primary:  #00e5a0;
-      --dark:     #0d0f14;
-      --surface:  #14171f;
-      --surface2: #1a1e29;
+      --dark:     #0a0e17;
+      --surface:  #141820;
+      --surface2: #1a1f2e;
       --border:   #252a38;
+      --borderl:  #1e2330;
       --text:     #e8eaf2;
-      --muted:    #5a6180;
+      --muted:    #8a91b0;
       --accent:   #4d9fff;
       --gold:     #d4af37;
       --warning:  #ffc107;
       --danger:   #ff4757;
+      --glass:    rgba(20,24,32,0.6);
+      --glass-l:  rgba(232,234,242,0.05);
+      --safe-top:    max(12px, env(safe-area-inset-top));
+      --safe-bottom: max(12px, env(safe-area-inset-bottom));
+      --safe-left:   max(12px, env(safe-area-inset-left));
+      --safe-right:  max(12px, env(safe-area-inset-right));
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
       background: var(--dark);
       color: var(--text);
       line-height: 1.6;
       overflow-x: hidden;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0);   }
+      to   { opacity: 0; transform: translateY(16px);}
+    }
+    @keyframes shimmer { 0%,100%{width:0%} 50%{width:80%} }
+
+    /* ── COOKIE BANNER ── */
+    #cookie-banner {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+      padding: 12px 12px calc(12px + var(--safe-bottom));
+      animation: slideUp .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .cookie-inner {
+      background: var(--glass);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-l);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .cookie-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .cookie-body  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .cookie-link  { color: var(--primary); font-size: 12px; cursor: pointer; text-decoration: underline; }
+    .cookie-btns  { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cookie-btns button {
+      flex: 1; min-width: 120px; min-height: 44px;
+      border: none; border-radius: 10px; font-weight: 700;
+      font-size: 13px; font-family: inherit; cursor: pointer;
+      transition: all .25s;
+    }
+    .cookie-accept {
+      background: linear-gradient(135deg, var(--primary), #00c98a);
+      color: var(--dark);
+    }
+    .cookie-reject {
+      background: var(--glass-l);
+      border: 1px solid var(--border) !important;
+      color: var(--muted);
+    }
+    .cookie-accept:active { transform: scale(.97); }
+    .cookie-reject:active { transform: scale(.97); }
+
+    /* ── TRANSPARENCY BANNER ── */
+    #transparency-banner {
+      background: linear-gradient(135deg, rgba(0,229,160,.06), rgba(77,159,255,.06));
+      border: 1px solid rgba(0,229,160,.15);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; animation: fadeIn .3s ease;
+    }
+    #transparency-banner .tb-icon { font-size: 1.2rem; flex-shrink: 0; }
+    #transparency-banner .tb-text { flex: 1; color: var(--muted); }
+    #transparency-banner .tb-text strong { color: var(--text); }
+    #transparency-banner .tb-link  { color: var(--primary); cursor: pointer; font-size: 12px; white-space: nowrap; }
+    #transparency-banner .tb-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 16px; cursor: pointer; padding: 4px; flex-shrink: 0;
+    }
+
+    /* ── PRIVACY MODAL ── */
+    #privacy-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(8px);
+      z-index: 2000; justify-content: center; align-items: flex-end;
+    }
+    #privacy-backdrop.active { display: flex; }
+    #privacy-modal {
+      background: var(--surface2);
+      border-radius: 24px 24px 0 0;
+      padding: 6px 0 0;
+      width: 100%; max-height: 82vh;
+      display: flex; flex-direction: column;
+      animation: slideUp .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .pm-handle {
+      width: 40px; height: 4px; background: var(--glass-l);
+      border-radius: 999px; margin: 8px auto 16px;
+    }
+    .pm-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 20px 14px; border-bottom: 1px solid var(--borderl);
+    }
+    .pm-header h2 { font-size: 20px; font-weight: 700; }
+    .pm-close {
+      background: var(--glass-l); border: none; color: var(--muted);
+      width: 32px; height: 32px; border-radius: 999px;
+      font-size: 16px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .pm-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pm-body h3 {
+      font-size: 15px; font-weight: 700; color: var(--primary);
+      margin: 20px 0 8px;
+    }
+    .pm-body h3:first-child { margin-top: 0; }
+    .pm-body p, .pm-body li {
+      font-size: 14px; color: var(--muted); line-height: 1.8;
+    }
+    .pm-body ul { padding-left: 18px; }
+    .pm-body a { color: var(--primary); }
+    .pm-footer { padding: 16px 20px calc(16px + var(--safe-bottom)); border-top: 1px solid var(--borderl); }
+    .pm-footer button {
+      width: 100%; min-height: 48px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), #00c98a);
+      color: var(--dark); font-weight: 700; font-size: 15px;
+      font-family: inherit; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .pm-footer button:active { opacity: .85; }
+
+    @media (min-width: 640px) {
+      #privacy-backdrop { align-items: center; }
+      #privacy-modal {
+        border-radius: 20px; max-width: 560px;
+        max-height: 80vh;
+      }
     }
 
     /* ── HEADER ── */
@@ -327,7 +465,9 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     #app-footer img { width: 18px; height: 18px; border-radius: 3px; opacity: .45; }
-    #app-footer span { font-size: 11px; color: var(--muted); opacity: .6; letter-spacing: .03em; }
+    #app-footer span { font-size: 11px; color: var(--muted); opacity: .65; letter-spacing: .03em; }
+    .footer-link { color: var(--primary); opacity: 1; cursor: pointer; text-decoration: none; }
+    .footer-link:hover { opacity: .8; }
 
     /* iOS / touch */
     .btn, .tab, .btn-upgrade, .btn-cta, .btn-pwa-install { min-height: 44px; }
@@ -384,6 +524,14 @@
 <main>
 
   <div id="server-status" data-i18n="server_waking">⏳ Réveil du serveur en cours… (~30 sec)</div>
+
+  <!-- TRANSPARENCY BANNER -->
+  <div id="transparency-banner">
+    <span class="tb-icon">🔒</span>
+    <span class="tb-text"><strong data-i18n="tb_title">Vos données vous appartiennent</strong> — <span data-i18n="tb_sub">restent EN LOCAL, jamais envoyées.</span></span>
+    <span class="tb-link" onclick="openPrivacyModal()" data-i18n="tb_link">Détails →</span>
+    <button class="tb-close" onclick="dismissTransparencyBanner()">✕</button>
+  </div>
 
   <div id="pwa-banner">
     <span style="font-size:1.6rem;flex-shrink:0">📲</span>
@@ -628,7 +776,12 @@
 <!-- FOOTER -->
 <footer id="app-footer">
   <img src="/static/logo.png" alt="Dope Ventures">
-  <span data-i18n="footer">© 2026 Dope Ventures · TTS Analyzer · Tous droits réservés</span>
+  <span>
+    © 2026 DOPE VENTURES ·
+    <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_privacy">Confidentialité</span> ·
+    <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_cookies">Cookies</span> ·
+    <a href="mailto:dopeventure44@gmail.com" class="footer-link">Contact</a>
+  </span>
 </footer>
 
 <!-- AUTH MODAL -->
@@ -644,6 +797,38 @@
       <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px" data-i18n="auth_submit">Continuer</button>
     </form>
     <p class="modal-note" data-i18n="auth_note">Lien de connexion par e-mail — disponible lors du lancement.</p>
+  </div>
+</div>
+
+<!-- PRIVACY MODAL -->
+<div id="privacy-backdrop" onclick="if(event.target===this)closePrivacyModal()">
+  <div id="privacy-modal">
+    <div class="pm-handle"></div>
+    <div class="pm-header">
+      <h2>🔒 <span data-i18n="pm_title">Votre confidentialité</span></h2>
+      <button class="pm-close" onclick="closePrivacyModal()">✕</button>
+    </div>
+    <div class="pm-body" id="pm-body">
+      <!-- contenu injecté par JS selon la langue -->
+    </div>
+    <div class="pm-footer">
+      <button onclick="closePrivacyModal()" data-i18n="pm_close">Compris ! Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- COOKIE BANNER -->
+<div id="cookie-banner" style="display:none">
+  <div class="cookie-inner">
+    <div>
+      <div class="cookie-title" data-i18n="ck_title">🍪 Nous utilisons des cookies</div>
+      <div class="cookie-body" data-i18n="ck_body">Vos données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.</div>
+      <span class="cookie-link" onclick="openPrivacyModal()" data-i18n="ck_link">Politique de confidentialité</span>
+    </div>
+    <div class="cookie-btns">
+      <button class="cookie-accept" onclick="acceptCookies()" data-i18n="ck_accept">Accepter tout</button>
+      <button class="cookie-reject" onclick="rejectCookies()" data-i18n="ck_reject">Refuser tout</button>
+    </div>
   </div>
 </div>
 

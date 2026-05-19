@@ -55,6 +55,26 @@ const TRANSLATIONS = {
     err_timeout:'❌ Délai dépassé. Réessaie avec une vidéo plus courte.',
     saved_ok:'Sauvegardé !',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Tous droits réservés',
+    tb_title:'Vos données vous appartiennent', tb_sub:'restent EN LOCAL, jamais envoyées.', tb_link:'Détails →',
+    ck_title:'🍪 Nous utilisons des cookies',
+    ck_body:'Vos données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.',
+    ck_link:'Politique de confidentialité', ck_accept:'Accepter tout', ck_reject:'Refuser tout',
+    pm_title:'Votre confidentialité', pm_close:'Compris ! Fermer',
+    footer_privacy:'Confidentialité', footer_cookies:'Cookies',
+    pm_content:`<h3>✅ Vos données restent EN LOCAL</h3>
+<p>Toutes vos analyses (scores, résultats, historique) sont stockées <strong>uniquement sur votre appareil</strong> via localStorage. Nous ne les récupérons jamais sur nos serveurs.</p>
+<h3>🤖 Ce qui est envoyé à l'IA</h3>
+<p>Lors d'une analyse, les <strong>images extraites</strong> de votre vidéo et l'<strong>audio transcrit</strong> sont transmis à Mistral AI pour générer les scores. Aucune donnée personnelle n'est incluse.</p>
+<h3>🍪 Cookies utilisés</h3>
+<ul>
+  <li><strong>localStorage</strong> : vos analyses, historique, préférences de langue</li>
+  <li><strong>cookieConsent</strong> : votre choix de consentement</li>
+  <li><strong>Analytiques</strong> : trafic général (optionnel, anonyme)</li>
+</ul>
+<h3>📤 Export & suppression</h3>
+<p>Vous pouvez exporter vos analyses en PDF à tout moment. Pour supprimer toutes vos données, effacez les données de site dans les réglages de votre navigateur.</p>
+<h3>📧 Questions ?</h3>
+<p>Contactez-nous : <a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Installer sur iPhone / iPad',
     ios_s1:'Appuie sur <strong style="color:var(--text)">Partager</strong> ⎋ en bas de Safari',
     ios_s2:'Fais défiler et appuie sur <strong style="color:var(--text)">"Sur l\'écran d\'accueil"</strong>',
@@ -98,6 +118,26 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Try again with a shorter video.',
     saved_ok:'Saved!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · All rights reserved',
+    tb_title:'Your data belongs to you', tb_sub:'stays LOCAL, never sent.', tb_link:'Details →',
+    ck_title:'🍪 We use cookies',
+    ck_body:'Your video data always stays local. Cookies help us improve your experience.',
+    ck_link:'Privacy policy', ck_accept:'Accept all', ck_reject:'Decline',
+    pm_title:'Your privacy', pm_close:'Got it! Close',
+    footer_privacy:'Privacy', footer_cookies:'Cookies',
+    pm_content:`<h3>✅ Your data stays LOCAL</h3>
+<p>All your analyses (scores, results, history) are stored <strong>only on your device</strong> via localStorage. We never retrieve them on our servers.</p>
+<h3>🤖 What is sent to the AI</h3>
+<p>During an analysis, the <strong>extracted frames</strong> from your video and the <strong>transcribed audio</strong> are sent to Mistral AI to generate scores. No personal data is included.</p>
+<h3>🍪 Cookies used</h3>
+<ul>
+  <li><strong>localStorage</strong>: your analyses, history, language preferences</li>
+  <li><strong>cookieConsent</strong>: your consent choice</li>
+  <li><strong>Analytics</strong>: general traffic (optional, anonymous)</li>
+</ul>
+<h3>📤 Export & deletion</h3>
+<p>You can export your analyses as PDF at any time. To delete all your data, clear site data in your browser settings.</p>
+<h3>📧 Questions?</h3>
+<p>Contact us: <a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Install on iPhone / iPad',
     ios_s1:'Tap <strong style="color:var(--text)">Share</strong> ⎋ at the bottom of Safari',
     ios_s2:'Scroll down and tap <strong style="color:var(--text)">"Add to Home Screen"</strong>',
@@ -141,6 +181,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tempo esgotado. Tente com um vídeo mais curto.',
     saved_ok:'Salvo!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Todos os direitos reservados',
+    tb_title:'Seus dados são seus', tb_sub:'ficam em LOCAL, nunca enviados.', tb_link:'Detalhes →',
+    ck_title:'🍪 Usamos cookies', ck_body:'Seus dados de vídeo ficam SEMPRE em local. Os cookies nos ajudam a melhorar sua experiência.', ck_link:'Política de privacidade', ck_accept:'Aceitar tudo', ck_reject:'Recusar',
+    pm_title:'Sua privacidade', pm_close:'Entendido! Fechar',
+    footer_privacy:'Privacidade', footer_cookies:'Cookies',
+    pm_content:`<h3>✅ Seus dados ficam EM LOCAL</h3><p>Todas as suas análises ficam <strong>apenas no seu dispositivo</strong>. Nunca as recuperamos em nossos servidores.</p><h3>🍪 Cookies usados</h3><ul><li>localStorage: análises, histórico, idioma</li><li>cookieConsent: sua escolha</li></ul><h3>📧 Dúvidas?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Instalar no iPhone / iPad',
     ios_s1:'Toque em <strong style="color:var(--text)">Compartilhar</strong> ⎋ na parte inferior do Safari',
     ios_s2:'Role para baixo e toque em <strong style="color:var(--text)">"Tela de Início"</strong>',
@@ -184,6 +229,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tiempo agotado. Intenta con un vídeo más corto.',
     saved_ok:'¡Guardado!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Todos los derechos reservados',
+    tb_title:'Tus datos son tuyos', tb_sub:'se quedan EN LOCAL, nunca se envían.', tb_link:'Detalles →',
+    ck_title:'🍪 Usamos cookies', ck_body:'Tus datos de vídeo siempre permanecen en local. Las cookies nos ayudan a mejorar tu experiencia.', ck_link:'Política de privacidad', ck_accept:'Aceptar todo', ck_reject:'Rechazar',
+    pm_title:'Tu privacidad', pm_close:'¡Entendido! Cerrar',
+    footer_privacy:'Privacidad', footer_cookies:'Cookies',
+    pm_content:`<h3>✅ Tus datos EN LOCAL</h3><p>Todos tus análisis se almacenan <strong>solo en tu dispositivo</strong>. Nunca los recuperamos en nuestros servidores.</p><h3>🍪 Cookies usadas</h3><ul><li>localStorage: análisis, historial, idioma</li><li>cookieConsent: tu elección</li></ul><h3>📧 ¿Preguntas?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Instalar en iPhone / iPad',
     ios_s1:'Pulsa <strong style="color:var(--text)">Compartir</strong> ⎋ en la parte inferior de Safari',
     ios_s2:'Desplázate y pulsa <strong style="color:var(--text)">"En pantalla de inicio"</strong>',
@@ -227,6 +277,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Riprova con un video più breve.',
     saved_ok:'Salvato!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Tutti i diritti riservati',
+    tb_title:'I tuoi dati sono tuoi', tb_sub:'restano IN LOCALE, mai inviati.', tb_link:'Dettagli →',
+    ck_title:'🍪 Usiamo i cookie', ck_body:'I tuoi dati video restano SEMPRE in locale. I cookie ci aiutano a migliorare la tua esperienza.', ck_link:'Privacy policy', ck_accept:'Accetta tutto', ck_reject:'Rifiuta',
+    pm_title:'La tua privacy', pm_close:'Capito! Chiudi',
+    footer_privacy:'Privacy', footer_cookies:'Cookie',
+    pm_content:`<h3>✅ I tuoi dati IN LOCALE</h3><p>Tutte le tue analisi sono memorizzate <strong>solo sul tuo dispositivo</strong>. Non le recuperiamo mai sui nostri server.</p><h3>🍪 Cookie usati</h3><ul><li>localStorage: analisi, cronologia, lingua</li><li>cookieConsent: la tua scelta</li></ul><h3>📧 Domande?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Installa su iPhone / iPad',
     ios_s1:'Tocca <strong style="color:var(--text)">Condividi</strong> ⎋ in fondo a Safari',
     ios_s2:'Scorri e tocca <strong style="color:var(--text)">"Aggiungi a Home"</strong>',
@@ -270,6 +325,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Zeitüberschreitung. Versuche mit einem kürzeren Video.',
     saved_ok:'Gespeichert!',
     footer:'© 2026 Dope Ventures · TTS Analyzer · Alle Rechte vorbehalten',
+    tb_title:'Deine Daten gehören dir', tb_sub:'bleiben LOKAL, werden nie gesendet.', tb_link:'Details →',
+    ck_title:'🍪 Wir verwenden Cookies', ck_body:'Deine Videodaten bleiben IMMER lokal. Cookies helfen uns, deine Erfahrung zu verbessern.', ck_link:'Datenschutz', ck_accept:'Alle akzeptieren', ck_reject:'Ablehnen',
+    pm_title:'Dein Datenschutz', pm_close:'Verstanden! Schließen',
+    footer_privacy:'Datenschutz', footer_cookies:'Cookies',
+    pm_content:`<h3>✅ Deine Daten LOKAL</h3><p>Alle deine Analysen werden <strong>nur auf deinem Gerät</strong> gespeichert. Wir rufen sie nie auf unseren Servern ab.</p><h3>🍪 Verwendete Cookies</h3><ul><li>localStorage: Analysen, Verlauf, Sprache</li><li>cookieConsent: deine Wahl</li></ul><h3>📧 Fragen?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
     ios_title:'Auf iPhone / iPad installieren',
     ios_s1:'Tippe auf <strong style="color:var(--text)">Teilen</strong> ⎋ unten in Safari',
     ios_s2:'Scrolle und tippe auf <strong style="color:var(--text)">"Zum Home-Bildschirm"</strong>',
@@ -1024,3 +1084,66 @@ function installPwa() {
 document.getElementById('auth-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
+
+// ── COOKIES RGPD ─────────────────────────────────────────────
+const CONSENT_KEY     = 'dv_cookie_consent';
+const TRANSP_KEY      = 'dv_transparency_dismissed';
+
+function initCookies() {
+  const consent = localStorage.getItem(CONSENT_KEY);
+  if (!consent) {
+    document.getElementById('cookie-banner').style.display = 'block';
+  }
+  const dismissed = localStorage.getItem(TRANSP_KEY);
+  if (dismissed) {
+    const tb = document.getElementById('transparency-banner');
+    if (tb) tb.style.display = 'none';
+  }
+}
+
+function acceptCookies() {
+  localStorage.setItem(CONSENT_KEY, JSON.stringify({
+    essential: true, analytics: true,
+    timestamp: new Date().toISOString()
+  }));
+  hideCookieBanner();
+}
+
+function rejectCookies() {
+  localStorage.setItem(CONSENT_KEY, JSON.stringify({
+    essential: true, analytics: false,
+    timestamp: new Date().toISOString()
+  }));
+  hideCookieBanner();
+}
+
+function hideCookieBanner() {
+  const el = document.getElementById('cookie-banner');
+  if (!el) return;
+  el.style.animation = 'fadeOut .25s ease forwards';
+  setTimeout(() => el.style.display = 'none', 260);
+}
+
+function dismissTransparencyBanner() {
+  localStorage.setItem(TRANSP_KEY, '1');
+  const tb = document.getElementById('transparency-banner');
+  if (tb) { tb.style.animation = 'fadeOut .2s ease forwards'; setTimeout(() => tb.style.display = 'none', 210); }
+}
+
+// ── PRIVACY MODAL ─────────────────────────────────────────────
+function openPrivacyModal() {
+  const body = document.getElementById('pm-body');
+  if (body) body.innerHTML = t('pm_content') || '';
+  document.getElementById('privacy-backdrop').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePrivacyModal() {
+  document.getElementById('privacy-backdrop').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Init au chargement
+document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus haut */ });
+// Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
+document.addEventListener('DOMContentLoaded', initCookies);
