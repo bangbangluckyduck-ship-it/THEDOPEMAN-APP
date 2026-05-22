@@ -248,7 +248,38 @@ RETOUR JSON (STRUCTURE EXACTE)
 IMPORTANT: JSON uniquement, pas de markdown, français pur, langage probabiliste."""
 
 
-def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
+def _format_market_context(market: dict) -> str:
+    """Formate les données marché du scraper pour injection dans le prompt."""
+    try:
+        lines = ["\n================================================================================",
+                 "DONNÉES MARCHÉ TEMPS RÉEL (TikTok Shop FR — dernières 6h)",
+                 "================================================================================"]
+
+        top = market.get("top_products", [])
+        if top:
+            lines.append("\nTOP PRODUITS EN VENTE (volume de ventes):")
+            for p in top[:5]:
+                lines.append(f"- {p.get('title','?')} — {p.get('sold_count','?')} ventes | {p.get('category','?')} | {p.get('current_price','?')}€")
+
+        trending = market.get("trending", [])
+        if trending:
+            lines.append("\nPRODUITS TRENDING (croissance rapide):")
+            for p in trending[:5]:
+                lines.append(f"- {p.get('title','?')} — +{p.get('growth_percent','?')}% de ventes | {p.get('category','?')}")
+
+        creators = market.get("top_creators", [])
+        if creators:
+            lines.append("\nCRÉATEURS SHOP FR LES PLUS ACTIFS:")
+            for c in creators[:3]:
+                lines.append(f"- @{c.get('handle','?')} ({c.get('followers','?')} followers) — spécialité: {c.get('primary_category','?')}")
+
+        lines.append("\nUtilise ces données pour contextualiser ton analyse : le produit analysé est-il dans une catégorie tendance ? Son prix est-il compétitif par rapport aux top sellers ?")
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def analyze_video(frames_b64: List[str], transcript: Optional[str] = None, market_context: Optional[dict] = None) -> dict:
     import httpx
 
     api_key = os.getenv("MISTRAL_API_KEY")
@@ -265,7 +296,8 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> di
     if transcript:
         content.append({"type": "text", "text": f"\n\nTranscription audio :\n{transcript}"})
 
-    content.append({"type": "text", "text": PROMPT + _HOOKS_CONTEXT})
+    market_str = _format_market_context(market_context) if market_context else ""
+    content.append({"type": "text", "text": PROMPT + _HOOKS_CONTEXT + market_str})
 
     response = httpx.post(
         "https://api.mistral.ai/v1/chat/completions",

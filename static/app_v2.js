@@ -1230,7 +1230,87 @@ function closePrivacyModal() {
   document.body.style.overflow = '';
 }
 
+// ── Market Data ──────────────────────────────────────────────
+let _marketData = null;
+
+async function loadMarketData() {
+  try {
+    const resp = await fetch('/api/market-data');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.ok) return;
+    _marketData = data;
+    renderMarketSection(data);
+    document.getElementById('market-section').style.display = 'block';
+  } catch (e) {
+    // Scraper down ou TTS_SCRAPER_URL non configuré — on masque juste la section
+  }
+}
+
+function renderMarketSection(data) {
+  // Top produits
+  const topList = document.getElementById('market-top-list');
+  if (topList && data.top_products?.length) {
+    topList.innerHTML = data.top_products.slice(0, 8).map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.category || ''} · ${p.current_price ? p.current_price + '€' : '—'}</div>
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">${(p.sold_count || 0).toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--muted)">ventes</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Trending
+  const trendList = document.getElementById('market-trend-list');
+  if (trendList && data.trending?.length) {
+    trendList.innerHTML = data.trending.slice(0, 8).map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.category || ''}</div>
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          <div style="font-size:13px;font-weight:700;color:#059669">+${p.growth_percent || 0}%</div>
+          <div style="font-size:10px;color:var(--muted)">croissance</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Créateurs
+  const creatorList = document.getElementById('market-creator-list');
+  if (creatorList && data.top_creators?.length) {
+    creatorList.innerHTML = data.top_creators.slice(0, 6).map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">@${c.handle || '—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.primary_category || ''}</div>
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.followers ? (c.followers/1000).toFixed(0)+'k' : '—'}</div>
+          <div style="font-size:10px;color:var(--muted)">followers</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function switchMarketTab(tab) {
+  ['top', 'trend', 'creator'].forEach(t => {
+    const content = document.getElementById(`market-${t}-content`);
+    const btn     = document.getElementById(`market-tab-${t}`);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--navy)' : 'var(--surface2)';
+      btn.style.color      = t === tab ? '#fff' : 'var(--text)';
+    }
+  });
+}
+
 // Init au chargement
 document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus haut */ });
 // Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
 document.addEventListener('DOMContentLoaded', initCookies);
+document.addEventListener('DOMContentLoaded', loadMarketData);

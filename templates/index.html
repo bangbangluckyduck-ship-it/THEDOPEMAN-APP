@@ -935,6 +935,28 @@
 
     </section>
 
+    <!-- ── Tendances Marché ── -->
+    <section class="section" id="market-section" style="display:none">
+      <h2>📊 Tendances TikTok Shop FR</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Données en temps réel — mis à jour toutes les 6h</p>
+
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div id="market-tab-top"    onclick="switchMarketTab('top')"     style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:var(--navy);color:#fff">🏆 Top Produits</div>
+        <div id="market-tab-trend"  onclick="switchMarketTab('trend')"   style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text)">🚀 Trending</div>
+        <div id="market-tab-creator" onclick="switchMarketTab('creator')" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text)">🎯 Créateurs</div>
+      </div>
+
+      <div id="market-top-content">
+        <div id="market-top-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div id="market-trend-content" style="display:none">
+        <div id="market-trend-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div id="market-creator-content" style="display:none">
+        <div id="market-creator-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </section>
+
   </div>
 
   <!-- ── ONGLET TARIFS ── -->

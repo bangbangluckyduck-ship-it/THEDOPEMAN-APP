@@ -6,8 +6,9 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
@@ -37,6 +38,26 @@ async def home():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Market data proxy (depuis tts-scraper API) ────────────────
+_SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
+
+@app.get("/api/market-data")
+async def market_data(category: Optional[str] = None):
+    """Proxy vers l'API TTS Scraper — retourne top produits + trending + créateurs."""
+    if not _SCRAPER_URL:
+        return JSONResponse({"ok": False, "error": "TTS_SCRAPER_URL non configuré"}, status_code=503)
+    try:
+        url = f"{_SCRAPER_URL}/api/coach-context"
+        params = {"category": category} if category else {}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, params=params)
+        if resp.is_success:
+            return resp.json()
+        return JSONResponse({"ok": False, "error": f"Scraper error {resp.status_code}"}, status_code=502)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
 
 
 @app.post("/analyze")
@@ -82,9 +103,21 @@ async def analyze(
             except asyncio.TimeoutError:
                 transcript = None
 
-        # Claude analysis
+        # Contexte marché pour GOLD / AGENCY uniquement
+        market_context: Optional[dict] = None
+        tier = user.get("tier", "free")
+        if tier in ("gold", "agency") and _SCRAPER_URL:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
+                if mresp.is_success:
+                    market_context = mresp.json()
+            except Exception:
+                pass  # On continue sans données marché si le scraper est down
+
+        # IA analysis
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video, frames_list, transcript),
+            loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context),
             timeout=90.0,
         )
         if user["valid"]:
