@@ -1247,54 +1247,59 @@ async function loadMarketData() {
   }
 }
 
+function _productCard(p, badgeHtml) {
+  const link    = p.product_url || '#';
+  const img     = p.image_url   || '';
+  const target  = link !== '#' ? 'target="_blank" rel="noopener"' : '';
+  return `
+    <a href="${link}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+      ${img ? `<img src="${img}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;flex-shrink:0" loading="lazy" onerror="this.style.display='none'">` : `<div style="width:54px;height:54px;border-radius:8px;background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px">🛍️</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${p.category || ''} · ${p.current_price ? p.current_price + '€' : '—'}</div>
+      </div>
+      <div style="text-align:right;white-space:nowrap;flex-shrink:0">${badgeHtml}</div>
+    </a>`;
+}
+
 function renderMarketSection(data) {
   // Top produits
   const topList = document.getElementById('market-top-list');
   if (topList && data.top_products?.length) {
-    topList.innerHTML = data.top_products.slice(0, 8).map(p => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.category || ''} · ${p.current_price ? p.current_price + '€' : '—'}</div>
-        </div>
-        <div style="text-align:right;white-space:nowrap">
-          <div style="font-size:13px;font-weight:700;color:var(--navy)">${(p.sold_count || 0).toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--muted)">ventes</div>
-        </div>
-      </div>`).join('');
+    topList.innerHTML = data.top_products.slice(0, 8).map(p =>
+      _productCard(p, `<div style="font-size:13px;font-weight:700;color:var(--navy)">${(p.sold_count || 0).toLocaleString()}</div><div style="font-size:10px;color:var(--muted)">ventes</div>`)
+    ).join('');
   }
 
   // Trending
   const trendList = document.getElementById('market-trend-list');
   if (trendList && data.trending?.length) {
-    trendList.innerHTML = data.trending.slice(0, 8).map(p => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.category || ''}</div>
-        </div>
-        <div style="text-align:right;white-space:nowrap">
-          <div style="font-size:13px;font-weight:700;color:#059669">+${p.growth_percent || 0}%</div>
-          <div style="font-size:10px;color:var(--muted)">croissance</div>
-        </div>
-      </div>`).join('');
+    trendList.innerHTML = data.trending.slice(0, 8).map(p =>
+      _productCard(p, `<div style="font-size:13px;font-weight:700;color:#059669">+${p.growth_percent || 0}%</div><div style="font-size:10px;color:var(--muted)">croissance</div>`)
+    ).join('');
   }
 
   // Créateurs
   const creatorList = document.getElementById('market-creator-list');
   if (creatorList && data.top_creators?.length) {
-    creatorList.innerHTML = data.top_creators.slice(0, 6).map(c => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600">@${c.handle || '—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.primary_category || ''}</div>
-        </div>
-        <div style="text-align:right;white-space:nowrap">
-          <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.followers ? (c.followers/1000).toFixed(0)+'k' : '—'}</div>
-          <div style="font-size:10px;color:var(--muted)">followers</div>
-        </div>
-      </div>`).join('');
+    creatorList.innerHTML = data.top_creators.slice(0, 6).map(c => {
+      const profileLink = c.profile_url || '#';
+      const target = profileLink !== '#' ? 'target="_blank" rel="noopener"' : '';
+      return `
+        <a href="${profileLink}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--navy));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎯</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">@${c.handle || '—'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">${c.primary_category || ''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.followers ? (c.followers >= 1000000 ? (c.followers/1000000).toFixed(1)+'M' : (c.followers/1000).toFixed(0)+'k') : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">followers</div>
+          </div>
+        </a>`;
+    }).join('');
   }
+
 }
 
 function switchMarketTab(tab) {
