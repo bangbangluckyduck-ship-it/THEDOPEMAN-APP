@@ -56,6 +56,25 @@ async def user_info(request: Request):
     }
 
 
+@app.post("/api/register")
+async def register(request: Request):
+    """Enregistre automatiquement un nouvel utilisateur comme FREE si pas déjà existant."""
+    user = get_user_from_request(request)
+    if not user["valid"]:
+        raise HTTPException(status_code=401, detail="Authentification requise.")
+
+    email = user["email"]
+    # Si l'utilisateur n'existe pas, le créer en FREE
+    from auth import _user_tiers
+    if email not in _user_tiers:
+        from auth import set_user_tier
+        set_user_tier(email, "free")
+        return {"ok": True, "email": email, "tier": "free", "created": True}
+
+    # Utilisateur existe déjà
+    return {"ok": True, "email": email, "tier": user["tier"], "created": False}
+
+
 # ── Market data proxy (depuis tts-scraper API) ────────────────
 _SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
 

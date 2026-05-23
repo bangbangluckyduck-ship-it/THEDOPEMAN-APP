@@ -618,6 +618,11 @@ async function analyzeVideo() {
     saveToHistory(data, currentFilename);
     showResults(data);
 
+    // Vérifier le quota et afficher popup d'upgrade si limite FREE atteinte
+    if (window.__userInfo) {
+      checkQuotaAfterAnalysis(window.__userInfo);
+    }
+
   } catch (e) {
     document.getElementById('loading-section').style.display = 'none';
     document.getElementById('upload-section').style.display  = 'block';
@@ -1355,7 +1360,13 @@ function onLoginSuccess(email, name) {
     btnAuth.onclick = logout;
   }
 
-  // Récupérer infos utilisateur (tier, etc)
+  // 1. Enregistrer l'utilisateur (crée en FREE si nouveau)
+  fetch('/api/register', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${email}` }
+  }).catch(() => {});
+
+  // 2. Récupérer infos utilisateur (tier, etc)
   fetch('/api/user-info', {
     headers: { Authorization: `Bearer ${email}` }
   }).then(r => r.json()).then(data => {
@@ -1379,9 +1390,12 @@ function onLoginSuccess(email, name) {
         tierMsg.style.display = 'block';
       }
     }
+
+    // 3. Masquer l'onglet Tarifs par défaut (visible seulement après 3 analyses ou via /subscribe)
+    updatePricingTabVisibility(data);
   }).catch(() => {});
 
-  // Vérifier si admin
+  // 4. Vérifier si admin
   fetch('/admin/users', {
     headers: { Authorization: `Bearer ${email}` }
   }).then(r => {
@@ -1392,7 +1406,7 @@ function onLoginSuccess(email, name) {
     }
   }).catch(() => {});
 
-  // Mettre à jour le badge usage
+  // 5. Mettre à jour le badge usage
   fetch('/analyze', { method: 'HEAD', headers: { Authorization: `Bearer ${email}` } })
     .catch(() => {});
 }
@@ -1401,6 +1415,129 @@ function logout() {
   localStorage.removeItem('tts_email');
   localStorage.removeItem('tts_name');
   location.reload();
+}
+
+// ── GESTION TARIFS (Gating) ──────────────────────────────────
+
+function updatePricingTabVisibility(userInfo) {
+  const pricingTab = document.getElementById('tab-pricing');
+  if (!pricingTab) return;
+
+  // Afficher l'onglet Tarifs SEULEMENT si:
+  // 1. Utilisateur est PRO, GOLD, AGENCY, BETA, ou ADMIN (non-free)
+  // 2. OU l'utilisateur a atteint la limite FREE (3 analyses)
+  const tier = userInfo?.tier || 'free';
+  const used = userInfo?.usage?.used ?? 0;
+  const limit = userInfo?.usage?.limit ?? 3;
+
+  // Utilisateurs payants voient toujours les tarifs
+  if (['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier)) {
+    pricingTab.style.display = 'inline-flex';
+    return;
+  }
+
+  // Utilisateurs free voient les tarifs seulement après avoir atteint 3 analyses
+  if (tier === 'free' && used >= limit) {
+    pricingTab.style.display = 'inline-flex';
+  } else {
+    pricingTab.style.display = 'none';
+  }
+}
+
+function checkQuotaAfterAnalysis(userInfo) {
+  // Afficher un popup après que l'utilisateur atteigne la limite FREE
+  const tier = userInfo?.tier || 'free';
+  const used = userInfo?.usage?.used ?? 0;
+  const limit = userInfo?.usage?.limit ?? 3;
+
+  // Seulement pour les utilisateurs FREE
+  if (tier !== 'free') return;
+
+  // Afficher la popup si limite atteinte
+  if (used >= limit) {
+    showUpgradeModal(used, limit);
+    updatePricingTabVisibility(userInfo);
+  }
+}
+
+function showUpgradeModal(used, limit) {
+  // Créer et afficher le modal d'upgrade
+  const modalId = 'upgrade-limit-modal';
+  let modal = document.getElementById(modalId);
+
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      font-family: var(--font);
+    `;
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        color: #333;
+      ">
+        <h2 style="margin-top:0; font-size:24px; color:#1f2937;">🎉 Bravo !</h2>
+        <p style="font-size:16px; color:#666; line-height:1.6;">
+          Tu as utilisé tes <strong>${limit} analyses gratuites</strong>.<br/>
+          Découvre nos plans payants pour continuer l'analyse ! 💪
+        </p>
+        <div style="display: flex; gap: 12px; margin-top: 30px; justify-content: center;">
+          <button onclick="closePricingModal('${modalId}')" style="
+            padding: 12px 24px;
+            background: #E5E7EB;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            transition: background 0.2s;
+          " onmouseover="this.style.background='#D1D5DB'" onmouseout="this.style.background='#E5E7EB'">
+            Plus tard
+          </button>
+          <button onclick="upgradeFromModal('${modalId}')" style="
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            transition: transform 0.2s;
+          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            Voir les plans ✨
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closePricingModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.style.display = 'none';
+}
+
+function upgradeFromModal(modalId) {
+  closePricingModal(modalId);
+  switchTab('pricing');
 }
 
 // ── CGV ──────────────────────────────────────────────────────
