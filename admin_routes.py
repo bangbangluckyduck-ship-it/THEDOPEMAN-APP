@@ -1,8 +1,8 @@
-'use strict' if False else None  # noqa
+from __future__ import annotations
+
 """
 Routes admin — accessibles uniquement à l'email ADMIN_EMAIL.
 """
-from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import (
