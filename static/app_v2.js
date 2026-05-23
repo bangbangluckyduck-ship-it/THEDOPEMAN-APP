@@ -1319,3 +1319,165 @@ document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus hau
 // Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
 document.addEventListener('DOMContentLoaded', initCookies);
 document.addEventListener('DOMContentLoaded', loadMarketData);
+
+// ── LOGIN OBLIGATOIRE ────────────────────────────────────────
+
+function checkLoginRequired() {
+  const email = localStorage.getItem('tts_email');
+  if (!email) {
+    document.getElementById('login-overlay').style.display = 'flex';
+  } else {
+    onLoginSuccess(email, localStorage.getItem('tts_name') || '');
+  }
+}
+
+function submitLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const name  = document.getElementById('login-name').value.trim();
+  if (!email || !name) return;
+
+  localStorage.setItem('tts_email', email);
+  localStorage.setItem('tts_name', name);
+  document.getElementById('login-overlay').style.display = 'none';
+  onLoginSuccess(email, name);
+}
+
+function onLoginSuccess(email, name) {
+  // Mettre à jour le header
+  const userEmailEl = document.getElementById('user-email');
+  if (userEmailEl) userEmailEl.textContent = name || email;
+
+  const btnAuth = document.getElementById('btn-auth');
+  if (btnAuth) {
+    btnAuth.textContent = 'Se déconnecter';
+    btnAuth.onclick = logout;
+  }
+
+  // Vérifier si admin
+  fetch('/admin/users', {
+    headers: { Authorization: `Bearer ${email}` }
+  }).then(r => {
+    if (r.ok) {
+      // C'est un admin
+      const adminTab = document.getElementById('tab-admin');
+      if (adminTab) adminTab.style.display = 'inline-flex';
+    }
+  }).catch(() => {});
+
+  // Mettre à jour le badge usage
+  fetch('/analyze', { method: 'HEAD', headers: { Authorization: `Bearer ${email}` } })
+    .catch(() => {});
+}
+
+function logout() {
+  localStorage.removeItem('tts_email');
+  localStorage.removeItem('tts_name');
+  location.reload();
+}
+
+// ── CGV ──────────────────────────────────────────────────────
+
+function showCGV(e) {
+  if (e) e.preventDefault();
+  document.getElementById('cgv-overlay').style.display = 'block';
+}
+
+function closeCGV() {
+  document.getElementById('cgv-overlay').style.display = 'none';
+}
+
+// Lien footer CGV
+function openCGV() { showCGV(); }
+
+// ── PANEL ADMIN ──────────────────────────────────────────────
+
+function getAdminHeaders() {
+  const email = localStorage.getItem('tts_email') || '';
+  return { 'Authorization': `Bearer ${email}`, 'Content-Type': 'application/json' };
+}
+
+async function adminLoadUsers() {
+  const list = document.getElementById('admin-users-list');
+  list.innerHTML = '<p style="color:var(--muted);font-size:13px">Chargement…</p>';
+  try {
+    const res  = await fetch('/admin/users', { headers: getAdminHeaders() });
+    const data = await res.json();
+    if (!data.ok || !data.users.length) {
+      list.innerHTML = '<p style="color:var(--muted);font-size:13px">Aucun utilisateur enregistré.</p>';
+      return;
+    }
+    const tierColors = { free:'#6B7280', beta:'#059669', pro:'#2563EB', gold:'#D97706', agency:'#7C3AED', admin:'#DC2626' };
+    list.innerHTML = data.users.map(u => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+        </div>
+        <span style="background:${tierColors[u.tier]||'#6B7280'};color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${u.label}</span>
+      </div>`).join('');
+  } catch (err) {
+    list.innerHTML = `<p style="color:#DC2626;font-size:13px">Erreur : ${err.message}</p>`;
+  }
+}
+
+async function adminGrantBeta() {
+  const email = document.getElementById('admin-beta-email').value.trim();
+  const msg   = document.getElementById('admin-action-msg');
+  if (!email) { msg.textContent = '⚠️ Saisis un email.'; msg.style.color = '#D97706'; return; }
+  try {
+    const res  = await fetch('/admin/grant-beta', {
+      method: 'POST', headers: getAdminHeaders(),
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    msg.textContent = data.message || '✅ Fait !';
+    msg.style.color = '#059669';
+    adminLoadUsers();
+  } catch (err) {
+    msg.textContent = `❌ Erreur : ${err.message}`; msg.style.color = '#DC2626';
+  }
+}
+
+async function adminRevoke() {
+  const email = document.getElementById('admin-beta-email').value.trim();
+  const msg   = document.getElementById('admin-action-msg');
+  if (!email) { msg.textContent = '⚠️ Saisis un email.'; msg.style.color = '#D97706'; return; }
+  try {
+    const res  = await fetch('/admin/revoke', {
+      method: 'POST', headers: getAdminHeaders(),
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    msg.textContent = data.message || '✅ Révoqué.';
+    msg.style.color = '#059669';
+    adminLoadUsers();
+  } catch (err) {
+    msg.textContent = `❌ Erreur : ${err.message}`; msg.style.color = '#DC2626';
+  }
+}
+
+// ── switchTab étendu pour admin ──────────────────────────────
+const _origSwitchTab = switchTab;
+switchTab = function(tab) {
+  // Gérer l'onglet admin
+  const adminContent = document.getElementById('tab-admin-content');
+  if (adminContent) adminContent.style.display = tab === 'admin' ? 'block' : 'none';
+  const adminBtn = document.getElementById('tab-admin');
+  if (adminBtn) adminBtn.classList.toggle('active', tab === 'admin');
+
+  if (tab === 'admin') {
+    // Désactiver les autres onglets
+    ['analyze', 'pricing', 'history'].forEach(t => {
+      const c = document.getElementById(`tab-${t}-content`);
+      const b = document.getElementById(`tab-${t}`);
+      if (c) c.style.display = 'none';
+      if (b) b.classList.remove('active');
+    });
+    adminLoadUsers();
+    return;
+  }
+  _origSwitchTab(tab);
+};
+
+// Lancer le check login au démarrage
+document.addEventListener('DOMContentLoaded', checkLoginRequired);

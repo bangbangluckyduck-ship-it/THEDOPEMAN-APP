@@ -11,9 +11,12 @@ Stockage : in-memory (resets au redémarrage Render — acceptable en beta).
 Phase 2 (juillet) : migration vers PostgreSQL + magic link.
 """
 from __future__ import annotations
+import os
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException, Request
+
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").lower().strip()
 
 # ── CONFIGURATION DES TIERS ───────────────────────────────────
 TIER_CONFIG: dict[str, dict] = {
@@ -21,6 +24,8 @@ TIER_CONFIG: dict[str, dict] = {
     "pro":    {"monthly": 20,   "daily": None, "seats": 1,  "label": "PRO"},
     "gold":   {"monthly": None, "daily": 25,   "seats": 1,  "label": "GOLD"},
     "agency": {"monthly": None, "daily": 125,  "seats": 5,  "label": "AGENCY"},
+    "beta":   {"monthly": 999,  "daily": None, "seats": 1,  "label": "BETA"},
+    "admin":  {"monthly": None, "daily": None, "seats": 99, "label": "ADMIN"},
 }
 
 # ── STORES in-memory ──────────────────────────────────────────
@@ -124,20 +129,33 @@ def get_user_from_request(request: Request) -> dict:
     if not token or "@" not in token or len(token) < 5:
         raise HTTPException(status_code=401, detail="Token invalide.")
 
+    # Admin reconnu automatiquement
+    if ADMIN_EMAIL and token.lower() == ADMIN_EMAIL:
+        return {"email": token.lower(), "tier": "admin", "valid": True, "is_admin": True}
+
     tier = get_user_tier(token)
     return {
-        "email": token,
-        "tier":  tier,
-        "valid": True,
+        "email":    token.lower(),
+        "tier":     tier,
+        "valid":    True,
+        "is_admin": False,
     }
 
 
 # ── QUOTA ─────────────────────────────────────────────────────
 
+def is_admin(user: dict) -> bool:
+    return user.get("is_admin", False) or user.get("tier") == "admin"
+
+
 def check_quota(user: dict) -> None:
     """Lève 429 si l'utilisateur a atteint sa limite."""
     if not user["valid"]:
         return  # Anonyme : pas bloqué côté serveur
+
+    # Admin et beta ont accès illimité
+    if is_admin(user):
+        return
 
     tier   = user["tier"]
     email  = user["email"]

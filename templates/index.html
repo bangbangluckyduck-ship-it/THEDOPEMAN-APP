@@ -742,6 +742,7 @@
     <button class="tab active" id="tab-analyze"  onclick="switchTab('analyze')"  data-i18n="tab_analyze">🎬 Analyser</button>
     <button class="tab"        id="tab-pricing"  onclick="switchTab('pricing')">💎 Tarifs</button>
     <button class="tab"        id="tab-history"  onclick="switchTab('history')"><span data-i18n="tab_history">📋 Historique</span> <span class="tab-badge" id="history-badge" style="display:none">0</span></button>
+    <button class="tab"        id="tab-admin"    onclick="switchTab('admin')" style="display:none">⚙️ Admin</button>
   </div>
 
   <!-- ── ONGLET ANALYSER ── -->
@@ -1064,6 +1065,37 @@
     </div>
   </div>
 
+  <!-- ── ONGLET ADMIN ── -->
+  <div id="tab-admin-content" style="display:none">
+    <div class="section">
+      <h2>⚙️ Panel Admin</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Gestion des utilisateurs et accès beta</p>
+
+      <!-- Accorder accès beta -->
+      <div style="background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:16px">
+        <h3 style="font-size:15px;margin-bottom:12px">🎁 Accorder accès Beta</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="email" id="admin-beta-email" placeholder="email@exemple.com"
+            style="flex:1;min-width:200px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface)">
+          <button onclick="adminGrantBeta()" class="btn btn-primary" style="white-space:nowrap">✅ Accorder Beta</button>
+          <button onclick="adminRevoke()" style="padding:10px 14px;background:none;border:1px solid #DC2626;color:#DC2626;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">❌ Révoquer</button>
+        </div>
+        <div id="admin-action-msg" style="margin-top:8px;font-size:13px;font-weight:600"></div>
+      </div>
+
+      <!-- Liste des utilisateurs -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-size:15px">👥 Utilisateurs</h3>
+          <button onclick="adminLoadUsers()" style="padding:6px 12px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">🔄 Rafraîchir</button>
+        </div>
+        <div id="admin-users-list" style="display:flex;flex-direction:column;gap:8px">
+          <p style="color:var(--muted);font-size:13px">Clique sur Rafraîchir pour charger la liste.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- FOOTER -->
@@ -1071,11 +1103,90 @@
   <img src="/static/logo.png" alt="Dope Ventures">
   <span>
     © 2026 DOPE VENTURES ·
+    <span class="footer-link" onclick="openCGV()">CGV</span> ·
     <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_privacy">Confidentialité</span> ·
     <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_cookies">Cookies</span> ·
     <a href="mailto:dopeventure44@gmail.com" class="footer-link">Contact</a>
   </span>
 </footer>
+
+<!-- ── MODAL LOGIN OBLIGATOIRE ── -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
+  <div style="background:var(--surface);border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:var(--shadow-lg)">
+    <div style="text-align:center;margin-bottom:24px">
+      <img src="/static/TTS-LOGO.jpg" alt="Logo" style="width:60px;height:60px;border-radius:12px;margin-bottom:12px">
+      <h2 style="font-size:22px;font-weight:700;color:var(--text)">Bienvenue 👋</h2>
+      <p style="font-size:14px;color:var(--muted);margin-top:6px">Identifie-toi pour utiliser TikTok Shop Analyzer</p>
+    </div>
+
+    <form id="login-form" onsubmit="submitLogin(event)">
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">Prénom</label>
+        <input type="text" id="login-name" placeholder="Ton prénom" required
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;outline:none;background:var(--bg)"
+          onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">Adresse e-mail</label>
+        <input type="email" id="login-email" placeholder="toi@exemple.com" required
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;outline:none;background:var(--bg)"
+          onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="margin-bottom:20px;display:flex;gap:10px;align-items:flex-start">
+        <input type="checkbox" id="login-cgv" required style="margin-top:3px;width:16px;height:16px;flex-shrink:0;accent-color:var(--navy)">
+        <label for="login-cgv" style="font-size:13px;color:var(--muted);cursor:pointer">
+          J'accepte les <span onclick="showCGV(event)" style="color:var(--navy);text-decoration:underline;cursor:pointer">Conditions Générales d'Utilisation</span> et la <span onclick="showCGV(event)" style="color:var(--navy);text-decoration:underline;cursor:pointer">Politique de confidentialité</span>
+        </label>
+      </div>
+      <button type="submit" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--accent));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer">
+        Commencer →
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ── MODAL CGV ── -->
+<div id="cgv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;overflow-y:auto;padding:20px">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:600px;margin:0 auto;position:relative">
+    <button onclick="closeCGV()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer">✕</button>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:20px;color:var(--text)">📄 CGV & Politique de confidentialité</h2>
+    <div style="font-size:13px;line-height:1.8;color:var(--text)">
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">1. Éditeur</h3>
+      <p>TikTok Shop Analyzer est édité par <strong>Dope Ventures</strong>. Contact : dopeventure44@gmail.com</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">2. Description du service</h3>
+      <p>TikTok Shop Analyzer est une application d'analyse de vidéos TikTok Shop par intelligence artificielle. Le service est fourni "tel quel", sans garantie de résultats commerciaux.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">3. Conditions d'utilisation</h3>
+      <p>En utilisant ce service, vous acceptez de :</p>
+      <ul style="margin:8px 0 8px 16px">
+        <li>N'utiliser le service qu'à des fins légales</li>
+        <li>Ne pas tenter de contourner les quotas d'utilisation</li>
+        <li>Respecter les droits de propriété intellectuelle</li>
+      </ul>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">4. Abonnements et paiements</h3>
+      <p>Les abonnements sont sans engagement et résiliables à tout moment depuis votre espace client. Le remboursement n'est pas possible pour les périodes déjà consommées. Les paiements sont traités par <strong>Stripe</strong>.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">5. Données personnelles (RGPD)</h3>
+      <p>Nous collectons uniquement votre <strong>adresse e-mail</strong> pour identifier votre compte et gérer vos quotas d'utilisation. Aucune donnée vidéo n'est stockée sur nos serveurs — l'analyse se fait en local puis est envoyée directement à l'IA.</p>
+      <p style="margin-top:8px">Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Contactez-nous à dopeventure44@gmail.com.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">6. Cookies</h3>
+      <p>Nous utilisons uniquement des cookies techniques nécessaires au fonctionnement de l'application (session, préférences). Aucun cookie publicitaire ou de tracking tiers.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">7. Limitation de responsabilité</h3>
+      <p>Les analyses fournies par l'IA sont des estimations et ne constituent pas des conseils financiers ou commerciaux garantis. Dope Ventures ne peut être tenu responsable des décisions prises sur la base de ces analyses.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">8. Droit applicable</h3>
+      <p>Les présentes CGV sont soumises au droit français. En cas de litige, les tribunaux français sont compétents.</p>
+
+      <p style="margin-top:20px;color:var(--muted);font-size:12px">Dernière mise à jour : Mai 2026</p>
+    </div>
+    <button onclick="closeCGV()" style="width:100%;margin-top:24px;padding:14px;background:linear-gradient(135deg,var(--navy),var(--accent));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Compris ✓</button>
+  </div>
+</div>
 
 <!-- AUTH MODAL -->
 <div class="modal" id="auth-modal">

@@ -19,13 +19,15 @@ from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
 from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
+from admin_routes import router as admin_router
 
 generate_icons()
 
 app = FastAPI(title="TikTok Shop Analyzer")
 app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(stripe_router)  # /create-checkout-session  /customer-portal  /webhook
+app.include_router(stripe_router)   # /create-checkout-session  /customer-portal  /webhook
+app.include_router(admin_router)    # /admin/users  /admin/set-tier  /admin/grant-beta
 
 _HTML = Path("templates/index.html").read_text(encoding="utf-8")
 
