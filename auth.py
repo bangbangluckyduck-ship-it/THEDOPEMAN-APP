@@ -46,18 +46,42 @@ def set_user_tier(
     tier: str,
     customer_id: Optional[str] = None,
     subscription_id: Optional[str] = None,
+    expiry: Optional[str] = None,
 ) -> None:
-    """Appelé par le webhook Stripe lors d'un paiement réussi."""
+    """Appelé par le webhook Stripe lors d'un paiement réussi, ou par admin pour accès temporaire.
+
+    expiry: ISO date string (YYYY-MM-DD) ou None pour pas d'expiration.
+    """
     if tier not in TIER_CONFIG:
         tier = "free"
     _user_tiers[email] = {
         "tier":            tier,
         "customer_id":     customer_id,
         "subscription_id": subscription_id,
+        "expiry":          expiry,
     }
 
 
+def _check_tier_expiry(email: str) -> None:
+    """Vérifie si le tier a expiré et rétrograder en FREE si nécessaire."""
+    data = _user_tiers.get(email, {})
+    if not data.get("expiry"):
+        return  # Pas d'expiration
+
+    expiry_str = data["expiry"]
+    try:
+        expiry_date = datetime.fromisoformat(expiry_str).date()
+        today = datetime.now(timezone.utc).date()
+        if today > expiry_date:
+            # Expired → downgrade to free
+            data["tier"] = "free"
+            data["expiry"] = None
+    except (ValueError, TypeError):
+        pass  # Invalid date format, ignore
+
+
 def get_user_tier(email: str) -> str:
+    _check_tier_expiry(email)
     return _user_tiers.get(email, {}).get("tier", "free")
 
 
@@ -219,6 +243,7 @@ def usage_info(user: dict) -> dict:
         "limit":       limit,
         "remaining":   max(0, limit - used) if limit else None,
         "customer_id": get_customer_id(email),
+        "expiry":      _user_tiers.get(email, {}).get("expiry"),
     }
 
 

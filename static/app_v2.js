@@ -1317,6 +1317,7 @@ function switchMarketTab(tab) {
 // Init au chargement
 document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus haut */ });
 // Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
+document.addEventListener('DOMContentLoaded', checkLoginRequired);
 document.addEventListener('DOMContentLoaded', initCookies);
 document.addEventListener('DOMContentLoaded', loadMarketData);
 
@@ -1353,6 +1354,32 @@ function onLoginSuccess(email, name) {
     btnAuth.textContent = 'Se déconnecter';
     btnAuth.onclick = logout;
   }
+
+  // Récupérer infos utilisateur (tier, etc)
+  fetch('/api/user-info', {
+    headers: { Authorization: `Bearer ${email}` }
+  }).then(r => r.json()).then(data => {
+    window.__userInfo = data;
+
+    // Afficher le badge tier
+    const tierBadge = document.getElementById('user-tier-badge');
+    if (tierBadge && data.tier) {
+      const tierLabels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
+      const tierColors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
+      tierBadge.textContent = tierLabels[data.tier] || data.tier.toUpperCase();
+      tierBadge.style.background = tierColors[data.tier] || '#6B7280';
+      tierBadge.style.display = 'inline-block';
+    }
+
+    // Afficher le message tier spécial pour beta
+    if (data.tier === 'beta') {
+      const tierMsg = document.getElementById('user-tier-message');
+      if (tierMsg) {
+        tierMsg.textContent = '🎁 Accès Beta — Toutes les fonctionnalités GOLD débloquées';
+        tierMsg.style.display = 'block';
+      }
+    }
+  }).catch(() => {});
 
   // Vérifier si admin
   fetch('/admin/users', {
@@ -1409,14 +1436,61 @@ async function adminLoadUsers() {
     }
     const tierColors = { free:'#6B7280', beta:'#059669', pro:'#2563EB', gold:'#D97706', agency:'#7C3AED', admin:'#DC2626' };
     list.innerHTML = data.users.map(u => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface2);border-radius:10px;gap:10px">
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
         </div>
         <span style="background:${tierColors[u.tier]||'#6B7280'};color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${u.label}</span>
+        <button onclick="adminOpenTierModal('${u.email}', '${u.tier}')" style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap">✏️ Changer</button>
       </div>`).join('');
   } catch (err) {
     list.innerHTML = `<p style="color:#DC2626;font-size:13px">Erreur : ${err.message}</p>`;
+  }
+}
+
+function adminOpenTierModal(email, currentTier) {
+  document.getElementById('admin-modal-email').textContent = email;
+  document.getElementById('admin-modal-email-input').value = email;
+  document.getElementById('admin-tier-select').value = currentTier;
+  document.getElementById('admin-expiry-input').value = '';
+  document.getElementById('admin-no-expiry-check').checked = true;
+  document.getElementById('admin-expiry-input').style.display = 'none';
+  document.getElementById('admin-tier-modal').style.display = 'block';
+}
+
+function adminCloseTierModal() {
+  document.getElementById('admin-tier-modal').style.display = 'none';
+}
+
+function adminToggleExpiry() {
+  const noExpiry = document.getElementById('admin-no-expiry-check').checked;
+  document.getElementById('admin-expiry-input').style.display = noExpiry ? 'none' : 'block';
+  if (noExpiry) document.getElementById('admin-expiry-input').value = '';
+}
+
+async function adminConfirmTierChange() {
+  const email = document.getElementById('admin-modal-email-input').value;
+  const tier = document.getElementById('admin-tier-select').value;
+  const noExpiry = document.getElementById('admin-no-expiry-check').checked;
+  const expiry = noExpiry ? null : document.getElementById('admin-expiry-input').value;
+
+  const msg = document.getElementById('admin-action-msg');
+  try {
+    const res = await fetch('/admin/set-tier', {
+      method: 'POST',
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ email, tier, expiry }),
+    });
+    const data = await res.json();
+    msg.textContent = data.ok ? `✅ ${data.message}` : `❌ Erreur : ${data.detail}`;
+    msg.style.color = data.ok ? '#059669' : '#DC2626';
+    if (data.ok) {
+      adminCloseTierModal();
+      adminLoadUsers();
+    }
+  } catch (err) {
+    msg.textContent = `❌ Erreur : ${err.message}`;
+    msg.style.color = '#DC2626';
   }
 }
 

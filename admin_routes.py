@@ -3,6 +3,7 @@ from __future__ import annotations
 """
 Routes admin — accessibles uniquement à l'email ADMIN_EMAIL.
 """
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import (
@@ -44,14 +45,18 @@ async def list_users(request: Request):
 class SetTierBody(BaseModel):
     email: str
     tier:  str
+    expiry: Optional[str] = None  # ISO date YYYY-MM-DD ou None pour pas d'expiration
 
 @router.post("/set-tier")
 async def set_tier(body: SetTierBody, request: Request):
     _require_admin(request)
     if body.tier not in TIER_CONFIG:
         raise HTTPException(status_code=400, detail=f"Tier invalide. Choix : {list(TIER_CONFIG.keys())}")
-    set_user_tier(body.email.lower().strip(), body.tier)
-    return {"ok": True, "email": body.email, "tier": body.tier}
+    set_user_tier(body.email.lower().strip(), body.tier, expiry=body.expiry)
+    msg = f"{body.email} → {body.tier.upper()}"
+    if body.expiry:
+        msg += f" (expire le {body.expiry})"
+    return {"ok": True, "email": body.email, "tier": body.tier, "expiry": body.expiry, "message": msg}
 
 
 # ── POST /admin/grant-beta ───────────────────────────────────

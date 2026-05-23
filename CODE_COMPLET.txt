@@ -1,0 +1,344 @@
+================================================================
+TIKTOK SHOP VIDÉO ANALYZER – by Dope Ventures
+Code complet du projet – pour discussion avec Claude
+================================================================
+
+STACK :
+- Backend : Python / FastAPI hébergé sur Render.com (gratuit)
+- IA vision : Mistral Pixtral (pixtral-12b-2409) via api.mistral.ai
+- Transcription audio : AssemblyAI (modèle nano, français)
+- Frontend : HTML/CSS/JS pur (mobile-first, PWA)
+- Extraction frames + audio : côté navigateur (canvas + OfflineAudioContext)
+- Historique : localStorage
+- Export PDF : jsPDF (CDN)
+
+VARIABLES D'ENVIRONNEMENT (Render) :
+- MISTRAL_API_KEY
+- ASSEMBLYAI_API_KEY
+
+================================================================
+FICHIER : requirements.txt
+================================================================
+
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+httpx>=0.27.0
+assemblyai>=0.30.0
+pillow>=10.0.0
+python-dotenv>=1.0.0
+qrcode[pil]>=7.4.2
+
+================================================================
+FICHIER : render.yaml
+================================================================
+
+services:
+  - type: web
+    name: tiktok-shop-analyzer
+    runtime: python
+    buildCommand: apt-get install -y ffmpeg && pip install -r requirements.txt
+    startCommand: python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT
+
+================================================================
+FICHIER : main.py
+================================================================
+
+from __future__ import annotations
+import asyncio
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Optional
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from analyzer import analyze_video, transcribe_audio
+from generate_assets import generate_icons
+
+generate_icons()
+
+app = FastAPI(title="TikTok Shop Analyzer")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+_HTML = Path("templates/index.html").read_text(encoding="utf-8")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return HTMLResponse(_HTML)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.post("/analyze")
+async def analyze(
+    frames: str = Form(...),
+    audio: Optional[UploadFile] = File(None),
+):
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+
+    frames_list: list[str] = json.loads(frames)
+    if not frames_list:
+        raise HTTPException(status_code=400, detail="Aucune image reçue.")
+
+    loop = asyncio.get_event_loop()
+    audio_path: Optional[str] = None
+
+    try:
+        if audio:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                audio_path = tmp.name
+                tmp.write(await audio.read())
+
+        transcript: Optional[str] = None
+        if audio_path:
+            try:
+                transcript = await asyncio.wait_for(
+                    loop.run_in_executor(None, transcribe_audio, audio_path),
+                    timeout=20.0,
+                )
+            except asyncio.TimeoutError:
+                transcript = None
+
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, analyze_video, frames_list, transcript),
+            timeout=30.0,
+        )
+        result["transcript"] = transcript
+        result["frames_analyzed"] = len(frames_list)
+        return result
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Analyse trop longue. Réessaie.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if audio_path:
+            try:
+                os.unlink(audio_path)
+            except OSError:
+                pass
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+================================================================
+FICHIER : analyzer.py
+================================================================
+
+from __future__ import annotations
+import base64
+import json
+import os
+import re
+from typing import List, Optional
+
+
+def transcribe_audio(audio_path: str) -> Optional[str]:
+    api_key = os.getenv("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        return None
+    try:
+        import assemblyai as aai
+        aai.settings.api_key = api_key
+        config = aai.TranscriptionConfig(
+            language_code="fr",
+            speech_model=aai.SpeechModel.nano,
+        )
+        result = aai.Transcriber().transcribe(audio_path, config=config)
+        if result.status == aai.TranscriptStatus.error:
+            return None
+        return result.text
+    except Exception:
+        return None
+
+
+PROMPT = """Tu es un expert en marketing TikTok Shop avec 5 ans d'expérience à optimiser des vidéos de vente.
+
+Analyse cette vidéo TikTok Shop (images extraites{transcript_note}).
+
+IMPORTANT : rédige tous tes commentaires exclusivement en français, sans aucun anglicisme. Utilise uniquement des termes français :
+- "accroche" (pas "hook")
+- "appel à l'action" (pas "CTA" ni "call to action")
+- "images" (pas "frames")
+- "ambiance" (pas "vibe")
+- "tendance" (pas "trend")
+- "abonnés" (pas "followers")
+- "partage" (pas "share")
+- "mise en avant" (pas "highlight")
+
+Évalue chaque critère sur 10 et retourne UNIQUEMENT un JSON valide, sans texte avant ou après :
+
+{
+  "scores": {
+    "accroche": {
+      "note": <0-10>,
+      "commentaire": "<analyse des premières secondes : est-ce que ça accroche immédiatement ?>"
+    },
+    "discours": {
+      "note": <0-10>,
+      "commentaire": "<clarté du message, argumentation, fluidité, structure de vente>"
+    },
+    "qualite_visuelle": {
+      "note": <0-10>,
+      "commentaire": "<éclairage, cadrage, stabilité, résolution, esthétique>"
+    },
+    "visibilite_produit": {
+      "note": <0-10>,
+      "commentaire": "<mise en valeur du produit, angles montrés, gros plans, démonstration>"
+    },
+    "call_to_action": {
+      "note": <0-10>,
+      "commentaire": "<présence, clarté et efficacité de l'appel à l'action>"
+    },
+    "energie_dynamisme": {
+      "note": <0-10>,
+      "commentaire": "<rythme, énergie du créateur, engagement émotionnel>"
+    },
+    "credibilite_confiance": {
+      "note": <0-10>,
+      "commentaire": "<authenticité, professionnalisme, preuves sociales, confiance dégagée>"
+    }
+  },
+  "score_global": <0-100>,
+  "points_forts": ["<point fort 1>", "<point fort 2>", "<point fort 3>"],
+  "points_ameliorer": ["<problème 1>", "<problème 2>", "<problème 3>"],
+  "conseils_concrets": ["<conseil précis 1>", "<conseil 2>", "<conseil 3>", "<conseil 4>"],
+  "verdict": "<résumé en 2-3 phrases du potentiel commercial et ce qu'il faut changer en priorité>"
+}"""
+
+
+def analyze_video(frames_b64: List[str], transcript: Optional[str] = None) -> dict:
+    import httpx
+
+    api_key = os.getenv("MISTRAL_API_KEY")
+    transcript_note = " + transcription audio" if transcript else ""
+
+    content = []
+    for i, frame in enumerate(frames_b64):
+        label = "Accroche (début)" if i == 0 else f"Image {i+1}"
+        content.append({"type": "text", "text": label})
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{frame}"},
+        })
+
+    if transcript:
+        content.append({"type": "text", "text": f"\n\nTranscription audio :\n{transcript}"})
+
+    content.append({"type": "text", "text": PROMPT.format(transcript_note=transcript_note)})
+
+    response = httpx.post(
+        "https://api.mistral.ai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "pixtral-12b-2409",
+            "messages": [{"role": "user", "content": content}],
+        },
+        timeout=30.0,
+    )
+
+    if not response.is_success:
+        raise Exception(f"Mistral error {response.status_code}: {response.text[:300]}")
+
+    raw = response.json()["choices"][0]["message"]["content"]
+
+    match = re.search(r"\{[\s\S]*\}", raw)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return {"error": "Impossible de parser la réponse IA", "raw": raw}
+
+================================================================
+FICHIER : generate_assets.py
+================================================================
+
+from __future__ import annotations
+import io
+import base64
+import socket
+from pathlib import Path
+from typing import Optional
+
+from PIL import Image, ImageDraw, ImageFont
+
+
+def make_icon(size: int) -> Image.Image:
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    r = size // 5
+    draw.rounded_rectangle([0, 0, size, size], radius=r, fill="#0d1220")
+    pad = size // 12
+    draw.ellipse([pad, pad, size - pad, size - pad], fill="#2952cc")
+    pad2 = size // 6
+    draw.ellipse([pad2, pad2, size - pad2, size - pad2], fill="#1a3a9e")
+    ring = size // 7
+    draw.ellipse([ring, ring, size - ring, size - ring], outline="#d4af37",
+                 width=max(2, size // 32))
+    cx, cy = size // 2, size // 2
+    half = size // 5
+    draw.polygon([
+        (cx - half + size // 20, cy - half),
+        (cx - half + size // 20, cy + half),
+        (cx + half + size // 20, cy),
+    ], fill="#d4af37")
+    return img
+
+
+def generate_icons():
+    static = Path(__file__).parent / "static"
+    static.mkdir(exist_ok=True)
+    logo = static / "logo.png"
+    for sz in (192, 512):
+        if logo.exists():
+            img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        else:
+            img = make_icon(sz)
+        img.save(static / f"icon-{sz}.png", "PNG")
+
+
+if __name__ == "__main__":
+    generate_icons()
+    print("Icons generated.")
+
+================================================================
+FICHIER : templates/index.html
+(frontend complet – HTML/CSS/JS)
+================================================================
+
+[voir contenu ci-dessous – fichier trop long, coller séparément si besoin]
+
+================================================================
+NOTES POUR DISCUSSION
+================================================================
+
+Points à améliorer potentiels :
+- Qualité de la transcription audio (modèle nano = basique, modèle "best" = payant)
+- Nombre d'images analysées (actuellement 6)
+- Pertinence des scores (calibrage du prompt)
+- Ajout de l'historique multi-utilisateurs (nécessiterait une base de données)
+- Version payante : système de comptes + Stripe
+- Nom de domaine personnalisé
+- Amélioration du PDF (mise en page plus élaborée)

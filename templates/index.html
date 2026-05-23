@@ -689,6 +689,7 @@
     </select>
     <span class="auth-status" id="auth-status">
       <span id="user-email">Gratuit</span>
+      <span id="user-tier-badge" style="display:none;margin-left:8px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;color:#fff"></span>
     </span>
     <button class="btn-upgrade" id="btn-auth" data-i18n="btn_connect">Se connecter</button>
   </div>
@@ -736,6 +737,9 @@
     <strong id="freemium-title" data-i18n="freemium_title">🎁 Gratuit jusqu'au lancement officiel</strong>
     <span id="freemium-count-label" data-i18n="freemium_count">Analyses utilisées :</span> <span class="usage-count" id="usage-count">0 / 999</span>
   </div>
+
+  <!-- BETA MESSAGE -->
+  <div id="user-tier-message" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.03));border:1px solid rgba(5,150,105,.2);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#047857;font-weight:600"></div>
 
   <!-- TABS -->
   <div class="tabs">
@@ -1092,6 +1096,48 @@
         <div id="admin-users-list" style="display:flex;flex-direction:column;gap:8px">
           <p style="color:var(--muted);font-size:13px">Clique sur Rafraîchir pour charger la liste.</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL TIER CHANGE (ADMIN) ── -->
+  <div id="admin-tier-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:24px;max-width:400px;width:100%;box-shadow:var(--shadow-lg)">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">Changer le plan</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Email : <strong id="admin-modal-email"></strong></p>
+      <input type="hidden" id="admin-modal-email-input">
+
+      <!-- Plan -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">Plan</label>
+        <select id="admin-tier-select" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text)">
+          <option value="free">FREE (3/mois)</option>
+          <option value="pro">PRO (20/mois)</option>
+          <option value="gold">GOLD ⭐ (25/jour)</option>
+          <option value="agency">AGENCY (125/jour)</option>
+          <option value="beta">BETA 🎁 (999/mois)</option>
+          <option value="admin">ADMIN (illimité)</option>
+        </select>
+      </div>
+
+      <!-- Expiration -->
+      <div style="margin-bottom:16px">
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text);cursor:pointer">
+          <input type="checkbox" id="admin-no-expiry-check" checked onchange="adminToggleExpiry()" style="width:16px;height:16px;accent-color:var(--navy)">
+          <span style="font-weight:600">Sans limite de durée</span>
+        </label>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">Date d'expiration (optionnel)</label>
+        <input type="date" id="admin-expiry-input" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);display:none">
+        <p style="font-size:11px;color:var(--muted);margin-top:4px">Après cette date, l'utilisateur repasse en FREE</p>
+      </div>
+
+      <!-- Boutons -->
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="adminCloseTierModal()" style="padding:10px 16px;background:var(--surface2);border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Annuler</button>
+        <button onclick="adminConfirmTierChange()" style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Valider</button>
       </div>
     </div>
   </div>

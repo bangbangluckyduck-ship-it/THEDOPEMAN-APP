@@ -42,6 +42,20 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/api/user-info")
+async def user_info(request: Request):
+    """Retourne les infos de l'utilisateur connecté (tier, usage, etc)."""
+    user = get_user_from_request(request)
+    if not user["valid"]:
+        return {"tier": "free", "email": None, "usage": usage_info(user)}
+    return {
+        "tier": user["tier"],
+        "email": user["email"],
+        "is_admin": user.get("is_admin", False),
+        "usage": usage_info(user),
+    }
+
+
 # ── Market data proxy (depuis tts-scraper API) ────────────────
 _SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
 
@@ -105,10 +119,10 @@ async def analyze(
             except asyncio.TimeoutError:
                 transcript = None
 
-        # Contexte marché pour GOLD / AGENCY uniquement
+        # Contexte marché pour GOLD / AGENCY / BETA uniquement
         market_context: Optional[dict] = None
         tier = user.get("tier", "free")
-        if tier in ("gold", "agency") and _SCRAPER_URL:
+        if tier in ("gold", "agency", "beta") and _SCRAPER_URL:
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
