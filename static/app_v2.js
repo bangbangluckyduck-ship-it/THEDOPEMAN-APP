@@ -1592,7 +1592,7 @@ function adminOpenTierModal(email, currentTier) {
   document.getElementById('admin-expiry-input').value = '';
   document.getElementById('admin-no-expiry-check').checked = true;
   document.getElementById('admin-expiry-input').style.display = 'none';
-  document.getElementById('admin-tier-modal').style.display = 'block';
+  document.getElementById('admin-tier-modal').style.display = 'flex';
 }
 
 function adminCloseTierModal() {
