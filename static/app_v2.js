@@ -1,6 +1,6 @@
 /* ============================================================
-   TikTok Shop Vidéo Analyzer — app_v2.js
-   by Dope Ventures
+   TikTok Shop Vidéo Analyzer — app_v2.js (COMPLETE REBUILD)
+   Clean session management with single source of truth
    ============================================================ */
 
 'use strict';
@@ -10,7 +10,7 @@ const STORAGE_KEY   = 'dv_history';
 const USAGE_KEY     = 'dv_usage';
 const USER_KEY      = 'dv_user';
 const MAX_HISTORY   = 20;
-const FREE_LIMIT    = 999; // limite levée pendant la beta
+const FREE_LIMIT    = 999;
 
 // ── I18N ─────────────────────────────────────────────────────
 const LANG_KEY = 'dv_lang';
@@ -163,7 +163,7 @@ const TRANSLATIONS = {
     sec_conversion:'💰 Potencial de conversão', pc_price_lbl:'Preço detectado', pc_cat_lbl:'Categoria', pc_timing_lbl:'Avaliar em',
     score_accroche:'🎯 Gancho', score_discours:'🗣️ Discurso', score_qualite_visuelle:'🎥 Qualidade visual',
     score_visibilite_produit:'📦 Produto', score_call_to_action:'📢 Chamada para ação',
-    score_energie_dynamisme:'⚡ Energia', score_credibilite_confiance:'🤝 Credibilidade',
+    score_energia_dinamismo:'⚡ Energia', score_credibilite_confiance:'🤝 Credibilidade',
     det_produit:'📦 Produto', det_prix:'💶 Preço est.', det_hook_type:'🎯 Tipo de gancho', det_hook_force:'⚡ Força do gancho',
     det_rentable:' ✓ rentável', det_optimiser:' — a otimizar',
     cat_economique:'🟢 Econômico', cat_moyen:'🟡 Médio', cat_premium:'🔴 Premium', cat_inconnu:'— Desconhecido',
@@ -259,7 +259,7 @@ const TRANSLATIONS = {
     sec_conversion:'💰 Potenziale di conversione', pc_price_lbl:'Prezzo rilevato', pc_cat_lbl:'Categoria', pc_timing_lbl:'Valutare a',
     score_accroche:'🎯 Gancio', score_discours:'🗣️ Discorso', score_qualite_visuelle:'🎥 Qualità visiva',
     score_visibilite_produit:'📦 Prodotto', score_call_to_action:'📢 Chiamata all\'azione',
-    score_energie_dynamisme:'⚡ Energia', score_credibilite_confiance:'🤝 Credibilità',
+    score_energia_dinamismo:'⚡ Energia', score_credibilite_confiance:'🤝 Credibilità',
     det_produit:'📦 Prodotto', det_prix:'💶 Prezzo est.', det_hook_type:'🎯 Tipo di gancio', det_hook_force:'⚡ Forza gancio',
     det_rentable:' ✓ redditizio', det_optimiser:' — da ottimizzare',
     cat_economique:'🟢 Economico', cat_moyen:'🟡 Medio', cat_premium:'🔴 Premium', cat_inconnu:'— Sconosciuto',
@@ -370,7 +370,6 @@ function applyTranslations() {
   document.querySelectorAll('[data-i18n-ph]').forEach(el => {
     el.placeholder = t(el.dataset.i18nPh);
   });
-  // Dynamic labels that need innerHTML update
   const fTitle = document.getElementById('freemium-title');
   if (fTitle) fTitle.textContent = t('freemium_title');
   const fCount = document.getElementById('freemium-count-label');
@@ -389,24 +388,114 @@ function getLabels() {
   };
 }
 
-// ── ÉTAT GLOBAL ───────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// SESSION MANAGEMENT — SINGLE SOURCE OF TRUTH
+// ══════════════════════════════════════════════════════════════
+
+// Session state — read from localStorage at startup, SINGLE location
+let SESSION = {
+  email: null,
+  name: null,
+};
+
+// Load session from localStorage on module initialization
+function initSessionState() {
+  SESSION.email = localStorage.getItem('tts_email') || null;
+  SESSION.name = localStorage.getItem('tts_name') || null;
+}
+
+// Save session to localStorage and update UI
+function saveSession(email, name) {
+  SESSION.email = email;
+  SESSION.name = name;
+  localStorage.setItem('tts_email', email);
+  localStorage.setItem('tts_name', name);
+  updateSessionUI();
+  fetchUserInfo();
+}
+
+// Clear session from localStorage and reload
+function clearSession() {
+  SESSION.email = null;
+  SESSION.name = null;
+  localStorage.removeItem('tts_email');
+  localStorage.removeItem('tts_name');
+  localStorage.removeItem(USAGE_KEY);
+  location.reload();
+}
+
+// Update UI to match session state
+function updateSessionUI() {
+  const overlay = document.getElementById('login-overlay');
+  const userEmailEl = document.getElementById('user-email');
+  const btnAuth = document.getElementById('btn-auth');
+
+  if (SESSION.email) {
+    // User is logged in
+    if (overlay) overlay.style.display = 'none';
+    if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
+    if (btnAuth) {
+      btnAuth.textContent = '⚙️ Mon abonnement';
+      btnAuth.onclick = openCustomerPortal;
+    }
+  } else {
+    // User is not logged in
+    if (overlay) overlay.style.display = 'flex';
+    if (userEmailEl) userEmailEl.textContent = '';
+    if (btnAuth) {
+      btnAuth.textContent = t('btn_connect');
+      btnAuth.onclick = () => {
+        const modal = document.getElementById('auth-modal');
+        if (modal) modal.classList.add('active');
+      };
+    }
+  }
+}
+
+// Fetch user info from server
+function fetchUserInfo() {
+  if (!SESSION.email) return;
+  fetch('/api/user-info', { headers: { Authorization: `Bearer ${SESSION.email}` } })
+    .then(r => r.json())
+    .then(data => {
+      window.__userInfo = data;
+      const tierBadge = document.getElementById('user-tier-badge');
+      if (tierBadge && data.tier) {
+        const labels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
+        const colors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
+        tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
+        tierBadge.style.background = colors[data.tier] || '#6B7280';
+        tierBadge.style.display = 'inline-block';
+      }
+    })
+    .catch(() => {});
+}
+
+// ══════════════════════════════════════════════════════════════
+// APP STATE (rest of the application state)
+// ══════════════════════════════════════════════════════════════
 let selectedFile   = null;
 let serverReady    = false;
 let currentData    = null;
 let currentFilename = '';
 let deferredPrompt = null;
 
-// ── INIT ──────────────────────────────────────────────────────
+// ── INITIALIZATION ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize session from localStorage
+  initSessionState();
+
+  // Set up UI to match session state
+  updateSessionUI();
+
   detectLanguage();
   applyTranslations();
   wakeServer();
   updateUsageCounter();
   updateHistoryBadge();
-  restoreUser();
   handleCheckoutReturn();
 
-  // Sélecteur de langue
+  // Language selector
   const sel = document.getElementById('lang-select');
   if (sel) {
     sel.value = currentLanguage;
@@ -420,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pwa-banner').style.display = 'flex';
   });
 
-  // Détection iOS : afficher guide d'installation si pas déjà installé
+  // iOS installation guide
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone = window.navigator.standalone === true ||
@@ -430,12 +519,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isIOS && !isStandalone && !iosBannerDismissed) {
     const banner = document.getElementById('ios-banner');
     if (banner) {
-      // Mettre à jour les textes avec la langue courante
       document.getElementById('ios-banner-title').textContent = t('ios_title');
       const steps = document.getElementById('ios-banner-steps');
       steps.innerHTML = `<li>${t('ios_s1')}</li><li>${t('ios_s2')}</li><li>${t('ios_s3')}</li>`;
       banner.style.display = 'block';
-      // Fermeture mémorisée
       banner.querySelector('button').addEventListener('click', () => {
         localStorage.setItem('ios_banner_dismissed', '1');
       });
@@ -477,15 +564,18 @@ function switchTab(tab) {
 const uploadArea = document.getElementById('upload-area');
 const fileInput  = document.getElementById('video-file');
 
-uploadArea.addEventListener('click', () => fileInput.click());
+if (uploadArea) {
+  uploadArea.addEventListener('click', () => fileInput.click());
+  uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('active'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('active'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault(); uploadArea.classList.remove('active');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) setFile(f);
+  });
+}
+
 fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
-uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('active'); });
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('active'));
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault(); uploadArea.classList.remove('active');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('video/')) setFile(f);
-});
 
 function setFile(f) {
   selectedFile = f;
@@ -512,7 +602,6 @@ async function extractFrames(file, numFrames = 6) {
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      // 1re image : aléatoire entre 1-3s
       const first = 1 + Math.random() * Math.min(2, Math.max(0, dur - 1.1));
       const ts = [first];
       for (let i = 1; i < numFrames; i++)
@@ -566,7 +655,7 @@ async function extractAudio(file) {
   } catch { return null; }
 }
 
-// ── MAIN FLOW ────────────────────────────────────────────────
+// ── MAIN ANALYSIS FLOW ────────────────────────────────────────
 async function analyzeVideo() {
   if (!selectedFile) return;
 
@@ -595,8 +684,7 @@ async function analyzeVideo() {
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
     const headers = {};
-    const email   = localStorage.getItem(USER_KEY);
-    if (email) headers['Authorization'] = `Bearer ${email}`;
+    if (SESSION.email) headers['Authorization'] = `Bearer ${SESSION.email}`;
     const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal, headers });
     clearTimeout(timer);
 
@@ -606,10 +694,9 @@ async function analyzeVideo() {
     currentData     = data;
     currentFilename = selectedFile.name;
 
-    // Sync le compteur avec la réponse serveur si disponible
     if (data.usage?.used !== undefined) {
       localStorage.setItem(USAGE_KEY, data.usage.used);
-      window.__usage = data.usage; // stocke tier + customer_id pour le portail
+      window.__usage = data.usage;
       updateUsageCounter();
       updateUsageBadge(data.usage);
     } else {
@@ -618,13 +705,11 @@ async function analyzeVideo() {
     saveToHistory(data, currentFilename);
     showResults(data);
 
-    // Afficher les données marché Echotik si disponibles (GOLD/AGENCY/BETA)
     if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
       renderMarketSection(data.donnees_marche);
       document.getElementById('market-section').style.display = 'block';
     }
 
-    // Vérifier le quota et afficher popup d'upgrade si limite FREE atteinte
     if (window.__userInfo) {
       checkQuotaAfterAnalysis(window.__userInfo);
     }
@@ -639,6 +724,7 @@ async function analyzeVideo() {
 function setLoadingText(txt) {
   document.getElementById('loading-text').textContent = txt;
 }
+
 function showError(msg) {
   const eb = document.getElementById('error-box');
   eb.textContent = msg; eb.style.display = 'block';
@@ -646,20 +732,18 @@ function showError(msg) {
 
 // ── SCORE COLORS ─────────────────────────────────────────────
 function scoreColor(n) {
-  if (n >= 7) return '#059669'; // vert accessible sur fond blanc
-  if (n >= 5) return '#D97706'; // ambre accessible
-  return '#DC2626';             // rouge accessible
+  if (n >= 7) return '#059669';
+  if (n >= 5) return '#D97706';
+  return '#DC2626';
 }
 
-// ── SHOW RESULTS ─────────────────────────────────────────────
+// ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
   document.getElementById('loading-section').style.display  = 'none';
   document.getElementById('results-section').style.display  = 'block';
 
-  // Score global
   document.getElementById('score-global').textContent = d.score_global ?? '—';
 
-  // Grille scores
   const grid = document.getElementById('scores-grid');
   grid.innerHTML = '';
   const LABELS = getLabels();
@@ -682,7 +766,6 @@ function showResults(d) {
     });
   }
 
-  // Détection
   const detGrid = document.getElementById('detection-grid');
   detGrid.innerHTML = '';
   const det = d.detection;
@@ -704,7 +787,6 @@ function showResults(d) {
     });
   }
 
-  // Potentiel viral
   const vp = d.viral_potential;
   if (vp) {
     document.getElementById('viral-score').textContent      = vp.score ?? '—';
@@ -712,11 +794,9 @@ function showResults(d) {
     document.getElementById('viral-explication').textContent = vp.explication || '';
   }
 
-  // Points forts / faibles
   fillList('points-forts',  d.points_forts,     '', true);
   fillList('points-faibles',d.points_ameliorer, '', true);
 
-  // Recommandations accroches
   const reco = d.recommendations_hooks;
   if (reco) {
     document.getElementById('hook-type-propose').textContent = reco.hook_type_propose || '—';
@@ -725,15 +805,12 @@ function showResults(d) {
     exList.innerHTML = (reco.exemples_concrets || []).map(e => `<li>${e}</li>`).join('');
   }
 
-  // Conseils
   fillList('conseils-list', d.conseils_concrets, '', true);
 
-  // Structure de vente
   const sv = d.structure_vente;
   if (sv) {
     document.getElementById('structure-vente-section').style.display = 'block';
 
-    // Étapes du funnel
     const etapes = ['accroche', 'probleme', 'solution', 'produit', 'cta'];
     etapes.forEach(k => {
       const step = sv[k];
@@ -752,7 +829,6 @@ function showResults(d) {
       if (feedEl) feedEl.textContent = step.feedback || '';
     });
 
-    // Score global structure
     const scoreStrEl = document.getElementById('score-structure');
     if (scoreStrEl) {
       scoreStrEl.textContent = sv.score_structure ?? '—';
@@ -760,7 +836,6 @@ function showResults(d) {
       scoreStrEl.style.color = s >= 70 ? 'var(--primary)' : s >= 50 ? 'var(--warning)' : 'var(--danger)';
     }
 
-    // Résumé
     const summaryEl = document.getElementById('structure-summary');
     if (summaryEl) {
       const parts = [];
@@ -773,7 +848,6 @@ function showResults(d) {
       summaryEl.textContent = parts.join(' · ') || 'Structure correcte ✅';
     }
 
-    // Améliorations structure
     const amelioEl = document.getElementById('ameliorations-structure');
     if (amelioEl && d.ameliorations_structure?.length) {
       amelioEl.innerHTML = `
@@ -784,36 +858,26 @@ function showResults(d) {
     document.getElementById('structure-vente-section').style.display = 'none';
   }
 
-  // Potentiel de conversion par prix
   const pc = d.prix_conversion;
   if (pc) {
     document.getElementById('prix-conversion-section').style.display = 'block';
-
-    document.getElementById('pc-montant').textContent =
-      pc.montant ? `${pc.montant} €` : 'Non détecté';
-
+    document.getElementById('pc-montant').textContent = pc.montant ? `${pc.montant} €` : 'Non détecté';
     const catLabels = { economique: t('cat_economique'), moyen: t('cat_moyen'), premium: t('cat_premium'), inconnu: t('cat_inconnu') };
     document.getElementById('pc-categorie').textContent = catLabels[pc.categorie] || pc.categorie || '—';
-
     const pot = pc.potentiel_conversion || {};
     const delaiLabels = { j7: t('delai_j7'), j30: t('delai_j30'), inconnu: '—' };
     document.getElementById('pc-delai').textContent = delaiLabels[pot.temps_attendre] || pot.temps_attendre || '—';
-
     document.getElementById('pc-conseil').textContent = pc.conseil_prix || '—';
-
-    document.getElementById('pc-disclaimer').textContent =
-      d.disclaimer_realisme || '⚠️ Cette analyse est un guide, pas une certitude. L\'algo TikTok surprend toujours.';
+    document.getElementById('pc-disclaimer').textContent = d.disclaimer_realisme || '⚠️ Cette analyse est un guide, pas une certitude. L\'algo TikTok surprend toujours.';
   } else {
     document.getElementById('prix-conversion-section').style.display = 'none';
   }
 
-  // Transcription
   if (d.transcript) {
     document.getElementById('transcript-section').style.display = 'block';
     document.getElementById('transcript-text').textContent = d.transcript;
   }
 
-  // Verdict
   if (d.verdict) {
     document.getElementById('verdict-section').style.display = 'block';
     document.getElementById('verdict-text').textContent = d.verdict;
@@ -861,12 +925,10 @@ function updateUsageBadge(usage) {
   if (badge && usage.email) {
     badge.textContent = usage.email;
   }
-  // Affiche le tier dans l'auth-status
   const statusEl = document.getElementById('auth-status');
   if (statusEl && usage.tier && usage.tier !== 'free') {
     statusEl.innerHTML = `<span style="color:var(--primary);font-weight:700">${label}</span>`;
   }
-  // Affiche le bouton "Gérer mon abonnement" si tier payant
   const upgradeBtn = document.getElementById('btn-auth');
   if (upgradeBtn && usage.tier && usage.tier !== 'free') {
     upgradeBtn.textContent = '⚙️ Mon abonnement';
@@ -881,7 +943,6 @@ function getHistory() {
 
 function saveToHistory(data, filename) {
   const entries = getHistory();
-  // Évite les doublons consécutifs
   if (entries[0]?.id === data.id) return;
   entries.unshift({
     id:                    Date.now(),
@@ -969,7 +1030,6 @@ function exportPDF() {
   const BLUE  = [37, 99, 235];
   let y = 0;
 
-  // En-tête premium
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, 210, 36, 'F');
   doc.setFillColor(...GOLD);
@@ -983,7 +1043,6 @@ function exportPDF() {
   doc.text(`${new Date().toLocaleDateString('fr-FR')} · ${currentFilename}`, 105, 28, { align: 'center' });
   y = 46;
 
-  // Score global
   doc.setFillColor(...NAVY);
   doc.roundedRect(15, y, 180, 20, 3, 3, 'F');
   doc.setTextColor(...GOLD);
@@ -991,7 +1050,6 @@ function exportPDF() {
   doc.text(`Score global : ${currentData.score_global ?? '—'} / 100`, 105, y + 13, { align: 'center' });
   y += 26;
 
-  // Verdict
   if (currentData.verdict) {
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 100, 100);
     const lines = doc.splitTextToSize(currentData.verdict, 180);
@@ -1007,7 +1065,6 @@ function exportPDF() {
     doc.text(title, 19, y + 5.5); y += 12;
   };
 
-  // Scores détaillés
   section('Analyse détaillée', NAVY);
   if (currentData.scores) {
     const LABELS_PDF = { accroche:'Accroche', discours:'Discours', qualite_visuelle:'Qualité visuelle', visibilite_produit:'Produit', call_to_action:'Appel à l\'action', energie_dynamisme:'Énergie', credibilite_confiance:'Crédibilité' };
@@ -1044,7 +1101,6 @@ function exportPDF() {
   listSection('À améliorer',      [217,119,6],   currentData.points_ameliorer, '!');
   listSection('Conseils concrets', BLUE,          currentData.conseils_concrets,'→');
 
-  // Recommandations accroches
   const reco = currentData.recommendations_hooks;
   if (reco) {
     section('Recommandation accroche', BLUE);
@@ -1070,7 +1126,6 @@ function exportPDF() {
     doc.text(lines, 19, y);
   }
 
-  // Pied de page
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
@@ -1081,642 +1136,45 @@ function exportPDF() {
   doc.save(`analyse-dv-${Date.now()}.pdf`);
 }
 
-// ── AUTH ─────────────────────────────────────────────────────
+// ── AUTH MODAL ────────────────────────────────────────────────
 document.getElementById('btn-auth').addEventListener('click', () => {
-  document.getElementById('auth-modal').classList.add('active');
+  const modal = document.getElementById('auth-modal');
+  if (modal && !SESSION.email) {
+    modal.classList.add('active');
+  }
 });
 
 function closeModal() {
   document.getElementById('auth-modal').classList.remove('active');
 }
 
-function handleAuth(event) {
-  event.preventDefault();
-  const email = document.getElementById('email-input').value;
-  if (!email) return;
-  localStorage.setItem(USER_KEY, email);
-  restoreUser();
-  closeModal();
-}
-
-function restoreUser() {
-  const email = localStorage.getItem(USER_KEY);
-  if (email) {
-    document.getElementById('user-email').textContent = email;
-    document.getElementById('btn-auth').textContent = t('btn_account');
-    document.getElementById('btn-auth').removeAttribute('data-i18n'); // géré manuellement
+// ── LOGIN FORM HANDLER ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', submitLogin);
   }
-}
-
-// ── STRIPE / PRICING ─────────────────────────────────────────
-async function startCheckout(plan) {
-  const email = localStorage.getItem(USER_KEY) || '';
-  try {
-    const res = await fetch('/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, email }),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      alert('❌ ' + (err.detail || 'Erreur Stripe'));
-      return;
-    }
-    const { url } = await res.json();
-    window.location.href = url;
-  } catch (e) {
-    alert('❌ Impossible de contacter Stripe. Réessaie.');
-  }
-}
-
-async function openCustomerPortal() {
-  const email       = localStorage.getItem(USER_KEY) || '';
-  const customer_id = (window.__usage || {}).customer_id || '';
-  try {
-    const res = await fetch('/customer-portal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, customer_id }),
-    });
-    if (!res.ok) { alert('❌ Portail indisponible.'); return; }
-    const { url } = await res.json();
-    window.location.href = url;
-  } catch { alert('❌ Erreur réseau.'); }
-}
-
-function updatePricingCTA() {
-  // Met à jour le bouton FREE selon le tier actuel
-  const tier = (window.__usage || {}).tier || 'free';
-  const freeBtn = document.querySelector('.pc-btn-free');
-  if (!freeBtn) return;
-  if (tier !== 'free') {
-    freeBtn.textContent = '✓ Inclus dans votre plan';
-  }
-}
-
-function handleCheckoutReturn() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('checkout') === 'success') {
-    switchTab('pricing');
-    const box = document.getElementById('checkout-success');
-    if (box) box.style.display = 'block';
-    // Nettoie l'URL
-    window.history.replaceState({}, '', '/');
-  } else if (params.get('checkout') === 'cancel') {
-    switchTab('pricing');
-    window.history.replaceState({}, '', '/');
-  }
-}
-
-// ── PWA ──────────────────────────────────────────────────────
-function installPwa() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(() => {
-    deferredPrompt = null;
-    document.getElementById('pwa-banner').style.display = 'none';
-  });
-}
-
-// Fermer modal en cliquant dehors
-document.getElementById('auth-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
 });
 
-// ── COOKIES RGPD ─────────────────────────────────────────────
-const CONSENT_KEY     = 'dv_cookie_consent';
-const TRANSP_KEY      = 'dv_transparency_dismissed';
+function submitLogin(event) {
+  event.preventDefault();
+  const emailInput = document.getElementById('login-email');
+  const nameInput = document.getElementById('login-name');
+  const email = (emailInput?.value || '').trim();
+  const name = (nameInput?.value || '').trim();
 
-function initCookies() {
-  const consent = localStorage.getItem(CONSENT_KEY);
-  if (!consent) {
-    document.getElementById('cookie-banner').style.display = 'block';
-  }
-  const dismissed = localStorage.getItem(TRANSP_KEY);
-  if (dismissed) {
-    const tb = document.getElementById('transparency-banner');
-    if (tb) tb.style.display = 'none';
-  }
-}
-
-function acceptCookies() {
-  localStorage.setItem(CONSENT_KEY, JSON.stringify({
-    essential: true, analytics: true,
-    timestamp: new Date().toISOString()
-  }));
-  hideCookieBanner();
-}
-
-function rejectCookies() {
-  localStorage.setItem(CONSENT_KEY, JSON.stringify({
-    essential: true, analytics: false,
-    timestamp: new Date().toISOString()
-  }));
-  hideCookieBanner();
-}
-
-function hideCookieBanner() {
-  const el = document.getElementById('cookie-banner');
-  if (!el) return;
-  el.style.animation = 'fadeOut .25s ease forwards';
-  setTimeout(() => el.style.display = 'none', 260);
-}
-
-function dismissTransparencyBanner() {
-  localStorage.setItem(TRANSP_KEY, '1');
-  const tb = document.getElementById('transparency-banner');
-  if (tb) { tb.style.animation = 'fadeOut .2s ease forwards'; setTimeout(() => tb.style.display = 'none', 210); }
-}
-
-// ── PRIVACY MODAL ─────────────────────────────────────────────
-function openPrivacyModal() {
-  const body = document.getElementById('pm-body');
-  if (body) body.innerHTML = t('pm_content') || '';
-  document.getElementById('privacy-backdrop').classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closePrivacyModal() {
-  document.getElementById('privacy-backdrop').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-// ── Market Data ──────────────────────────────────────────────
-let _marketData = null;
-
-async function loadMarketData() {
-  try {
-    const resp = await fetch('/api/market-data');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    if (!data.ok) return;
-    _marketData = data;
-    renderMarketSection(data);
-    document.getElementById('market-section').style.display = 'block';
-  } catch (e) {
-    // Scraper down ou TTS_SCRAPER_URL non configuré — on masque juste la section
-  }
-}
-
-function _productCard(p, badgeHtml) {
-  const link    = p.product_url || '#';
-  const img     = p.image_url   || '';
-  const target  = link !== '#' ? 'target="_blank" rel="noopener"' : '';
-  return `
-    <a href="${link}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
-      ${img ? `<img src="${img}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;flex-shrink:0" loading="lazy" onerror="this.style.display='none'">` : `<div style="width:54px;height:54px;border-radius:8px;background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px">🛍️</div>`}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:3px">${p.category || ''} · ${p.current_price ? p.current_price + '€' : '—'}</div>
-      </div>
-      <div style="text-align:right;white-space:nowrap;flex-shrink:0">${badgeHtml}</div>
-    </a>`;
-}
-
-function renderMarketSection(data) {
-  // Top produits
-  const topList = document.getElementById('market-top-list');
-  if (topList && data.top_products?.length) {
-    topList.innerHTML = data.top_products.slice(0, 8).map(p =>
-      _productCard(p, `<div style="font-size:13px;font-weight:700;color:var(--navy)">${(p.sold_count || 0).toLocaleString()}</div><div style="font-size:10px;color:var(--muted)">ventes</div>`)
-    ).join('');
-  }
-
-  // Trending
-  const trendList = document.getElementById('market-trend-list');
-  if (trendList && data.trending?.length) {
-    trendList.innerHTML = data.trending.slice(0, 8).map(p =>
-      _productCard(p, `<div style="font-size:13px;font-weight:700;color:#059669">+${p.growth_percent || 0}%</div><div style="font-size:10px;color:var(--muted)">croissance</div>`)
-    ).join('');
-  }
-
-  // Créateurs
-  const creatorList = document.getElementById('market-creator-list');
-  if (creatorList && data.top_creators?.length) {
-    creatorList.innerHTML = data.top_creators.slice(0, 6).map(c => {
-      const profileLink = c.profile_url || '#';
-      const target = profileLink !== '#' ? 'target="_blank" rel="noopener"' : '';
-      return `
-        <a href="${profileLink}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--navy));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎯</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600">@${c.handle || '—'}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">${c.primary_category || ''}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.followers ? (c.followers >= 1000000 ? (c.followers/1000000).toFixed(1)+'M' : (c.followers/1000).toFixed(0)+'k') : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">followers</div>
-          </div>
-        </a>`;
-    }).join('');
-  }
-
-}
-
-function switchMarketTab(tab) {
-  ['top', 'trend', 'creator'].forEach(t => {
-    const content = document.getElementById(`market-${t}-content`);
-    const btn     = document.getElementById(`market-tab-${t}`);
-    if (content) content.style.display = t === tab ? 'block' : 'none';
-    if (btn) {
-      btn.style.background = t === tab ? 'var(--navy)' : 'var(--surface2)';
-      btn.style.color      = t === tab ? '#fff' : 'var(--text)';
-    }
-  });
-}
-
-// ── GESTION BOUTON RETOUR (Android/iOS) ──────────────────────
-function initBackButtonHandler() {
-  // Gérer le bouton retour du téléphone
-  window.addEventListener('popstate', () => {
-    // Revenir à l'onglet Analyser au lieu de fermer l'app
-    switchTab('analyze');
-  });
-
-  // Ajouter des entrées à l'historique quand on change d'onglet
-  // pour que le bouton retour fonctionne naturellement
-  const tabs = ['analyze', 'pricing', 'history', 'admin'];
-  tabs.forEach(tabName => {
-    const tabBtn = document.getElementById(`tab-${tabName}`);
-    if (tabBtn) {
-      tabBtn.addEventListener('click', () => {
-        window.history.pushState({ tab: tabName }, '', '#' + tabName);
-      });
-    }
-  });
-}
-
-// Init au chargement
-document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus haut */ });
-// Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
-document.addEventListener('DOMContentLoaded', checkLoginRequired);
-document.addEventListener('DOMContentLoaded', initCookies);
-document.addEventListener('DOMContentLoaded', loadMarketData);
-document.addEventListener('DOMContentLoaded', initBackButtonHandler);
-
-// ── LOGIN OBLIGATOIRE ────────────────────────────────────────
-
-function checkLoginRequired() {
-  const email = localStorage.getItem('tts_email');
-  if (!email) {
-    document.getElementById('login-overlay').style.display = 'flex';
-  } else {
-    onLoginSuccess(email, localStorage.getItem('tts_name') || '');
-  }
-}
-
-function submitLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const name  = document.getElementById('login-name').value.trim();
-  if (!email || !name) return;
-
-  localStorage.setItem('tts_email', email);
-  localStorage.setItem('tts_name', name);
-  document.getElementById('login-overlay').style.display = 'none';
-  onLoginSuccess(email, name);
-}
-
-function onLoginSuccess(email, name) {
-  // Mettre à jour le header
-  const userEmailEl = document.getElementById('user-email');
-  if (userEmailEl) userEmailEl.textContent = name || email;
-
-  const btnAuth = document.getElementById('btn-auth');
-  if (btnAuth) {
-    btnAuth.textContent = 'Se déconnecter';
-    btnAuth.onclick = logout;
-  }
-
-  // 1. Enregistrer l'utilisateur (crée en FREE si nouveau)
-  fetch('/api/register', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${email}` }
-  }).catch(() => {});
-
-  // 2. Récupérer infos utilisateur (tier, etc)
-  fetch('/api/user-info', {
-    headers: { Authorization: `Bearer ${email}` }
-  }).then(r => r.json()).then(data => {
-    window.__userInfo = data;
-
-    // Afficher le badge tier
-    const tierBadge = document.getElementById('user-tier-badge');
-    if (tierBadge && data.tier) {
-      const tierLabels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
-      const tierColors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
-      tierBadge.textContent = tierLabels[data.tier] || data.tier.toUpperCase();
-      tierBadge.style.background = tierColors[data.tier] || '#6B7280';
-      tierBadge.style.display = 'inline-block';
-    }
-
-    // Afficher le message tier spécial pour beta
-    if (data.tier === 'beta') {
-      const tierMsg = document.getElementById('user-tier-message');
-      if (tierMsg) {
-        tierMsg.textContent = '🎁 Accès Beta — Toutes les fonctionnalités GOLD débloquées';
-        tierMsg.style.display = 'block';
-      }
-    }
-
-    // 3. Masquer l'onglet Tarifs par défaut (visible seulement après 3 analyses ou via /subscribe)
-    updatePricingTabVisibility(data);
-  }).catch(() => {});
-
-  // 4. Vérifier si admin
-  fetch('/admin/users', {
-    headers: { Authorization: `Bearer ${email}` }
-  }).then(r => {
-    if (r.ok) {
-      // C'est un admin
-      const adminTab = document.getElementById('tab-admin');
-      if (adminTab) adminTab.style.display = 'inline-flex';
-    }
-  }).catch(() => {});
-
-  // 5. Mettre à jour le badge usage
-  fetch('/analyze', { method: 'HEAD', headers: { Authorization: `Bearer ${email}` } })
-    .catch(() => {});
-}
-
-function logout() {
-  localStorage.removeItem('tts_email');
-  localStorage.removeItem('tts_name');
-  location.reload();
-}
-
-// ── GESTION TARIFS (Gating) ──────────────────────────────────
-
-function updatePricingTabVisibility(userInfo) {
-  const pricingTab = document.getElementById('tab-pricing');
-  if (!pricingTab) return;
-
-  // Afficher l'onglet Tarifs SEULEMENT si:
-  // 1. Utilisateur est PRO, GOLD, AGENCY, BETA, ou ADMIN (non-free)
-  // 2. OU l'utilisateur a atteint la limite FREE (3 analyses)
-  const tier = userInfo?.tier || 'free';
-  const used = userInfo?.usage?.used ?? 0;
-  const limit = userInfo?.usage?.limit ?? 3;
-
-  // Utilisateurs payants voient toujours les tarifs
-  if (['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier)) {
-    pricingTab.style.display = 'inline-flex';
+  if (!email || !name) {
+    alert('Veuillez remplir tous les champs');
     return;
   }
 
-  // Utilisateurs free voient les tarifs seulement après avoir atteint 3 analyses
-  if (tier === 'free' && used >= limit) {
-    pricingTab.style.display = 'inline-flex';
-  } else {
-    pricingTab.style.display = 'none';
-  }
+  // Save session
+  saveSession(email, name);
+
+  // Close modal
+  closeModal();
+
+  // Clear form
+  if (emailInput) emailInput.value = '';
+  if (nameInput) nameInput.value = '';
 }
-
-function checkQuotaAfterAnalysis(userInfo) {
-  // Afficher un popup après que l'utilisateur atteigne la limite FREE
-  const tier = userInfo?.tier || 'free';
-  const used = userInfo?.usage?.used ?? 0;
-  const limit = userInfo?.usage?.limit ?? 3;
-
-  // Seulement pour les utilisateurs FREE
-  if (tier !== 'free') return;
-
-  // Afficher la popup si limite atteinte
-  if (used >= limit) {
-    showUpgradeModal(used, limit);
-    updatePricingTabVisibility(userInfo);
-  }
-}
-
-function showUpgradeModal(used, limit) {
-  // Créer et afficher le modal d'upgrade
-  const modalId = 'upgrade-limit-modal';
-  let modal = document.getElementById(modalId);
-
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = modalId;
-    modal.style.cssText = `
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-      font-family: var(--font);
-    `;
-    modal.innerHTML = `
-      <div style="
-        background: white;
-        border-radius: 12px;
-        padding: 40px;
-        max-width: 500px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        color: #333;
-      ">
-        <h2 style="margin-top:0; font-size:24px; color:#1f2937;">🎉 Bravo !</h2>
-        <p style="font-size:16px; color:#666; line-height:1.6;">
-          Tu as utilisé tes <strong>${limit} analyses gratuites</strong>.<br/>
-          Découvre nos plans payants pour continuer l'analyse ! 💪
-        </p>
-        <div style="display: flex; gap: 12px; margin-top: 30px; justify-content: center;">
-          <button onclick="closePricingModal('${modalId}')" style="
-            padding: 12px 24px;
-            background: #E5E7EB;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
-            transition: background 0.2s;
-          " onmouseover="this.style.background='#D1D5DB'" onmouseout="this.style.background='#E5E7EB'">
-            Plus tard
-          </button>
-          <button onclick="upgradeFromModal('${modalId}')" style="
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            transition: transform 0.2s;
-          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-            Voir les plans ✨
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-
-  modal.style.display = 'flex';
-}
-
-function closePricingModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) modal.style.display = 'none';
-}
-
-function upgradeFromModal(modalId) {
-  closePricingModal(modalId);
-  switchTab('pricing');
-}
-
-// ── CGV ──────────────────────────────────────────────────────
-
-function showCGV(e) {
-  if (e) e.preventDefault();
-  document.getElementById('cgv-overlay').style.display = 'block';
-}
-
-function closeCGV() {
-  document.getElementById('cgv-overlay').style.display = 'none';
-}
-
-// Lien footer CGV
-function openCGV() { showCGV(); }
-
-// ── PANEL ADMIN ──────────────────────────────────────────────
-
-function getAdminHeaders() {
-  const email = localStorage.getItem('tts_email') || '';
-  return { 'Authorization': `Bearer ${email}`, 'Content-Type': 'application/json' };
-}
-
-async function adminLoadUsers() {
-  const list = document.getElementById('admin-users-list');
-  list.innerHTML = '<p style="color:var(--muted);font-size:13px">Chargement…</p>';
-  try {
-    const res  = await fetch('/admin/users', { headers: getAdminHeaders() });
-    const data = await res.json();
-    if (!data.ok || !data.users.length) {
-      list.innerHTML = '<p style="color:var(--muted);font-size:13px">Aucun utilisateur enregistré.</p>';
-      return;
-    }
-    const tierColors = { free:'#6B7280', beta:'#059669', pro:'#2563EB', gold:'#D97706', agency:'#7C3AED', admin:'#DC2626' };
-    list.innerHTML = data.users.map(u => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface2);border-radius:10px;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
-        </div>
-        <span style="background:${tierColors[u.tier]||'#6B7280'};color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${u.label}</span>
-        <button onclick="adminOpenTierModal('${u.email}', '${u.tier}')" style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap">✏️ Changer</button>
-      </div>`).join('');
-  } catch (err) {
-    list.innerHTML = `<p style="color:#DC2626;font-size:13px">Erreur : ${err.message}</p>`;
-  }
-}
-
-function adminOpenTierModal(email, currentTier) {
-  document.getElementById('admin-modal-email').textContent = email;
-  document.getElementById('admin-modal-email-input').value = email;
-  document.getElementById('admin-tier-select').value = currentTier;
-  document.getElementById('admin-expiry-input').value = '';
-  document.getElementById('admin-no-expiry-check').checked = true;
-  document.getElementById('admin-expiry-input').style.display = 'none';
-  document.getElementById('admin-tier-modal').style.display = 'flex';
-}
-
-function adminCloseTierModal() {
-  document.getElementById('admin-tier-modal').style.display = 'none';
-}
-
-function adminToggleExpiry() {
-  const noExpiry = document.getElementById('admin-no-expiry-check').checked;
-  document.getElementById('admin-expiry-input').style.display = noExpiry ? 'none' : 'block';
-  if (noExpiry) document.getElementById('admin-expiry-input').value = '';
-}
-
-async function adminConfirmTierChange() {
-  const email = document.getElementById('admin-modal-email-input').value;
-  const tier = document.getElementById('admin-tier-select').value;
-  const noExpiry = document.getElementById('admin-no-expiry-check').checked;
-  const expiry = noExpiry ? null : document.getElementById('admin-expiry-input').value;
-
-  const msg = document.getElementById('admin-action-msg');
-  try {
-    const res = await fetch('/admin/set-tier', {
-      method: 'POST',
-      headers: getAdminHeaders(),
-      body: JSON.stringify({ email, tier, expiry }),
-    });
-    const data = await res.json();
-    msg.textContent = data.ok ? `✅ ${data.message}` : `❌ Erreur : ${data.detail}`;
-    msg.style.color = data.ok ? '#059669' : '#DC2626';
-    if (data.ok) {
-      adminCloseTierModal();
-      adminLoadUsers();
-    }
-  } catch (err) {
-    msg.textContent = `❌ Erreur : ${err.message}`;
-    msg.style.color = '#DC2626';
-  }
-}
-
-async function adminGrantBeta() {
-  const email = document.getElementById('admin-beta-email').value.trim();
-  const msg   = document.getElementById('admin-action-msg');
-  if (!email) { msg.textContent = '⚠️ Saisis un email.'; msg.style.color = '#D97706'; return; }
-  try {
-    const res  = await fetch('/admin/grant-beta', {
-      method: 'POST', headers: getAdminHeaders(),
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    msg.textContent = data.message || '✅ Fait !';
-    msg.style.color = '#059669';
-    adminLoadUsers();
-  } catch (err) {
-    msg.textContent = `❌ Erreur : ${err.message}`; msg.style.color = '#DC2626';
-  }
-}
-
-async function adminRevoke() {
-  const email = document.getElementById('admin-beta-email').value.trim();
-  const msg   = document.getElementById('admin-action-msg');
-  if (!email) { msg.textContent = '⚠️ Saisis un email.'; msg.style.color = '#D97706'; return; }
-  try {
-    const res  = await fetch('/admin/revoke', {
-      method: 'POST', headers: getAdminHeaders(),
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    msg.textContent = data.message || '✅ Révoqué.';
-    msg.style.color = '#059669';
-    adminLoadUsers();
-  } catch (err) {
-    msg.textContent = `❌ Erreur : ${err.message}`; msg.style.color = '#DC2626';
-  }
-}
-
-// ── switchTab étendu pour admin ──────────────────────────────
-const _origSwitchTab = switchTab;
-switchTab = function(tab) {
-  // Gérer l'onglet admin
-  const adminContent = document.getElementById('tab-admin-content');
-  if (adminContent) adminContent.style.display = tab === 'admin' ? 'block' : 'none';
-  const adminBtn = document.getElementById('tab-admin');
-  if (adminBtn) adminBtn.classList.toggle('active', tab === 'admin');
-
-  if (tab === 'admin') {
-    // Désactiver les autres onglets
-    ['analyze', 'pricing', 'history'].forEach(t => {
-      const c = document.getElementById(`tab-${t}-content`);
-      const b = document.getElementById(`tab-${t}`);
-      if (c) c.style.display = 'none';
-      if (b) b.classList.remove('active');
-    });
-    adminLoadUsers();
-    return;
-  }
-  _origSwitchTab(tab);
-};
-
-// Lancer le check login au démarrage
-document.addEventListener('DOMContentLoaded', checkLoginRequired);

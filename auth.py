@@ -7,14 +7,32 @@ Tiers :
   gold   → 25 analyses/jour  (99 €/mois)
   agency → 125 analyses/jour (249 €/mois — 5 sièges × 25)
 
-Stockage : in-memory (resets au redémarrage Render — acceptable en beta).
-Phase 2 (juillet) : migration vers PostgreSQL + magic link.
+Stockage : Supabase PostgreSQL (persiste entre redémarrages).
+Fallback : in-memory si Supabase non configuré.
 """
 from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException, Request
+
+# Essayer d'importer Supabase, sinon utiliser fallback en mémoire
+try:
+    from supabase_client import (
+        get_or_create_user,
+        set_user_tier as supabase_set_user_tier,
+        get_user_tier as supabase_get_user_tier,
+        get_customer_id as supabase_get_customer_id,
+        revoke_by_customer as supabase_revoke_by_customer,
+        increment_usage as supabase_increment_usage,
+        get_usage as supabase_get_usage,
+        get_tier_expiry as supabase_get_tier_expiry,
+        _get_monthly_count as supabase_get_monthly_count,
+        _get_daily_count as supabase_get_daily_count,
+    )
+    SUPABASE_ENABLED = True
+except (ImportError, Exception):
+    SUPABASE_ENABLED = False
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").lower().strip()
 
@@ -54,12 +72,18 @@ def set_user_tier(
     """
     if tier not in TIER_CONFIG:
         tier = "free"
-    _user_tiers[email] = {
-        "tier":            tier,
-        "customer_id":     customer_id,
-        "subscription_id": subscription_id,
-        "expiry":          expiry,
-    }
+
+    # Utiliser Supabase si disponible
+    if SUPABASE_ENABLED:
+        supabase_set_user_tier(email, tier, customer_id, subscription_id, expiry)
+    else:
+        # Fallback en mémoire
+        _user_tiers[email] = {
+            "tier":            tier,
+            "customer_id":     customer_id,
+            "subscription_id": subscription_id,
+            "expiry":          expiry,
+        }
 
 
 def _check_tier_expiry(email: str) -> None:
@@ -81,20 +105,29 @@ def _check_tier_expiry(email: str) -> None:
 
 
 def get_user_tier(email: str) -> str:
-    _check_tier_expiry(email)
-    return _user_tiers.get(email, {}).get("tier", "free")
+    if SUPABASE_ENABLED:
+        return supabase_get_user_tier(email)
+    else:
+        _check_tier_expiry(email)
+        return _user_tiers.get(email, {}).get("tier", "free")
 
 
 def get_customer_id(email: str) -> Optional[str]:
-    return _user_tiers.get(email, {}).get("customer_id")
+    if SUPABASE_ENABLED:
+        return supabase_get_customer_id(email)
+    else:
+        return _user_tiers.get(email, {}).get("customer_id")
 
 
 def revoke_by_customer(customer_id: str) -> None:
     """Downgrade vers free quand l'abonnement est annulé (webhook)."""
-    for data in _user_tiers.values():
-        if data.get("customer_id") == customer_id:
-            data["tier"] = "free"
-            break
+    if SUPABASE_ENABLED:
+        supabase_revoke_by_customer(customer_id)
+    else:
+        for data in _user_tiers.values():
+            if data.get("customer_id") == customer_id:
+                data["tier"] = "free"
+                break
 
 
 # ── COMPTEURS MENSUELS / JOURNALIERS ──────────────────────────
@@ -187,7 +220,10 @@ def check_quota(user: dict) -> None:
 
     # Quota mensuel
     if cfg["monthly"] is not None:
-        count = _get_monthly_count(email)
+        if SUPABASE_ENABLED:
+            count = supabase_get_monthly_count(email)
+        else:
+            count = _get_monthly_count(email)
         if count >= cfg["monthly"]:
             label = cfg["label"]
             raise HTTPException(
@@ -198,7 +234,10 @@ def check_quota(user: dict) -> None:
 
     # Quota journalier
     if cfg["daily"] is not None:
-        count = _get_daily_count(email)
+        if SUPABASE_ENABLED:
+            count = supabase_get_daily_count(email)
+        else:
+            count = _get_daily_count(email)
         if count >= cfg["daily"]:
             label = cfg["label"]
             raise HTTPException(
@@ -210,13 +249,16 @@ def check_quota(user: dict) -> None:
 
 def increment_usage(email: str) -> None:
     """Incrémente les compteurs appropriés selon le tier."""
-    tier = get_user_tier(email)
-    cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+    if SUPABASE_ENABLED:
+        supabase_increment_usage(email)
+    else:
+        tier = get_user_tier(email)
+        cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
 
-    if cfg["monthly"] is not None:
-        _increment_monthly(email)
-    if cfg["daily"] is not None:
-        _increment_daily(email)
+        if cfg["monthly"] is not None:
+            _increment_monthly(email)
+        if cfg["daily"] is not None:
+            _increment_daily(email)
 
 
 def usage_info(user: dict) -> dict:
@@ -228,10 +270,19 @@ def usage_info(user: dict) -> dict:
     tier  = user["tier"]
     cfg   = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
 
-    used = (
-        _get_monthly_count(email) if cfg["monthly"] is not None
-        else _get_daily_count(email)
-    )
+    if SUPABASE_ENABLED:
+        used = (
+            supabase_get_monthly_count(email) if cfg["monthly"] is not None
+            else supabase_get_daily_count(email)
+        )
+        expiry = supabase_get_tier_expiry(email)
+    else:
+        used = (
+            _get_monthly_count(email) if cfg["monthly"] is not None
+            else _get_daily_count(email)
+        )
+        expiry = _user_tiers.get(email, {}).get("expiry")
+
     limit = cfg["monthly"] if cfg["monthly"] is not None else cfg["daily"]
 
     return {
@@ -243,7 +294,7 @@ def usage_info(user: dict) -> dict:
         "limit":       limit,
         "remaining":   max(0, limit - used) if limit else None,
         "customer_id": get_customer_id(email),
-        "expiry":      _user_tiers.get(email, {}).get("expiry"),
+        "expiry":      expiry,
     }
 
 
@@ -252,6 +303,11 @@ def get_usage(email: str) -> int:
     """Compat : retourne le compteur mensuel ou journalier selon le tier."""
     tier = get_user_tier(email)
     cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
-    if cfg["monthly"] is not None:
-        return _get_monthly_count(email)
-    return _get_daily_count(email)
+    if SUPABASE_ENABLED:
+        if cfg["monthly"] is not None:
+            return supabase_get_monthly_count(email)
+        return supabase_get_daily_count(email)
+    else:
+        if cfg["monthly"] is not None:
+            return _get_monthly_count(email)
+        return _get_daily_count(email)
