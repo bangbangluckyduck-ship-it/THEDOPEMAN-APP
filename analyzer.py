@@ -508,6 +508,14 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None, marke
             })
             pc["conseil_prix"] = conseil
 
+            # Ajouter les données marché Echotik si disponibles
+            if market_context:
+                parsed["donnees_marche"] = {
+                    "top_products": market_context.get("top_products", [])[:5],
+                    "trending": market_context.get("trending", [])[:5],
+                    "top_creators": market_context.get("top_creators", [])[:3],
+                }
+
             return parsed
         except json.JSONDecodeError:
             pass

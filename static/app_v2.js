@@ -618,6 +618,12 @@ async function analyzeVideo() {
     saveToHistory(data, currentFilename);
     showResults(data);
 
+    // Afficher les données marché Echotik si disponibles (GOLD/AGENCY/BETA)
+    if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
+      renderMarketSection(data.donnees_marche);
+      document.getElementById('market-section').style.display = 'block';
+    }
+
     // Vérifier le quota et afficher popup d'upgrade si limite FREE atteinte
     if (window.__userInfo) {
       checkQuotaAfterAnalysis(window.__userInfo);
