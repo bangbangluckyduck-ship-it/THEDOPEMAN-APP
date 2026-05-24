@@ -1319,12 +1319,34 @@ function switchMarketTab(tab) {
   });
 }
 
+// ── GESTION BOUTON RETOUR (Android/iOS) ──────────────────────
+function initBackButtonHandler() {
+  // Gérer le bouton retour du téléphone
+  window.addEventListener('popstate', () => {
+    // Revenir à l'onglet Analyser au lieu de fermer l'app
+    switchTab('analyze');
+  });
+
+  // Ajouter des entrées à l'historique quand on change d'onglet
+  // pour que le bouton retour fonctionne naturellement
+  const tabs = ['analyze', 'pricing', 'history', 'admin'];
+  tabs.forEach(tabName => {
+    const tabBtn = document.getElementById(`tab-${tabName}`);
+    if (tabBtn) {
+      tabBtn.addEventListener('click', () => {
+        window.history.pushState({ tab: tabName }, '', '#' + tabName);
+      });
+    }
+  });
+}
+
 // Init au chargement
 document.addEventListener('DOMContentLoaded', () => { /* déjà appelé plus haut */ });
 // Appel direct (DOMContentLoaded déjà bindé, on ajoute juste initCookies au flux existant)
 document.addEventListener('DOMContentLoaded', checkLoginRequired);
 document.addEventListener('DOMContentLoaded', initCookies);
 document.addEventListener('DOMContentLoaded', loadMarketData);
+document.addEventListener('DOMContentLoaded', initBackButtonHandler);
 
 // ── LOGIN OBLIGATOIRE ────────────────────────────────────────
 
