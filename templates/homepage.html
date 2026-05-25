@@ -123,6 +123,16 @@
 
     .nav-link:hover { color: var(--text); }
 
+    .nav-link-login {
+      font-size: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .nav-link-login:hover { color: var(--accent); text-decoration: underline; }
+
     .btn-header {
       padding: 10px 20px;
       background: linear-gradient(135deg, var(--primary), var(--primary-dk));
@@ -749,7 +759,7 @@
     <a href="#features" class="nav-link">Fonctionnalités</a>
     <a href="#pricing" class="nav-link">Tarifs</a>
     <button class="btn-header" onclick="scrollToTool()">Tester gratuitement</button>
-    <a href="/app" class="nav-link" style="color: var(--accent); font-weight: 500;">Se connecter</a>
+    <a href="/app" class="nav-link-login">Se connecter</a>
   </nav>
 </header>
 
