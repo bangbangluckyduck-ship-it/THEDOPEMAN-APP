@@ -1009,6 +1009,7 @@
   const loading = document.getElementById('loading');
   const loadingText = document.getElementById('loading-text');
   const uploadForm = document.getElementById('upload-form');
+  let selectedFile = null;
 
   // Upload handling
   uploadArea.addEventListener('click', () => videoFile.click());
@@ -1114,7 +1115,7 @@
   }
 
   function setFile(file) {
-    videoFile.files = new DataTransfer().items.add(file).dataTransfer.files;
+    selectedFile = file;
     fileTag.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
     fileTag.style.display = 'block';
     analyzeBtn.disabled = false;
@@ -1122,9 +1123,9 @@
   }
 
   analyzeBtn.addEventListener('click', async () => {
-    if (!videoFile.files[0]) return;
+    if (!selectedFile) return;
 
-    const file = videoFile.files[0];
+    const file = selectedFile;
 
     uploadForm.style.display = 'none';
     loading.classList.add('active');
