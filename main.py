@@ -31,6 +31,13 @@ app.include_router(admin_router)    # /admin/users  /admin/set-tier  /admin/gran
 
 _HOMEPAGE_HTML = Path("templates/homepage.html").read_text(encoding="utf-8")
 _APP_HTML = Path("templates/index.html").read_text(encoding="utf-8")
+_BLOG_HTML = Path("templates/blog.html").read_text(encoding="utf-8")
+_BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="utf-8")
+_BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
+_BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding="utf-8")
+_BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
+_CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
+_ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -43,6 +50,48 @@ async def home():
 async def app_page():
     """Page d'analyse complète."""
     return HTMLResponse(_APP_HTML)
+
+
+@app.get("/blog", response_class=HTMLResponse)
+async def blog():
+    """Page d'accueil du blog."""
+    return HTMLResponse(_BLOG_HTML)
+
+
+@app.get("/blog/histoire-tiktok-shop", response_class=HTMLResponse)
+async def blog_histoire():
+    """Article : Histoire de TikTok Shop."""
+    return HTMLResponse(_BLOG_HISTOIRE_HTML)
+
+
+@app.get("/blog/createurs-millionnaires", response_class=HTMLResponse)
+async def blog_createurs():
+    """Article : Créateurs millionnaires."""
+    return HTMLResponse(_BLOG_CREATEURS_HTML)
+
+
+@app.get("/blog/tendances-2026", response_class=HTMLResponse)
+async def blog_tendances():
+    """Article : Tendances 2026."""
+    return HTMLResponse(_BLOG_TENDANCES_HTML)
+
+
+@app.get("/blog/guide-complet", response_class=HTMLResponse)
+async def blog_guide():
+    """Article : Guide complet."""
+    return HTMLResponse(_BLOG_GUIDE_HTML)
+
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact():
+    """Page de contact."""
+    return HTMLResponse(_CONTACT_HTML)
+
+
+@app.get("/about", response_class=HTMLResponse)
+async def about():
+    """Page à propos."""
+    return HTMLResponse(_ABOUT_HTML)
 
 
 @app.get("/health")

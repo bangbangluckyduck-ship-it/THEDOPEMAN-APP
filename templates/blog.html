@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Blog TTS Analyzer - Articles sur TikTok Shop, tendances, stratégies et success stories">
+  <title>Blog - TTS Analyzer by Dope Ventures</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #D4AF37;
+      --navy: #1F3A70;
+      --accent: #2563EB;
+      --bg: #F5F7FA;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --shadow: 0 4px 20px rgba(0,0,0,0.07);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo { font-size: 18px; font-weight: 700; cursor: pointer; }
+    .logo:hover { color: var(--primary); }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .back-btn:hover { text-decoration: underline; }
+    main {
+      max-width: 1000px;
+      margin: 100px auto 80px;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 15px;
+      color: var(--navy);
+    }
+    .subtitle {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 50px;
+    }
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 30px;
+      margin-bottom: 80px;
+    }
+    .article-card {
+      background: var(--surface);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+    .article-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .article-header {
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(37,99,235,0.15));
+      border-bottom: 1px solid rgba(212,175,55,0.2);
+    }
+    .article-category {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--primary);
+      color: var(--navy);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .article-card h3 {
+      font-size: 20px;
+      color: var(--navy);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .article-meta {
+      font-size: 13px;
+      color: #888;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .article-body {
+      padding: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .article-excerpt {
+      color: #666;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+    .read-more {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .read-more:hover {
+      gap: 12px;
+    }
+    footer {
+      background: var(--navy);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo" onclick="window.location.href='/'">TTS Analyzer</div>
+    <button class="back-btn" onclick="window.location.href='/'">← Retour à l'accueil</button>
+  </header>
+
+  <main>
+    <h1>📚 Blog TTS Analyzer</h1>
+    <p class="subtitle">Conseils, tendances et stratégies pour réussir sur TikTok Shop</p>
+
+    <div class="articles-grid">
+      <!-- Article 1 -->
+      <div class="article-card" onclick="window.location.href='/blog/histoire-tiktok-shop'">
+        <div class="article-header">
+          <span class="article-category">📖 HISTOIRE</span>
+          <h3>L'histoire complète de TikTok Shop : Du lancement global à la domination française</h3>
+          <div class="article-meta">
+            <span>📅 Mis à jour mai 2026</span>
+            <span>⏱️ 12 min de lecture</span>
+          </div>
+        </div>
+        <div class="article-body">
+          <p class="article-excerpt">
+            Découvrez comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce. Nous retraçons le parcours depuis le lancement en 2021 jusqu'à sa domination en France en 2026.
+          </p>
+          <a href="/blog/histoire-tiktok-shop" class="read-more">Lire l'article →</a>
+        </div>
+      </div>
+
+      <!-- Article 2 -->
+      <div class="article-card" onclick="window.location.href='/blog/createurs-millionnaires'">
+        <div class="article-header">
+          <span class="article-category">💰 SUCCESS STORIES</span>
+          <h3>8 créateurs TikTok Shop devenus millionnaires en 2025</h3>
+          <div class="article-meta">
+            <span>📅 Publié avril 2026</span>
+            <span>⏱️ 10 min de lecture</span>
+          </div>
+        </div>
+        <div class="article-body">
+          <p class="article-excerpt">
+            Analysez les success stories de créateurs qui ont transformé leurs vidéos virales en empires commerciaux. Découvrez leurs secrets, leurs stratégies et ce que vous pouvez en apprendre.
+          </p>
+          <a href="/blog/createurs-millionnaires" class="read-more">Lire l'article →</a>
+        </div>
+      </div>
+
+      <!-- Article 3 -->
+      <div class="article-card" onclick="window.location.href='/blog/tendances-2026'">
+        <div class="article-header">
+          <span class="article-category">🔮 TENDANCES</span>
+          <h3>Top 10 des tendances TikTok Shop 2026 qui vont dominer</h3>
+          <div class="article-meta">
+            <span>📅 Mis à jour mai 2026</span>
+            <span>⏱️ 8 min de lecture</span>
+          </div>
+        </div>
+        <div class="article-body">
+          <p class="article-excerpt">
+            Les tendances évoluent rapidement sur TikTok. Découvrez les 10 tendances qui définissent le e-commerce sur la plateforme en 2026 et comment les utiliser pour vos vidéos.
+          </p>
+          <a href="/blog/tendances-2026" class="read-more">Lire l'article →</a>
+        </div>
+      </div>
+
+      <!-- Article 4 -->
+      <div class="article-card" onclick="window.location.href='/blog/guide-complet'">
+        <div class="article-header">
+          <span class="article-category">📖 GUIDE</span>
+          <h3>Guide complet : Structurer sa stratégie TikTok Shop en 2026</h3>
+          <div class="article-meta">
+            <span>📅 Publié mars 2026</span>
+            <span>⏱️ 15 min de lecture</span>
+          </div>
+        </div>
+        <div class="article-body">
+          <p class="article-excerpt">
+            Un guide détaillé pour construire une stratégie TikTok Shop de A à Z. Couvrez le positionnement, la création de contenu, l'optimisation et la monétisation.
+          </p>
+          <a href="/blog/guide-complet" class="read-more">Lire l'article →</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 TTS Analyzer - Dope Ventures. Tous droits réservés.</p>
+  </footer>
+</body>
+</html>
