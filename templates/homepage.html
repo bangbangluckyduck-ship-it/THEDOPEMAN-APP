@@ -1153,24 +1153,33 @@
       }
 
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 100000);
-      const res = await fetch('/analyze', {
-        method: 'POST',
-        body: fd,
-        signal: ctrl.signal,
-        headers
-      });
-      clearTimeout(timer);
+      const timer = setTimeout(() => ctrl.abort(), 300000); // 5 minutes timeout
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Erreur serveur');
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          body: fd,
+          signal: ctrl.signal,
+          headers
+        });
+        clearTimeout(timer);
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Erreur serveur');
+        }
+
+        // Store result and redirect
+        const result = await res.json();
+        sessionStorage.setItem('lastAnalysis', JSON.stringify(result));
+        window.location.href = '/app';
+      } catch (fetchError) {
+        clearTimeout(timer);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('L\'analyse a pris trop longtemps. Réessaie avec une vidéo plus courte.');
+        }
+        throw fetchError;
       }
-
-      // Store result and redirect
-      const result = await res.json();
-      sessionStorage.setItem('lastAnalysis', JSON.stringify(result));
-      window.location.href = '/app';
     } catch (error) {
       loading.classList.remove('active');
       uploadForm.style.display = 'block';
