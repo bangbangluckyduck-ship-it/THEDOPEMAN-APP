@@ -737,6 +737,31 @@ function scoreColor(n) {
   return '#DC2626';
 }
 
+// ── COACHING VERROUILLÉ ──────────────────────────────────────
+function showLockedCoachingSection(firstCoachingLine) {
+  const section = document.getElementById('locked-coaching-section') || document.createElement('section');
+  if (!section.id) {
+    section.id = 'locked-coaching-section';
+    section.className = 'section';
+    const resultsSection = document.getElementById('results-section');
+    if (resultsSection) resultsSection.appendChild(section);
+  }
+
+  section.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,.1),rgba(37,99,235,.1));border:1px solid rgba(212,175,55,.3);border-radius:12px;padding:20px;position:relative">
+      <div style="position:absolute;top:16px;right:16px;font-size:24px">🔐</div>
+      <h3 style="margin-top:0;margin-bottom:12px;color:var(--navy)">Coach IA personnalisé</h3>
+      <p style="margin:0 0 12px 0;font-size:13px;color:var(--text);line-height:1.5">"${firstCoachingLine}"</p>
+      <div style="background:rgba(0,0,0,.03);border-radius:8px;padding:12px;margin:12px 0;border-left:3px solid var(--primary)">
+        <div style="font-size:12px;color:var(--muted)">Cette analyse complète est réservée aux plans GOLD & AGENCY</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Passez à GOLD pour débloquer le coaching IA personnalisé</div>
+      </div>
+      <button onclick="document.getElementById('tab-pricing').click()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px">Voir les plans →</button>
+    </div>
+  `;
+  section.style.display = 'block';
+}
+
 // ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
   document.getElementById('loading-section').style.display  = 'none';
@@ -883,6 +908,27 @@ function showResults(d) {
     document.getElementById('verdict-text').textContent = d.verdict;
   }
 
+  // COACHING: verrouillé pour FREE/PRO, complet pour GOLD/AGENCY
+  const userTier = window.__userInfo?.tier || 'free';
+  const isFreemium = userTier === 'free' || userTier === 'pro';
+  if (isFreemium && d.conseils_concrets?.length > 0) {
+    showLockedCoachingSection(d.conseils_concrets[0]);
+  } else if (!isFreemium && d.conseils_concrets?.length > 0) {
+    const coachSection = document.getElementById('coaching-section') || document.createElement('section');
+    if (!coachSection.id) {
+      coachSection.id = 'coaching-section';
+      coachSection.className = 'section';
+      document.getElementById('results-section').appendChild(coachSection);
+    }
+    coachSection.innerHTML = `
+      <h2>🤖 Coach IA personnalisé</h2>
+      <ul class="points-list" style="border-left:3px solid var(--primary)">
+        ${(d.conseils_concrets || []).map(c => `<li>${c}</li>`).join('')}
+      </ul>
+    `;
+    coachSection.style.display = 'block';
+  }
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -934,6 +980,70 @@ function updateUsageBadge(usage) {
     upgradeBtn.textContent = '⚙️ Mon abonnement';
     upgradeBtn.onclick = openCustomerPortal;
   }
+}
+
+// ── ECHOTIK MARKET DATA ───────────────────────────────────────
+function _productCard(p, badgeHtml) {
+  const link    = p.product_url || '#';
+  const img     = p.image_url   || '';
+  const target  = link !== '#' ? 'target="_blank" rel="noopener"' : '';
+  return `
+    <a href="${link}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+      ${img ? `<img src="${img}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;flex-shrink:0" loading="lazy" onerror="this.style.display='none'">` : `<div style="width:54px;height:54px;border-radius:8px;background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px">🛍️</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title || '—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${p.category || ''} · ${p.current_price ? p.current_price + '€' : '—'}</div>
+      </div>
+      <div style="text-align:right;white-space:nowrap;flex-shrink:0">${badgeHtml}</div>
+    </a>`;
+}
+
+function renderMarketSection(data) {
+  const topList = document.getElementById('market-top-list');
+  if (topList && data.top_products?.length) {
+    topList.innerHTML = data.top_products.slice(0, 8).map(p =>
+      _productCard(p, `<div style="font-size:13px;font-weight:700;color:var(--navy)">${(p.sold_count || 0).toLocaleString()}</div><div style="font-size:10px;color:var(--muted)">ventes</div>`)
+    ).join('');
+  }
+
+  const trendList = document.getElementById('market-trend-list');
+  if (trendList && data.trending?.length) {
+    trendList.innerHTML = data.trending.slice(0, 8).map(p =>
+      _productCard(p, `<div style="font-size:13px;font-weight:700;color:#059669">+${p.growth_percent || 0}%</div><div style="font-size:10px;color:var(--muted)">croissance</div>`)
+    ).join('');
+  }
+
+  const creatorList = document.getElementById('market-creator-list');
+  if (creatorList && data.top_creators?.length) {
+    creatorList.innerHTML = data.top_creators.slice(0, 6).map(c => {
+      const profileLink = c.profile_url || '#';
+      const target = profileLink !== '#' ? 'target="_blank" rel="noopener"' : '';
+      return `
+        <a href="${profileLink}" ${target} style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:12px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--navy));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎯</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">@${c.handle || '—'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">${c.primary_category || ''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">${c.followers ? (c.followers >= 1000000 ? (c.followers/1000000).toFixed(1)+'M' : (c.followers/1000).toFixed(0)+'k') : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">followers</div>
+          </div>
+        </a>`;
+    }).join('');
+  }
+}
+
+function switchMarketTab(tab) {
+  ['top', 'trend', 'creator'].forEach(t => {
+    const content = document.getElementById(`market-${t}-content`);
+    const btn     = document.getElementById(`market-tab-${t}`);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--navy)' : 'var(--surface2)';
+      btn.style.color      = t === tab ? '#fff' : 'var(--text)';
+    }
+  });
 }
 
 // ── HISTORY ──────────────────────────────────────────────────
