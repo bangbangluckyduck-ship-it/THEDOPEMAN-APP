@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="À propos de TTS Analyzer - Créé par Dope Ventures pour aider les créateurs TikTok Shop">
+  <title>À Propos - TTS Analyzer by Dope Ventures</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #D4AF37;
+      --navy: #1F3A70;
+      --accent: #2563EB;
+      --bg: #F5F7FA;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --shadow: 0 4px 20px rgba(0,0,0,0.07);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo { font-size: 18px; font-weight: 700; cursor: pointer; }
+    .logo:hover { color: var(--primary); }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .back-btn:hover { text-decoration: underline; }
+    main {
+      max-width: 900px;
+      margin: 100px auto 80px;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 30px;
+      color: var(--navy);
+    }
+    h2 {
+      font-size: 32px;
+      margin-top: 50px;
+      margin-bottom: 20px;
+      color: var(--navy);
+    }
+    .intro-box {
+      background: var(--surface);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 40px;
+      border-left: 4px solid var(--primary);
+    }
+    .intro-box p {
+      font-size: 18px;
+      line-height: 1.8;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .feature-card {
+      padding: 25px;
+      background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(37,99,235,0.1));
+      border-radius: 12px;
+      border: 1px solid rgba(212,175,55,0.2);
+    }
+    .feature-card h3 {
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .feature-card p {
+      color: #666;
+      font-size: 14px;
+    }
+    .cta-section {
+      background: var(--navy);
+      color: white;
+      padding: 40px;
+      border-radius: 16px;
+      text-align: center;
+      margin-top: 50px;
+    }
+    .cta-section h2 {
+      color: white;
+      margin-top: 0;
+    }
+    .cta-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 32px;
+      background: var(--primary);
+      color: var(--navy);
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+    }
+    footer {
+      background: var(--navy);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo" onclick="window.location.href='/'">TTS Analyzer</div>
+    <button class="back-btn" onclick="window.location.href='/'">← Retour à l'accueil</button>
+  </header>
+
+  <main>
+    <h1>À Propos de TTS Analyzer</h1>
+
+    <div class="intro-box">
+      <p>
+        <strong>TTS Analyzer</strong> est un outil créé par <strong>Dope Ventures</strong> par des créateurs TikTok Shop qui se sont rendu compte de l'importance de pouvoir se faire aider lorsqu'on démarre TikTok Shop, mais aussi pour aider les créateurs confirmés à mieux analyser et améliorer leur contenu.
+      </p>
+      <p>
+        C'est un outil qui permet aux agences de mieux accompagner leurs créateurs et leur faire gagner du temps en leur donnant accès aux data du monde entier sans abonnement supplémentaire.
+      </p>
+    </div>
+
+    <h2>🎯 Notre Mission</h2>
+    <p>
+      Démocratiser l'accès à l'analyse vidéo professionelle pour que chaque créateur TikTok Shop puisse :
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>📊 Analyser</h3>
+        <p>Comprendre exactement pourquoi vos vidéos performent ou non avec notre IA</p>
+      </div>
+      <div class="feature-card">
+        <h3>📈 Optimiser</h3>
+        <p>Améliorer votre contenu en fonction des insights détaillés et actionnables</p>
+      </div>
+      <div class="feature-card">
+        <h3>💡 Innover</h3>
+        <p>Rester à la pointe des tendances TikTok Shop grâce aux données globales</p>
+      </div>
+      <div class="feature-card">
+        <h3>🚀 Scaler</h3>
+        <p>Passer de créateur à business viable avec une stratégie data-driven</p>
+      </div>
+    </div>
+
+    <h2>💎 Pourquoi TTS Analyzer ?</h2>
+    <p>
+      Créer du contenu TikTok Shop performant n'est pas une science exacte, mais ça peut s'y rapprocher. Pendant des années, les créateurs ont testé à l'aveugle, analysant leurs statistiques sans vraiment comprendre les mécanismes sous-jacents.
+    </p>
+    <p>
+      TTS Analyzer change ça. En utilisant une IA entraînée sur les patterns de milliers de vidéos virales, nous pouvons vous montrer :
+    </p>
+    <ul style="margin-left: 20px; margin-top: 15px;">
+      <li>Où se situent vos hooks</li>
+      <li>Comment optimiser votre rétention</li>
+      <li>Quels triggers psychologiques fonctionnent</li>
+      <li>Où placer vos appels à l'action</li>
+      <li>Comment adapter votre contenu à votre niche</li>
+    </ul>
+
+    <h2>🌍 Pour les Agences</h2>
+    <p>
+      Si vous géreriez plusieurs créateurs, TTS Analyzer est votre secret weapon. Accédez aux données du monde entier, tirez des insights sur les tendances globales, et accompagnez vos créateurs avec une stratégie basée sur les data plutôt que sur l'intuition.
+    </p>
+    <p>
+      Tout cela sans surcoût pour vos clients - un seul abonnement AGENCY vous donne accès à l'analyse pour 5 créateurs.
+    </p>
+
+    <h2>👥 Créée par des Créateurs, Pour des Créateurs</h2>
+    <p>
+      L'équipe derrière TTS Analyzer connaît TikTok Shop par expérience directe. Nous avons testé, échoué, optimisé, et réussi. Chaque feature de TTS Analyzer a été créée parce que nous savions qu'il manquait quelque chose sur le marché.
+    </p>
+
+    <div class="cta-section">
+      <h2>Prêt à analyser vos vidéos ?</h2>
+      <p>Testez TTS Analyzer gratuitement - 3 analyses, zéro frais, zéro engagement.</p>
+      <a href="/" class="cta-btn">Commencer maintenant →</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 TTS Analyzer - Dope Ventures. Tous droits réservés.</p>
+  </footer>
+</body>
+</html>
