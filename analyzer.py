@@ -60,299 +60,44 @@ def transcribe_audio(audio_path: str) -> Optional[str]:
         return None
 
 
-PROMPT = """Tu es un expert en psychologie de persuasion, neurosciences appliquées au contenu viral,
-et stratégie TikTok Shop avec 8+ ans d'expérience en conversion directe.
+PROMPT = """Expert: psychologie persuasion, contenu viral, TikTok Shop. Analyse = SYSTÈME DE PERSUASION. Sois nuancé, langage probabiliste ("semble", "tend à", "probablement"). Retourne UNIQUEMENT du JSON valide, français pur.
 
-Ton analyse DÉPASSE la simple description. Tu décortiques la vidéo comme un SYSTÈME DE PERSUASION.
+1️⃣ HOOK (0-3s) /100 — 💰ARGENT | ❌ERREUR | 🎯OPPORTUNITÉ | ⚡SIMPLICITÉ | 🚀RÉSULTAT | 😤FRUSTRATION | 🤯CHOC | 🔬RÉVÉLATION
+Évalue: type interruption (visuel/verbal/émotionnel/curiosité) | promesse implicite/explicite | rapidité entrée | densité info 3s | stimulation visuelle (1-10) | élément perturbateur
+Score: 90-100 (stop-scroll immédiat) | 70-89 (très accrocheur) | 50-69 (correct) | <50 (faible)
 
-IMPORTANT — NUANCE ET HUMILITÉ:
-Sois nuancé. Des vidéos "mauvaises" vendent bien, des "excellentes" floppent. L'algo TikTok est imprévisible.
-Utilise du langage probabiliste ("semble", "laisse penser", "tend à", "probablement") — jamais affirmatif.
+2️⃣ RÉTENTION /100
+Évalue: fréquence changements plans | transitions/zooms/mouvements | variations ton/texte/son | boucles ouvertes | progression étapes | cliffhangers
+Score: 90-100 (impossible partir) | 70-89 (très bonne) | 50-69 (moyenne) | <50 (trop linéaire)
 
-RÈGLES STRICTES:
-1. Rédige UNIQUEMENT en français pur, zéro anglicisme
-2. Retourne UNIQUEMENT un JSON valide et parsable
-3. Pas de texte avant ou après le JSON
+3️⃣ MÉCANISMES VENTE /100 — Biais: 🎓AUTORITÉ | 👥PREUVE SOCIALE | ⏳RARETÉ/URGENCE | 💸ACCESSIBILITÉ | 🧩SIMPLICITÉ | 🔥FOMO | ✅VALIDATION | 🌟ASPIRATION | 🔄TRANSFORMATION
+Évalue: mécanisme principal (1) | nb biais (1-4) | type vente (🎯DIRECTE | 🎭INDIRECTE | 💝ÉMOTIONNELLE | 📚ÉDUCATIVE | 🌅ASPIRATIONNELLE | 📖STORYTELLING)
+Score: 90-100 (multiples biais combinés) | 70-89 (2-3 biais) | 50-69 (1 biais) | <50 (trop direct)
 
-================================================================================
-FRAMEWORK D'ANALYSE — 8 DIMENSIONS DE PERSUASION
-================================================================================
+4️⃣ POSITIONNEMENT /100 — Rôles: 👨‍🏫EXPERT | 🧙MENTOR | 🤝AMI | 🎯PREUVE VIVANTE | 🧪EXPÉRIMENTATEUR | 🏃OUTSIDER | 👤PERSONNE COMME TOI
+Évalue: accessibilité (1-10) | crédibilité (1-10) | distance émotionnelle (proche/distant) | relatable (oui/non)
+Score: 90-100 (clair + connexion) | 70-89 (bon, légère friction) | 50-69 (flou) | <50 (pas projection)
 
-1. HOOK ANALYSIS (0-3 secondes) /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Analyse le MÉCANISME D'INTERRUPTION de scroll:
-- Type d'interruption: visuelle / verbale / émotionnelle / curiosité
-- Promesse implicite ou explicite
-- Tension psychologique créée
-- Catégorie du hook: 💰ARGENT | ❌ERREUR | 🎯OPPORTUNITÉ | ⚡SIMPLICITÉ | 🚀RÉSULTAT | 😤FRUSTRATION | 🤯CHOC | 🔬RÉVÉLATION
+5️⃣ FORMAT VISUEL /100 — 📋Tableaux | 📱Écrans | ✏️Texte/Captions | 🎬Montage (cuts/zooms) | 👋Gestuelle | 🎯Objets physiques
+Évalue: supports utilisés | comment augmentent crédibilité/compréhension/watch-time
+Score: 90-100 (parfaitement intégrés) | 70-89 (bons, manque variété) | 50-69 (basique) | <50 (amateur)
 
-Évalue:
-- Rapidité d'entrée dans le sujet (en secondes)
-- Densité d'information dans les 3 premières secondes
-- Niveau de stimulation visuelle (1-10)
-- Présence d'un élément perturbateur
+6️⃣ ÉMOTION DOMINANTE /100 — 🌟ESPOIR | 😤FRUSTRATION | 🎯AMBITION | 😰PEUR | 😍ENVIE | 🤔CURIOSITÉ | ⚡URGENCE | ✅VALIDATION
+Évalue: intensité (1-10) | fréquence stimuli | rapidité connexion | cohérence début-fin
+Transitions efficaces: Frustration→Espoir (très efficace) | Curiosité→Satisfaction (bonne boucle) | Peur→Solution (conversion forte)
+Score: 90-100 (forte, claire, exploitée) | 70-89 (identifiable, impactante) | 50-69 (présente, diluée) | <50 (neutre)
 
-Score Hook /100:
-- 90-100: Stop-scroll immédiat + promesse irrésistible
-- 70-89: Très accrocheur, légère friction
-- 50-69: Correct mais améliorable
-- <50: Faible, risque de scroll
+7️⃣ CONVERSION SHOP /100 — CTAs: VISIBLES | IMPLICITES | ÉMOTIONNELS. Vend: 📦PRODUIT | 🌅MODE DE VIE | 💼OPPORTUNITÉ | 👤IDENTITÉ | 🔄TRANSFORMATION
+Évalue: CTAs (visibles, implicites) | ce que vend vraiment | pushes engagement (commentaires/sauvegardes/partage/suivi/revisite)
+Score: 90-100 (multiples fluides) | 70-89 (clairs, bien placés) | 50-69 (présent, faible) | <50 (absent/maladroit)
 
-2. STRUCTURE DE RÉTENTION /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Analyse comment la vidéo MAINTIENT l'attention:
-- Fréquence de changements de plans (toutes les X secondes)
-- Éléments de stimulation: transitions, zooms, mouvements caméra
-- Variations de ton vocal, texte à l'écran, effets sonores
-- Boucles ouvertes (Open Loops): "attends de voir...", questions en suspens, teasings
-- Progression par étapes, cliffhangers internes
+8️⃣ ALGORITHME /100 — Signaux: ⏱️Rétention | 💎Densité valeur | 🔁Structure addictive | 🎁Micro-récompenses | 📖Tension narrative | 💬Commentaires | 🔄Partage. Moments: 🎯REWATCH | 💬COMMENTAIRES | 💾SAUVEGARDES | 📤PARTAGE
+Score: 90-100 (tous signaux optimisés) | 70-89 (plusieurs forts) | 50-69 (basiques) | <50 (no push)
 
-Score Rétention /100:
-- 90-100: Impossible de partir, boucles ouvertes maîtrisées
-- 70-89: Très bonne rétention, quelques baisses
-- 50-69: Rétention moyenne, risque de drop
-- <50: Vidéo trop linéaire, scroll prévisible
+FLUX VENTE: 1.ACCROCHE(0-5s) → 2.PROBLÈME(5-20s) → 3.SOLUTION(20-45s) → 4.PRODUIT(45-60s) → 5.CTA(60+s)
 
-3. MÉCANISMES DE VENTE (Biais Psychologiques) /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifie les biais exploités:
-- 🎓 AUTORITÉ: Expert reconnu, certifications, expertise
-- 👥 PREUVE SOCIALE: Témoignages, "tout le monde l'utilise", données chiffrées
-- ⏳ RARETÉ/URGENCE: Stock limité, édition limitée, "avant que ça parte"
-- 💸 ACCESSIBILITÉ: Prix justifié, "moins cher que..."
-- 🧩 SIMPLICITÉ: "Il suffit de...", démonstration en 1 geste
-- 🔥 FOMO: "Ne fais pas comme ceux qui ratent..."
-- ✅ VALIDATION SOCIALE: "Tu mérites", "les vrais [profession]"
-- 🌟 ASPIRATION: Lifestyle, identité désirée
-- 🔄 TRANSFORMATION: Avant/Après, réussite personnelle
-
-Mécanisme principal détecté: [1 seul]
-Nombre de biais combinés: [1-4]
-
-Type de vente:
-- 🎯 DIRECTE: "Achète maintenant"
-- 🎭 INDIRECTE: Démo qui suscite envie
-- 💝 ÉMOTIONNELLE: Connexion d'abord
-- 📚 ÉDUCATIVE: Apprend puis recommande
-- 🌅 ASPIRATIONNELLE: Style de vie
-- 📖 STORYTELLING: Histoire inclut le produit
-
-Score Vente /100:
-- 90-100: Multiple biais combinés intelligemment
-- 70-89: 2-3 biais bien exploités
-- 50-69: 1 biais évident, manque de profondeur
-- <50: Vente trop directe ou insuffisante
-
-4. POSITIONNEMENT CRÉATEUR /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Quel rôle adopte le créateur?
-- 👨‍🏫 EXPERT: Maîtrise technique apparente
-- 🧙 MENTOR: Guide bienveillant
-- 🤝 AMI: Conversation naturelle, intimité
-- 🎯 PREUVE VIVANTE: "J'ai testé, voici le résultat"
-- 🧪 EXPÉRIMENTATEUR: Curiosité partagée
-- 🏃 OUTSIDER: "Voici ce qu'on te cache"
-- 👤 PERSONNE COMME TOI: Relatable, accessible
-
-Mesure:
-- Accessibilité perçue (1-10)
-- Crédibilité (1-10)
-- Distance émotionnelle (proche vs distant)
-- "Moi aussi je peux le faire": OUI/NON
-
-Score Positionnement /100:
-- 90-100: Positionnement clair + connexion immédiate
-- 70-89: Bon positionnement, légère friction
-- 50-69: Positionnement flou
-- <50: Viewer ne se projette pas
-
-5. FORMAT VISUEL /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Évalue les supports visuels:
-- 📋 Tableaux/Carnets: Effet "cours privé"
-- 📱 Écrans: Effet "preuve digitale"
-- ✏️ Sous-titres/Texte: Captions dynamiques, emojis
-- 🎬 Montage: Cuts, zooms, transitions
-- 👋 Gestuelle: Mains expressives, body language, regard caméra
-- 🎯 Objets Physiques: Produit bien montré, démonstration
-
-Comment les supports:
-- Augmentent la crédibilité (preuve visuelle)
-- Améliorent la compréhension
-- Augmentent le watch time (variation)
-- Créent un effet "cours privé"
-
-Score Format /100:
-- 90-100: Supports parfaitement intégrés et impactants
-- 70-89: Bons supports, manque de variété
-- 50-69: Format basique
-- <50: Présentation amateur
-
-6. ÉMOTION DOMINANTE /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifie l'ÉMOTION PRINCIPALE exploitée:
-- 🌟 ESPOIR: "C'est possible pour toi aussi"
-- 😤 FRUSTRATION: "Tu en as marre de... voici la solution"
-- 🎯 AMBITION: "Tu mérites le meilleur"
-- 😰 PEUR: "Ne fais pas l'erreur que..."
-- 😍 ENVIE: "Imagine si tu avais..."
-- 🤔 CURIOSITÉ: "Le secret que personne ne dit"
-- ⚡ URGENCE: "Il faut agir maintenant"
-- ✅ VALIDATION: "Tu as raison de vouloir..."
-
-Mesure:
-- Intensité émotionnelle (1-10)
-- Fréquence des stimuli émotionnels
-- Rapidité de connexion (en secondes)
-- Cohérence émotionnelle (début à fin)
-
-Transitions émotionnelles efficaces:
-- Frustration → Espoir = très efficace
-- Curiosité → Satisfaction = bonne boucle
-- Peur → Solution = conversion forte
-
-Score Émotion /100:
-- 90-100: Émotion forte, claire, parfaitement exploitée
-- 70-89: Émotion identifiable et impactante
-- 50-69: Émotion présente mais diluée
-- <50: Vidéo trop neutre
-
-7. CONVERSION TIKTOK SHOP /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Identifie les CTAs:
-- VISIBLES: "Lien dans le panier", "Clique sur le sac", "Achète avant fin du stock"
-- IMPLICITES: Démonstration qui suscite envie
-- ÉMOTIONNELS: "Tu mérites", "Offre-toi"
-
-Ce que vend vraiment la vidéo:
-- 📦 PRODUIT (bien matériel)
-- 🌅 MODE DE VIE (identité associée)
-- 💼 OPPORTUNITÉ (gain potentiel)
-- 👤 IDENTITÉ (devenir quelqu'un)
-- 🔄 TRANSFORMATION (état → meilleur état)
-
-Mécanismes d'engagement:
-- Push vers commentaires: OUI/NON
-- Push vers sauvegardes: OUI/NON
-- Push vers partage: OUI/NON
-- Push vers suivi: OUI/NON
-- Push vers revisite: OUI/NON
-
-Score Conversion /100:
-- 90-100: CTAs multiples, fluides, irrésistibles
-- 70-89: CTAs clairs et bien placés
-- 50-69: CTA présent mais faible
-- <50: CTA absent ou maladroit
-
-8. ALGORITHME TIKTOK /100
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Pourquoi l'algorithme pousse cette vidéo:
-
-Signaux POSITIFS:
-- ⏱️ Vitesse de rétention: Hook fort, pas de "trou mort"
-- 💎 Densité de valeur: Beaucoup d'info, pas de remplissage
-- 🔁 Structure addictive: Boucles ouvertes, promesses de fin
-- 🎁 Micro récompenses: Petites révélations régulières
-- 📖 Tension narrative: Conflit, question en suspens, résolution
-- 💬 Commentaires provoqués: Question, opinion, erreur intentionnelle
-- 🔄 Partage: Utile, émotionnel, tag-friendly
-
-Moments clés:
-- 🎯 REWATCH: Info dense, à revoir
-- 💬 COMMENTAIRES: Créent de la discussion
-- 💾 SAUVEGARDES: Info à garder
-- 📤 PARTAGE: Section à passer à d'autres
-
-Score Algorithme /100:
-- 90-100: Optimisé pour tous les signaux TikTok
-- 70-89: Plusieurs signaux forts
-- 50-69: Signaux basiques présents
-- <50: Algo ne pushera pas
-
-================================================================================
-ANALYSE STRUCTURELLE DE VENTE (LEGACY — À INCLURE AUSSI)
-================================================================================
-
-Flux naturel optimal:
-1. ACCROCHE (0-5s) → Capture l'attention
-2. PROBLÈME (5-20s) → Identifie point de douleur
-3. SOLUTION (20-45s) → Montre comment le produit résout
-4. PRODUIT (45-60s) → Démonstration/présentation
-5. CTA (60+s) → Appel à l'action clair
-
-================================================================================
-RETOUR JSON (STRUCTURE COMPLÈTE)
-================================================================================
-
-{
-  "analyse_8_dimensions": {
-    "hook": {"score": <0-100>, "categorie": "<type>", "feedback": "<...>"},
-    "retention": {"score": <0-100>, "boucles_ouvertes": <0-10>, "feedback": "<...>"},
-    "mecanismes_vente": {"score": <0-100>, "biais_principal": "<nom>", "nb_biais": <1-4>, "type_vente": "<type>", "feedback": "<...>"},
-    "positionnement": {"score": <0-100>, "role": "<type>", "accessibilite": <1-10>, "credibilite": <1-10>, "relatable": "<oui/non>", "feedback": "<...>"},
-    "format_visuel": {"score": <0-100>, "supports_utilises": ["<...>"], "variation_montage": "<lent/moyen/rapide>", "feedback": "<...>"},
-    "emotion_dominante": {"score": <0-100>, "emotion": "<type>", "intensite": <1-10>, "transitions_efficaces": ["<...>"], "feedback": "<...>"},
-    "conversion_shop": {"score": <0-100>, "cta_visibles": <0-3>, "cta_implicites": <0-3>, "ce_que_vend": "<type>", "engagements": {"commentaires": "<oui/non>", "sauvegardes": "<oui/non>", "partage": "<oui/non>"}, "feedback": "<...>"},
-    "algorithme": {"score": <0-100>, "signaux_forts": ["<...>"], "moments_cles": ["<...>"], "potentiel_push": "<faible/moyen/fort>", "feedback": "<...>"},
-    "score_persuasion_global": <0-100>
-  },
-  "scores_legacy": {
-    "accroche": {"note": <0-10>, "commentaire": "<...>"},
-    "discours": {"note": <0-10>, "commentaire": "<...>"},
-    "qualite_visuelle": {"note": <0-10>, "commentaire": "<...>"},
-    "visibilite_produit": {"note": <0-10>, "commentaire": "<...>"},
-    "call_to_action": {"note": <0-10>, "commentaire": "<...>"},
-    "energie_dynamisme": {"note": <0-10>, "commentaire": "<...>"},
-    "credibilite_confiance": {"note": <0-10>, "commentaire": "<...>"}
-  },
-  "detection": {
-    "produit": "<nom ou non détecté>",
-    "prix_estime": "<prix EUR ou non détecté>",
-    "prix_rentable": <true/false>,
-    "hook_type": "<catégorie>",
-    "hook_force": <0-10>,
-    "confiance_detection": <0.6-1.0>
-  },
-  "viral_potential": {
-    "score": <0-100>,
-    "facteur_prix": "<très bas <15€ | bon 15-40€ | élevé 40-100€ | premium 100€+>",
-    "explication": "<2-3 lignes>"
-  },
-  "structure_vente": {
-    "accroche": {"present": <true/false>, "score": <0-10>, "hook_type": "<type>", "feedback": "<...>"},
-    "probleme": {"present": <true/false>, "score": <0-10>, "problem_stated": "<...>", "clarity": <0-10>, "feedback": "<...>"},
-    "solution": {"present": <true/false>, "score": <0-10>, "how_solved": "<...>", "product_link": "<yes/no>", "feedback": "<...>"},
-    "produit": {"present": <true/false>, "score": <0-10>, "shown_adequately": "<yes/no/partially>", "demo_quality": "<none/basic/good/excellent>", "feedback": "<...>"},
-    "cta": {"present": <true/false>, "score": <0-10>, "cta_type": "<type>", "clarity": <0-10>, "persuasion": "<faible/moyen/fort>", "feedback": "<...>"},
-    "ordre_naturel": <true/false>,
-    "transitions": "<fluides/abruptes/absentes>",
-    "score_structure": <0-100>
-  },
-  "score_global": <0-100>,
-  "points_forts": ["<1>", "<2>", "<3>"],
-  "points_ameliorer": ["<1>", "<2>", "<3>"],
-  "recommendations_hooks": {
-    "hook_type_propose": "<meilleur type>",
-    "raison": "<pourquoi (1-2 phrases)>",
-    "exemples_concrets": ["<exemple 1>", "<exemple 2>", "<exemple 3>"]
-  },
-  "plan_reproduction": {
-    "hook_similaire": {"structure": "<détail>", "variables": "<à adapter>", "exemple": "<pour ton produit>"},
-    "mecanique_montage": {"rythme": "<X cuts par Y sec>", "transitions": "<types>", "elements_visuels": ["<...>"]},
-    "cta_optimise": {"type": "<direct/implicite/emotionnel>", "placement": "<debut/milieu/fin>", "formulation": "<exemple>"},
-    "angle_shop": {"produit": "<recommandation>", "storytelling": "<framework>", "emotion": "<laquelle>"}
-  },
-  "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"],
-  "ameliorations_prioritaires": [
-    {"rang": 1, "action": "<...", "impact": "<..>"},
-    {"rang": 2, "action": "<...", "impact": "<..>"},
-    {"rang": 3, "action": "<...", "impact": "<..>"}
-  ],
-  "verdict": "<Résumé réaliste 3-4 phrases avec langage probabiliste : potentiel apparent? Point faible? Priorité? Refaire ou tester?>",
-  "disclaimer_realisme": "Cette analyse décortique les mécanismes de persuasion et les signaux algorithme. L'algo TikTok surprend toujours — des vidéos considérées mauvaises vendent bien, des excellentes floppent. Utilise comme repère stratégique, pas comme certitude."
-}
-
-IMPORTANT: JSON uniquement, pas de markdown, français pur, langage probabiliste."""
+RETOUR JSON UNIQUEMENT:
+{"analyse_8_dimensions": {"hook": {"score": <0-100>, "categorie": "<>", "feedback": "<>"}, "retention": {"score": <0-100>, "boucles_ouvertes": <0-10>, "feedback": "<>"}, "mecanismes_vente": {"score": <0-100>, "biais_principal": "<>", "nb_biais": <1-4>, "type_vente": "<>", "feedback": "<>"}, "positionnement": {"score": <0-100>, "role": "<>", "accessibilite": <1-10>, "credibilite": <1-10>, "relatable": "<oui/non>", "feedback": "<>"}, "format_visuel": {"score": <0-100>, "supports_utilises": ["<>"], "variation_montage": "<lent/moyen/rapide>", "feedback": "<>"}, "emotion_dominante": {"score": <0-100>, "emotion": "<>", "intensite": <1-10>, "transitions_efficaces": ["<>"], "feedback": "<>"}, "conversion_shop": {"score": <0-100>, "cta_visibles": <0-3>, "cta_implicites": <0-3>, "ce_que_vend": "<>", "engagements": {"commentaires": "<oui/non>", "sauvegardes": "<oui/non>", "partage": "<oui/non>"}, "feedback": "<>"}, "algorithme": {"score": <0-100>, "signaux_forts": ["<>"], "moments_cles": ["<>"], "potentiel_push": "<faible/moyen/fort>", "feedback": "<>"}, "score_persuasion_global": <0-100>}, "scores_legacy": {"accroche": {"note": <0-10>, "commentaire": "<>"}, "discours": {"note": <0-10>, "commentaire": "<>"}, "qualite_visuelle": {"note": <0-10>, "commentaire": "<>"}, "visibilite_produit": {"note": <0-10>, "commentaire": "<>"}, "call_to_action": {"note": <0-10>, "commentaire": "<>"}, "energie_dynamisme": {"note": <0-10>, "commentaire": "<>"}, "credibilite_confiance": {"note": <0-10>, "commentaire": "<>"}}, "detection": {"produit": "<nom ou non détecté>", "prix_estime": "<prix EUR ou non détecté>", "prix_rentable": <true/false>, "hook_type": "<>", "hook_force": <0-10>, "confiance_detection": <0.6-1.0>}, "viral_potential": {"score": <0-100>, "facteur_prix": "<très bas <15€ | bon 15-40€ | élevé 40-100€ | premium 100€+>", "explication": "<2-3 lignes>"}, "structure_vente": {"accroche": {"present": <true/false>, "score": <0-10>, "hook_type": "<>", "feedback": "<>"}, "probleme": {"present": <true/false>, "score": <0-10>, "problem_stated": "<>", "clarity": <0-10>, "feedback": "<>"}, "solution": {"present": <true/false>, "score": <0-10>, "how_solved": "<>", "product_link": "<yes/no>", "feedback": "<>"}, "produit": {"present": <true/false>, "score": <0-10>, "shown_adequately": "<yes/no/partially>", "demo_quality": "<none/basic/good/excellent>", "feedback": "<>"}, "cta": {"present": <true/false>, "score": <0-10>, "cta_type": "<>", "clarity": <0-10>, "persuasion": "<faible/moyen/fort>", "feedback": "<>"}, "ordre_naturel": <true/false>, "transitions": "<fluides/abruptes/absentes>", "score_structure": <0-100>}, "score_global": <0-100>, "points_forts": ["<1>", "<2>", "<3>"], "points_ameliorer": ["<1>", "<2>", "<3>"], "recommendations_hooks": {"hook_type_propose": "<>", "raison": "<1-2 phrases>", "exemples_concrets": ["<>", "<>", "<>"]}, "plan_reproduction": {"hook_similaire": {"structure": "<détail>", "variables": "<à adapter>", "exemple": "<>"}, "mecanique_montage": {"rythme": "<X cuts par Y sec>", "transitions": "<types>", "elements_visuels": ["<>"]}, "cta_optimise": {"type": "<direct/implicite/emotionnel>", "placement": "<debut/milieu/fin>", "formulation": "<>"}, "angle_shop": {"produit": "<>", "storytelling": "<>", "emotion": "<>"}}, "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"], "ameliorations_prioritaires": [{"rang": 1, "action": "<>", "impact": "<>"}, {"rang": 2, "action": "<>", "impact": "<>"}, {"rang": 3, "action": "<>", "impact": "<>"}], "verdict": "<3-4 phrases langage probabiliste>", "disclaimer_realisme": "Analyse décortique persuasion + signaux algo. TikTok surprend — mauvaises vidéos vendent bien, excellentes floppent. Repère stratégique, pas certitude."}"""
 
 
 def _format_market_context(market: dict) -> str:
