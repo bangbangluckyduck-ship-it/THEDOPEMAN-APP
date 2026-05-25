@@ -425,7 +425,9 @@ function clearSession() {
 }
 
 // Show auth menu (account dropdown)
-function showAuthMenu() {
+function showAuthMenu(e) {
+  e?.stopPropagation?.();
+
   const existing = document.getElementById('auth-menu');
   if (existing) {
     existing.remove();
@@ -437,38 +439,51 @@ function showAuthMenu() {
 
   const menu = document.createElement('div');
   menu.id = 'auth-menu';
+  menu.className = 'auth-menu';
   menu.style.cssText = `
-    position: absolute;
-    top: 100%;
-    right: 0;
+    position: fixed;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--shadow);
-    z-index: 1000;
-    min-width: 200px;
-    margin-top: 8px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    z-index: 2001;
+    min-width: 220px;
+    overflow: hidden;
   `;
 
   menu.innerHTML = `
-    <a href="#" onclick="openCustomerPortal(); return false" style="display:block;padding:12px 16px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);font-size:13px;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+    <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       ⚙️ Mon abonnement
-    </a>
-    <a href="#" onclick="clearSession(); return false" style="display:block;padding:12px 16px;color:var(--danger);text-decoration:none;font-size:13px;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+    </button>
+    <button onclick="clearSession(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--danger);background:transparent;border:none;font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       🚪 Déconnexion
-    </a>
+    </button>
   `;
 
-  btnAuth.parentElement.style.position = 'relative';
-  btnAuth.parentElement.appendChild(menu);
+  document.body.appendChild(menu);
+
+  // Position menu relative to button
+  const rect = btnAuth.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 8) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
 
   // Close menu when clicking elsewhere
-  document.addEventListener('click', function closeMenu(e) {
-    if (!menu.contains(e.target) && e.target !== btnAuth) {
+  function closeMenu(clickEvent) {
+    if (!menu.contains(clickEvent.target) && clickEvent.target !== btnAuth) {
       menu.remove();
       document.removeEventListener('click', closeMenu);
     }
-  });
+  }
+
+  // Delay to prevent immediate closure
+  setTimeout(() => {
+    document.addEventListener('click', closeMenu);
+  }, 50);
+}
+
+function closeAuthMenu() {
+  const menu = document.getElementById('auth-menu');
+  if (menu) menu.remove();
 }
 
 // Update UI to match session state
@@ -483,7 +498,7 @@ function updateSessionUI() {
     if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
     if (btnAuth) {
       btnAuth.textContent = '⚙️ Mon compte';
-      btnAuth.onclick = showAuthMenu;
+      btnAuth.onclick = (e) => showAuthMenu(e);
     }
     // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
     fetchUserInfo();
@@ -493,7 +508,8 @@ function updateSessionUI() {
     if (userEmailEl) userEmailEl.textContent = '';
     if (btnAuth) {
       btnAuth.textContent = t('btn_connect');
-      btnAuth.onclick = () => {
+      btnAuth.onclick = (e) => {
+        e?.preventDefault?.();
         const modal = document.getElementById('auth-modal');
         if (modal) modal.classList.add('active');
       };
@@ -526,6 +542,12 @@ function updateTierBadge(data) {
   tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
   tierBadge.style.background = colors[data.tier] || '#6B7280';
   tierBadge.style.display = 'inline-block';
+
+  // Afficher l'onglet admin si l'utilisateur est admin
+  const adminTab = document.getElementById('tab-admin');
+  if (adminTab) {
+    adminTab.style.display = data.tier === 'admin' ? 'block' : 'none';
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -605,9 +627,25 @@ async function wakeServer() {
   status.textContent = '❌ Serveur indisponible. Rafraîchis la page.';
 }
 
+// ── CUSTOMER PORTAL ──────────────────────────────────────────
+async function openCustomerPortal() {
+  const email       = SESSION.email || '';
+  const customer_id = (window.__usage || {}).customer_id || '';
+  try {
+    const res = await fetch('/customer-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, customer_id }),
+    });
+    if (!res.ok) { alert('❌ Portail indisponible.'); return; }
+    const { url } = await res.json();
+    window.location.href = url;
+  } catch { alert('❌ Erreur réseau.'); }
+}
+
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'admin', 'account'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -615,6 +653,7 @@ function switchTab(tab) {
   });
   if (tab === 'history') renderHistory();
   if (tab === 'pricing') updatePricingCTA();
+  if (tab === 'account') renderAccountPage();
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────
@@ -1187,6 +1226,90 @@ function clearHistory() {
   updateHistoryBadge(); renderHistory();
 }
 
+// ── ACCOUNT PAGE ─────────────────────────────────────────────
+function renderAccountPage() {
+  const container = document.getElementById('account-content');
+  if (!container) return;
+
+  const userInfo = window.__userInfo || {};
+  const tierLabels = { free: 'Gratuit', pro: 'Pro', gold: 'Gold ⭐', agency: 'Agency', beta: 'Beta 🎁', admin: 'Admin' };
+  const tierColors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
+  const tierDescriptions = {
+    free: '3 analyses par mois • Pas de coaching IA • Support basique',
+    pro: '20 analyses par mois • Pas de coaching IA • Support par email',
+    gold: '25 analyses par jour • Coaching IA complet • Tendances marché • Support prioritaire',
+    agency: '125 analyses par jour • Coaching IA complet • Tendances marché • Support 24/7',
+    beta: 'Accès illimité • Coaching IA complet • Tendances marché • Support VIP',
+    admin: 'Accès illimité • Panneau d\'admin • Support complet'
+  };
+
+  const tier = userInfo.tier || 'free';
+  const tierLabel = tierLabels[tier] || tier.toUpperCase();
+  const tierColor = tierColors[tier] || '#6B7280';
+  const tierDesc = tierDescriptions[tier] || '';
+
+  let html = `
+    <div class="section">
+      <h2>👤 Mon compte</h2>
+
+      <!-- User info -->
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Email</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text)">${SESSION.email || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Plan actuel</div>
+            <div style="display:inline-block;background:${tierColor};color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">${tierLabel}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan details -->
+      <div style="background:linear-gradient(135deg,rgba(212,175,55,.07),rgba(37,99,235,.04));border:1px solid rgba(212,175,55,.22);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">ℹ️ Inclusions du plan</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6">${tierDesc}</div>
+      </div>
+
+      <!-- Usage -->
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">📊 Utilisation</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Analyses ce mois</div>
+            <div style="font-size:24px;font-weight:700;color:var(--navy)">${getUsage()}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Limite</div>
+            <div style="font-size:24px;font-weight:700;color:${tier === 'free' || tier === 'pro' ? 'var(--warning)' : 'var(--success)'}">${tier === 'free' ? '3' : tier === 'pro' ? '20' : '∞'}</div>
+          </div>
+        </div>
+      </div>`;
+
+  // Buttons
+  if (tier !== 'free' && tier !== 'admin') {
+    html += `
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openCustomerPortal()" style="flex:1">💳 Gérer l'abonnement</button>
+        <button class="btn btn-accent" onclick="clearSession()" style="flex:1">🚪 Déconnexion</button>
+      </div>`;
+  } else if (tier === 'free') {
+    html += `
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="switchTab('pricing')" style="flex:1">⭐ Passer à Pro</button>
+        <button class="btn btn-accent" onclick="clearSession()" style="flex:1">🚪 Déconnexion</button>
+      </div>`;
+  } else {
+    html += `
+      <button class="btn btn-accent" onclick="clearSession()" style="width:100%">🚪 Déconnexion</button>`;
+  }
+
+  html += `</div>`;
+
+  container.innerHTML = html;
+}
+
 // ── EXPORT PDF ───────────────────────────────────────────────
 function exportPDF() {
   if (!currentData || !window.jspdf) return;
@@ -1304,12 +1427,9 @@ function exportPDF() {
 }
 
 // ── AUTH MODAL ────────────────────────────────────────────────
-document.getElementById('btn-auth').addEventListener('click', () => {
-  const modal = document.getElementById('auth-modal');
-  if (modal && !SESSION.email) {
-    modal.classList.add('active');
-  }
-});
+// Note: btn-auth onclick is set dynamically in updateSessionUI()
+// When logged out: opens auth modal
+// When logged in: shows account dropdown menu
 
 function closeModal() {
   document.getElementById('auth-modal').classList.remove('active');
