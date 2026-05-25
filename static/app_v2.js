@@ -806,10 +806,6 @@ async function analyzeVideo() {
       document.getElementById('market-section').style.display = 'block';
     }
 
-    if (window.__userInfo) {
-      checkQuotaAfterAnalysis(window.__userInfo);
-    }
-
   } catch (e) {
     document.getElementById('loading-section').style.display = 'none';
     document.getElementById('upload-section').style.display  = 'block';
