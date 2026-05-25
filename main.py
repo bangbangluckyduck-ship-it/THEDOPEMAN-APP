@@ -29,12 +29,20 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)   # /create-checkout-session  /customer-portal  /webhook
 app.include_router(admin_router)    # /admin/users  /admin/set-tier  /admin/grant-beta
 
-_HTML = Path("templates/index.html").read_text(encoding="utf-8")
+_HOMEPAGE_HTML = Path("templates/homepage.html").read_text(encoding="utf-8")
+_APP_HTML = Path("templates/index.html").read_text(encoding="utf-8")
 
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return HTMLResponse(_HTML)
+    """Landing page avec tool d'analyse intégré."""
+    return HTMLResponse(_HOMEPAGE_HTML)
+
+
+@app.get("/app", response_class=HTMLResponse)
+async def app_page():
+    """Page d'analyse complète."""
+    return HTMLResponse(_APP_HTML)
 
 
 @app.get("/health")
