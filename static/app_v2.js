@@ -438,6 +438,8 @@ function updateSessionUI() {
       btnAuth.textContent = '⚙️ Mon abonnement';
       btnAuth.onclick = openCustomerPortal;
     }
+    // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
+    fetchUserInfo();
   } else {
     // User is not logged in
     if (overlay) overlay.style.display = 'flex';
@@ -449,6 +451,9 @@ function updateSessionUI() {
         if (modal) modal.classList.add('active');
       };
     }
+    // Masquer le badge du tier si pas connecté
+    const tierBadge = document.getElementById('user-tier-badge');
+    if (tierBadge) tierBadge.style.display = 'none';
   }
 }
 
@@ -459,16 +464,21 @@ function fetchUserInfo() {
     .then(r => r.json())
     .then(data => {
       window.__userInfo = data;
-      const tierBadge = document.getElementById('user-tier-badge');
-      if (tierBadge && data.tier) {
-        const labels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
-        const colors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
-        tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
-        tierBadge.style.background = colors[data.tier] || '#6B7280';
-        tierBadge.style.display = 'inline-block';
-      }
+      updateTierBadge(data);
     })
     .catch(() => {});
+}
+
+function updateTierBadge(data) {
+  const tierBadge = document.getElementById('user-tier-badge');
+  if (!tierBadge || !data || !data.tier) return;
+
+  const labels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
+  const colors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
+
+  tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
+  tierBadge.style.background = colors[data.tier] || '#6B7280';
+  tierBadge.style.display = 'inline-block';
 }
 
 // ══════════════════════════════════════════════════════════════
