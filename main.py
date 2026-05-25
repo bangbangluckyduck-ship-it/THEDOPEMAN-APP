@@ -207,10 +207,10 @@ async def analyze(
             except Exception:
                 pass  # On continue sans données marché si le scraper est down
 
-        # IA analysis
+        # IA analysis (increased timeout to 180 seconds for complex videos)
         result = await asyncio.wait_for(
             loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context),
-            timeout=90.0,
+            timeout=180.0,
         )
         if user["valid"]:
             increment_usage(user["email"])
@@ -223,7 +223,7 @@ async def analyze(
         return result
 
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Analyse trop longue. Réessaie.")
+        raise HTTPException(status_code=504, detail="L'analyse a pris trop longtemps (>3min). Essaie avec une vidéo plus courte ou une résolution plus basse.")
     except HTTPException:
         raise
     except Exception as e:
