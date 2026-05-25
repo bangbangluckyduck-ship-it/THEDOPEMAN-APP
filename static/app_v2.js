@@ -424,6 +424,53 @@ function clearSession() {
   location.reload();
 }
 
+// Show auth menu (account dropdown)
+function showAuthMenu() {
+  const existing = document.getElementById('auth-menu');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const btnAuth = document.getElementById('btn-auth');
+  if (!btnAuth) return;
+
+  const menu = document.createElement('div');
+  menu.id = 'auth-menu';
+  menu.style.cssText = `
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    min-width: 200px;
+    margin-top: 8px;
+  `;
+
+  menu.innerHTML = `
+    <a href="#" onclick="openCustomerPortal(); return false" style="display:block;padding:12px 16px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);font-size:13px;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      ⚙️ Mon abonnement
+    </a>
+    <a href="#" onclick="clearSession(); return false" style="display:block;padding:12px 16px;color:var(--danger);text-decoration:none;font-size:13px;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      🚪 Déconnexion
+    </a>
+  `;
+
+  btnAuth.parentElement.style.position = 'relative';
+  btnAuth.parentElement.appendChild(menu);
+
+  // Close menu when clicking elsewhere
+  document.addEventListener('click', function closeMenu(e) {
+    if (!menu.contains(e.target) && e.target !== btnAuth) {
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+    }
+  });
+}
+
 // Update UI to match session state
 function updateSessionUI() {
   const overlay = document.getElementById('login-overlay');
@@ -435,8 +482,8 @@ function updateSessionUI() {
     if (overlay) overlay.style.display = 'none';
     if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
     if (btnAuth) {
-      btnAuth.textContent = '⚙️ Mon abonnement';
-      btnAuth.onclick = openCustomerPortal;
+      btnAuth.textContent = '⚙️ Mon compte';
+      btnAuth.onclick = showAuthMenu;
     }
     // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
     fetchUserInfo();
