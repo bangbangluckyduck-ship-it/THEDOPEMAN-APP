@@ -1302,7 +1302,18 @@
         const result = await res.json();
         sessionStorage.setItem('lastAnalysis', JSON.stringify(result));
 
-        // Update counter and display results
+        // Check if limit ALREADY reached (4+ analyses)
+        const currentCount = parseInt(localStorage.getItem('free_analyses_count') || '0');
+        if (currentCount >= 3) {
+          // Limite atteinte, afficher pop-up AVANT l'analyse
+          showAnalysisLimitModal();
+          document.getElementById('analyze-btn').disabled = true;
+          loading.classList.remove('active');
+          uploadForm.style.display = 'block';
+          return; // Ne pas afficher les résultats
+        }
+
+        // Sinon, afficher les résultats et incrémenter
         const count = updateFreeAnalysisCounter();
         displayAnalysisResults(result);
 
@@ -1310,12 +1321,6 @@
         loading.classList.remove('active');
         uploadForm.style.display = 'none';
         document.getElementById('results-container').style.display = 'block';
-
-        // Check if limit reached
-        if (count >= 3) {
-          showAnalysisLimitModal();
-          document.getElementById('analyze-btn').disabled = true;
-        }
       } catch (fetchError) {
         clearTimeout(timer);
         if (fetchError.name === 'AbortError') {
