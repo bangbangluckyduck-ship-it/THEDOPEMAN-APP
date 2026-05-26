@@ -24,6 +24,26 @@ from admin_routes import router as admin_router
 generate_icons()
 
 app = FastAPI(title="TikTok Shop Analyzer")
+
+# Configure max file upload size (100MB for video + audio)
+from starlette.middleware.base import BaseHTTPMiddleware
+class LimitUploadSize(BaseHTTPMiddleware):
+    def __init__(self, app, max_upload_size: int):
+        super().__init__(app)
+        self.max_upload_size = max_upload_size
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method == 'POST':
+            if 'content-length' in request.headers:
+                content_length = int(request.headers['content-length'])
+                if content_length > self.max_upload_size:
+                    return JSONResponse(
+                        status_code=413,
+                        content={"detail": f"File too large. Max size: {self.max_upload_size/1024/1024:.0f}MB"}
+                    )
+        return await call_next(request)
+
+app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)  # 100MB
 app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)   # /create-checkout-session  /customer-portal  /webhook
@@ -301,4 +321,6 @@ async def analyze(
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Allow larger file uploads (up to 100MB) for video + audio
+    uvicorn.run(app, host="0.0.0.0", port=port, limit_request_fields=32, limit_request_line=0, limit_concurrency=100)
+    # Note: FastAPI also respects multipart form size, ensure it can handle up to 100MB
