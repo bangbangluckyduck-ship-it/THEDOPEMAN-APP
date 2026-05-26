@@ -452,5 +452,5 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     # Allow larger file uploads (up to 100MB) for video + audio
-    uvicorn.run(app, host="0.0.0.0", port=port, limit_request_fields=32, limit_request_line=0, limit_concurrency=100)
+    uvicorn.run(app, host="0.0.0.0", port=port)
     # Note: FastAPI also respects multipart form size, ensure it can handle up to 100MB
