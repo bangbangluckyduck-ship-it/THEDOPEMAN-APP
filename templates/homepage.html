@@ -763,8 +763,34 @@
     <a href="#features" class="nav-link">Fonctionnalités</a>
     <a href="#pricing" class="nav-link">Tarifs</a>
     <button class="btn-header" onclick="scrollToTool()">Tester gratuitement</button>
-    <a href="/app" class="nav-link-login">Se connecter</a>
+    <button class="nav-link-login" onclick="openLoginModal()" style="background: none; border: none; cursor: pointer; padding: 0; font: inherit;">Se connecter</button>
   </nav>
+
+  <!-- Login Modal -->
+  <div id="login-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 10000; align-items: center; justify-content: center; display: none;">
+    <div style="background: var(--surface); padding: 32px; border-radius: 12px; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 90%;">
+      <h2 style="margin: 0 0 8px 0; font-size: 20px">Accès à mon espace</h2>
+      <p style="color: var(--muted); font-size: 14px; margin: 0 0 24px 0;">
+        Rentre tes infos pour analyser tes vidéos
+      </p>
+      <input type="email" id="login-email" placeholder="ton@email.com"
+        style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
+        font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 12px;">
+      <input type="text" id="login-name" placeholder="Ton prénom (optionnel)"
+        style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
+        font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 16px;">
+      <button onclick="submitLoginModal()" style="width: 100%; padding: 12px; background: var(--primary);
+        color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;">
+        Se connecter
+      </button>
+      <button onclick="closeLoginModal()" style="width: 100%; padding: 12px; background: transparent;
+        color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+        Annuler
+      </button>
+    </div>
+  </div>
 </header>
 
 <!-- ════════════════════ HERO ════════════════════ -->
@@ -1250,6 +1276,56 @@
     analyzeBtn.disabled = false;
     errorMessage.classList.remove('active');
   }
+
+  // Login modal functions
+  function openLoginModal() {
+    document.getElementById('login-modal').style.display = 'flex';
+    document.getElementById('login-email').focus();
+  }
+
+  function closeLoginModal() {
+    document.getElementById('login-modal').style.display = 'none';
+  }
+
+  function submitLoginModal() {
+    const email = document.getElementById('login-email').value.trim();
+    const name = document.getElementById('login-name').value.trim();
+
+    if (!email || !email.includes('@')) {
+      alert('Email invalide');
+      return;
+    }
+
+    // Save to SESSION
+    const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
+    session.email = email;
+    if (name) session.name = name;
+    localStorage.setItem('SESSION', JSON.stringify(session));
+
+    // Clear fields and close
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-name').value = '';
+    closeLoginModal();
+  }
+
+  // Close modal on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLoginModal();
+  });
+
+  // Login form Enter key
+  document.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('login-email');
+    const nameInput = document.getElementById('login-name');
+    if (emailInput && nameInput) {
+      emailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitLoginModal();
+      });
+      nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitLoginModal();
+      });
+    }
+  });
 
   // Ensure user has an email before analyzing
   async function ensureUserEmail() {
