@@ -15,6 +15,9 @@ supabase: Optional[Client] = None
 if SUPABASE_URL and SUPABASE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Flag pour vérifier si Supabase est disponible
+SUPABASE_ENABLED = bool(supabase)
+
 
 # ── UTILISATEURS ──────────────────────────────────────────
 
