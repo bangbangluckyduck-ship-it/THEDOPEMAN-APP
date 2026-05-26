@@ -448,6 +448,9 @@ function dismissTransparencyBanner() {
 function openPrivacyModal() {
   const backdrop = document.getElementById('privacy-backdrop');
   if (backdrop) backdrop.classList.add('active');
+  // Populate privacy modal content based on current language
+  const pmBody = document.getElementById('pm-body');
+  if (pmBody) pmBody.innerHTML = t('pm_content');
 }
 
 function closePrivacyModal() {
@@ -456,13 +459,13 @@ function closePrivacyModal() {
 }
 
 function openCGV() {
-  const modal = document.getElementById('cgv-modal');
-  if (modal) modal.classList.add('active');
+  const overlay = document.getElementById('cgv-overlay');
+  if (overlay) overlay.style.display = 'block';
 }
 
 function closeCGV() {
-  const modal = document.getElementById('cgv-modal');
-  if (modal) modal.classList.remove('active');
+  const overlay = document.getElementById('cgv-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 function installPwa() {
