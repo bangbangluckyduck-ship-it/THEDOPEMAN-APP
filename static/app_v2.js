@@ -914,6 +914,76 @@ function showResults(d) {
     });
   }
 
+  // MARKET INSIGHTS
+  const marketData = d.donnees_marche;
+  if (marketData) {
+    const marketSection = document.getElementById('market-insights-section');
+    if (marketSection) {
+      marketSection.style.display = 'block';
+
+      // Top Produits
+      const topProdsContainer = document.getElementById('market-top-products');
+      topProdsContainer.innerHTML = (marketData.top_products || []).map(p => `
+        <div class="market-card">
+          <div class="market-card-title">${p.title || p.name || '—'}</div>
+          <div class="market-card-meta">
+            <span class="market-badge hot">🔥 ${p.sold_count || '?'} ventes</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            ${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Trending
+      const trendingContainer = document.getElementById('market-trending');
+      trendingContainer.innerHTML = (marketData.trending || []).map(p => `
+        <div class="market-card">
+          <div class="market-card-title">${p.title || p.name || '—'}</div>
+          <div class="market-card-meta">
+            <span class="market-badge trend">📈 +${p.growth_percent || '?'}%</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            ${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Top Creators
+      const creatorsContainer = document.getElementById('market-creators');
+      creatorsContainer.innerHTML = (marketData.top_creators || []).map(c => `
+        <div class="market-card">
+          <div class="market-card-title">@${c.handle || '?'}</div>
+          <div class="market-card-meta">
+            <span class="market-badge">👥 ${c.followers || '?'} followers</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            Spécialité: ${c.primary_category || '—'}
+          </div>
+        </div>
+      `).join('');
+
+      // Positionnement
+      const det = d.detection;
+      const posText = det ? `
+        <div style="display:grid;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+            <span>Ton produit:</span>
+            <strong style="color:var(--accent)">${det.produit || 'Non détecté'}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
+            <span>Ton score:</span>
+            <strong style="color:var(--primary);font-size:16px">${d.score_global ?? '—'}/100</strong>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--primary)">
+            💡 Analyse ton score contre les meilleurs vendeurs de ta catégorie pour identifier où tu peux progresser. Les données marché ci-dessus montrent ce qui est populaire en ce moment.
+          </div>
+        </div>
+      ` : '—';
+      document.getElementById('market-positioning').innerHTML = posText;
+    }
+  }
+
   const vp = d.viral_potential;
   if (vp) {
     document.getElementById('viral-score').textContent      = vp.score ?? '—';
