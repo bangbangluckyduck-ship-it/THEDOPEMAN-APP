@@ -27,6 +27,28 @@ def _require_admin(request: Request) -> dict:
 async def list_users(request: Request):
     _require_admin(request)
     users = []
+
+    # Try Supabase first, fallback to in-memory
+    try:
+        from supabase_client import get_all_users, SUPABASE_ENABLED
+        if SUPABASE_ENABLED:
+            supabase_users = get_all_users()
+            for user_data in supabase_users:
+                email = user_data["email"]
+                tier = user_data.get("tier", "free")
+                cfg = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+                users.append({
+                    "email": email,
+                    "tier": tier,
+                    "label": cfg["label"],
+                    "customer_id": None,  # Not stored in simple query
+                })
+            return {"ok": True, "count": len(users), "users": users}
+    except Exception as e:
+        print(f"Supabase error: {e}")
+        pass
+
+    # Fallback to in-memory (for backward compatibility)
     all_emails = set(_user_tiers.keys()) | set(_monthly_usage.keys()) | set(_daily_usage.keys())
     for email in sorted(all_emails):
         tier_data = _user_tiers.get(email, {})
