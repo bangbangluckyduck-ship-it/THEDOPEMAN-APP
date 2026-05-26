@@ -914,14 +914,47 @@ function showResults(d) {
     });
   }
 
-  // MARKET INSIGHTS
+  // MARKET INTELLIGENCE (verrouillée pour FREE/PRO)
   const marketData = d.donnees_marche;
-  if (marketData) {
-    const marketSection = document.getElementById('market-insights-section');
-    if (marketSection) {
-      marketSection.style.display = 'block';
+  const userTier = window.__userInfo?.tier || 'free';
+  const isAdmin = window.__userInfo?.is_admin || false;
+  const hasMarketAccess = ['gold', 'agency', 'beta'].includes(userTier) || isAdmin;
 
-      // Top Produits
+  const marketIntelligenceSection = document.getElementById('market-intelligence-section');
+  if (marketIntelligenceSection && marketData) {
+    marketIntelligenceSection.style.display = 'block';
+
+    const lockOverlay = document.getElementById('market-intelligence-lock');
+    const content = document.getElementById('market-intelligence-content');
+
+    if (hasMarketAccess) {
+      // DÉVERROUILLER pour GOLD+
+      if (lockOverlay) lockOverlay.style.display = 'none';
+      if (content) content.style.display = 'block';
+
+      const det = d.detection;
+      const detectedCategory = det?.produit || '';
+
+      // === CONTEXTE CATÉGORIE ===
+      const trendingCategories = (marketData.trending || []).map(p => p.category).filter(Boolean);
+      const topCategories = (marketData.top_products || []).map(p => p.category).filter(Boolean);
+
+      let categoryContext = '—';
+      if (detectedCategory) {
+        const isTrending = trendingCategories.includes(detectedCategory);
+        const topCount = topCategories.filter(c => c === detectedCategory).length;
+
+        if (isTrending) {
+          categoryContext = `✅ <strong>${detectedCategory}</strong> est EN CROISSANCE rapide en ce moment. Excellente timing pour tester ce produit !`;
+        } else if (topCount > 0) {
+          categoryContext = `📊 <strong>${detectedCategory}</strong> a ${topCount} produit(s) dans le top. C'est une catégorie stable avec une demande constante.`;
+        } else {
+          categoryContext = `⚠️ <strong>${detectedCategory}</strong> n'apparaît pas dans les trending actuels. Stratégie : sois plus agressif sur le hook et le CTA.`;
+        }
+      }
+      document.getElementById('market-category-context').innerHTML = categoryContext;
+
+      // === TOP PRODUITS ===
       const topProdsContainer = document.getElementById('market-top-products');
       topProdsContainer.innerHTML = (marketData.top_products || []).map(p => `
         <div class="market-card">
@@ -935,7 +968,7 @@ function showResults(d) {
         </div>
       `).join('');
 
-      // Trending
+      // === TRENDING ===
       const trendingContainer = document.getElementById('market-trending');
       trendingContainer.innerHTML = (marketData.trending || []).map(p => `
         <div class="market-card">
@@ -949,38 +982,59 @@ function showResults(d) {
         </div>
       `).join('');
 
-      // Top Creators
+      // === TOP CREATORS ===
       const creatorsContainer = document.getElementById('market-creators');
-      creatorsContainer.innerHTML = (marketData.top_creators || []).map(c => `
+      const creatorsByCategory = (marketData.top_creators || []).filter(c =>
+        c.primary_category === detectedCategory || !detectedCategory
+      );
+      creatorsContainer.innerHTML = (creatorsByCategory.length > 0 ? creatorsByCategory : marketData.top_creators || []).map(c => `
         <div class="market-card">
           <div class="market-card-title">@${c.handle || '?'}</div>
           <div class="market-card-meta">
-            <span class="market-badge">👥 ${c.followers || '?'} followers</span>
+            <span class="market-badge">👥 ${c.followers || '?'}</span>
           </div>
           <div style="font-size:11px;color:var(--muted)">
-            Spécialité: ${c.primary_category || '—'}
+            ${c.primary_category || '—'}
           </div>
         </div>
       `).join('');
 
-      // Positionnement
-      const det = d.detection;
-      const posText = det ? `
-        <div style="display:grid;gap:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
-            <span>Ton produit:</span>
-            <strong style="color:var(--accent)">${det.produit || 'Non détecté'}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px">
-            <span>Ton score:</span>
-            <strong style="color:var(--primary);font-size:16px">${d.score_global ?? '—'}/100</strong>
-          </div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--primary)">
-            💡 Analyse ton score contre les meilleurs vendeurs de ta catégorie pour identifier où tu peux progresser. Les données marché ci-dessus montrent ce qui est populaire en ce moment.
-          </div>
-        </div>
-      ` : '—';
-      document.getElementById('market-positioning').innerHTML = posText;
+      // === ACTIONS RECOMMANDÉES ===
+      let recommendations = '—';
+      if (detectedCategory) {
+        const score = d.score_global || 0;
+        let actions = [];
+
+        if (score < 65) {
+          actions.push('🎯 <strong>Score faible</strong> : Ta vidéo ne convainc pas encore. Examine le hook et la rétention en priorité.');
+        } else if (score < 75) {
+          actions.push('📊 <strong>Score moyen</strong> : Tu es sous la médiane. Focus sur améliorer 1-2 dimensions (hook ou CTA généralement).');
+        } else {
+          actions.push('✅ <strong>Score bon</strong> : Ta vidéo est compétitive. Test en vraie pour voir les vraies conversions.');
+        }
+
+        if (trendingCategories.includes(detectedCategory)) {
+          actions.push('🚀 <strong>Trending</strong> : Cette catégorie explose. Sois agressif : publie plusieurs variations rapidement.');
+        }
+
+        if (det?.prix_estime) {
+          const price = parseFloat(det.prix_estime);
+          if (price < 50) {
+            actions.push('💰 <strong>Prix bas</strong> : Conversion potentielle rapide (J1-J3). Focus sur volume + urgency.');
+          } else if (price < 150) {
+            actions.push('💰 <strong>Prix moyen</strong> : Attends J7-J30 pour vraies conclusions. Besoin de proof/testimonials.');
+          } else {
+            actions.push('💎 <strong>Prix premium</strong> : Très lent. Stratégie : autorité + transformation + rareté.');
+          }
+        }
+
+        recommendations = actions.map((a, i) => `<div style="margin-bottom:8px;padding:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--primary)">${a}</div>`).join('');
+      }
+      document.getElementById('market-recommendations').innerHTML = recommendations;
+    } else {
+      // VERROUILLER pour FREE/PRO
+      if (lockOverlay) lockOverlay.style.display = 'flex';
+      if (content) content.style.display = 'none';
     }
   }
 
