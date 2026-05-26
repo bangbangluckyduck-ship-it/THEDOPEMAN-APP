@@ -2,12 +2,15 @@
 
 import os
 import logging
+import asyncio
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from jinja2 import Template
 
 logger = logging.getLogger(__name__)
+_executor = ThreadPoolExecutor(max_workers=2)
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@tts-analyzer.fr")
@@ -88,10 +91,18 @@ class EmailService:
                 html_content=html_content,
             )
 
-            response = self.sg.send(message)
+            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
+            loop = asyncio.get_event_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(_executor, self.sg.send, message),
+                timeout=10.0
+            )
             logger.info(f"✅ Password reset email sent to {email} (status: {response.status_code})")
             return response.status_code in [200, 201]
 
+        except asyncio.TimeoutError:
+            logger.error(f"❌ SendGrid timeout sending password reset email to {email}")
+            return False
         except Exception as e:
             logger.error(f"❌ Failed to send password reset email to {email}: {str(e)}")
             return False
@@ -113,10 +124,18 @@ class EmailService:
                 html_content=html_content,
             )
 
-            response = self.sg.send(message)
+            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
+            loop = asyncio.get_event_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(_executor, self.sg.send, message),
+                timeout=10.0
+            )
             logger.info(f"✅ Magic link email sent to {email} (status: {response.status_code})")
             return response.status_code in [200, 201]
 
+        except asyncio.TimeoutError:
+            logger.error(f"❌ SendGrid timeout sending magic link email to {email}")
+            return False
         except Exception as e:
             logger.error(f"❌ Failed to send magic link email to {email}: {str(e)}")
             return False
@@ -138,10 +157,18 @@ class EmailService:
                 html_content=html_content,
             )
 
-            response = self.sg.send(message)
+            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
+            loop = asyncio.get_event_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(_executor, self.sg.send, message),
+                timeout=10.0
+            )
             logger.info(f"✅ Password change confirmation sent to {email} (status: {response.status_code})")
             return response.status_code in [200, 201]
 
+        except asyncio.TimeoutError:
+            logger.error(f"❌ SendGrid timeout sending password change confirmation to {email}")
+            return False
         except Exception as e:
             logger.error(f"❌ Failed to send password change confirmation to {email}: {str(e)}")
             return False
