@@ -1341,12 +1341,16 @@
   <div class="modal-content">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <h2 data-i18n="auth_title">Se connecter</h2>
-    <form id="auth-form" onsubmit="handleAuth(event)">
+    <form id="auth-form" onsubmit="handleAuthSubmit(event)">
       <div class="input-group">
         <label data-i18n="auth_email_lbl">Adresse e-mail</label>
         <input type="email" id="email-input" data-i18n-ph="auth_email_ph" placeholder="toi@exemple.com" required>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px" data-i18n="auth_submit">Continuer</button>
+      <div class="input-group">
+        <label style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:block">Mot de passe</label>
+        <input type="password" id="password-input" placeholder="Min. 6 caractères" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px" data-i18n="auth_submit">Continuer</button>
     </form>
     <p class="modal-note" data-i18n="auth_note">Lien de connexion par e-mail — disponible lors du lancement.</p>
   </div>

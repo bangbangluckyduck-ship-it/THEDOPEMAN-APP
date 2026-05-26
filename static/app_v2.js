@@ -424,6 +424,89 @@ function clearSession() {
   location.reload();
 }
 
+// Expose logout globally
+window.logout = clearSession;
+
+// ── UTILITY FUNCTIONS ─────────────────────────────────────────
+function acceptCookies() {
+  localStorage.setItem('cookieConsent', 'accepted');
+  const banner = document.getElementById('cookie-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function rejectCookies() {
+  localStorage.setItem('cookieConsent', 'rejected');
+  const banner = document.getElementById('cookie-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function dismissTransparencyBanner() {
+  const banner = document.getElementById('transparency-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function openPrivacyModal() {
+  const backdrop = document.getElementById('privacy-backdrop');
+  if (backdrop) backdrop.classList.add('active');
+}
+
+function closePrivacyModal() {
+  const backdrop = document.getElementById('privacy-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
+}
+
+function openCGV() {
+  const modal = document.getElementById('cgv-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeCGV() {
+  const modal = document.getElementById('cgv-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function installPwa() {
+  if (window.deferredPrompt) {
+    window.deferredPrompt.prompt();
+    window.deferredPrompt.userChoice.then(() => {
+      window.deferredPrompt = null;
+      const banner = document.getElementById('pwa-banner');
+      if (banner) banner.style.display = 'none';
+    });
+  }
+}
+
+async function startCheckout(plan) {
+  const email = SESSION.email || '';
+  if (!email) {
+    alert('Veuillez vous connecter d\'abord');
+    const modal = document.getElementById('auth-modal');
+    if (modal) modal.classList.add('active');
+    return;
+  }
+
+  try {
+    const res = await fetch('/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan, email })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert('❌ ' + (err.detail || 'Erreur checkout'));
+      return;
+    }
+
+    const data = await res.json();
+    if (data.checkout_url) {
+      window.location.href = data.checkout_url;
+    }
+  } catch (err) {
+    alert('❌ Erreur: ' + err.message);
+  }
+}
+
 // Show auth menu (account dropdown)
 function showAuthMenu(e) {
   e?.stopPropagation?.();
@@ -1567,33 +1650,55 @@ function closeModal() {
 
 // ── LOGIN FORM HANDLER ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const loginForm = document.getElementById('login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', submitLogin);
+  const authForm = document.getElementById('auth-form');
+  if (authForm) {
+    authForm.addEventListener('submit', handleAuthSubmit);
   }
 });
 
-function submitLogin(event) {
+async function handleAuthSubmit(event) {
   event.preventDefault();
-  const emailInput = document.getElementById('login-email');
-  const nameInput = document.getElementById('login-name');
-  const email = (emailInput?.value || '').trim();
-  const name = (nameInput?.value || '').trim();
+  const emailInput = document.getElementById('email-input');
+  const passwordInput = document.getElementById('password-input');
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const password = (passwordInput?.value || '').trim();
 
-  if (!email || !name) {
+  if (!email || !password) {
     alert('Veuillez remplir tous les champs');
     return;
   }
 
-  // Save session
-  saveSession(email, name);
+  try {
+    // Call the /api/login endpoint
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
 
-  // Close modal
-  closeModal();
+    if (!response.ok) {
+      const error = await response.json();
+      alert('❌ ' + (error.detail || 'Erreur connexion'));
+      return;
+    }
 
-  // Clear form
-  if (emailInput) emailInput.value = '';
-  if (nameInput) nameInput.value = '';
+    const data = await response.json();
+
+    // Save session
+    saveSession(email, email); // email for both email and name
+
+    // Close modal
+    closeModal();
+
+    // Clear form
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+
+    // Notify user
+    alert('✅ ' + (data.message || 'Connecté avec succès'));
+  } catch (err) {
+    alert('❌ Erreur: ' + err.message);
+  }
 }
 
 // ── ADMIN FUNCTIONS ──────────────────────────────────────────
