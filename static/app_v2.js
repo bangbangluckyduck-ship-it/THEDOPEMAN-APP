@@ -843,7 +843,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'admin', 'account'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'echotik', 'admin', 'account'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -851,6 +851,7 @@ function switchTab(tab) {
   });
   if (tab === 'history') renderHistory();
   if (tab === 'pricing') updatePricingCTA();
+  if (tab === 'echotik') loadEchoTikTab();
   if (tab === 'account') renderAccountPage();
 }
 
@@ -1971,4 +1972,124 @@ async function adminRevoke() {
   } catch (e) {
     alert('❌ Erreur: ' + e.message);
   }
+}
+
+// ── ECHOTIK TAB FUNCTIONS ──────────────────────────────────────────────────
+async function loadEchoTikTab() {
+  "use strict";
+  const tabContent = document.getElementById('tab-echotik-content');
+  if (!tabContent) return;
+
+  // Récupérer la dernière analyse pour connaître la catégorie
+  const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const lastAnalysis = history.length > 0 ? history[0] : null;
+  const detectedCategory = lastAnalysis?.product_category || null;
+
+  // Afficher la catégorie détectée
+  const categoryDisplay = document.getElementById('echotik-detected-category');
+  const detectedCatName = document.getElementById('detected-cat-name');
+  if (detectedCategory) {
+    detectedCatName.textContent = detectedCategory;
+    categoryDisplay.style.display = 'block';
+  } else {
+    categoryDisplay.style.display = 'none';
+  }
+
+  // Charger les données marché
+  try {
+    const res = await fetch('/api/market-recommendations');
+    const data = await res.json();
+
+    if (data.ok && data.market_context) {
+      const mc = data.market_context;
+      let html = '';
+
+      // Top Produits
+      if (mc.top_products && mc.top_products.length > 0) {
+        html += '<h3 style="margin-top:16px;margin-bottom:8px">⭐ Top Produits en Vente</h3>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">';
+        mc.top_products.slice(0, 5).forEach(p => {
+          html += `<div style="background:var(--surface2);padding:12px;border-radius:8px;font-size:13px">
+            <div style="font-weight:600;margin-bottom:4px">${escapeHtml(p.name || 'Produit')}</div>
+            <div style="color:var(--primary);font-weight:600">${p.price || '—'}</div>
+            <div style="color:var(--muted);font-size:12px;margin-top:4px">Score: ${p.viral_score || '—'}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      // Tendances
+      if (mc.trending && mc.trending.length > 0) {
+        html += '<h3 style="margin-top:16px;margin-bottom:8px">🔥 Tendances - Croissance Rapide</h3>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">';
+        mc.trending.slice(0, 5).forEach(p => {
+          html += `<div style="background:var(--surface2);padding:12px;border-radius:8px;font-size:13px">
+            <div style="font-weight:600;margin-bottom:4px">${escapeHtml(p.name || 'Produit')}</div>
+            <div style="color:var(--primary);font-weight:600">📈 ${p.trend_momentum || '—'}</div>
+            <div style="color:var(--muted);font-size:12px;margin-top:4px">Créateurs: ${p.creator_count || '—'}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      // Top Créateurs
+      if (mc.top_creators && mc.top_creators.length > 0) {
+        html += '<h3 style="margin-top:16px;margin-bottom:8px">👑 Top Créateurs</h3>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">';
+        mc.top_creators.slice(0, 5).forEach(c => {
+          html += `<div style="background:var(--surface2);padding:12px;border-radius:8px;font-size:13px">
+            <div style="font-weight:600;margin-bottom:4px">@${escapeHtml(c.handle || 'Creator')}</div>
+            <div style="color:var(--muted);font-size:12px">Followers: ${c.followers_display || '—'}</div>
+            <div style="color:var(--muted);font-size:12px">Vidéos: ${c.video_count || '—'}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      document.getElementById('market-context-content').innerHTML = html;
+      document.getElementById('echotik-context').style.display = 'block';
+      document.getElementById('echotik-loading').style.display = 'none';
+    } else {
+      document.getElementById('echotik-no-data').style.display = 'block';
+      document.getElementById('echotik-loading').style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Erreur chargement marché:', e);
+    document.getElementById('echotik-no-data').style.display = 'block';
+    document.getElementById('echotik-loading').style.display = 'none';
+  }
+
+  // Charger les recommandations produits si catégorie détectée
+  if (detectedCategory) {
+    try {
+      const res = await fetch(`/api/product-recommendations/${detectedCategory.toLowerCase().replace(/\s/g, '-')}`);
+      const data = await res.json();
+
+      if (data.ok) {
+        // Afficher les produits recommandés
+        const productsHtml = `
+          <div style="background:var(--surface2);padding:16px;border-radius:8px;margin-bottom:16px">
+            <h3 style="margin:0 0 8px 0">Hooks Recommandés pour ${escapeHtml(data.category)}</h3>
+            <p style="margin:0;color:var(--muted);font-size:13px">${data.recommended_hooks.join(' • ')}</p>
+            <p style="margin:8px 0 0 0;color:var(--muted);font-size:12px"><strong>Gamme de prix:</strong> ${data.price_range}</p>
+            <p style="margin:4px 0 0 0;color:var(--muted);font-size:12px">${data.notes}</p>
+          </div>
+        `;
+        document.getElementById('echotik-products').innerHTML = productsHtml;
+        document.getElementById('echotik-products-loading').style.display = 'none';
+      }
+    } catch (e) {
+      console.error('Erreur recommandations:', e);
+      document.getElementById('echotik-products-none').style.display = 'block';
+      document.getElementById('echotik-products-loading').style.display = 'none';
+    }
+  } else {
+    document.getElementById('echotik-products-none').style.display = 'block';
+    document.getElementById('echotik-products-loading').style.display = 'none';
+  }
+}
+
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return text.replace(/[&<>"']/g, m => map[m]);
 }
