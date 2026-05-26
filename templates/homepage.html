@@ -1261,6 +1261,18 @@
     document.getElementById('login-modal').style.display = 'none';
   }
 
+  // Update header to show user is logged in
+  function updateHeaderAfterLogin() {
+    const loginBtn = document.querySelector('[onclick="openLoginModal()"]');
+    if (loginBtn) {
+      const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
+      if (session.email) {
+        loginBtn.textContent = '👤 Mon compte';
+        loginBtn.onclick = () => window.location.href = '/app';
+      }
+    }
+  }
+
   async function submitLoginModal() {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
@@ -1297,6 +1309,9 @@
       session.email = email;
       localStorage.setItem('SESSION', JSON.stringify(session));
 
+      // Update header
+      updateHeaderAfterLogin();
+
       // Clear fields and close
       document.getElementById('login-email').value = '';
       document.getElementById('login-password').value = '';
@@ -1315,6 +1330,10 @@
 
   // Login form Enter key
   document.addEventListener('DOMContentLoaded', () => {
+    // Update header if user is already logged in
+    updateHeaderAfterLogin();
+
+    // Set up login form key handlers
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
     if (emailInput && passwordInput) {
