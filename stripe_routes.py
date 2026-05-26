@@ -12,6 +12,7 @@ Variables d'environnement Render à configurer :
 from __future__ import annotations
 import os
 import stripe
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import set_user_tier, get_customer_id, revoke_by_customer
@@ -38,7 +39,7 @@ PLAN_NAMES = {
 
 class CheckoutRequest(BaseModel):
     plan:  str            # "pro" | "gold" | "agency"
-    email: str | None = None
+    email: Optional[str] = None
 
 
 @router.post("/create-checkout-session")
