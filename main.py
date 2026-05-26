@@ -132,6 +132,66 @@ async def register(request: Request):
     return {"ok": True, "email": email, "tier": user["tier"], "created": False}
 
 
+@app.post("/api/login")
+async def login(request: Request):
+    """Login/Register avec email + password."""
+    import bcrypt
+    from supabase_client import supabase
+
+    try:
+        body = await request.json()
+        email = body.get("email", "").lower().strip()
+        password = body.get("password", "")
+
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Email invalide")
+        if not password or len(password) < 6:
+            raise HTTPException(status_code=400, detail="Mot de passe min 6 caractères")
+
+        if not supabase:
+            raise HTTPException(status_code=500, detail="BD non disponible")
+
+        # Chercher l'utilisateur
+        try:
+            response = supabase.table("users").select("id, password").eq("email", email).execute()
+            response_data = response.data if response else None
+        except Exception as e:
+            print(f"Supabase select error: {e}")
+            response_data = None
+
+        if response_data:
+            # Utilisateur existe - vérifier mot de passe
+            user = response_data[0]
+            stored_hash = user.get("password", "")
+
+            if stored_hash and bcrypt.checkpw(password.encode(), stored_hash.encode()):
+                # Mot de passe correct
+                return {"ok": True, "email": email, "message": "Connecté"}
+            else:
+                raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+        else:
+            # Nouvel utilisateur - créer avec mot de passe
+            password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+            try:
+                new_user = {
+                    "email": email,
+                    "tier": "free",
+                    "password": password_hash,
+                }
+                supabase.table("users").insert(new_user).execute()
+                return {"ok": True, "email": email, "message": "Compte créé", "created": True}
+            except Exception as e:
+                print(f"Supabase insert error: {e}")
+                raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Market data proxy (depuis tts-scraper API) ────────────────
 _SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
 
