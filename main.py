@@ -212,6 +212,134 @@ async def login(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ── PASSWORD RESET ENDPOINTS ──────────────────────────────────
+@app.post("/api/forgot-password")
+async def forgot_password(request: Request):
+    """User forgot password - send temporary password by email."""
+    import bcrypt
+    from supabase_client import supabase
+    from password_reset import (
+        generate_temporary_password,
+        hash_token,
+        create_password_reset_token,
+        check_rate_limit,
+    )
+    from email_service import email_service
+
+    try:
+        body = await request.json()
+        email = body.get("email", "").lower().strip()
+        new_password = body.get("password", "").strip()
+
+        # Validation
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Email invalide")
+        if not new_password or len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="Mot de passe min 6 caractères")
+
+        # Rate limiting (max 5 attempts per hour)
+        ip = request.client.host if request.client else "unknown"
+        if not check_rate_limit(email, max_attempts=5, window_hours=1):
+            security_logger.password_reset_requested(email, ip)
+            raise HTTPException(status_code=429, detail="Trop de tentatives. Réessayez plus tard.")
+
+        # Check if user exists (don't reveal if email exists for security)
+        if not supabase:
+            raise HTTPException(status_code=500, detail="BD non disponible")
+
+        try:
+            user_exists = supabase.table("users").select("id").eq("email", email).execute()
+        except Exception:
+            raise HTTPException(status_code=500, detail="Erreur BD")
+
+        if not user_exists.data:
+            # Don't reveal non-existent emails (security best practice)
+            security_logger.password_reset_requested(email, ip, success=False)
+            return {"ok": True, "message": "Email de réinitialisation envoyé si le compte existe"}
+
+        # Hash new password
+        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+
+        # Create reset token (type = temporary_password)
+        success, token_plaintext, token_hash = create_password_reset_token(
+            email, "temporary_password", password_hash
+        )
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Erreur création token")
+
+        # Send email with temporary password
+        email_sent = await email_service.send_temporary_password_email(email, new_password)
+
+        if not email_sent:
+            security_logger.password_reset_requested(email, ip, success=False)
+            raise HTTPException(status_code=500, detail="Erreur envoi email")
+
+        security_logger.password_reset_requested(email, ip, success=True)
+        return {"ok": True, "message": "Email de réinitialisation envoyé"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Forgot password error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/change-password")
+async def change_password(request: Request):
+    """Change password using reset token or after forgot password."""
+    import bcrypt
+    from supabase_client import supabase
+    from password_reset import validate_reset_token, mark_token_as_used
+    from email_service import email_service
+
+    try:
+        body = await request.json()
+        reset_token = body.get("reset_token", "").strip()
+        new_password = body.get("new_password", "").strip()
+        email = body.get("email", "").lower().strip()
+
+        # Validation
+        if not reset_token or not new_password or not email:
+            raise HTTPException(status_code=400, detail="Paramètres manquants")
+        if len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="Mot de passe min 6 caractères")
+
+        # Validate token
+        is_valid, token_data = validate_reset_token(reset_token, email)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="Lien expiré ou invalide")
+
+        # Hash new password
+        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+
+        if not supabase:
+            raise HTTPException(status_code=500, detail="BD non disponible")
+
+        try:
+            # Update user password
+            supabase.table("users").update({"password": password_hash}).eq("email", email).execute()
+
+            # Mark token as used
+            mark_token_as_used(email, reset_token)
+
+            # Send confirmation email
+            await email_service.send_password_changed_notification(email)
+
+            security_logger.password_changed_success(email, request.client.host if request.client else "unknown")
+            return {"ok": True, "message": "Mot de passe modifié avec succès"}
+
+        except Exception as e:
+            print(f"Error updating password: {e}")
+            raise HTTPException(status_code=500, detail="Erreur mise à jour mot de passe")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Change password error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Market data proxy (depuis tts-scraper API) ────────────────
 _SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
 

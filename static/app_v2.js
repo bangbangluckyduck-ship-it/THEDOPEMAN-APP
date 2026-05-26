@@ -453,6 +453,118 @@ function openPrivacyModal() {
   if (pmBody) pmBody.innerHTML = t('pm_content');
 }
 
+// ── FORGOT PASSWORD FUNCTIONS ─────────────────────────────────
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitForgotPassword(event) {
+  event.preventDefault();
+
+  const emailInput = document.getElementById('forgot-email-input');
+  const passwordInput = document.getElementById('forgot-password-input');
+  const confirmInput = document.getElementById('forgot-password-confirm');
+
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const password = (passwordInput?.value || '').trim();
+  const confirm = (confirmInput?.value || '').trim();
+
+  // Validation
+  if (!email || !password || !confirm) {
+    alert('❌ Veuillez remplir tous les champs');
+    return;
+  }
+
+  if (password !== confirm) {
+    alert('❌ Les mots de passe ne correspondent pas');
+    return;
+  }
+
+  if (password.length < 6) {
+    alert('❌ Min 6 caractères');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert('❌ ' + (error.detail || 'Erreur'));
+      return;
+    }
+
+    // Success
+    alert('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
+    closeForgotPasswordModal();
+
+    // Clear form
+    emailInput.value = '';
+    passwordInput.value = '';
+    confirmInput.value = '';
+
+  } catch (err) {
+    alert('❌ Erreur: ' + err.message);
+  }
+}
+
+// ── ADMIN PASSWORD RESET ──────────────────────────────────────
+async function adminResetPassword(email, resetType) {
+  if (!email) {
+    alert('❌ Email non trouvé');
+    return;
+  }
+
+  const confirmMessage = resetType === 'magic_link'
+    ? 'Envoyer un lien magique à ' + email + '?'
+    : 'Générer et envoyer un mot de passe temporaire à ' + email + '?';
+
+  if (!confirm(confirmMessage)) return;
+
+  try {
+    const response = await fetch('/admin/reset-user-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SESSION.email}`
+      },
+      body: JSON.stringify({
+        email: email.toLowerCase(),
+        reset_type: resetType
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert('❌ ' + (error.detail || 'Erreur'));
+      return;
+    }
+
+    const data = await response.json();
+
+    if (resetType === 'temporary_password') {
+      // Show the temporary password
+      alert(`✅ Mot de passe temporaire généré:\n\n${data.temp_password}\n\nEmail envoyé à ${email}\n\nL'utilisateur devra changer ce mot de passe à sa première connexion.`);
+    } else {
+      // Magic link
+      alert(`✅ Lien magique envoyé à ${email}\n\nL'utilisateur pourra cliquer sur le lien pour créer un nouveau mot de passe.`);
+    }
+
+  } catch (err) {
+    alert('❌ Erreur: ' + err.message);
+  }
+}
+
 function closePrivacyModal() {
   const backdrop = document.getElementById('privacy-backdrop');
   if (backdrop) backdrop.classList.remove('active');

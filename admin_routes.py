@@ -101,3 +101,91 @@ async def revoke(body: RevokeBody, request: Request):
     _require_admin(request)
     set_user_tier(body.email.lower().strip(), "free")
     return {"ok": True, "email": body.email, "tier": "free", "message": "Accès révoqué → free"}
+
+
+# ── POST /admin/reset-user-password ──────────────────────────
+class ResetPasswordBody(BaseModel):
+    email: str
+    reset_type: str  # 'magic_link' or 'temporary_password'
+
+@router.post("/reset-user-password")
+async def reset_user_password(body: ResetPasswordBody, request: Request):
+    """Admin reset user password with 2 options."""
+    import bcrypt
+    from supabase_client import supabase
+    from password_reset import (
+        generate_reset_token,
+        generate_temporary_password,
+        hash_token,
+        create_password_reset_token,
+    )
+    from email_service import email_service
+
+    _require_admin(request)
+
+    email = body.email.lower().strip()
+    reset_type = body.reset_type.lower()
+
+    if reset_type not in ["magic_link", "temporary_password"]:
+        raise HTTPException(status_code=400, detail="Type invalide: magic_link ou temporary_password")
+
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+
+    try:
+        # Verify user exists
+        user_exists = supabase.table("users").select("id").eq("email", email).execute()
+        if not user_exists.data:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+        if reset_type == "magic_link":
+            # Generate magic link
+            reset_token = generate_reset_token()
+            token_hash = hash_token(reset_token)
+
+            success, _, _ = create_password_reset_token(email, "magic_link")
+            if not success:
+                raise HTTPException(status_code=500, detail="Erreur création token")
+
+            # Send email with magic link
+            reset_link = f"https://tts-analyzer.fr/reset-password?token={reset_token}&email={email}"
+            email_sent = await email_service.send_magic_link_email(email, reset_link)
+
+            if not email_sent:
+                raise HTTPException(status_code=500, detail="Erreur envoi email")
+
+            return {
+                "ok": True,
+                "email": email,
+                "method": "magic_link",
+                "message": "Lien magique envoyé par email à l'utilisateur"
+            }
+
+        else:  # temporary_password
+            # Generate temporary password
+            temp_password = generate_temporary_password()
+            password_hash = bcrypt.hashpw(temp_password.encode(), bcrypt.gensalt()).decode()
+
+            success, _, _ = create_password_reset_token(email, "temporary_password", password_hash)
+            if not success:
+                raise HTTPException(status_code=500, detail="Erreur création token")
+
+            # Send email with temporary password
+            email_sent = await email_service.send_temporary_password_email(email, temp_password)
+
+            if not email_sent:
+                raise HTTPException(status_code=500, detail="Erreur envoi email")
+
+            return {
+                "ok": True,
+                "email": email,
+                "method": "temporary_password",
+                "temp_password": temp_password,  # Return to admin to communicate if needed
+                "message": "Mot de passe temporaire généré et envoyé par email"
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Admin reset password error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
