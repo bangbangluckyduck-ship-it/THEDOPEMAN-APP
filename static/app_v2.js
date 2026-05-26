@@ -787,6 +787,7 @@ async function analyzeVideo() {
     if (!res.ok) throw new Error((await res.json()).detail || 'Erreur serveur');
 
     const data = await res.json();
+    console.log('[DEBUG] Analysis response:', data);
     currentData     = data;
     currentFilename = selectedFile.name;
 
@@ -799,6 +800,7 @@ async function analyzeVideo() {
       incrementUsage();
     }
     saveToHistory(data, currentFilename);
+    console.log('[DEBUG] About to call showResults');
     showResults(data);
 
     if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
@@ -856,9 +858,11 @@ function showLockedCoachingSection(firstCoachingLine) {
 
 // ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
+  console.log('[DEBUG] showResults called with data:', d);
   document.getElementById('loading-section').style.display  = 'none';
   document.getElementById('results-section').style.display  = 'block';
 
+  console.log('[DEBUG] score_global value:', d.score_global);
   document.getElementById('score-global').textContent = d.score_global ?? '—';
 
   const grid = document.getElementById('scores-grid');
