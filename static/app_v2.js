@@ -23,7 +23,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Réveil du serveur en cours… (~30 sec)',
     pwa_title:'Ajouter à l\'écran d\'accueil', pwa_desc:'Accède à l\'application depuis ton téléphone', pwa_install:'Installer',
     freemium_title:'🎁 Gratuit jusqu\'au lancement officiel', freemium_count:'Analyses utilisées :',
-    tab_analyze:'🎬 Analyser', tab_history:'📋 Historique',
+    tab_analyze:'🎬 Analyser', tab_history:'📋 Historique', tab_winning_trends:'🔥 Tendances Gagnantes',
     upload_title:'📹 Analyse ta vidéo TikTok Shop', upload_sub:'Importe ta vidéo',
     upload_hint:'Clique ici ou glisse ta vidéo', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Analyser avec l\'IA',
@@ -86,7 +86,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Server waking up… (~30 sec)',
     pwa_title:'Add to home screen', pwa_desc:'Access the app directly from your phone', pwa_install:'Install',
     freemium_title:'🎁 Free until official launch', freemium_count:'Analyses used:',
-    tab_analyze:'🎬 Analyze', tab_history:'📋 History',
+    tab_analyze:'🎬 Analyze', tab_history:'📋 History', tab_winning_trends:'🔥 Winning Trends',
     upload_title:'📹 Analyze your TikTok Shop video', upload_sub:'Upload your video',
     upload_hint:'Click here or drag your video', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Analyze with AI',
@@ -149,7 +149,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Servidor acordando… (~30 seg)',
     pwa_title:'Adicionar à tela inicial', pwa_desc:'Acesse o app do seu celular', pwa_install:'Instalar',
     freemium_title:'🎁 Gratuito até o lançamento oficial', freemium_count:'Análises usadas:',
-    tab_analyze:'🎬 Analisar', tab_history:'📋 Histórico',
+    tab_analyze:'🎬 Analisar', tab_history:'📋 Histórico', tab_winning_trends:'🔥 Tendências Vencedoras',
     upload_title:'📹 Analise seu vídeo TikTok Shop', upload_sub:'Envie seu vídeo',
     upload_hint:'Clique aqui ou arraste seu vídeo', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Analisar com IA',
@@ -197,7 +197,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Iniciando servidor… (~30 seg)',
     pwa_title:'Añadir a pantalla de inicio', pwa_desc:'Accede a la app desde tu teléfono', pwa_install:'Instalar',
     freemium_title:'🎁 Gratuito hasta el lanzamiento oficial', freemium_count:'Análisis utilizados:',
-    tab_analyze:'🎬 Analizar', tab_history:'📋 Historial',
+    tab_analyze:'🎬 Analizar', tab_history:'📋 Historial', tab_winning_trends:'🔥 Tendencias Ganadoras',
     upload_title:'📹 Analiza tu vídeo TikTok Shop', upload_sub:'Sube tu vídeo',
     upload_hint:'Haz clic aquí o arrastra tu vídeo', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Analizar con IA',
@@ -245,7 +245,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Avvio del server… (~30 sec)',
     pwa_title:'Aggiungi alla schermata iniziale', pwa_desc:'Accedi all\'app dal tuo telefono', pwa_install:'Installa',
     freemium_title:'🎁 Gratuito fino al lancio ufficiale', freemium_count:'Analisi utilizzate:',
-    tab_analyze:'🎬 Analizza', tab_history:'📋 Cronologia',
+    tab_analyze:'🎬 Analizza', tab_history:'📋 Cronologia', tab_winning_trends:'🔥 Tendenze Vincenti',
     upload_title:'📹 Analizza il tuo video TikTok Shop', upload_sub:'Carica il tuo video',
     upload_hint:'Clicca qui o trascina il tuo video', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Analizza con l\'IA',
@@ -293,7 +293,7 @@ const TRANSLATIONS = {
     server_waking:'⏳ Server wird gestartet… (~30 Sek)',
     pwa_title:'Zum Startbildschirm hinzufügen', pwa_desc:'Greife direkt vom Telefon auf die App zu', pwa_install:'Installieren',
     freemium_title:'🎁 Kostenlos bis zum offiziellen Launch', freemium_count:'Analysen verwendet:',
-    tab_analyze:'🎬 Analysieren', tab_history:'📋 Verlauf',
+    tab_analyze:'🎬 Analysieren', tab_history:'📋 Verlauf', tab_winning_trends:'🔥 Gewinnende Trends',
     upload_title:'📹 Analysiere dein TikTok Shop Video', upload_sub:'Lade dein Video hoch',
     upload_hint:'Klick hier oder ziehe dein Video rein', upload_fmt:'MP4, MOV',
     btn_analyze:'🚀 Mit KI analysieren',
@@ -843,7 +843,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'echotik', 'admin', 'account'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'winning-trends', 'admin', 'account'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -851,7 +851,7 @@ function switchTab(tab) {
   });
   if (tab === 'history') renderHistory();
   if (tab === 'pricing') updatePricingCTA();
-  if (tab === 'echotik') loadEchoTikTab();
+  if (tab === 'winning-trends') loadWinningTrendsTab();
   if (tab === 'account') renderAccountPage();
 }
 
@@ -1975,9 +1975,9 @@ async function adminRevoke() {
 }
 
 // ── ECHOTIK TAB FUNCTIONS ──────────────────────────────────────────────────
-async function loadEchoTikTab() {
+async function loadWinningTrendsTab() {
   "use strict";
-  const tabContent = document.getElementById('tab-echotik-content');
+  const tabContent = document.getElementById('tab-winning-trends-content');
   if (!tabContent) return;
 
   // Récupérer la dernière analyse pour connaître la catégorie
@@ -1986,7 +1986,7 @@ async function loadEchoTikTab() {
   const detectedCategory = lastAnalysis?.product_category || null;
 
   // Afficher la catégorie détectée
-  const categoryDisplay = document.getElementById('echotik-detected-category');
+  const categoryDisplay = document.getElementById('winning-trends-detected-category');
   const detectedCatName = document.getElementById('detected-cat-name');
   if (detectedCategory) {
     detectedCatName.textContent = detectedCategory;
@@ -2047,16 +2047,16 @@ async function loadEchoTikTab() {
       }
 
       document.getElementById('market-context-content').innerHTML = html;
-      document.getElementById('echotik-context').style.display = 'block';
-      document.getElementById('echotik-loading').style.display = 'none';
+      document.getElementById('winning-trends-context').style.display = 'block';
+      document.getElementById('winning-trends-loading').style.display = 'none';
     } else {
-      document.getElementById('echotik-no-data').style.display = 'block';
-      document.getElementById('echotik-loading').style.display = 'none';
+      document.getElementById('winning-trends-no-data').style.display = 'block';
+      document.getElementById('winning-trends-loading').style.display = 'none';
     }
   } catch (e) {
     console.error('Erreur chargement marché:', e);
-    document.getElementById('echotik-no-data').style.display = 'block';
-    document.getElementById('echotik-loading').style.display = 'none';
+    document.getElementById('winning-trends-no-data').style.display = 'block';
+    document.getElementById('winning-trends-loading').style.display = 'none';
   }
 
   // Charger les recommandations produits si catégorie détectée
@@ -2075,17 +2075,17 @@ async function loadEchoTikTab() {
             <p style="margin:4px 0 0 0;color:var(--muted);font-size:12px">${data.notes}</p>
           </div>
         `;
-        document.getElementById('echotik-products').innerHTML = productsHtml;
-        document.getElementById('echotik-products-loading').style.display = 'none';
+        document.getElementById('winning-trends-products').innerHTML = productsHtml;
+        document.getElementById('winning-trends-products-loading').style.display = 'none';
       }
     } catch (e) {
       console.error('Erreur recommandations:', e);
-      document.getElementById('echotik-products-none').style.display = 'block';
-      document.getElementById('echotik-products-loading').style.display = 'none';
+      document.getElementById('winning-trends-products-none').style.display = 'block';
+      document.getElementById('winning-trends-products-loading').style.display = 'none';
     }
   } else {
-    document.getElementById('echotik-products-none').style.display = 'block';
-    document.getElementById('echotik-products-loading').style.display = 'none';
+    document.getElementById('winning-trends-products-none').style.display = 'block';
+    document.getElementById('winning-trends-products-loading').style.display = 'none';
   }
 }
 

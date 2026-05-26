@@ -19,7 +19,7 @@
 - **Email** : SendGrid (async with thread executor)
 - **AI Analysis** : Mistral API (pixtral-12b model)
 - **Hosting** : Render (production)
-- **Market Data** : TTS Scraper (EchoTik)
+- **Market Data** : TTS Scraper (Tendances Gagnantes)
 
 ### Architecture High-Level
 ```
@@ -27,7 +27,7 @@
 │   Frontend      │ (HTML/JS)
 │  - Homepage     │
 │  - App tabs     │
-│  - EchoTik tab  │
+│  - Tendances Gagnantes tab  │
 └────────┬────────┘
          │ HTTP/REST
 ┌────────▼────────────────────────┐
@@ -235,7 +235,7 @@ CREATE POLICY "password_reset_backend_access" ON password_reset_tokens
 
 ---
 
-### 2. EchoTik / Market Data Endpoints
+### 2. Tendances Gagnantes / Market Data Endpoints
 
 #### GET /api/market-recommendations
 **Description :** Récupère toutes les données marché (top produits, tendances, créateurs)
@@ -336,11 +336,11 @@ Admin Panel → User select → "Réinitialiser"
            └─ User login + force change à 1ère connexion
 ```
 
-### 3. EchoTik Tab
+### 3. Tendances Gagnantes Tab
 ```
-App → Clicker onglet "🛍️ EchoTik"
+App → Clicker onglet "🛍️ Tendances Gagnantes"
             ↓
-    loadEchoTikTab() appelée
+    loadTendances GagnantesTab() appelée
             ↓
     Fetch /api/market-recommendations (async)
             ↓
@@ -428,7 +428,7 @@ CREATE POLICY "password_reset_backend_access" ON password_reset_tokens
 - Utiliser un email différent, OU
 - Admin réinitialise manuellement
 
-### ❌ EchoTik Tab Vide
+### ❌ Tendances Gagnantes Tab Vide
 
 **Causes :**
 1. TTS_SCRAPER_URL pas configuré
@@ -467,7 +467,7 @@ response = supabase.table("password_reset_tokens").select("id", count="exact")\
 // app_v2.js
 function switchTab(tab) {
   // ... afficher/cacher elements
-  if (tab === 'echotik') loadEchoTikTab();  // Appel async
+  if (tab === 'winning-trends') loadTendances GagnantesTab();  // Appel async
 }
 ```
 
