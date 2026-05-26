@@ -237,6 +237,7 @@ async def analyze(
     request: Request,
     frames: str = Form(...),
     audio: Optional[UploadFile] = File(None),
+    product: Optional[str] = Form(None),
 ):
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
@@ -289,7 +290,7 @@ async def analyze(
 
         # IA analysis (increased timeout to 180 seconds for complex videos)
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context),
+            loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context, product),
             timeout=180.0,
         )
         if user["valid"]:

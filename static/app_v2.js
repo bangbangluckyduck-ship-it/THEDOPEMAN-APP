@@ -777,6 +777,12 @@ async function analyzeVideo() {
     fd.append('frames', JSON.stringify(frames));
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
 
+    // Ajouter le produit optionnel si l'utilisateur l'a entré
+    const productInput = document.getElementById('product-input');
+    if (productInput && productInput.value.trim()) {
+      fd.append('product', productInput.value.trim());
+    }
+
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
     const headers = {};
