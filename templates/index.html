@@ -376,6 +376,55 @@
     .det-bad { color: #DC2626; }
     .det-neu { color: var(--text); }
 
+    /* ── MARKET INSIGHTS ── */
+    .market-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .market-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .market-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .market-card-meta {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .market-badge {
+      display: inline-block;
+      background: var(--surface2);
+      color: var(--text);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .market-badge.hot {
+      background: rgba(239, 68, 68, 0.1);
+      color: #DC2626;
+    }
+    .market-badge.trend {
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563EB;
+    }
+
     /* ── VIRAL ── */
     .viral-container {
       background: linear-gradient(135deg, var(--navy) 0%, #2d52a8 100%);
@@ -824,6 +873,35 @@
       <div class="section">
         <h2 data-i18n="sec_detection">🔍 Détection automatique</h2>
         <div class="detection-grid" id="detection-grid"></div>
+      </div>
+
+      <!-- MARKET INSIGHTS -->
+      <div class="section" id="market-insights-section" style="display:none">
+        <h2>📊 Insights Marché Temps Réel</h2>
+
+        <!-- Top Produits -->
+        <div style="margin-bottom:20px">
+          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">🔥 Top Produits en Vente</h3>
+          <div id="market-top-products" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"></div>
+        </div>
+
+        <!-- Trending -->
+        <div style="margin-bottom:20px">
+          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">📈 Tendances (Explosion de Ventes)</h3>
+          <div id="market-trending" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+        </div>
+
+        <!-- Top Creators -->
+        <div style="margin-bottom:20px">
+          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">👑 Top Créateurs Actifs</h3>
+          <div id="market-creators" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+        </div>
+
+        <!-- Positionnement -->
+        <div style="background:linear-gradient(135deg, rgba(212,175,55,.1) 0%, rgba(37,99,235,.1) 100%);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow-sm)">
+          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">💡 Ton Positionnement</h3>
+          <div id="market-positioning" style="font-size:13px;line-height:1.7;color:var(--text)">—</div>
+        </div>
       </div>
 
       <!-- POTENTIEL VIRAL -->
