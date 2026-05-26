@@ -455,7 +455,7 @@ function showAuthMenu(e) {
     <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       ⚙️ Mon abonnement
     </button>
-    <button onclick="clearSession(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--danger);background:transparent;border:none;font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+    <button onclick="window.logout(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--danger);background:transparent;border:none;font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       🚪 Déconnexion
     </button>
   `;
@@ -1288,17 +1288,17 @@ function renderAccountPage() {
     html += `
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="openCustomerPortal()" style="flex:1">💳 Gérer l'abonnement</button>
-        <button class="btn btn-accent" onclick="clearSession()" style="flex:1">🚪 Déconnexion</button>
+        <button class="btn btn-accent" onclick="window.logout()" style="flex:1">🚪 Déconnexion</button>
       </div>`;
   } else if (tier === 'free') {
     html += `
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="switchTab('pricing')" style="flex:1">⭐ Passer à Pro</button>
-        <button class="btn btn-accent" onclick="clearSession()" style="flex:1">🚪 Déconnexion</button>
+        <button class="btn btn-accent" onclick="window.logout()" style="flex:1">🚪 Déconnexion</button>
       </div>`;
   } else {
     html += `
-      <button class="btn btn-accent" onclick="clearSession()" style="width:100%">🚪 Déconnexion</button>`;
+      <button class="btn btn-accent" onclick="window.logout()" style="width:100%">🚪 Déconnexion</button>`;
   }
 
   html += `</div>`;
