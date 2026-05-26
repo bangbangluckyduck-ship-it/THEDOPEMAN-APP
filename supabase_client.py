@@ -247,18 +247,27 @@ def get_tier_expiry(email: str) -> Optional[str]:
 def get_all_users() -> list[dict]:
     """Récupère tous les utilisateurs depuis Supabase."""
     if not supabase:
+        print("get_all_users: supabase client not available")
         return []
 
     try:
-        response = supabase.table("users").select("email, tier, tier_expiry").execute()
+        response = supabase.table("users").select("*").execute()
+        print(f"get_all_users: response data count = {len(response.data) if response.data else 0}")
+        if not response.data:
+            print("get_all_users: no data from supabase")
+            return []
+
         users = []
         for row in response.data:
             users.append({
-                "email": row["email"],
+                "email": row.get("email"),
                 "tier": row.get("tier", "free"),
                 "expiry": row.get("tier_expiry")
             })
+        print(f"get_all_users: returning {len(users)} users")
         return users
     except Exception as e:
         print(f"Erreur Supabase get_all_users: {e}")
+        import traceback
+        traceback.print_exc()
         return []
