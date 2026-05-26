@@ -448,6 +448,76 @@ async def analyze(
                 pass
 
 
+# ── ECHOTIK DATA ENDPOINTS ────────────────────────────────────────────────────
+@app.get("/api/market-recommendations")
+async def market_recommendations():
+    """Récupère les données marché complètes depuis TTS Scraper (EchoTik)."""
+    if not _SCRAPER_URL:
+        return JSONResponse({"ok": False, "error": "TTS_SCRAPER_URL non configuré"}, status_code=503)
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
+        if resp.is_success:
+            return resp.json()
+        return JSONResponse({"ok": False, "error": f"Scraper error {resp.status_code}"}, status_code=502)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+
+
+@app.get("/api/product-recommendations/{category}")
+async def product_recommendations(category: str):
+    """Retourne les recommandations produits pour une catégorie spécifique."""
+    import json
+    from pathlib import Path
+
+    try:
+        # Charger hooks_db.json pour obtenir les infos de catégorie
+        db_path = Path("hooks_db.json")
+        if not db_path.exists():
+            raise HTTPException(status_code=404, detail="Base de données produits non trouvée")
+
+        db = json.loads(db_path.read_text(encoding="utf-8"))
+
+        # Chercher la catégorie dans product_categories
+        category_lower = category.lower().replace("-", "_")
+        if category_lower not in db.get("product_categories", {}):
+            return {
+                "ok": False,
+                "error": f"Catégorie '{category}' non trouvée",
+                "available_categories": list(db.get("product_categories", {}).keys())
+            }
+
+        cat_data = db["product_categories"][category_lower]
+
+        # Récupérer les données marché si disponibles
+        market_data = None
+        if _SCRAPER_URL:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(f"{_SCRAPER_URL}/api/coach-context?category={category_lower}")
+                if resp.is_success:
+                    market_data = resp.json()
+            except Exception:
+                pass  # Continuer sans données marché
+
+        return {
+            "ok": True,
+            "category": category_lower,
+            "category_names": cat_data.get("names", []),
+            "recommended_hooks": cat_data.get("recommended_hooks", []),
+            "price_range": cat_data.get("price_range", "unknown"),
+            "notes": cat_data.get("notes", ""),
+            "market_data": market_data or {
+                "top_products": [],
+                "trending": [],
+                "top_creators": []
+            }
+        }
+
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
