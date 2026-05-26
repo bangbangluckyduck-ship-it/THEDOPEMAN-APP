@@ -1304,10 +1304,11 @@
         return;
       }
 
-      // Save to SESSION
+      // Save to SESSION (both formats for compatibility with app_v2.js)
       const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
       session.email = email;
       localStorage.setItem('SESSION', JSON.stringify(session));
+      localStorage.setItem('tts_email', email);  // For /app compatibility
 
       // Update header
       updateHeaderAfterLogin();
@@ -1388,6 +1389,7 @@
         const newSession = JSON.parse(localStorage.getItem('SESSION') || '{}');
         newSession.email = email;
         localStorage.setItem('SESSION', JSON.stringify(newSession));
+        localStorage.setItem('tts_email', email);  // For /app compatibility
         modal.remove();
         resolve(email);
       };
