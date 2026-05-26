@@ -64,6 +64,12 @@ class SecurityLogger:
     def suspicious_agent(self, ip: str, user_agent: str):
         self._write("suspicious_agent", {"ip": ip, "ua": user_agent[:120]})
 
+    def password_reset_requested(self, email: str, ip: str, success: bool = True):
+        self._write("password_reset_requested", {"email": email, "ip": ip, "success": success})
+
+    def password_changed_success(self, email: str, ip: str):
+        self._write("password_changed", {"email": email, "ip": ip})
+
 
 # ── MIDDLEWARE ────────────────────────────────────────────────────────────────
 
