@@ -183,7 +183,44 @@ def analyze_video(frames_b64: List[str], transcript: Optional[str] = None, marke
 
             # Logique humanisée prix/conversion (côté serveur, plus fiable qu'IA)
             prix_str = parsed.get("detection", {}).get("prix_estime", "") or ""
-            score    = parsed.get("score_global", 0) or 0
+            score    = parsed.get("score_global")
+
+            # Si Mistral n'a pas fourni score_global, le calculer à partir des autres scores
+            if not score or score == 0:
+                scores_list = []
+
+                # Scores legacy (0-10, convert to 0-100)
+                if "scores" in parsed:
+                    for key, val in parsed["scores"].items():
+                        if isinstance(val, dict) and "note" in val:
+                            scores_list.append(val["note"] * 10)
+
+                # Scores 8 dimensions (already 0-100)
+                if "analyse_8_dimensions" in parsed:
+                    for key, val in parsed["analyse_8_dimensions"].items():
+                        if isinstance(val, dict) and "score" in val:
+                            scores_list.append(val["score"])
+
+                # Viral potential score
+                if "viral_potential" in parsed:
+                    vp = parsed["viral_potential"]
+                    if isinstance(vp, dict) and "score" in vp:
+                        scores_list.append(vp["score"])
+
+                # Structure vente score
+                if "structure_vente" in parsed:
+                    sv = parsed["structure_vente"]
+                    if isinstance(sv, dict) and "score_structure" in sv:
+                        scores_list.append(sv["score_structure"])
+
+                # Calculer la moyenne
+                if scores_list:
+                    score = round(sum(scores_list) / len(scores_list))
+                    parsed["score_global"] = score
+                    print(f"[ANALYZE] Calculated score_global={score} from {len(scores_list)} scores")
+                else:
+                    score = 0
+                    print("[ANALYZE] Warning: Could not calculate score_global, set to 0")
 
             # Extraire la valeur numérique du prix
             prix_num = 0.0
