@@ -875,32 +875,51 @@
         <div class="detection-grid" id="detection-grid"></div>
       </div>
 
-      <!-- MARKET INSIGHTS -->
-      <div class="section" id="market-insights-section" style="display:none">
-        <h2>📊 Insights Marché Temps Réel</h2>
+      <!-- MARKET INTELLIGENCE -->
+      <div class="section" id="market-intelligence-section" style="display:none;position:relative">
+        <h2 style="margin-bottom:20px">📊 Market Intelligence</h2>
 
-        <!-- Top Produits -->
-        <div style="margin-bottom:20px">
-          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">🔥 Top Produits en Vente</h3>
-          <div id="market-top-products" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"></div>
+        <!-- Lock overlay pour FREE/PRO -->
+        <div id="market-intelligence-lock" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
+          <div style="text-align:center">
+            <div style="font-size:48px;margin-bottom:12px">🔐</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Market Intelligence débloquée avec GOLD</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:16px;max-width:300px">Accès aux données marché temps réel, conseils compétitifs et benchmarking par catégorie</div>
+            <a href="#pricing" onclick="document.querySelector('[data-tab=pricing]')?.click()" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:13px">Passer à GOLD →</a>
+          </div>
         </div>
 
-        <!-- Trending -->
-        <div style="margin-bottom:20px">
-          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">📈 Tendances (Explosion de Ventes)</h3>
-          <div id="market-trending" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
-        </div>
+        <!-- Contenu (visible pour GOLD+) -->
+        <div id="market-intelligence-content" style="display:none">
+          <!-- Contexte catégorie -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">⚡ Contexte de ta catégorie</h3>
+            <div id="market-category-context" style="font-size:13px;line-height:1.7;color:var(--text)">—</div>
+          </div>
 
-        <!-- Top Creators -->
-        <div style="margin-bottom:20px">
-          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">👑 Top Créateurs Actifs</h3>
-          <div id="market-creators" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
-        </div>
+          <!-- Top Produits -->
+          <div style="margin-bottom:20px">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">🔥 Top Produits en Vente</h3>
+            <div id="market-top-products" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"></div>
+          </div>
 
-        <!-- Positionnement -->
-        <div style="background:linear-gradient(135deg, rgba(212,175,55,.1) 0%, rgba(37,99,235,.1) 100%);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow-sm)">
-          <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">💡 Ton Positionnement</h3>
-          <div id="market-positioning" style="font-size:13px;line-height:1.7;color:var(--text)">—</div>
+          <!-- Trending -->
+          <div style="margin-bottom:20px">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📈 Tendances (Croissance Rapide)</h3>
+            <div id="market-trending" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+          </div>
+
+          <!-- Top Creators -->
+          <div style="margin-bottom:20px">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">👑 Top Créateurs (Ta Catégorie)</h3>
+            <div id="market-creators" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+          </div>
+
+          <!-- Actions recommandées basées marché -->
+          <div style="background:linear-gradient(135deg, rgba(212,175,55,.1) 0%, rgba(37,99,235,.1) 100%);border:1px solid var(--border);border-radius:12px;padding:16px;border-left:4px solid var(--primary)">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">💡 Actions Basées sur le Marché</h3>
+            <div id="market-recommendations" style="font-size:13px;line-height:1.7;color:var(--text)">—</div>
+          </div>
         </div>
       </div>
 

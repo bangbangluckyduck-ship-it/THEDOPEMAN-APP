@@ -276,10 +276,11 @@ async def analyze(
             except asyncio.TimeoutError:
                 transcript = None
 
-        # Contexte marché pour GOLD / AGENCY / BETA uniquement
+        # Contexte marché pour GOLD / AGENCY / BETA / ADMIN
         market_context: Optional[dict] = None
         tier = user.get("tier", "free")
-        if tier in ("gold", "agency", "beta") and _SCRAPER_URL:
+        is_admin = user.get("is_admin", False)
+        if (tier in ("gold", "agency", "beta") or is_admin) and _SCRAPER_URL:
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")

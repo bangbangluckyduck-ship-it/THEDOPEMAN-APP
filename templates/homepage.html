@@ -884,26 +884,50 @@
         </div>
       </div>
 
-      <!-- MARKET INSIGHTS (HOMEPAGE) -->
-      <div id="market-insights-section-hp" style="display:none;margin-bottom:20px">
-        <h3 style="margin-bottom:12px;color:var(--navy);font-size:15px">📊 Insights Marché Temps Réel</h3>
+      <!-- MARKET INTELLIGENCE (HOMEPAGE) -->
+      <div id="market-intelligence-section-hp" style="display:none;margin-bottom:20px;position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="margin-bottom:16px;color:var(--navy);font-size:14px;font-weight:600">📊 Market Intelligence</h3>
 
-        <!-- Top Produits -->
-        <div style="margin-bottom:16px">
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">🔥 Top Produits en Vente</div>
-          <div id="market-top-products-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"></div>
+        <!-- Lock overlay pour FREE/PRO -->
+        <div id="market-intelligence-lock-hp" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
+          <div style="text-align:center">
+            <div style="font-size:40px;margin-bottom:8px">🔐</div>
+            <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Débloqué avec GOLD</div>
+            <div style="font-size:11px;color:var(--muted)">Données marché + conseils compétitifs</div>
+          </div>
         </div>
 
-        <!-- Trending -->
-        <div style="margin-bottom:16px">
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">📈 Trending</div>
-          <div id="market-trending-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"></div>
-        </div>
+        <!-- Contenu (visible pour GOLD+) -->
+        <div id="market-intelligence-content-hp" style="display:none">
+          <!-- Contexte catégorie -->
+          <div style="margin-bottom:16px;padding:12px;background:white;border-radius:8px;border-left:3px solid var(--primary);font-size:12px;line-height:1.6;color:var(--text)">
+            <strong style="display:block;margin-bottom:6px">⚡ Contexte</strong>
+            <div id="market-category-context-hp">—</div>
+          </div>
 
-        <!-- Top Creators -->
-        <div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">👑 Top Créateurs</div>
-          <div id="market-creators-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"></div>
+          <!-- Top Produits -->
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">🔥 Top Produits</div>
+            <div id="market-top-products-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px"></div>
+          </div>
+
+          <!-- Trending -->
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">📈 Trending</div>
+            <div id="market-trending-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px"></div>
+          </div>
+
+          <!-- Top Creators -->
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">👑 Top Créateurs</div>
+            <div id="market-creators-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px"></div>
+          </div>
+
+          <!-- Actions recommandées -->
+          <div style="padding:12px;background:white;border-radius:8px;border-left:3px solid var(--primary)">
+            <strong style="display:block;margin-bottom:8px;font-size:12px">💡 Actions</strong>
+            <div id="market-recommendations-hp" style="font-size:11px;line-height:1.6;color:var(--text)">—</div>
+          </div>
         </div>
       </div>
 
@@ -1551,42 +1575,115 @@
     document.getElementById('viral-emoji').textContent = vEmoji;
     document.getElementById('viral-expl').textContent = d.viral_potential?.explication || '—';
 
-    // Market Insights (Homepage)
+    // Market Intelligence (Homepage) - Verrouillée pour FREE/PRO
     const marketData = d.donnees_marche;
-    if (marketData) {
-      const marketSection = document.getElementById('market-insights-section-hp');
-      if (marketSection) {
-        marketSection.style.display = 'block';
+    const detectedCategory = d.detection?.produit || '';
 
-        // Top Produits
+    // Déterminer le tier (fetch depuis le window ou défaut FREE)
+    const userTierHp = window.__userInfo?.tier || 'free';
+    const isAdminHp = window.__userInfo?.is_admin || false;
+    const hasMarketAccessHp = ['gold', 'agency', 'beta'].includes(userTierHp) || isAdminHp;
+
+    const marketSection = document.getElementById('market-intelligence-section-hp');
+    if (marketSection && marketData) {
+      marketSection.style.display = 'block';
+
+      const lockOverlay = document.getElementById('market-intelligence-lock-hp');
+      const content = document.getElementById('market-intelligence-content-hp');
+
+      if (hasMarketAccessHp) {
+        // DÉVERROUILLER
+        if (lockOverlay) lockOverlay.style.display = 'none';
+        if (content) content.style.display = 'block';
+
+        // === CONTEXTE CATÉGORIE ===
+        const trendingCategories = (marketData.trending || []).map(p => p.category).filter(Boolean);
+        const topCategories = (marketData.top_products || []).map(p => p.category).filter(Boolean);
+
+        let categoryContext = '—';
+        if (detectedCategory) {
+          const isTrending = trendingCategories.includes(detectedCategory);
+          const topCount = topCategories.filter(c => c === detectedCategory).length;
+
+          if (isTrending) {
+            categoryContext = `✅ <strong>${detectedCategory}</strong> en croissance rapide !`;
+          } else if (topCount > 0) {
+            categoryContext = `📊 <strong>${detectedCategory}</strong> : ${topCount} top produit(s). Catégorie stable.`;
+          } else {
+            categoryContext = `⚠️ <strong>${detectedCategory}</strong> : Pas dans trending. Sois plus agressif.`;
+          }
+        }
+        document.getElementById('market-category-context-hp').innerHTML = categoryContext;
+
+        // === TOP PRODUITS ===
         const topProdsContainer = document.getElementById('market-top-products-hp');
         topProdsContainer.innerHTML = (marketData.top_products || []).map(p => `
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-            <div style="font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title || p.name || '—'}</div>
-            <div style="color:#DC2626;font-weight:600">🔥 ${p.sold_count || '?'} ventes</div>
-            <div style="color:var(--muted);margin-top:4px">${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}</div>
+          <div style="background:white;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
+            <div style="font-weight:600;color:var(--text);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title || '—'}</div>
+            <div style="color:#DC2626;font-weight:600">🔥 ${p.sold_count || '?'}</div>
+            <div style="color:var(--muted);font-size:9px">${p.category || ''}</div>
           </div>
         `).join('');
 
-        // Trending
+        // === TRENDING ===
         const trendingContainer = document.getElementById('market-trending-hp');
         trendingContainer.innerHTML = (marketData.trending || []).map(p => `
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-            <div style="font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title || p.name || '—'}</div>
+          <div style="background:white;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
+            <div style="font-weight:600;color:var(--text);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title || '—'}</div>
             <div style="color:#2563EB;font-weight:600">📈 +${p.growth_percent || '?'}%</div>
-            <div style="color:var(--muted);margin-top:4px">${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}</div>
+            <div style="color:var(--muted);font-size:9px">${p.category || ''}</div>
           </div>
         `).join('');
 
-        // Top Creators
+        // === TOP CREATORS ===
         const creatorsContainer = document.getElementById('market-creators-hp');
-        creatorsContainer.innerHTML = (marketData.top_creators || []).map(c => `
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-            <div style="font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${c.handle || '?'}</div>
-            <div style="color:var(--primary);font-weight:600">👥 ${c.followers || '?'}</div>
-            <div style="color:var(--muted);margin-top:4px">${c.primary_category || '—'}</div>
+        const creatorsByCategory = (marketData.top_creators || []).filter(c =>
+          c.primary_category === detectedCategory || !detectedCategory
+        );
+        creatorsContainer.innerHTML = (creatorsByCategory.length > 0 ? creatorsByCategory : marketData.top_creators || []).map(c => `
+          <div style="background:white;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
+            <div style="font-weight:600;color:var(--text);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${c.handle || '?'}</div>
+            <div style="color:var(--primary);font-weight:600;font-size:9px">👥 ${c.followers || '?'}</div>
+            <div style="color:var(--muted);font-size:9px">${c.primary_category || '—'}</div>
           </div>
         `).join('');
+
+        // === ACTIONS RECOMMANDÉES ===
+        let recommendations = '—';
+        if (detectedCategory) {
+          const score = d.score_global || 0;
+          let actions = [];
+
+          if (score < 65) {
+            actions.push('🎯 Score faible : Améliore hook/rétention');
+          } else if (score < 75) {
+            actions.push('📊 Score moyen : Focus sur 1-2 dimensions');
+          } else {
+            actions.push('✅ Score bon : Prêt à tester en vrai');
+          }
+
+          if (trendingCategories.includes(detectedCategory)) {
+            actions.push('🚀 Trending : Publie plusieurs variations');
+          }
+
+          if (d.detection?.prix_estime) {
+            const price = parseFloat(d.detection.prix_estime);
+            if (price < 50) {
+              actions.push('💰 <50€ : Conversion rapide (J1-J3)');
+            } else if (price < 150) {
+              actions.push('💰 50-150€ : Attends J7-J30');
+            } else {
+              actions.push('💎 >150€ : Très lent, besoin autorité');
+            }
+          }
+
+          recommendations = actions.map(a => `<div style="margin-bottom:6px">• ${a}</div>`).join('');
+        }
+        document.getElementById('market-recommendations-hp').innerHTML = recommendations;
+      } else {
+        // VERROUILLER
+        if (lockOverlay) lockOverlay.style.display = 'flex';
+        if (content) content.style.display = 'none';
       }
     }
 
