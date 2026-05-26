@@ -1251,10 +1251,71 @@
     errorMessage.classList.remove('active');
   }
 
+  // Ensure user has an email before analyzing
+  async function ensureUserEmail() {
+    const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
+    if (session.email) return session.email;
+
+    // Show modal to ask for email
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center; z-index: 9999;
+      `;
+      modal.innerHTML = `
+        <div style="background: var(--surface); padding: 24px; border-radius: 12px;
+          max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
+          <h2 style="margin: 0 0 12px 0; font-size: 18px">📧 Saisis ton email</h2>
+          <p style="color: var(--muted); font-size: 14px; margin: 0 0 16px 0">
+            Pour tracer tes analyses et te montrer tes résultats
+          </p>
+          <input type="email" id="quick-email" placeholder="ton@email.com"
+            style="width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text);
+            box-sizing: border-box; margin-bottom: 16px">
+          <button id="email-confirm-btn" style="width: 100%; padding: 10px;
+            background: var(--primary); color: #000; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600">Analyser</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const emailInput = document.getElementById('quick-email');
+      const confirmBtn = document.getElementById('email-confirm-btn');
+
+      const done = () => {
+        const email = emailInput.value.trim();
+        if (!email || !email.includes('@')) {
+          alert('Email invalide');
+          return;
+        }
+        const newSession = JSON.parse(localStorage.getItem('SESSION') || '{}');
+        newSession.email = email;
+        localStorage.setItem('SESSION', JSON.stringify(newSession));
+        modal.remove();
+        resolve(email);
+      };
+
+      confirmBtn.addEventListener('click', done);
+      emailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') done();
+      });
+      emailInput.focus();
+    });
+  }
+
   analyzeBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
 
     const file = selectedFile;
+
+    // Ensure user has email
+    try {
+      await ensureUserEmail();
+    } catch (e) {
+      return;
+    }
 
     uploadForm.style.display = 'none';
     loading.classList.add('active');
