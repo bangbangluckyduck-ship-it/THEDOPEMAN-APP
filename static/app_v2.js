@@ -1135,8 +1135,8 @@ function showResults(d) {
   }
 
   // COACHING: verrouillé pour FREE/PRO, complet pour GOLD/AGENCY
-  const userTier = window.__userInfo?.tier || 'free';
-  const isFreemium = userTier === 'free' || userTier === 'pro';
+  const userTierForCoaching = window.__userInfo?.tier || 'free';
+  const isFreemium = userTierForCoaching === 'free' || userTierForCoaching === 'pro';
   if (isFreemium && d.conseils_concrets?.length > 0) {
     showLockedCoachingSection(d.conseils_concrets[0]);
   } else if (!isFreemium && d.conseils_concrets?.length > 0) {
