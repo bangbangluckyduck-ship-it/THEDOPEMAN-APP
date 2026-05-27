@@ -24,7 +24,7 @@ from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
-from echotik_api import echotik_client
+from keyapi_integration import keyapi_client
 
 # Import Supabase for analytics
 from supabase import create_client, Client
@@ -805,8 +805,8 @@ async def get_viral_videos(category: str):
                     "cached_at": cache_entry["cached_at"]
                 }
 
-        # Pas de cache valide → récupérer depuis EchoTik
-        videos = await echotik_client.get_viral_videos(category)
+        # Pas de cache valide → récupérer depuis KeyAPI
+        videos = await keyapi_client.get_viral_videos(category)
 
         if videos:
             # Sauvegarder en cache
