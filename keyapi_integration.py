@@ -156,27 +156,31 @@ class KeyAPIClient:
             if videos_raw:
                 print(f"[KeyAPI] First video sample: {json.dumps(videos_raw[0], indent=2)}")
 
-            # Transformer en format standard
+            # Transformer en format standard (influencers/creators)
             formatted_videos = []
-            for v in videos_raw:
-                if v.get("total_views_cnt", 0) >= min_views:
+            for creator in videos_raw:
+                # Use median video views as proxy for viral potential
+                views = creator.get("video_med_view_cnt", 0) or creator.get("ec_video_med_view_cnt", 0)
+                sales_gmv = creator.get("vidéo_gmv", 0) or creator.get("live_gmv", 0)
+
+                if views >= min_views:
                     formatted_videos.append({
-                        "id": v.get("video_id", ""),
-                        "title": v.get("video_desc", ""),
-                        "views": v.get("total_views_cnt", 0),
-                        "likes": v.get("total_digg_cnt", 0),
-                        "comments": v.get("total_comment_cnt", 0),
-                        "shares": v.get("total_share_cnt", 0),
-                        "creator_handle": v.get("creator_unique_id", ""),
-                        "creator_link": f"https://www.tiktok.com/@{v.get('creator_unique_id', '')}",
-                        "url": f"https://www.tiktok.com/@{v.get('creator_unique_id', '')}/video/{v.get('video_id', '')}",
-                        "create_time": v.get("create_time", ""),
-                        "video_sale_cnt": v.get("total_video_sale_cnt", 0),
-                        "video_sale_gmv": v.get("total_video_sale_gmv_amt", 0),
-                        "category": category
+                        "id": creator.get("créateur_oecuid", ""),
+                        "title": f"@{creator.get('poignée', '')} - {creator.get('surnom', '')}",
+                        "views": int(views),
+                        "likes": creator.get("engagement vidéo", 0) or 0,
+                        "comments": creator.get("numéro_produit_promo", 0) or 0,
+                        "shares": 0,
+                        "creator_handle": creator.get("poignée", ""),
+                        "creator_link": f"https://www.tiktok.com/@{creator.get('poignée', '')}",
+                        "url": f"https://www.tiktok.com/@{creator.get('poignée', '')}",
+                        "engagement_ec": creator.get("engagement en direct ec", 0) or 0,
+                        "video_sale_gmv": int(sales_gmv),
+                        "category": category,
+                        "follower_cnt": creator.get("suiveur_cnt", 0) or 0
                     })
 
-            print(f"[KeyAPI] Formatted {len(formatted_videos)} videos")
+            print(f"[KeyAPI] Formatted {len(formatted_videos)} creators")
             return formatted_videos[:10]  # Return top 10
 
         except Exception as e:
