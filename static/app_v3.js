@@ -1999,8 +1999,9 @@ async function loadWinningTrendsTab() {
   try {
     const res = await fetch('/api/market-recommendations');
     const data = await res.json();
+    console.log('[WINNING-TRENDS] Response:', data);
 
-    if (data.ok && data.market_context) {
+    if (data.market_context) {
       const mc = data.market_context;
       let html = '';
 
@@ -2088,10 +2089,17 @@ async function loadWinningTrendsTab() {
         html += '</div>';
       }
 
-      document.getElementById('market-context-content').innerHTML = html;
-      document.getElementById('winning-trends-context').style.display = 'block';
-      document.getElementById('winning-trends-loading').style.display = 'none';
+      if (html.length > 0) {
+        document.getElementById('market-context-content').innerHTML = html;
+        document.getElementById('winning-trends-context').style.display = 'block';
+        document.getElementById('winning-trends-loading').style.display = 'none';
+      } else {
+        console.warn('[WINNING-TRENDS] HTML est vide');
+        document.getElementById('winning-trends-no-data').style.display = 'block';
+        document.getElementById('winning-trends-loading').style.display = 'none';
+      }
     } else {
+      console.warn('[WINNING-TRENDS] Pas de market_context dans les données');
       document.getElementById('winning-trends-no-data').style.display = 'block';
       document.getElementById('winning-trends-loading').style.display = 'none';
     }
