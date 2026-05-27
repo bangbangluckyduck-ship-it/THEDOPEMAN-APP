@@ -30,6 +30,38 @@ class KeyAPIClient:
         self.token = KEYAPI_TOKEN
         self.base_url = KEYAPI_URL
 
+    async def list_tools(self) -> List[Dict[str, Any]]:
+        """
+        Liste tous les outils disponibles
+        """
+        if not self.token:
+            print("❌ KeyAPI token not configured")
+            return []
+
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "outils/liste",
+            "params": {}
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    self.base_url,
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {self.token}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                result = resp.json()
+                print(f"[KeyAPI] Available tools: {json.dumps(result, indent=2)}")
+                return result.get("result", {}).get("tools", [])
+        except Exception as e:
+            print(f"❌ KeyAPI list_tools error: {e}")
+            return []
+
     async def call_tool(
         self,
         tool_name: str,
@@ -45,7 +77,7 @@ class KeyAPIClient:
         payload = {
             "jsonrpc": "2.0",
             "id": 1,
-            "method": f"tools/appel",
+            "method": "outils/appel",
             "params": {
                 "nom": tool_name,
                 "arguments": params
