@@ -258,17 +258,9 @@
       <p class="header-subtitle">Suivez vos visiteurs en temps réel</p>
     </header>
 
-    <!-- Login Section -->
-    <div id="login-section" class="login-section">
-      <h2>🔐 Authentification</h2>
-      <form id="login-form" onsubmit="handleLogin(event)">
-        <div class="input-group">
-          <label for="password-input">Mot de passe admin</label>
-          <input type="password" id="password-input" placeholder="Entrez le mot de passe" required>
-        </div>
-        <button type="submit">Se connecter</button>
-      </form>
-      <div id="login-error" style="display: none; color: #C33; margin-top: 12px; font-size: 13px;"></div>
+    <!-- Loading Section -->
+    <div id="loading" class="loading" style="display: none;">
+      <p>⏳ Chargement des données analytics...</p>
     </div>
 
     <!-- Dashboard Section (hidden until authenticated) -->
@@ -319,11 +311,7 @@
         </table>
       </div>
 
-      <button class="logout-btn" onclick="logout()">🚪 Se déconnecter</button>
-    </div>
-
-    <div id="loading" class="loading" style="display: none;">
-      <p>⏳ Chargement des données...</p>
+      <button class="logout-btn" onclick="logout()">🚪 Retour à l'app</button>
     </div>
 
     <div id="error" class="error" style="display: none;"></div>
@@ -331,56 +319,25 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    let authToken = localStorage.getItem('analytics_token');
     let chart = null;
 
-    // Check if already authenticated on page load
-    if (authToken) {
-      document.getElementById('login-section').style.display = 'none';
+    // Load analytics on page load
+    document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('dashboard').style.display = 'block';
       loadAnalytics();
-    }
-
-    async function handleLogin(event) {
-      event.preventDefault();
-      const password = document.getElementById('password-input').value;
-
-      try {
-        document.getElementById('loading').style.display = 'block';
-
-        // Test authentication
-        const response = await fetch(`/api/analytics/today?password=${encodeURIComponent(password)}`);
-
-        if (!response.ok) {
-          throw new Error('Mot de passe incorrect');
-        }
-
-        // Store token and show dashboard
-        localStorage.setItem('analytics_token', password);
-        authToken = password;
-
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('loading').style.display = 'none';
-
-        loadAnalytics();
-      } catch (error) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('login-error').textContent = error.message;
-        document.getElementById('login-error').style.display = 'block';
-      }
-    }
+    });
 
     async function loadAnalytics() {
-      if (!authToken) return;
-
       try {
         document.getElementById('loading').style.display = 'block';
 
-        // Fetch analytics data
+        // Fetch analytics data (auth via Bearer token)
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         const [statsRes, todayRes] = await Promise.all([
-          fetch(`/api/analytics?password=${encodeURIComponent(authToken)}`),
-          fetch(`/api/analytics/today?password=${encodeURIComponent(authToken)}`)
+          fetch(`/api/analytics`, { headers }),
+          fetch(`/api/analytics/today`, { headers })
         ]);
 
         if (!statsRes.ok || !todayRes.ok) {
@@ -494,12 +451,7 @@
     }
 
     function logout() {
-      localStorage.removeItem('analytics_token');
-      authToken = null;
-      document.getElementById('login-section').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('password-input').value = '';
-      document.getElementById('login-error').style.display = 'none';
+      window.location.href = '/app';
     }
 
     // Auto-refresh every 5 minutes
