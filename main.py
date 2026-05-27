@@ -827,6 +827,12 @@ async def get_viral_videos(category: str):
 
     except Exception as e:
         print(f"❌ Viral videos error: {e}")
+        return JSONResponse({
+            "ok": False,
+            "category": category,
+            "error": str(e),
+            "videos": []
+        }, status_code=500)
 
 
 @app.get("/api/keyapi-tools")
@@ -848,7 +854,7 @@ async def get_keyapi_tools():
 CATEGORY_STRATEGIES = {
     "fashion": {
         "name": "Fashion & Vêtements",
-        "hooks": ["Before/After looks", "Outfit transitions", "Styling tips"],
+        "hooks": ["Before/After looks", "Outfit transitions", "Styling tips", "Haul videos", "Fashion hacks"],
         "price_positioning": "mid-premium",
         "conversion_timing": "instant-30d",
         "viral_multiplier": 1.3,
@@ -856,9 +862,9 @@ CATEGORY_STRATEGIES = {
         "best_creators": "Lifestyle, Fashion, Trending",
         "key_metrics": ["Views", "Likes", "Creator followers"]
     },
-    "beauty": {
+    "beaute": {
         "name": "Beauté & Cosmétiques",
-        "hooks": ["Makeup tutorials", "Before/After transformation", "Product reviews"],
+        "hooks": ["Makeup tutorials", "Before/After transformation", "Product reviews", "Skincare routines", "Beauty hacks"],
         "price_positioning": "mid-premium",
         "conversion_timing": "7-30d",
         "viral_multiplier": 1.5,
@@ -866,9 +872,29 @@ CATEGORY_STRATEGIES = {
         "best_creators": "Makeup artists, Beauty influencers",
         "key_metrics": ["Views", "Product mentions", "Sales velocity"]
     },
+    "sante": {
+        "name": "Santé & Bien-être",
+        "hooks": ["Health tips", "Wellness transformation", "Product testimonials", "Health routines", "Doctor reviews"],
+        "price_positioning": "premium",
+        "conversion_timing": "14-90d",
+        "viral_multiplier": 1.6,
+        "average_price": "$25-100",
+        "best_creators": "Health experts, Wellness coaches, Doctors",
+        "key_metrics": ["Views", "Comments", "Trust indicators"]
+    },
+    "complement_sante": {
+        "name": "Compléments Nutritionnels",
+        "hooks": ["Before/After results", "Ingredient breakdown", "Expert testimonials", "Daily routines", "Performance demos"],
+        "price_positioning": "mid-premium",
+        "conversion_timing": "30-90d",
+        "viral_multiplier": 1.4,
+        "average_price": "$20-60",
+        "best_creators": "Nutritionists, Fitness influencers, Doctors",
+        "key_metrics": ["Views", "Testimonials", "Engagement rate"]
+    },
     "tech": {
         "name": "Technologie & Gadgets",
-        "hooks": ["Unboxing", "Tech reviews", "How-to demos"],
+        "hooks": ["Unboxing", "Tech reviews", "How-to demos", "Comparison videos", "Tech hacks"],
         "price_positioning": "premium",
         "conversion_timing": "30-90d",
         "viral_multiplier": 1.2,
@@ -877,14 +903,24 @@ CATEGORY_STRATEGIES = {
         "key_metrics": ["Views", "Comments", "Share rate"]
     },
     "fitness": {
-        "name": "Fitness & Wellness",
-        "hooks": ["Transformation stories", "Workout clips", "Before/After"],
+        "name": "Fitness & Équipement",
+        "hooks": ["Transformation stories", "Workout clips", "Before/After", "Equipment reviews", "Fitness tips"],
         "price_positioning": "mid",
         "conversion_timing": "14-60d",
         "viral_multiplier": 1.4,
-        "average_price": "$20-100",
-        "best_creators": "Fitness trainers, Health coaches",
+        "average_price": "$20-150",
+        "best_creators": "Fitness trainers, Health coaches, Athletes",
         "key_metrics": ["Views", "Engagement", "Comments"]
+    },
+    "electromenager": {
+        "name": "Électroménager & Maison",
+        "hooks": ["Unboxing", "Product demo", "Before/After cleanup", "Life hacks", "Time-saving tips"],
+        "price_positioning": "mid-premium",
+        "conversion_timing": "30-90d",
+        "viral_multiplier": 1.1,
+        "average_price": "$40-200",
+        "best_creators": "Home organizers, Lifestyle influencers",
+        "key_metrics": ["Views", "Shares", "Practicality indicators"]
     }
 }
 
