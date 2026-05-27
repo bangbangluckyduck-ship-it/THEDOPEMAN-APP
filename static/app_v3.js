@@ -1476,9 +1476,38 @@ function getHistory() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
 }
 
+// Map product names to categories for market trend analysis
+function detectProductCategory(productName) {
+  if (!productName) return null;
+  const name = productName.toLowerCase();
+
+  const categoryKeywords = {
+    'beaute': ['maquillage', 'fond de teint', 'rouge à lèvres', 'mascara', 'ombre', 'primer', 'BB cream', 'sérum', 'crème', 'beauty', 'makeup', 'cosmetic'],
+    'fashion': ['vêtement', 'robe', 'pantalon', 'chemise', 'veste', 'chaussure', 'sac', 'accessoire', 'montre', 'bijou', 'ceinture', 'fashion', 'clothing', 'dress', 'shirt', 'shoe'],
+    'tech': ['téléphone', 'écouteur', 'batterie', 'chargeur', 'montre', 'appareil', 'électronique', 'smart', 'phone', 'earbuds', 'charger', 'watch', 'tech', 'gadget'],
+    'fitness': ['haltère', 'tapis', 'bande', 'équipement', 'supplément', 'protéine', 'fitness', 'workout', 'yoga', 'gym', 'exercise'],
+    'sante': ['vitamine', 'supplément', 'santé', 'pilule', 'médicament', 'health', 'supplement', 'vitamin', 'wellness'],
+    'complement_sante': ['protéine', 'whey', 'acides aminés', 'bcaa', 'créatine', 'collagène', 'oméga', 'vitamin', 'supplement'],
+    'electromenager': ['cuisinière', 'frigo', 'micro-onde', 'lave-vaisselle', 'aspirateur', 'chauffage', 'ventilateur', 'lampe', 'appliance', 'kitchen'],
+  };
+
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    if (keywords.some(kw => name.includes(kw))) {
+      return category;
+    }
+  }
+
+  return null;
+}
+
 function saveToHistory(data, filename) {
   const entries = getHistory();
   if (entries[0]?.id === data.id) return;
+
+  // Detect product category from detected product name
+  const productName = data.detection?.produit || null;
+  const detectedCategory = detectProductCategory(productName);
+
   entries.unshift({
     id:                    Date.now(),
     date:                  new Date().toISOString(),
@@ -1493,6 +1522,8 @@ function saveToHistory(data, filename) {
     recommendations_hooks: data.recommendations_hooks,
     conseils_concrets:     data.conseils_concrets,
     transcript:            data.transcript,
+    product_category:      detectedCategory,  // Add detected category
+    product_name:          productName
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
   updateHistoryBadge();
