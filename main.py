@@ -65,8 +65,28 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)   # /create-checkout-session  /customer-portal  /webhook
 app.include_router(admin_router)    # /admin/users  /admin/set-tier  /admin/grant-beta
 
-_HOMEPAGE_HTML = Path("templates/homepage.html").read_text(encoding="utf-8")
-_APP_HTML = Path("templates/index.html").read_text(encoding="utf-8")
+# Cache-busting: version basée sur mtime des fichiers JS (bump auto à chaque deploy)
+def _asset_version() -> str:
+    try:
+        v3 = int(Path("static/app_v3.js").stat().st_mtime)
+        v2 = int(Path("static/app_v2.js").stat().st_mtime)
+        return str(max(v3, v2))
+    except Exception:
+        return "1"
+
+_ASSET_V = _asset_version()
+
+def _bust(html: str) -> str:
+    """Append ?v=... to local /static/ JS & CSS URLs to bust mobile browser caches."""
+    import re
+    return re.sub(
+        r'(/static/[^"\'?\s>]+\.(?:js|css))(?=["\'\s>])',
+        lambda m: f"{m.group(1)}?v={_ASSET_V}",
+        html,
+    )
+
+_HOMEPAGE_HTML = _bust(Path("templates/homepage.html").read_text(encoding="utf-8"))
+_APP_HTML = _bust(Path("templates/index.html").read_text(encoding="utf-8"))
 _BLOG_HTML = Path("templates/blog.html").read_text(encoding="utf-8")
 _BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="utf-8")
 _BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
