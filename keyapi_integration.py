@@ -107,13 +107,22 @@ class KeyAPIClient:
             )
 
             if "error" in result:
+                print(f"❌ KeyAPI returned error: {result}")
                 return []
 
+            print(f"[KeyAPI] Raw result: {result}")
+            print(f"[KeyAPI] Result keys: {list(result.keys())}")
+
+            # Try different key names
             videos_raw = result.get("data", [])
+            if not videos_raw:
+                videos_raw = result.get("videos", [])
+            if not videos_raw:
+                videos_raw = result.get("list", [])
+
             print(f"[KeyAPI] Got {len(videos_raw)} videos from API")
-            print(f"[KeyAPI] Full response keys: {list(result.keys())}")
             if videos_raw:
-                print(f"[KeyAPI] First video sample: {videos_raw[0]}")
+                print(f"[KeyAPI] First video sample: {json.dumps(videos_raw[0], indent=2)}")
 
             # Transformer en format standard
             formatted_videos = []
