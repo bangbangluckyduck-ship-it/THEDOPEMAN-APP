@@ -842,6 +842,80 @@ async def get_keyapi_tools():
     except Exception as e:
         print(f"❌ KeyAPI tools error: {e}")
         return {"ok": False, "error": str(e)}
+
+
+# Stratégies produits par catégorie
+CATEGORY_STRATEGIES = {
+    "fashion": {
+        "name": "Fashion & Vêtements",
+        "hooks": ["Before/After looks", "Outfit transitions", "Styling tips"],
+        "price_positioning": "mid-premium",
+        "conversion_timing": "instant-30d",
+        "viral_multiplier": 1.3,
+        "average_price": "$30-80",
+        "best_creators": "Lifestyle, Fashion, Trending",
+        "key_metrics": ["Views", "Likes", "Creator followers"]
+    },
+    "beauty": {
+        "name": "Beauté & Cosmétiques",
+        "hooks": ["Makeup tutorials", "Before/After transformation", "Product reviews"],
+        "price_positioning": "mid-premium",
+        "conversion_timing": "7-30d",
+        "viral_multiplier": 1.5,
+        "average_price": "$15-50",
+        "best_creators": "Makeup artists, Beauty influencers",
+        "key_metrics": ["Views", "Product mentions", "Sales velocity"]
+    },
+    "tech": {
+        "name": "Technologie & Gadgets",
+        "hooks": ["Unboxing", "Tech reviews", "How-to demos"],
+        "price_positioning": "premium",
+        "conversion_timing": "30-90d",
+        "viral_multiplier": 1.2,
+        "average_price": "$50-300",
+        "best_creators": "Tech reviewers, DIY enthusiasts",
+        "key_metrics": ["Views", "Comments", "Share rate"]
+    },
+    "fitness": {
+        "name": "Fitness & Wellness",
+        "hooks": ["Transformation stories", "Workout clips", "Before/After"],
+        "price_positioning": "mid",
+        "conversion_timing": "14-60d",
+        "viral_multiplier": 1.4,
+        "average_price": "$20-100",
+        "best_creators": "Fitness trainers, Health coaches",
+        "key_metrics": ["Views", "Engagement", "Comments"]
+    }
+}
+
+
+@app.get("/api/product-recommendations/{category}")
+async def get_product_recommendations(category: str):
+    """Retourne produits recommandés + stratégie pour une catégorie"""
+    category_lower = category.lower()
+
+    # Récupérer la stratégie
+    strategy = CATEGORY_STRATEGIES.get(category_lower, {
+        "name": category.capitalize(),
+        "hooks": ["Feature highlight", "Product demo"],
+        "price_positioning": "mid",
+        "conversion_timing": "30d",
+        "viral_multiplier": 1.0,
+        "average_price": "variable",
+        "best_creators": "Relevant niche",
+        "key_metrics": ["Views", "Engagement", "Sales"]
+    })
+
+    # Récupérer les vidéos virales comme base de recommandations
+    videos = await keyapi_client.get_viral_videos(category_lower)
+
+    return {
+        "ok": True,
+        "category": category_lower,
+        "strategy": strategy,
+        "recommended_products": videos[:5] if videos else [],
+        "product_count": len(videos) if videos else 0
+    }
         return JSONResponse({
             "ok": False,
             "error": str(e)
