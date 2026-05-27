@@ -1,6 +1,6 @@
 """
 KeyAPI Integration - Récupère vidéos virales TikTok avec analytics
-Remplace EchoTik par une vrai API TikTok
+Uses proper REST API at api.keyapi.ai/v1/
 """
 import os
 import httpx
@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
-KEYAPI_URL = "https://mcp.keyapi.ai/tiktok/mcp"
+KEYAPI_URL_BASE = "https://api.keyapi.ai/v1"
 KEYAPI_TOKEN = os.getenv("KEYAPI_TOKEN", "")
 
 # Seuils de vues minimum par catégorie
@@ -24,92 +24,52 @@ MIN_VIEWS_THRESHOLDS = {
 
 
 class KeyAPIClient:
-    """Client pour l'API KeyAPI TikTok avec MCP"""
+    """Client pour l'API KeyAPI TikTok REST"""
 
     def __init__(self):
         self.token = KEYAPI_TOKEN
-        self.base_url = KEYAPI_URL
+        self.base_url = KEYAPI_URL_BASE
 
-    async def list_tools(self) -> List[Dict[str, Any]]:
-        """
-        Liste tous les outils disponibles
-        """
-        if not self.token:
-            print("❌ KeyAPI token not configured")
-            return []
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "outils/liste",
-            "params": {}
-        }
-
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    self.base_url,
-                    json=payload,
-                    headers={
-                        "Authorization": f"Bearer {self.token}",
-                        "Content-Type": "application/json"
-                    }
-                )
-                result = resp.json()
-                print(f"[KeyAPI] Available tools: {json.dumps(result, indent=2)}")
-                return result.get("result", {}).get("tools", [])
-        except Exception as e:
-            print(f"❌ KeyAPI list_tools error: {e}")
-            return []
-
-    async def call_tool(
+    async def _make_request(
         self,
-        tool_name: str,
-        params: Dict[str, Any]
+        endpoint: str,
+        params: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
-        Appelle un outil KeyAPI via JSON-RPC 2.0
+        Fait une requête GET à KeyAPI
         """
         if not self.token:
             print("❌ KeyAPI token not configured")
             return {"error": "Token missing"}
 
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "outils/appel",
-            "params": {
-                "nom": tool_name,
-                "arguments": params
-            }
-        }
+        url = f"{self.base_url}{endpoint}"
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    self.base_url,
-                    json=payload,
+                resp = await client.get(
+                    url,
+                    params=params,
                     headers={
                         "Authorization": f"Bearer {self.token}",
                         "Content-Type": "application/json"
                     }
                 )
 
-                print(f"[KeyAPI] {tool_name} response: {resp.status_code}")
+                print(f"[KeyAPI] {endpoint} response: {resp.status_code}")
 
                 if resp.status_code != 200:
                     print(f"❌ KeyAPI error: {resp.status_code} - {resp.text[:200]}")
                     return {"error": f"Status {resp.status_code}"}
 
                 result = resp.json()
-                if "error" in result:
-                    print(f"❌ KeyAPI RPC error: {result['error']}")
-                    return result
+                if result.get("code") != 0:
+                    print(f"❌ KeyAPI API error: {result.get('message')}")
+                    return {"error": result.get("message")}
 
-                return result.get("result", {})
+                return result.get("data", {})
 
         except Exception as e:
-            print(f"❌ KeyAPI call error: {e}")
+            print(f"❌ KeyAPI request error: {e}")
             return {"error": str(e)}
 
     async def get_viral_videos(
@@ -119,69 +79,69 @@ class KeyAPIClient:
         min_views: int = 100000
     ) -> List[Dict[str, Any]]:
         """
-        Récupère vidéos virales par catégorie using influencer_list_analytics
-        Filtre: vues >= 100K, sorted by views descending
+        Récupère produits viraux par catégorie via /v1/tiktok/product/list/analytics
+        Filtre: vues >= 100K, triés par vues décroissantes
         """
-        print(f"[KeyAPI] Fetching viral videos for category: {category}")
+        print(f"[KeyAPI] Fetching viral products for category: {category}")
 
         try:
-            # Appeler influencer_list_analytics pour les vidéos de produits
-            result = await self.call_tool(
-                "influencer_list_analytics",
-                {
-                    "region": region,
-                    "category": category,
-                    "page_num": 1,
-                    "page_size": 10,  # Top 10
-                    "sort_by": "views",
-                    "sort_type": "desc"  # Descending (highest views first)
-                }
+            # Appeler /product/list/analytics avec filtres
+            params = {
+                "region": region,
+                "page_num": 1,
+                "page_size": 10,
+                "product_sort_field": 3,  # Sort by views
+                "sort_type": 1,  # Descending
+                "min_total_views_cnt": min_views,
+                "sales_flag": 1  # Video e-commerce only
+            }
+
+            # Add category filter if provided
+            if category and category.lower() != "all":
+                params["category_id"] = category
+
+            result = await self._make_request(
+                "/tiktok/product/list/analytics",
+                params
             )
 
             if "error" in result:
-                print(f"❌ KeyAPI returned error: {result}")
+                print(f"❌ KeyAPI error: {result}")
                 return []
 
-            print(f"[KeyAPI] Raw result: {result}")
-            print(f"[KeyAPI] Result keys: {list(result.keys())}")
+            # Result should be a list of products
+            products_raw = result if isinstance(result, list) else result.get("products", [])
 
-            # Try different key names
-            videos_raw = result.get("data", [])
-            if not videos_raw:
-                videos_raw = result.get("videos", [])
-            if not videos_raw:
-                videos_raw = result.get("list", [])
+            print(f"[KeyAPI] Got {len(products_raw)} products from API")
+            if products_raw:
+                print(f"[KeyAPI] First product sample: {json.dumps(products_raw[0], indent=2)[:500]}")
 
-            print(f"[KeyAPI] Got {len(videos_raw)} videos from API")
-            if videos_raw:
-                print(f"[KeyAPI] First video sample: {json.dumps(videos_raw[0], indent=2)}")
-
-            # Transformer en format standard (influencers/creators)
+            # Transform to video format
             formatted_videos = []
-            for creator in videos_raw:
-                # Use median video views as proxy for viral potential
-                views = creator.get("video_med_view_cnt", 0) or creator.get("ec_video_med_view_cnt", 0)
-                sales_gmv = creator.get("vidéo_gmv", 0) or creator.get("live_gmv", 0)
+            for product in products_raw:
+                views = product.get("total_views_cnt", 0) or 0
+                gmv = product.get("total_sale_gmv_amt", 0) or 0
+                sales = product.get("total_sale_cnt", 0) or 0
 
                 if views >= min_views:
                     formatted_videos.append({
-                        "id": creator.get("créateur_oecuid", ""),
-                        "title": f"@{creator.get('poignée', '')} - {creator.get('surnom', '')}",
+                        "id": product.get("product_id", ""),
+                        "title": product.get("product_name", ""),
                         "views": int(views),
-                        "likes": creator.get("engagement vidéo", 0) or 0,
-                        "comments": creator.get("numéro_produit_promo", 0) or 0,
+                        "likes": product.get("total_ifl_cnt", 0) or 0,
+                        "comments": product.get("total_video_cnt", 0) or 0,
                         "shares": 0,
-                        "creator_handle": creator.get("poignée", ""),
-                        "creator_link": f"https://www.tiktok.com/@{creator.get('poignée', '')}",
-                        "url": f"https://www.tiktok.com/@{creator.get('poignée', '')}",
-                        "engagement_ec": creator.get("engagement en direct ec", 0) or 0,
-                        "video_sale_gmv": int(sales_gmv),
+                        "creator_handle": product.get("seller_name", ""),
+                        "creator_link": f"https://www.tiktok.com/discover/{product.get('product_id', '')}",
+                        "url": f"https://www.tiktok.com/discover/{product.get('product_id', '')}",
+                        "video_sale_cnt": int(sales),
+                        "video_sale_gmv": float(gmv),
                         "category": category,
-                        "follower_cnt": creator.get("suiveur_cnt", 0) or 0
+                        "price": product.get("spu_avg_price", 0)
                     })
 
-            print(f"[KeyAPI] Formatted {len(formatted_videos)} creators")
-            return formatted_videos[:10]  # Return top 10
+            print(f"[KeyAPI] Formatted {len(formatted_videos)} products")
+            return formatted_videos[:10]
 
         except Exception as e:
             print(f"❌ KeyAPI get_viral_videos error: {e}")
