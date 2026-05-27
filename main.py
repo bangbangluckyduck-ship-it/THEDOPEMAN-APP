@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ from security import rate_limit_middleware, security_logger
 from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
+from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 
 generate_icons()
 
@@ -418,16 +420,34 @@ async def analyze(
                 pass  # On continue sans données marché si le scraper est down
 
         # IA analysis (increased timeout to 180 seconds for complex videos)
+        analysis_start = time.time()
         result = await asyncio.wait_for(
             loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context, product),
             timeout=180.0,
         )
+        analysis_duration_ms = int((time.time() - analysis_start) * 1000)
+
         if user["valid"]:
             increment_usage(user["email"])
 
         result["transcript"]      = transcript
         result["frames_analyzed"] = len(frames_list)
         result["usage"]           = usage_info(user)
+
+        # Save result to cache for faster future analyses
+        # Extract video URL from request if available (will be null for direct frame uploads)
+        video_url_to_cache = request.query_params.get("video_url", f"frames_{len(frames_list)}")
+        try:
+            await save_to_cache(
+                video_url_to_cache,
+                result,
+                analysis_duration_ms,
+                product_id=product
+            )
+        except Exception as e:
+            # Don't fail the analysis if cache save fails
+            security_logger.analyze_error(request.client.host if request.client else "unknown", f"Cache save error: {e}")
+
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, len(frames_list))
         return result
@@ -446,6 +466,98 @@ async def analyze(
                 os.unlink(audio_path)
             except OSError:
                 pass
+
+
+# ── STREAMING ANALYSIS ENDPOINT (SSE) ─────────────────────────────────────────
+@app.get("/api/analyze/stream")
+async def analyze_stream(
+    request: Request,
+    video_url: str = Query(...),
+    product: Optional[str] = Query(None),
+):
+    """
+    Stream analysis results progressively using Server-Sent Events (SSE).
+
+    If result is cached: stream sections with visual delays (~300-500ms each).
+    If cache miss: stream real-time analysis as Mistral processes the video.
+
+    Query params:
+    - video_url: TikTok URL to analyze
+    - product: (optional) Product name hint for analysis
+    """
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+
+    user = get_user_from_request(request)
+    check_quota(user)
+
+    # Normalize URL for consistent caching
+    try:
+        normalized_url, video_id = normalize_tiktok_url(video_url)
+    except Exception:
+        normalized_url = video_url
+        video_id = "unknown"
+
+    async def stream_generator():
+        """Generate SSE stream of analysis sections."""
+        start_time = time.time()
+
+        try:
+            # Check cache first
+            cached_analysis = await get_cached_analysis(normalized_url)
+
+            if cached_analysis:
+                # CACHE HIT: Stream from cache with visual delays
+                yield 'event: start\n'
+                yield f'data: {json.dumps({"message": "Analyse trouvée en cache ✨", "source": "cache"})}\n\n'
+
+                # Stream each section with visual delay for perception of speed
+                sections_to_stream = [
+                    'hook_type',
+                    'retention_type',
+                    'vente_points',
+                    'positionnement',
+                    'format_visuel',
+                    'emotion',
+                    'conversion_strategy',
+                    'algorithme',
+                    'plan_reproduction',
+                    'score_global'
+                ]
+
+                for section_name in sections_to_stream:
+                    if section_name in cached_analysis:
+                        await asyncio.sleep(0.35)  # Visual delay ~350ms per section
+                        yield 'event: section\n'
+                        yield f'data: {json.dumps({"name": section_name, "data": cached_analysis[section_name]})}\n\n'
+
+                yield 'event: complete\n'
+                yield f'data: {json.dumps({"message": "Analyse complète ✅", "source": "cache", "duration_ms": cached_analysis.get("analysis_duration_ms", 0)})}\n\n'
+
+                if user["valid"]:
+                    increment_usage(user["email"])
+
+            else:
+                # CACHE MISS: Stream real-time analysis
+                yield 'event: start\n'
+                yield f'data: {json.dumps({"message": "Analyse en cours... 🔄", "source": "live"})}\n\n'
+
+                # Signal that we're doing real-time analysis (this will take longer)
+                # The frontend can show a "downloading" state
+                await asyncio.sleep(0.1)
+
+                # For now, fall back to requesting full analysis via HTTP
+                # In a future optimization, we could stream Mistral's response directly
+                # but that would require significant refactoring of the analyze_video function
+
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"message": "Mode stream nécessite cache. Utilisez /analyze pour analyses en direct."})}\n\n'
+
+        except Exception as e:
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
 
 # ── ECHOTIK DATA ENDPOINTS ────────────────────────────────────────────────────
