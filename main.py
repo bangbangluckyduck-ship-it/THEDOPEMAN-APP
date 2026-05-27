@@ -133,8 +133,74 @@ async def about():
 
 
 @app.get("/analytics", response_class=HTMLResponse)
-async def analytics():
-    """Analytics dashboard."""
+async def analytics(request: Request):
+    """Analytics dashboard - ADMIN ONLY."""
+    # Check if user is authenticated and is admin
+    user = await get_user_from_request(request)
+    if not user.get("valid") or user.get("tier") != "admin":
+        # Redirect to login
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Analytics - Accès Refusé</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+              background: linear-gradient(135deg, #F5F7FA 0%, #EEF0F6 100%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              padding: 20px;
+            }
+            .container {
+              background: white;
+              border-radius: 12px;
+              padding: 40px;
+              text-align: center;
+              max-width: 400px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+            }
+            h1 {
+              font-size: 24px;
+              margin-bottom: 12px;
+              color: #1F3A70;
+            }
+            p {
+              font-size: 14px;
+              color: #6B7280;
+              margin-bottom: 24px;
+              line-height: 1.6;
+            }
+            a {
+              display: inline-block;
+              background: linear-gradient(135deg, #1F3A70, #2563EB);
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: 600;
+              font-size: 14px;
+              transition: opacity 0.2s;
+            }
+            a:hover { opacity: 0.9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>🔐 Accès Refusé</h1>
+            <p>Le dashboard analytics est réservé aux administrateurs.</p>
+            <p>Connecte-toi avec un compte admin pour accéder à ce dashboard.</p>
+            <a href="/app">← Retour à l'app</a>
+          </div>
+        </body>
+        </html>
+        """, status_code=403)
+
     return HTMLResponse(_ANALYTICS_HTML)
 
 
@@ -715,14 +781,15 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 
 
 @app.get("/api/analytics")
-async def get_analytics(password: Optional[str] = Query(None)):
-    """Get analytics data (requires admin password)."""
+async def get_analytics(request: Request, password: Optional[str] = Query(None)):
+    """Get analytics data (requires admin authentication)."""
     if not supabase_client:
         return JSONResponse({"error": "Analytics not available"}, status_code=503)
 
-    # Check password
-    if password != os.getenv("ANALYTICS_PASSWORD", "admin123"):
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    # Check if user is admin
+    user = await get_user_from_request(request)
+    if not user.get("valid") or user.get("tier") != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
 
     try:
         # Get last 30 days of stats
@@ -743,13 +810,15 @@ async def get_analytics(password: Optional[str] = Query(None)):
 
 
 @app.get("/api/analytics/today")
-async def get_today_analytics(password: Optional[str] = Query(None)):
-    """Get today's visitor count (requires admin password)."""
+async def get_today_analytics(request: Request):
+    """Get today's visitor count (requires admin authentication)."""
     if not supabase_client:
         return JSONResponse({"error": "Analytics not available"}, status_code=503)
 
-    if password != os.getenv("ANALYTICS_PASSWORD", "admin123"):
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    # Check if user is admin
+    user = await get_user_from_request(request)
+    if not user.get("valid") or user.get("tier") != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
 
     try:
         today = date.today().isoformat()
