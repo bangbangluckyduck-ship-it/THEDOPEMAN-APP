@@ -119,22 +119,22 @@ class KeyAPIClient:
         min_views: int = 100000
     ) -> List[Dict[str, Any]]:
         """
-        Récupère vidéos virales par catégorie using video_list_analytics
-        Filtre: sales_flag=1 (product promotion videos), vues >= 100K
+        Récupère vidéos virales par catégorie using influencer_list_analytics
+        Filtre: vues >= 100K, sorted by views descending
         """
         print(f"[KeyAPI] Fetching viral videos for category: {category}")
 
         try:
-            # Appeler video_list_analytics pour les vidéos de produits
+            # Appeler influencer_list_analytics pour les vidéos de produits
             result = await self.call_tool(
-                "video_list_analytics",
+                "influencer_list_analytics",
                 {
                     "region": region,
-                    "sales_flag": 1,  # Product promotion videos only
+                    "category": category,
                     "page_num": 1,
                     "page_size": 10,  # Top 10
-                    "video_sort_field": 3,  # Sort by views
-                    "sort_type": 1  # Descending (highest views first)
+                    "sort_by": "views",
+                    "sort_type": "desc"  # Descending (highest views first)
                 }
             )
 
