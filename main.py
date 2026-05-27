@@ -17,7 +17,7 @@ import time
 
 load_dotenv()
 
-from analyzer import analyze_video, transcribe_audio
+from analyzer import analyze_video, transcribe_audio, analyze_visual, synthesize_analysis
 from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
 from auth import get_user_from_request, check_quota, increment_usage, usage_info
@@ -465,53 +465,102 @@ async def analyze_stream_sse(
                     audio_path = tmp.name
                     tmp.write(await audio.read())
 
-            # Transcription with 20s timeout
-            transcript: Optional[str] = None
-            if audio_path:
-                yield 'event: progress\n'
-                yield 'data: {"message": "🎤 Transcription audio...", "stage": "transcription"}\n\n'
-                try:
-                    transcript = await asyncio.wait_for(
-                        loop.run_in_executor(None, transcribe_audio, audio_path),
-                        timeout=20.0,
-                    )
-                    yield 'event: progress\n'
-                    yield 'data: {"message": "✅ Transcription complète", "stage": "transcription_done"}\n\n'
-                except asyncio.TimeoutError:
-                    transcript = None
-                    yield 'event: warning\n'
-                    yield 'data: {"message": "⚠️ Transcription timeout", "stage": "transcription_timeout"}\n\n'
-
-            # Market context
+            # Market context (rapide, en async direct)
             market_context: Optional[dict] = None
             tier = user.get("tier", "free")
             is_admin = user.get("is_admin", False)
             if (tier in ("gold", "agency", "beta") or is_admin) and _SCRAPER_URL:
-                yield 'event: progress\n'
-                yield 'data: {"message": "📊 Récupération données marché...", "stage": "market_data"}\n\n'
                 try:
                     async with httpx.AsyncClient(timeout=5.0) as client:
                         mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
                     if mresp.is_success:
                         market_context = mresp.json()
-                        yield 'event: progress\n'
-                        yield 'data: {"message": "✅ Données marché chargées", "stage": "market_data_done"}\n\n'
                 except Exception:
                     pass
 
-            # IA analysis - THIS IS THE LONGEST PART
-            yield 'event: progress\n'
-            yield 'data: {"message": "🤖 Analyse IA en cours... (cela peut prendre 30-90s)", "stage": "ai_analysis"}\n\n'
-
+            # ─────────────────────────────────────────────────────────────
+            # ⚡ PIPELINE PARALLÈLE :
+            #   - Transcription audio (5-15s)        ┐
+            #   - Vision Mistral Pixtral (10-15s)    ┘─ EN PARALLÈLE via asyncio.gather
+            # Puis synthèse Mistral-small (5-10s, text-only)
+            # Total ~20-30s au lieu de 50-90s
+            # ─────────────────────────────────────────────────────────────
             analysis_start = time.time()
-            result = await asyncio.wait_for(
-                loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context, product),
-                timeout=180.0,
+
+            yield 'event: progress\n'
+            yield 'data: {"message": "🚀 Lancement analyse parallèle (vision + audio)...", "stage": "parallel_start"}\n\n'
+
+            async def _do_transcribe():
+                if not audio_path:
+                    return None
+                try:
+                    return await asyncio.wait_for(
+                        loop.run_in_executor(None, transcribe_audio, audio_path),
+                        timeout=25.0,
+                    )
+                except asyncio.TimeoutError:
+                    return None
+
+            async def _do_visual():
+                return await asyncio.wait_for(
+                    loop.run_in_executor(None, analyze_visual, frames_list, product),
+                    timeout=60.0,
+                )
+
+            # Lancer en parallèle
+            transcript_task = asyncio.create_task(_do_transcribe())
+            visual_task = asyncio.create_task(_do_visual())
+
+            # Streaming progress en attendant
+            yield 'event: progress\n'
+            yield 'data: {"message": "🎤 Transcription audio + 👁️ Analyse visuelle en cours...", "stage": "parallel_running"}\n\n'
+
+            # Attendre les deux
+            transcript, visual_result = await asyncio.gather(
+                transcript_task, visual_task, return_exceptions=True
             )
+
+            # Gérer les exceptions
+            if isinstance(transcript, Exception):
+                print(f"⚠️ Transcript error: {transcript}")
+                transcript = None
+            if isinstance(visual_result, Exception):
+                print(f"❌ Visual error: {visual_result}")
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"error": f"Erreur analyse visuelle: {str(visual_result)[:200]}"})}\n\n'
+                return
+
+            detected_product = ""
+            if isinstance(visual_result, dict):
+                detected_product = str(visual_result.get("produit") or "")[:60]
+            vision_msg = f"✅ Vision OK — produit détecté: {detected_product}" if detected_product else "✅ Vision OK"
+            yield 'event: progress\n'
+            yield f'data: {json.dumps({"message": vision_msg, "stage": "vision_done"})}\n\n'
+
+            if transcript:
+                yield 'event: progress\n'
+                yield 'data: {"message": "✅ Transcription complète", "stage": "transcription_done"}\n\n'
+
+            # Synthèse texte (rapide car pas de vision)
+            yield 'event: progress\n'
+            yield 'data: {"message": "🤖 Synthèse finale (scoring + conseils)...", "stage": "synthesis"}\n\n'
+
+            try:
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None, synthesize_analysis, visual_result, transcript, market_context, product
+                    ),
+                    timeout=90.0,
+                )
+            except asyncio.TimeoutError:
+                yield 'event: error\n'
+                yield 'data: {"error": "La synthèse a pris trop longtemps. Réessaie avec une vidéo plus courte."}\n\n'
+                return
+
             analysis_duration_ms = int((time.time() - analysis_start) * 1000)
 
             yield 'event: progress\n'
-            yield 'data: {"message": "✅ Analyse IA complète", "stage": "ai_analysis_done"}\n\n'
+            yield f'data: {json.dumps({"message": f"✅ Analyse complète en {analysis_duration_ms/1000:.1f}s", "stage": "ai_analysis_done"})}\n\n'
 
             if user["valid"]:
                 increment_usage(user["email"])
