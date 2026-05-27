@@ -827,6 +827,21 @@ async def get_viral_videos(category: str):
 
     except Exception as e:
         print(f"❌ Viral videos error: {e}")
+
+
+@app.get("/api/keyapi-tools")
+async def get_keyapi_tools():
+    """Découvre les outils disponibles dans KeyAPI"""
+    try:
+        tools = await keyapi_client.list_tools()
+        return {
+            "ok": True,
+            "tools": tools,
+            "count": len(tools)
+        }
+    except Exception as e:
+        print(f"❌ KeyAPI tools error: {e}")
+        return {"ok": False, "error": str(e)}
         return JSONResponse({
             "ok": False,
             "error": str(e)
