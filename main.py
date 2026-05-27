@@ -728,6 +728,8 @@ async def product_recommendations(category: str):
                 "top_creators": []
             }
         }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 # ════════════════════════════════════════════════════════════════════════════
