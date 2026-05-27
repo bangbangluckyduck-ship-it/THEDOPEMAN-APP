@@ -456,9 +456,7 @@
 
     // Auto-refresh every 5 minutes
     setInterval(() => {
-      if (authToken) {
-        loadAnalytics();
-      }
+      loadAnalytics();
     }, 5 * 60 * 1000);
   </script>
 </body>
