@@ -223,7 +223,7 @@
     .btn-upgrade:hover { transform: scale(1.04); box-shadow: 0 4px 20px rgba(37,99,235,.3); }
 
     /* ── LAYOUT ── */
-    main { max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 140px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
     /* ── SECTION CARD ── */
     .section {
@@ -628,18 +628,97 @@
     .lang-select:focus { outline: none; border-color: var(--accent); }
 
     /* ── FOOTER ── */
-    #app-footer {
-      text-align: center; padding: 20px 20px calc(20px + var(--safe-bottom));
-      border-top: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      background: var(--surface);
-      position: fixed; bottom: 0; left: 0; right: 0;
-      z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    footer {
+      background: var(--text);
+      color: #fff;
+      padding: 60px 20px 40px;
+      margin-top: 80px;
     }
-    #app-footer img { width: 18px; height: 18px; border-radius: 4px; opacity: .5; }
-    #app-footer span { font-size: 11px; color: var(--muted); }
-    .footer-link { color: var(--accent); cursor: pointer; text-decoration: none; transition: opacity .2s; }
-    .footer-link:hover { opacity: .75; }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+
+    .footer-section a {
+      display: block;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      margin-bottom: 8px;
+      transition: color 0.3s;
+    }
+
+    .footer-section a:hover { color: var(--primary); }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    @media (max-width: 768px) {
+      footer { padding: 40px 20px 30px; }
+      .footer-content { grid-template-columns: 1fr; gap: 24px; }
+      .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+    }
+
+    /* Modern 2026 Spinner */
+    .modern-spinner {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .spinner-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .spinner-ring {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(212,175,55,0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner-text {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
 
     /* ── PRICING CARDS ── */
     .pricing-card {
@@ -1514,16 +1593,48 @@
 
 </main>
 
+<!-- MODERN SPINNER (2026) -->
+<div id="modern-spinner" class="modern-spinner" style="display:none">
+  <div class="spinner-content">
+    <div class="spinner-ring"></div>
+    <div class="spinner-text">Analyse en cours...</div>
+  </div>
+</div>
+
 <!-- FOOTER -->
-<footer id="app-footer">
-  <img src="/static/logo.png" alt="Dope Ventures">
-  <span>
-    © 2026 DOPE VENTURES ·
-    <span class="footer-link" onclick="openCGV()">CGV</span> ·
-    <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_privacy">Confidentialité</span> ·
-    <span class="footer-link" onclick="openPrivacyModal()" data-i18n="footer_cookies">Cookies</span> ·
-    <a href="mailto:dopeventure44@gmail.com" class="footer-link">Contact</a>
-  </span>
+<footer>
+  <div class="footer-content">
+    <div class="footer-section">
+      <h3>Produit</h3>
+      <a href="/app">Analyser</a>
+      <a href="/#features">Fonctionnalités</a>
+      <a href="/#pricing">Tarifs</a>
+    </div>
+
+    <div class="footer-section">
+      <h3>Entreprise</h3>
+      <a href="/about">À propos</a>
+      <a href="/blog">Blog</a>
+      <a href="/contact">Contact</a>
+    </div>
+
+    <div class="footer-section">
+      <h3>Légal</h3>
+      <a href="#" onclick="openCGV()">CGV</a>
+      <a href="#" onclick="openPrivacyModal()">Confidentialité</a>
+      <a href="#" onclick="openPrivacyModal()">Mentions légales</a>
+    </div>
+
+    <div class="footer-section">
+      <h3>Réseaux</h3>
+      <a href="https://www.tiktok.com/@tiktokshop.analyzer?_r=1&_t=ZN-96fKdjpk1wd" target="_blank">TikTok</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>© 2026 TTS Analyzer - Dope Ventures. Tous droits réservés</span>
+    <span>Made with ❤️ in France 🇫🇷</span>
+  </div>
 </footer>
 
 <!-- ── MODAL LOGIN OBLIGATOIRE ── -->

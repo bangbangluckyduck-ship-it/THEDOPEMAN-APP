@@ -732,61 +732,11 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
         print(f"⚠️  Analytics tracking error: {e}")
 
 
-@app.get("/api/analytics")
-async def get_analytics(request: Request, password: Optional[str] = Query(None)):
-    """Get analytics data (requires admin authentication)."""
-    if not supabase_client:
-        return JSONResponse({"error": "Analytics not available"}, status_code=503)
-
-    # Check if user is admin
-    user = await get_user_from_request(request)
-    if not user.get("valid") or user.get("tier") != "admin":
-        return JSONResponse({"error": "Admin access required"}, status_code=403)
-
-    try:
-        # Get last 30 days of stats
-        stats = supabase_client.table("daily_visitor_stats").select("*").order("date", desc=True).limit(30).execute()
-
-        # Get visitor count summary
-        summary = supabase_client.table("daily_visitor_stats").select("visitor_count").execute()
-        total_visitors = sum([s["visitor_count"] for s in summary.data]) if summary.data else 0
-
-        return {
-            "ok": True,
-            "total_visitors": total_visitors,
-            "daily_stats": stats.data or [],
-            "period": "last_30_days"
-        }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-
-@app.get("/api/analytics/today")
-async def get_today_analytics(request: Request):
-    """Get today's visitor count (requires admin authentication)."""
-    if not supabase_client:
-        return JSONResponse({"error": "Analytics not available"}, status_code=503)
-
-    # Check if user is admin
-    user = await get_user_from_request(request)
-    if not user.get("valid") or user.get("tier") != "admin":
-        return JSONResponse({"error": "Admin access required"}, status_code=403)
-
-    try:
-        today = date.today().isoformat()
-        result = supabase_client.table("daily_visitor_stats").select("visitor_count").eq("date", today).execute()
-
-        visitor_count = 0
-        if result.data:
-            visitor_count = result.data[0]["visitor_count"]
-
-        return {
-            "ok": True,
-            "date": today,
-            "visitor_count": visitor_count
-        }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+# Analytics endpoints disabled - use dashboard at /analytics instead
+# @app.get("/api/analytics")
+# async def get_analytics(...): pass
+# @app.get("/api/analytics/today")
+# async def get_today_analytics(...): pass
 
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
