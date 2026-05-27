@@ -916,10 +916,6 @@ async def get_product_recommendations(category: str):
         "recommended_products": videos[:5] if videos else [],
         "product_count": len(videos) if videos else 0
     }
-        return JSONResponse({
-            "ok": False,
-            "error": str(e)
-        }, status_code=500)
 
 
 if __name__ == "__main__":
