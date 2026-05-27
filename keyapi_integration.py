@@ -86,19 +86,19 @@ class KeyAPIClient:
 
         try:
             # Appeler /product/list/analytics avec filtres
+            # Note: category_id doit être numérique, pas un string comme "fashion"
+            # Pour l'instant, on ne filtre pas par catégorie
             params = {
                 "region": region,
                 "page_num": 1,
                 "page_size": 10,
-                "product_sort_field": 3,  # Sort by views
+                "product_sort_field": 1,  # Sort by total_sale_cnt (most sold)
                 "sort_type": 1,  # Descending
                 "min_total_views_cnt": min_views,
                 "sales_flag": 1  # Video e-commerce only
             }
 
-            # Add category filter if provided
-            if category and category.lower() != "all":
-                params["category_id"] = category
+            print(f"[KeyAPI] Request params: {params}")
 
             result = await self._make_request(
                 "/tiktok/product/list/analytics",
