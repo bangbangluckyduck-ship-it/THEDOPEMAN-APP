@@ -644,49 +644,184 @@ async def analyze_stream(
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
 
-# ── ECHOTIK DATA ENDPOINTS ────────────────────────────────────────────────────
-@app.get("/api/market-recommendations")
-async def market_recommendations():
-    """Récupère les données marché complètes depuis TTS Scraper (EchoTik)."""
-    # Fallback market data when scraper is not available
-    fallback_data = {
-        "ok": True,
-        "market_context": {
-            "top_products": [
-                {"name": "💄 Vernis à ongles UV", "price": "19,99€", "viral_score": 8.5, "trend": "⬆️ Hausse"},
-                {"name": "🧴 Crème contour des yeux", "price": "29,99€", "viral_score": 8.2, "trend": "⬆️ Hausse"},
-                {"name": "👗 Robe fluide été", "price": "39,99€", "viral_score": 7.8, "trend": "→ Stable"},
-                {"name": "📿 Bracelet perles", "price": "14,99€", "viral_score": 7.5, "trend": "⬆️ Hausse"},
-                {"name": "🎧 Écouteurs Bluetooth", "price": "49,99€", "viral_score": 7.2, "trend": "→ Stable"}
-            ],
-            "trending": [
-                {"name": "Sérum vitamine C visage", "trend_momentum": "🚀🚀🚀", "creator_count": 542},
-                {"name": "Jupe taille haute", "trend_momentum": "🚀🚀", "creator_count": 389},
-                {"name": "Masque cheveux réparateur", "trend_momentum": "🚀🚀🚀", "creator_count": 621},
-                {"name": "Sandales compensées", "trend_momentum": "🚀", "creator_count": 267},
-                {"name": "Bougies parfumées", "trend_momentum": "🚀🚀", "creator_count": 445}
-            ],
-            "top_creators": [
-                {"handle": "beautyqueen92", "followers_display": "850K", "video_count": 342},
-                {"handle": "fashioninspo_fr", "followers_display": "1.2M", "video_count": 567},
-                {"handle": "styleme_daily", "followers_display": "620K", "video_count": 428},
-                {"handle": "makeup_artist_pro", "followers_display": "940K", "video_count": 503},
-                {"handle": "trendsetters_club", "followers_display": "750K", "video_count": 381}
-            ]
+# ── MARKET RECOMMENDATIONS (KeyAPI réel, filtré par catégorie) ────────────────
+from keyapi_integration import CATEGORY_ID_MAP as _KEYAPI_CAT_MAP
+
+
+def _format_price(p: float) -> str:
+    if not p:
+        return "—"
+    return f"${p:.2f}" if p < 1000 else f"${p:.0f}"
+
+
+def _viral_score(p: dict) -> float:
+    """Score 0-10 basé sur views + sales + GMV (échelle log)."""
+    import math
+    views = p.get("views", 0) or 0
+    sales = p.get("sales", 0) or 0
+    gmv = p.get("gmv", 0) or 0
+    score = 0
+    if views > 0:
+        score += min(4.0, math.log10(views) - 4)  # 100K→0, 1M→2, 100M→4
+    if sales > 0:
+        score += min(3.0, math.log10(sales) - 2)  # 100→0, 10K→2, 1M→4
+    if gmv > 0:
+        score += min(3.0, math.log10(gmv) - 4)
+    return round(max(1.0, min(10.0, score + 5.0)), 1)
+
+
+def _trend_emoji(sales: int) -> str:
+    if sales > 100000:
+        return "🚀🚀🚀"
+    if sales > 10000:
+        return "🚀🚀"
+    if sales > 1000:
+        return "🚀"
+    return "⬆️"
+
+
+def _format_followers(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n/1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n/1_000:.0f}K"
+    return str(n)
+
+
+async def _fetch_market_for_category(category: str) -> dict:
+    """Construit market_context réel depuis KeyAPI pour une catégorie."""
+    # Top produits (par ventes totales)
+    top_products_raw = await keyapi_client.get_viral_videos(
+        category, page_size=10, sort_field=1  # total_sale_cnt
+    )
+    # Tendances haussières
+    trending_raw = await keyapi_client.get_trending_up(category, page_size=10)
+
+    top_products = [
+        {
+            "name": p["title"],
+            "image": p.get("image"),
+            "url": p.get("tiktok_search_url") or p.get("url"),
+            "price": _format_price(p.get("price", 0)),
+            "viral_score": _viral_score(p),
+            "trend": "⬆️ Hausse" if p.get("sales", 0) > 1000 else "→ Stable",
+            "sales": p.get("sales", 0),
+            "gmv": p.get("gmv", 0),
+            "views": p.get("views", 0),
         }
+        for p in top_products_raw[:5]
+    ]
+
+    trending = [
+        {
+            "name": p["title"],
+            "image": p.get("image"),
+            "url": p.get("tiktok_search_url") or p.get("url"),
+            "trend_momentum": _trend_emoji(p.get("sales", 0)),
+            "creator_count": p.get("creators_count", 0),
+            "video_count": p.get("video_count", 0),
+            "price": _format_price(p.get("price", 0)),
+        }
+        for p in trending_raw[:5]
+        if p["title"] not in {tp["name"] for tp in top_products}
+    ][:5]
+
+    # Top créateurs synthétisés depuis produits (les produits avec le plus de créateurs)
+    creators_pool = sorted(
+        top_products_raw + trending_raw,
+        key=lambda x: x.get("creators_count", 0),
+        reverse=True,
+    )
+    seen_ids = set()
+    top_creators = []
+    for p in creators_pool:
+        pid = p.get("id")
+        if pid in seen_ids:
+            continue
+        seen_ids.add(pid)
+        cc = p.get("creators_count", 0)
+        if cc <= 0:
+            continue
+        top_creators.append({
+            "handle": (p.get("title", "creator")[:25] or "creator").lower().replace(" ", "_"),
+            "product": p.get("title", "")[:60],
+            "image": p.get("image"),
+            "followers_display": _format_followers(cc * 1000),  # estimation
+            "video_count": p.get("video_count", 0),
+            "url": f"https://www.tiktok.com/search/user?q={(p.get('title') or '').split()[0]}",
+        })
+        if len(top_creators) >= 5:
+            break
+
+    return {
+        "top_products": top_products,
+        "trending": trending,
+        "top_creators": top_creators,
     }
 
-    if not _SCRAPER_URL:
-        return fallback_data
 
+@app.get("/api/market-recommendations")
+async def market_recommendations(category: Optional[str] = None):
+    """
+    Retourne données marché TikTok Shop RÉELLES depuis KeyAPI.
+    - Si `category` fournie : filtre par catégorie de l'analyse
+    - Sinon : utilise 'beaute' par défaut (la catégorie la plus active)
+    Cache 24h par catégorie dans Supabase (table viral_videos_cache).
+    """
+    cat = (category or "").lower().strip()
+    if cat not in _KEYAPI_CAT_MAP:
+        cat = "beaute"  # défaut
+
+    cache_key = f"market_{cat}"
+
+    # 1. Tenter cache 24h
+    if supabase_client:
+        try:
+            cached = supabase_client.table("viral_videos_cache").select("*").eq(
+                "category", cache_key
+            ).execute()
+            if cached.data:
+                entry = cached.data[0]
+                from datetime import datetime as dt
+                expires_at = dt.fromisoformat(entry["expires_at"].replace("Z", "+00:00"))
+                if dt.now(expires_at.tzinfo) < expires_at:
+                    return {
+                        "ok": True,
+                        "category": cat,
+                        "market_context": entry["videos"],
+                        "cached": True,
+                    }
+        except Exception as e:
+            print(f"⚠️  Market cache read error: {e}")
+
+    # 2. Fetch KeyAPI réel
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
-        if resp.is_success:
-            return resp.json()
-        return fallback_data
+        market_context = await _fetch_market_for_category(cat)
     except Exception as e:
-        return fallback_data
+        print(f"❌ Market fetch error: {e}")
+        return JSONResponse(
+            {"ok": False, "error": str(e), "category": cat, "market_context": None},
+            status_code=502,
+        )
+
+    # 3. Cache 24h
+    if supabase_client and market_context.get("top_products"):
+        try:
+            supabase_client.table("viral_videos_cache").upsert({
+                "category": cache_key,
+                "videos": market_context,
+                "cached_at": datetime.now().isoformat(),
+                "expires_at": (datetime.now() + timedelta(hours=24)).isoformat(),
+            }, on_conflict="category").execute()
+        except Exception as e:
+            print(f"⚠️  Market cache write error: {e}")
+
+    return {
+        "ok": True,
+        "category": cat,
+        "market_context": market_context,
+        "cached": False,
+    }
 
 
 

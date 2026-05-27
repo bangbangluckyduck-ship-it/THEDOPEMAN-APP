@@ -1541,23 +1541,62 @@ function detectProductCategory(productName) {
   if (!productName) return null;
   const name = productName.toLowerCase();
 
+  // Keywords organized by category with priority scoring
   const categoryKeywords = {
-    'beaute': ['maquillage', 'fond de teint', 'rouge à lèvres', 'mascara', 'ombre', 'primer', 'BB cream', 'sérum', 'crème', 'beauty', 'makeup', 'cosmetic'],
-    'fashion': ['vêtement', 'robe', 'pantalon', 'chemise', 'veste', 'chaussure', 'sac', 'accessoire', 'montre', 'bijou', 'ceinture', 'fashion', 'clothing', 'dress', 'shirt', 'shoe'],
-    'tech': ['téléphone', 'écouteur', 'batterie', 'chargeur', 'montre', 'appareil', 'électronique', 'smart', 'phone', 'earbuds', 'charger', 'watch', 'tech', 'gadget'],
-    'fitness': ['haltère', 'tapis', 'bande', 'équipement', 'supplément', 'protéine', 'fitness', 'workout', 'yoga', 'gym', 'exercise'],
-    'sante': ['vitamine', 'supplément', 'santé', 'pilule', 'médicament', 'health', 'supplement', 'vitamin', 'wellness'],
-    'complement_sante': ['protéine', 'whey', 'acides aminés', 'bcaa', 'créatine', 'collagène', 'oméga', 'vitamin', 'supplement'],
-    'electromenager': ['cuisinière', 'frigo', 'micro-onde', 'lave-vaisselle', 'aspirateur', 'chauffage', 'ventilateur', 'lampe', 'appliance', 'kitchen'],
+    'beaute': {
+      high: ['maquillage', 'makeup', 'fond de teint', 'rouge à lèvres', 'mascara', 'cosmetic'],
+      medium: ['sérum', 'crème', 'ombre', 'primer', 'BB cream', 'palette', 'poudre', 'blush', 'crayon', 'eyeliner']
+    },
+    'fashion': {
+      high: ['vêtement', 'robe', 'pantalon', 'chemise', 'veste', 'chaussure', 'shoe', 'dress', 'shirt'],
+      medium: ['sac', 'accessoire', 'montre', 'bijou', 'ceinture', 'pull', 'jean', 'blazer', 'sneaker']
+    },
+    'tech': {
+      high: ['téléphone', 'phone', 'écouteur', 'earbuds', 'appareil', 'gadget', 'tech', 'watch'],
+      medium: ['batterie', 'chargeur', 'charger', 'électronique', 'smart', 'ordinateur', 'laptop', 'tablette']
+    },
+    'fitness': {
+      high: ['haltère', 'fitness', 'workout', 'gym', 'exercise', 'protéine', 'whey'],
+      medium: ['tapis', 'bande', 'équipement', 'yoga', 'supplément', 'dumbbell']
+    },
+    'sante': {
+      high: ['vitamine', 'vitamin', 'supplément', 'santé', 'health', 'wellness', 'médicament'],
+      medium: ['pilule', 'complément', 'capsule', 'comprimé']
+    },
+    'complement_sante': {
+      high: ['protéine', 'whey', 'créatine', 'collagène', 'oméga', 'bcaa', 'acides aminés'],
+      medium: ['supplément', 'complément', 'poudre protéine', 'shake']
+    },
+    'electromenager': {
+      high: ['cuisinière', 'frigo', 'aspirateur', 'lave-vaisselle', 'micro-onde', 'appliance', 'kitchen'],
+      medium: ['chauffage', 'ventilateur', 'lampe', 'électroménager', 'cuiseur']
+    },
   };
 
+  // Score each category based on keyword matches
+  let bestCategory = null;
+  let bestScore = 0;
+
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
-    if (keywords.some(kw => name.includes(kw))) {
-      return category;
+    let score = 0;
+
+    // High priority keywords = 3 points
+    if (keywords.high.some(kw => name.includes(kw))) {
+      score += 3;
+    }
+
+    // Medium priority keywords = 1 point
+    if (keywords.medium.some(kw => name.includes(kw))) {
+      score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = category;
     }
   }
 
-  return null;
+  return bestCategory;
 }
 
 function saveToHistory(data, filename) {
@@ -2074,7 +2113,9 @@ async function loadWinningTrendsTab() {
   // Récupérer la dernière analyse pour connaître la catégorie
   const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const lastAnalysis = history.length > 0 ? history[0] : null;
-  const detectedCategory = lastAnalysis?.product_category || null;
+  const detectedCategory = lastAnalysis?.product_category
+    || localStorage.getItem('tta_selected_category')
+    || null;
 
   // Afficher la catégorie détectée
   const categoryDisplay = document.getElementById('winning-trends-detected-category');
@@ -2086,9 +2127,28 @@ async function loadWinningTrendsTab() {
     categoryDisplay.style.display = 'none';
   }
 
-  // Charger les données marché
+  // Charger les données marché RÉELLES (KeyAPI filtré par catégorie)
+  const marketUrl = detectedCategory
+    ? `/api/market-recommendations?category=${encodeURIComponent(detectedCategory)}`
+    : '/api/market-recommendations';
+
+  // Synchroniser le dropdown
+  const selectorEl = document.getElementById('category-selector');
+  if (selectorEl && detectedCategory) selectorEl.value = detectedCategory;
+
+  const fmtNum = (n) => {
+    if (!n) return '0';
+    if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+    return String(n);
+  };
+  const placeholder = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="140" viewBox="0 0 200 140"><rect width="200" height="140" fill="%23f3f4f6"/><text x="100" y="75" font-family="sans-serif" font-size="32" text-anchor="middle" fill="%239ca3af">📦</text></svg>'
+  );
+
   try {
-    const res = await fetch('/api/market-recommendations');
+    const res = await fetch(marketUrl);
     const data = await res.json();
     console.log('[WINNING-TRENDS] Response:', data);
 
@@ -2096,27 +2156,24 @@ async function loadWinningTrendsTab() {
       const mc = data.market_context;
       let html = '';
 
-      // Top Produits
+      // Top Produits (vraies images KeyAPI)
       if (mc.top_products && mc.top_products.length > 0) {
-        html += '<h3 style="margin-top:16px;margin-bottom:8px">⭐ Top Produits en Vente</h3>';
+        html += '<h3 style="margin-top:16px;margin-bottom:8px">⭐ Top Produits TikTok Shop</h3>';
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">';
-        mc.top_products.slice(0, 5).forEach((p, idx) => {
-          const productImages = [
-            'https://images.pexels.com/photos/3962277/pexels-photo-3962277.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962280/pexels-photo-3962280.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962270/pexels-photo-3962270.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962275/pexels-photo-3962275.jpeg?w=200&h=200&fit=crop'
-          ];
-          const imgSrc = productImages[idx % productImages.length];
-          const productLink = `https://www.tiktok.com/search?q=${encodeURIComponent(p.name || 'produit')}`;
+        mc.top_products.forEach((p) => {
+          const imgSrc = p.image || placeholder;
+          const productLink = p.url || `https://www.tiktok.com/search?q=${encodeURIComponent(p.name || 'produit')}`;
           html += `<a href="${productLink}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column">
             <div style="background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-              <img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="width:100%;height:140px;object-fit:cover;background:var(--bg)">
+              <img src="${imgSrc}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.src='${placeholder}'" style="width:100%;height:140px;object-fit:cover;background:var(--bg)">
               <div style="padding:12px">
                 <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
-                <div style="color:var(--primary);font-weight:700;font-size:14px;margin-bottom:4px">${p.price || '—'}</div>
-                <div style="color:var(--muted);font-size:11px">⭐ ${p.viral_score || '—'}</div>
+                <div style="color:var(--primary);font-weight:700;font-size:14px;margin-bottom:4px">${escapeHtml(p.price || '—')}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)">
+                  <span>⭐ ${p.viral_score || '—'}</span>
+                  <span>📦 ${fmtNum(p.sales)}</span>
+                  <span>👁️ ${fmtNum(p.views)}</span>
+                </div>
               </div>
             </div>
           </a>`;
@@ -2128,23 +2185,19 @@ async function loadWinningTrendsTab() {
       if (mc.trending && mc.trending.length > 0) {
         html += '<h3 style="margin-top:16px;margin-bottom:8px">🔥 Tendances - Croissance Rapide</h3>';
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">';
-        mc.trending.slice(0, 5).forEach((p, idx) => {
-          const trendingImages = [
-            'https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962280/pexels-photo-3962280.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962277/pexels-photo-3962277.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962270/pexels-photo-3962270.jpeg?w=200&h=200&fit=crop',
-            'https://images.pexels.com/photos/3962275/pexels-photo-3962275.jpeg?w=200&h=200&fit=crop'
-          ];
-          const imgSrc = trendingImages[idx % trendingImages.length];
-          const productLink = `https://www.tiktok.com/search?q=${encodeURIComponent(p.name || 'produit')}&scope=user`;
+        mc.trending.forEach((p) => {
+          const imgSrc = p.image || placeholder;
+          const productLink = p.url || `https://www.tiktok.com/search?q=${encodeURIComponent(p.name || 'produit')}`;
           html += `<a href="${productLink}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column">
             <div style="background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-              <img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="width:100%;height:140px;object-fit:cover;background:var(--bg)">
+              <img src="${imgSrc}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.src='${placeholder}'" style="width:100%;height:140px;object-fit:cover;background:var(--bg)">
               <div style="padding:12px">
                 <div style="font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
-                <div style="color:#EF4444;font-weight:700;font-size:13px;margin-bottom:4px">${p.trend_momentum || '—'}</div>
-                <div style="color:var(--muted);font-size:11px">👥 ${p.creator_count || '—'}</div>
+                <div style="color:#EF4444;font-weight:700;font-size:13px;margin-bottom:4px">${p.trend_momentum || '🚀'}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)">
+                  <span>👥 ${fmtNum(p.creator_count)} créateurs</span>
+                  <span>🎥 ${fmtNum(p.video_count)}</span>
+                </div>
               </div>
             </div>
           </a>`;
@@ -2154,26 +2207,17 @@ async function loadWinningTrendsTab() {
 
       // Top Créateurs
       if (mc.top_creators && mc.top_creators.length > 0) {
-        html += '<h3 style="margin-top:16px;margin-bottom:8px">👑 Top Créateurs TikTok Shop</h3>';
+        html += '<h3 style="margin-top:16px;margin-bottom:8px">👑 Top Produits par # de Créateurs</h3>';
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">';
-        mc.top_creators.slice(0, 5).forEach((c, idx) => {
-          const creatorAvatars = [
-            'https://api.dicebear.com/7.x/avataaars/svg?seed=creator1',
-            'https://api.dicebear.com/7.x/avataaars/svg?seed=creator2',
-            'https://api.dicebear.com/7.x/avataaars/svg?seed=creator3',
-            'https://api.dicebear.com/7.x/avataaars/svg?seed=creator4',
-            'https://api.dicebear.com/7.x/avataaars/svg?seed=creator5'
-          ];
-          const avatarSrc = creatorAvatars[idx % creatorAvatars.length];
-          const creatorLink = `https://www.tiktok.com/@${c.handle || 'unknown'}`;
-          const isVerified = Math.random() > 0.3; // 70% verified
-          html += `<a href="${creatorLink}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column">
+        mc.top_creators.forEach((c) => {
+          const imgSrc = c.image || placeholder;
+          const link = c.url || `https://www.tiktok.com/search/user?q=${encodeURIComponent(c.product || c.handle || '')}`;
+          html += `<a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column">
             <div style="background:var(--surface);border-radius:12px;padding:12px;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer;text-align:center" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-              <img src="${avatarSrc}" alt="${escapeHtml(c.handle)}" style="width:60px;height:60px;border-radius:50%;margin:0 auto 12px;border:2px solid var(--primary)">
-              <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px;word-break:break-word">@${escapeHtml(c.handle || 'Creator')}</div>
-              ${isVerified ? '<div style="font-size:11px;color:#059669;margin-bottom:6px">✅ TikTok Shop Vérifié</div>' : '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">📱 TikTok Shop</div>'}
-              <div style="color:var(--muted);font-size:11px;margin-bottom:2px">👥 ${c.followers_display || '—'}</div>
-              <div style="color:var(--muted);font-size:11px">🎥 ${c.video_count || '—'}</div>
+              <img src="${imgSrc}" alt="produit" loading="lazy" onerror="this.src='${placeholder}'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 12px;border:2px solid var(--primary)">
+              <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:4px;word-break:break-word;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(c.product || c.handle || '')}</div>
+              <div style="color:var(--muted);font-size:11px;margin-bottom:2px">👥 ${escapeHtml(c.followers_display || '—')} portée</div>
+              <div style="color:var(--muted);font-size:11px">🎥 ${fmtNum(c.video_count)} vidéos</div>
             </div>
           </a>`;
         });
@@ -2276,15 +2320,19 @@ async function loadWinningTrendsTab() {
             ${data.recommended_products && data.recommended_products.length > 0 ? `
               <div>
                 <h3 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Top Produits en Tendance</h3>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
                   ${data.recommended_products.slice(0, 6).map(p => `
-                    <a href="${p.url || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
+                    <a href="${p.url || p.tiktok_search_url || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
                       <div style="background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-                        <div style="width:100%;height:100px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;padding:8px;text-align:center;font-size:12px">${escapeHtml((p.title || 'Produit').substring(0,30))}</div>
+                        ${p.image
+                          ? `<img src="${p.image}" alt="${escapeHtml(p.title||'Produit')}" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover;background:var(--bg)">`
+                          : `<div style="width:100%;height:120px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;padding:8px;text-align:center;font-size:12px">${escapeHtml((p.title || 'Produit').substring(0,40))}</div>`
+                        }
                         <div style="padding:8px">
-                          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">👁️ ${(p.views/1000).toFixed(0)}K</div>
-                          <div style="font-size:11px;color:var(--primary);font-weight:600">💰 ${p.price ? p.price.toFixed(2) + '$' : '—'}</div>
-                          <div style="font-size:10px;color:#059669;margin-top:2px">📦 ${p.video_sale_cnt || 0} ventes</div>
+                          <div style="font-size:11px;color:var(--text);font-weight:600;margin-bottom:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml((p.title || 'Produit').substring(0,60))}</div>
+                          <div style="font-size:11px;color:var(--primary);font-weight:700;margin-bottom:2px">💰 ${p.price ? '$' + Number(p.price).toFixed(2) : '—'}</div>
+                          <div style="font-size:10px;color:var(--muted);margin-bottom:2px">👁️ ${p.views ? (p.views/1000).toFixed(0)+'K' : '—'} vues</div>
+                          <div style="font-size:10px;color:#059669">📦 ${p.sales || p.video_sale_cnt || 0} ventes</div>
                         </div>
                       </div>
                     </a>
@@ -2322,6 +2370,20 @@ async function changeCategory() {
   document.getElementById('winning-trends-products').innerHTML = '';
   document.getElementById('winning-trends-products-loading').style.display = 'block';
   document.getElementById('winning-trends-products-none').style.display = 'none';
+
+  // Stocker la catégorie sélectionnée dans le storage pour recharger le marché
+  // puis appeler loadWinningTrendsTab avec override
+  const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (history.length > 0) {
+    history[0].product_category = selectedCategory;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } else {
+    // Aucune analyse → stocker temporairement
+    localStorage.setItem('tta_selected_category', selectedCategory);
+  }
+  // Recharger la tab complète (marché + produits) avec la nouvelle catégorie
+  loadWinningTrendsTab();
+  return;
 
   try {
     // Charger recommandations pour la catégorie sélectionnée
@@ -2363,15 +2425,19 @@ async function changeCategory() {
           ${data.recommended_products && data.recommended_products.length > 0 ? `
             <div>
               <h3 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Top Produits en Tendance</h3>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
                 ${data.recommended_products.slice(0, 6).map(p => `
-                  <a href="${p.url || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
+                  <a href="${p.url || p.tiktok_search_url || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
                     <div style="background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-                      <div style="width:100%;height:100px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;padding:8px;text-align:center;font-size:12px">${escapeHtml((p.title || 'Produit').substring(0,30))}</div>
+                      ${p.image
+                        ? `<img src="${p.image}" alt="${escapeHtml(p.title||'Produit')}" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover;background:var(--bg)">`
+                        : `<div style="width:100%;height:120px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;padding:8px;text-align:center;font-size:12px">${escapeHtml((p.title || 'Produit').substring(0,40))}</div>`
+                      }
                       <div style="padding:8px">
-                        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">👁️ ${(p.views/1000).toFixed(0)}K</div>
-                        <div style="font-size:11px;color:var(--primary);font-weight:600">💰 ${p.price ? p.price.toFixed(2) + '$' : '—'}</div>
-                        <div style="font-size:10px;color:#059669;margin-top:2px">📦 ${p.video_sale_cnt || 0} ventes</div>
+                        <div style="font-size:11px;color:var(--text);font-weight:600;margin-bottom:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml((p.title || 'Produit').substring(0,60))}</div>
+                        <div style="font-size:11px;color:var(--primary);font-weight:700;margin-bottom:2px">💰 ${p.price ? '$' + Number(p.price).toFixed(2) : '—'}</div>
+                        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">👁️ ${p.views ? (p.views/1000).toFixed(0)+'K' : '—'} vues</div>
+                        <div style="font-size:10px;color:#059669">📦 ${p.sales || p.video_sale_cnt || 0} ventes</div>
                       </div>
                     </div>
                   </a>
