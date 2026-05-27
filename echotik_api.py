@@ -64,11 +64,17 @@ class EchoTikAPI:
         Récupère vidéos virales pour une catégorie
         Filtre: views >= min_views + sales >= threshold
         """
+        print(f"[EchoTik] get_viral_videos called for category: {category}")
+
         if not self.token or datetime.now() > self.token_expires:
+            print(f"[EchoTik] Token missing/expired, authenticating...")
             if not await self.authenticate():
+                print(f"[EchoTik] Authentication failed!")
                 return []
+            print(f"[EchoTik] Authentication successful, token: {self.token[:20]}...")
 
         sales_threshold = SALES_THRESHOLDS.get(category.lower(), 300)
+        print(f"[EchoTik] Sales threshold for {category}: {sales_threshold}")
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -83,34 +89,43 @@ class EchoTikAPI:
                     }
                 )
 
+                print(f"[EchoTik] API response status: {resp.status_code}")
+
                 if resp.status_code != 200:
-                    print(f"❌ EchoTik videos error: {resp.status_code}")
+                    print(f"❌ EchoTik videos error: {resp.status_code} - {resp.text[:200]}")
                     return []
 
                 videos = resp.json().get("videos", [])
+                print(f"[EchoTik] Got {len(videos)} videos from API")
 
                 # Filtrer par ventes et formater
                 filtered = []
                 for v in videos:
-                    if (v.get("views", 0) >= min_views and
-                        v.get("sales", 0) >= sales_threshold):
+                    views = v.get("views", 0)
+                    sales = v.get("sales", 0)
+                    if (views >= min_views and sales >= sales_threshold):
                         filtered.append({
                             "id": v.get("id"),
                             "thumbnail": v.get("thumbnail_url"),
                             "creator_handle": v.get("creator_handle"),
                             "creator_link": f"https://www.tiktok.com/@{v.get('creator_handle')}",
-                            "views": v.get("views", 0),
-                            "sales": v.get("sales", 0),
+                            "views": views,
+                            "sales": sales,
                             "description": v.get("description", ""),
                             "hashtags": v.get("hashtags", []),
                             "url": v.get("video_url"),
                         })
+                    else:
+                        print(f"[EchoTik] Filtered out: views={views} (min={min_views}), sales={sales} (min={sales_threshold})")
 
+                print(f"[EchoTik] Filtered: {len(filtered)}/{len(videos)} videos match criteria")
                 # Retourner top 10
                 return filtered[:10]
 
         except Exception as e:
             print(f"❌ EchoTik videos error: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
 
