@@ -2150,17 +2150,60 @@ async function loadWinningTrendsTab() {
       const res = await fetch(`/api/product-recommendations/${detectedCategory.toLowerCase().replace(/\s/g, '-')}`);
       const data = await res.json();
 
-      if (data.ok) {
-        // Afficher les produits recommandés
+      if (data.ok && data.strategy) {
+        const strategy = data.strategy;
+        // Afficher les produits recommandés + stratégie
         const productsHtml = `
-          <div style="background:var(--surface2);padding:16px;border-radius:8px;margin-bottom:16px">
-            <h3 style="margin:0 0 8px 0">Hooks Recommandés pour ${escapeHtml(data.category)}</h3>
-            <p style="margin:0;color:var(--muted);font-size:13px">${data.recommended_hooks.join(' • ')}</p>
-            <p style="margin:8px 0 0 0;color:var(--muted);font-size:12px"><strong>Gamme de prix:</strong> ${data.price_range}</p>
-            <p style="margin:4px 0 0 0;color:var(--muted);font-size:12px">${data.notes}</p>
+          <div style="margin-top: 40px;">
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px">🛍️ Produits Recommandés pour ${escapeHtml(strategy.name)}</h2>
+
+            <!-- Stratégie -->
+            <div style="background:var(--surface2);padding:16px;border-radius:8px;margin-bottom:20px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <div style="color:var(--muted);font-size:12px;font-weight:600">📌 Hooks Efficaces</div>
+                  <div style="color:var(--text);font-size:13px;margin-top:4px">${strategy.hooks.join(' • ')}</div>
+                </div>
+                <div>
+                  <div style="color:var(--muted);font-size:12px;font-weight:600">💰 Positionnement Prix</div>
+                  <div style="color:var(--primary);font-size:13px;font-weight:600;margin-top:4px">${strategy.price_positioning} (${strategy.average_price})</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                  <div style="color:var(--muted);font-size:12px;font-weight:600">⏱️ Timing Conversion</div>
+                  <div style="color:var(--text);font-size:13px;margin-top:4px">${strategy.conversion_timing}</div>
+                </div>
+                <div>
+                  <div style="color:var(--muted);font-size:12px;font-weight:600">📈 Multiplicateur Viral</div>
+                  <div style="color:#059669;font-size:13px;font-weight:600;margin-top:4px">x${strategy.viral_multiplier}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Produits Recommandés -->
+            ${data.recommended_products && data.recommended_products.length > 0 ? `
+              <div>
+                <h3 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Top Produits en Tendance</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+                  ${data.recommended_products.slice(0, 6).map(p => `
+                    <a href="${p.url || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
+                      <div style="background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:pointer" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
+                        <div style="width:100%;height:100px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;padding:8px;text-align:center;font-size:12px">${escapeHtml((p.title || 'Produit').substring(0,30))}</div>
+                        <div style="padding:8px">
+                          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">👁️ ${(p.views/1000).toFixed(0)}K</div>
+                          <div style="font-size:11px;color:var(--primary);font-weight:600">💰 ${p.price ? p.price.toFixed(2) + '$' : '—'}</div>
+                          <div style="font-size:10px;color:#059669;margin-top:2px">📦 ${p.video_sale_cnt || 0} ventes</div>
+                        </div>
+                      </div>
+                    </a>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
-        document.getElementById('winning-trends-products').innerHTML = productsHtml;
+        document.getElementById('winning-trends-products').insertAdjacentHTML('beforeend', productsHtml);
         document.getElementById('winning-trends-products-loading').style.display = 'none';
       }
     } catch (e) {
