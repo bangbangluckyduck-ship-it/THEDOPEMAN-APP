@@ -986,31 +986,91 @@ async function analyzeVideo() {
     const timer   = setTimeout(() => ctrl.abort(), 100000);
     const headers = {};
     if (SESSION.email) headers['Authorization'] = `Bearer ${SESSION.email}`;
+    // Use streaming SSE instead of waiting for full response
     const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal, headers });
     clearTimeout(timer);
 
-    if (!res.ok) throw new Error((await res.json()).detail || 'Erreur serveur');
-
-    const data = await res.json();
-    console.log('[DEBUG] Analysis response:', data);
-    currentData     = data;
-    currentFilename = selectedFile.name;
-
-    if (data.usage?.used !== undefined) {
-      localStorage.setItem(USAGE_KEY, data.usage.used);
-      window.__usage = data.usage;
-      updateUsageCounter();
-      updateUsageBadge(data.usage);
-    } else {
-      incrementUsage();
+    if (!res.ok) {
+      try {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Erreur serveur');
+      } catch (e) {
+        throw new Error('Erreur serveur');
+      }
     }
-    saveToHistory(data, currentFilename);
-    console.log('[DEBUG] About to call showResults');
-    showResults(data);
 
-    if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
-      renderMarketSection(data.donnees_marche);
-      document.getElementById('market-section').style.display = 'block';
+    // Handle Server-Sent Events streaming
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let completeData = null;
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            const eventType = line.slice(7);
+            const dataLine = lines[lines.indexOf(line) + 1];
+
+            if (dataLine && dataLine.startsWith('data: ')) {
+              const eventData = JSON.parse(dataLine.slice(6));
+
+              if (eventType === 'start') {
+                console.log('[STREAM] Analysis started');
+              } else if (eventType === 'progress') {
+                // Update loading text with progress message
+                setLoadingText(eventData.message || '🔄 En cours...');
+                console.log('[STREAM] Progress:', eventData.message);
+              } else if (eventType === 'warning') {
+                console.warn('[STREAM] Warning:', eventData.message);
+              } else if (eventType === 'complete') {
+                // Final complete data
+                completeData = eventData;
+                setLoadingText('✅ Analyse terminée!');
+                console.log('[STREAM] Analysis complete');
+              } else if (eventType === 'error') {
+                throw new Error(eventData.error || 'Erreur analyse');
+              }
+            }
+          }
+        }
+      }
+
+      if (!completeData) throw new Error('Pas de données reçues');
+
+      const data = completeData;
+      console.log('[DEBUG] Analysis response:', data);
+      currentData     = data;
+      currentFilename = selectedFile.name;
+
+      if (data.usage?.used !== undefined) {
+        localStorage.setItem(USAGE_KEY, data.usage.used);
+        window.__usage = data.usage;
+        updateUsageCounter();
+        updateUsageBadge(data.usage);
+      } else {
+        incrementUsage();
+      }
+
+      saveToHistory(data, currentFilename);
+      console.log('[DEBUG] About to call showResults');
+      showResults(data);
+
+      if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
+        renderMarketSection(data.donnees_marche);
+        document.getElementById('market-section').style.display = 'block';
+      }
+
+    } catch (parseErr) {
+      console.error('[STREAM] Parse error:', parseErr);
+      throw parseErr;
     }
 
   } catch (e) {

@@ -402,16 +402,19 @@ async def market_data(category: Optional[str] = None):
 
 
 @app.post("/analyze")
-async def analyze(
+async def analyze_stream_sse(
     request: Request,
     frames: str = Form(...),
     audio: Optional[UploadFile] = File(None),
     product: Optional[str] = Form(None),
 ):
+    """
+    Analyse vidéo avec streaming Server-Sent Events (SSE).
+    Les diagnostics s'affichent au fur et à mesure (vs. tout à la fin).
+    """
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
-    # Log les agents suspects sans bloquer (monitoring uniquement)
     ua = request.headers.get("User-Agent", "").lower()
     if any(w in ua for w in ["scrapy", "spider", "crawler"]):
         ip = request.client.host if request.client else "unknown"
@@ -424,102 +427,129 @@ async def analyze(
     if not frames_list:
         raise HTTPException(status_code=400, detail="Aucune frame reçue.")
 
-    loop = asyncio.get_event_loop()
-    audio_path: Optional[str] = None
+    async def stream_analysis():
+        """Stream analysis progress as it happens."""
+        loop = asyncio.get_event_loop()
+        audio_path: Optional[str] = None
 
-    try:
-        # Save audio to temp file if provided
-        if audio:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                audio_path = tmp.name
-                tmp.write(await audio.read())
-
-        # Transcription with 20s timeout
-        transcript: Optional[str] = None
-        if audio_path:
-            try:
-                transcript = await asyncio.wait_for(
-                    loop.run_in_executor(None, transcribe_audio, audio_path),
-                    timeout=20.0,
-                )
-            except asyncio.TimeoutError:
-                transcript = None
-
-        # Contexte marché pour GOLD / AGENCY / BETA / ADMIN
-        market_context: Optional[dict] = None
-        tier = user.get("tier", "free")
-        is_admin = user.get("is_admin", False)
-        if (tier in ("gold", "agency", "beta") or is_admin) and _SCRAPER_URL:
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
-                if mresp.is_success:
-                    market_context = mresp.json()
-            except Exception:
-                pass  # On continue sans données marché si le scraper est down
-
-        # IA analysis (increased timeout to 180 seconds for complex videos)
-        analysis_start = time.time()
-        result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context, product),
-            timeout=180.0,
-        )
-        analysis_duration_ms = int((time.time() - analysis_start) * 1000)
-
-        if user["valid"]:
-            increment_usage(user["email"])
-
-        result["transcript"]      = transcript
-        result["frames_analyzed"] = len(frames_list)
-        result["usage"]           = usage_info(user)
-
-        # Save result to cache for faster future analyses
-        # Extract video URL from request if available (will be null for direct frame uploads)
-        video_url_to_cache = request.query_params.get("video_url", f"frames_{len(frames_list)}")
         try:
-            await save_to_cache(
-                video_url_to_cache,
-                result,
-                analysis_duration_ms,
-                product_id=product
+            # Send start event
+            yield 'event: start\n'
+            yield 'data: {"message": "🎬 Analyse en cours...", "stage": "start"}\n\n'
+
+            # Save audio to temp file if provided
+            if audio:
+                yield 'event: progress\n'
+                yield 'data: {"message": "📥 Audio en cours de traitement...", "stage": "audio_processing"}\n\n'
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    audio_path = tmp.name
+                    tmp.write(await audio.read())
+
+            # Transcription with 20s timeout
+            transcript: Optional[str] = None
+            if audio_path:
+                yield 'event: progress\n'
+                yield 'data: {"message": "🎤 Transcription audio...", "stage": "transcription"}\n\n'
+                try:
+                    transcript = await asyncio.wait_for(
+                        loop.run_in_executor(None, transcribe_audio, audio_path),
+                        timeout=20.0,
+                    )
+                    yield 'event: progress\n'
+                    yield 'data: {"message": "✅ Transcription complète", "stage": "transcription_done"}\n\n'
+                except asyncio.TimeoutError:
+                    transcript = None
+                    yield 'event: warning\n'
+                    yield 'data: {"message": "⚠️ Transcription timeout", "stage": "transcription_timeout"}\n\n'
+
+            # Market context
+            market_context: Optional[dict] = None
+            tier = user.get("tier", "free")
+            is_admin = user.get("is_admin", False)
+            if (tier in ("gold", "agency", "beta") or is_admin) and _SCRAPER_URL:
+                yield 'event: progress\n'
+                yield 'data: {"message": "📊 Récupération données marché...", "stage": "market_data"}\n\n'
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
+                    if mresp.is_success:
+                        market_context = mresp.json()
+                        yield 'event: progress\n'
+                        yield 'data: {"message": "✅ Données marché chargées", "stage": "market_data_done"}\n\n'
+                except Exception:
+                    pass
+
+            # IA analysis - THIS IS THE LONGEST PART
+            yield 'event: progress\n'
+            yield 'data: {"message": "🤖 Analyse IA en cours... (cela peut prendre 30-90s)", "stage": "ai_analysis"}\n\n'
+
+            analysis_start = time.time()
+            result = await asyncio.wait_for(
+                loop.run_in_executor(None, analyze_video, frames_list, transcript, market_context, product),
+                timeout=180.0,
             )
-        except Exception as e:
-            # Don't fail the analysis if cache save fails
-            security_logger.analyze_error(request.client.host if request.client else "unknown", f"Cache save error: {e}")
+            analysis_duration_ms = int((time.time() - analysis_start) * 1000)
 
-        ip = request.client.host if request.client else "unknown"
-        security_logger.analyze_ok(ip, len(frames_list))
+            yield 'event: progress\n'
+            yield 'data: {"message": "✅ Analyse IA complète", "stage": "ai_analysis_done"}\n\n'
 
-        # Increment analysis count in analytics
-        if supabase_client:
+            if user["valid"]:
+                increment_usage(user["email"])
+
+            result["transcript"]      = transcript
+            result["frames_analyzed"] = len(frames_list)
+            result["usage"]           = usage_info(user)
+            result["analysis_duration_ms"] = analysis_duration_ms
+
+            # Save to cache
+            video_url_to_cache = request.query_params.get("video_url", f"frames_{len(frames_list)}")
             try:
-                today = date.today().isoformat()
-                existing = supabase_client.table("daily_visitor_stats").select("id,analysis_count").eq("date", today).execute()
-                if existing.data:
-                    new_count = (existing.data[0].get("analysis_count") or 0) + 1
-                    supabase_client.table("daily_visitor_stats").update({
-                        "analysis_count": new_count,
-                        "updated_at": datetime.now().isoformat()
-                    }).eq("date", today).execute()
+                await save_to_cache(
+                    video_url_to_cache,
+                    result,
+                    analysis_duration_ms,
+                    product_id=product
+                )
             except Exception as e:
-                pass  # Don't fail the analysis if analytics update fails
+                security_logger.analyze_error(request.client.host if request.client else "unknown", f"Cache save error: {e}")
 
-        return result
+            ip = request.client.host if request.client else "unknown"
+            security_logger.analyze_ok(ip, len(frames_list))
 
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="L'analyse a pris trop longtemps (>3min). Essaie avec une vidéo plus courte ou une résolution plus basse.")
-    except HTTPException:
-        raise
-    except Exception as e:
-        ip = request.client.host if request.client else "unknown"
-        security_logger.analyze_error(ip, str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if audio_path:
-            try:
-                os.unlink(audio_path)
-            except OSError:
-                pass
+            # Analytics
+            if supabase_client:
+                try:
+                    today = date.today().isoformat()
+                    existing = supabase_client.table("daily_visitor_stats").select("id,analysis_count").eq("date", today).execute()
+                    if existing.data:
+                        new_count = (existing.data[0].get("analysis_count") or 0) + 1
+                        supabase_client.table("daily_visitor_stats").update({
+                            "analysis_count": new_count,
+                            "updated_at": datetime.now().isoformat()
+                        }).eq("date", today).execute()
+                except Exception:
+                    pass
+
+            # Send complete result
+            yield 'event: complete\n'
+            yield f'data: {json.dumps(result)}\n\n'
+
+        except asyncio.TimeoutError:
+            yield 'event: error\n'
+            yield 'data: {"error": "L\'analyse a pris trop longtemps (>3min). Essaie avec une vidéo plus courte."}\n\n'
+        except Exception as e:
+            ip = request.client.host if request.client else "unknown"
+            security_logger.analyze_error(ip, str(e))
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+        finally:
+            if audio_path:
+                try:
+                    os.unlink(audio_path)
+                except OSError:
+                    pass
+
+    return StreamingResponse(stream_analysis(), media_type="text/event-stream")
 
 
 # ── STREAMING ANALYSIS ENDPOINT (SSE) ─────────────────────────────────────────
