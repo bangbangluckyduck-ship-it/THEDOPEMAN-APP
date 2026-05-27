@@ -714,6 +714,187 @@
       main { padding: 12px; }
       .section { padding: 14px; }
     }
+
+    /* ── STREAMING ANALYSIS ANIMATIONS ── */
+    .section-animation {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    }
+
+    .section-animation.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .analysis-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--borderl);
+    }
+
+    .section-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .section-icon {
+      font-size: 18px;
+      opacity: 0.8;
+    }
+
+    .section-content {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .section-content p {
+      margin-bottom: 8px;
+    }
+
+    .section-content ul {
+      list-style-position: inside;
+      margin-left: 0;
+    }
+
+    .section-content li {
+      margin-bottom: 6px;
+    }
+
+    .section-content pre {
+      background: var(--bg);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .score-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .analysis-complete {
+      background: linear-gradient(135deg, rgba(212,175,55,.08), rgba(37,99,235,.05));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .complete-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .complete-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .analysis-time {
+      background: var(--primary);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .complete-message {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .analysis-error {
+      background: linear-gradient(135deg, rgba(239,68,68,.08), rgba(239,68,68,.03));
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .error-header {
+      margin-bottom: 12px;
+    }
+
+    .error-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #DC2626;
+      margin: 0;
+    }
+
+    .error-message {
+      font-size: 13px;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    #analysis-container {
+      min-height: 200px;
+      margin-top: 20px;
+    }
+
+    /* Loader spinner animation */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .loader-text {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    #analysis-loader {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -857,6 +1038,12 @@
       </div>
       <div id="loading-text" style="display:block;font-size:14px;color:var(--muted)"></div>
     </div>
+
+    <!-- Streaming Analysis Loader -->
+    <div id="analysis-loader" style="display:none;padding:20px"></div>
+
+    <!-- Streaming Analysis Results Container -->
+    <div id="analysis-container" style="padding:0 20px"></div>
 
     <section id="results-section">
 
@@ -1467,6 +1654,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="/static/app_v2.js"></script>
+<script src="/static/app_v3.js"></script>
 </body>
 </html>
