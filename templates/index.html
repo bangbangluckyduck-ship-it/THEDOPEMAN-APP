@@ -682,42 +682,20 @@
       .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
     }
 
-    /* Modern 2026 Spinner */
-    .modern-spinner {
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.7);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10001;
-    }
-
-    .spinner-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-    }
-
-    .spinner-ring {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(212,175,55,0.1);
+    /* Spinner Inline - Mobile First 2026 */
+    .spinner-inline {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto;
+      border: 3px solid rgba(212,175,55,0.15);
       border-top-color: var(--primary);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin-smooth 1.2s cubic-bezier(0.4, 0.0, 0.6, 1.0) infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .spinner-text {
-      font-size: 14px;
-      color: var(--muted);
-      font-weight: 500;
+    @keyframes spin-smooth {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     /* ── PRICING CARDS ── */
@@ -1113,11 +1091,9 @@
     </section>
 
     <!-- Chargement (en dehors de upload-section pour rester visible) -->
-    <div class="section" id="loading-section" style="display:none;text-align:center;padding:30px 22px">
-      <div class="progress-bar" id="progress-bar" style="display:block;margin:0 auto 14px">
-        <div class="progress-fill"></div>
-      </div>
-      <div id="loading-text" style="display:block;font-size:14px;color:var(--muted)"></div>
+    <div class="section" id="loading-section" style="display:none;text-align:center;padding:40px 20px">
+      <div id="spinner-inline" class="spinner-inline"></div>
+      <div id="loading-text" style="display:block;font-size:14px;color:var(--muted);margin-top:16px"></div>
     </div>
 
     <!-- Streaming Analysis Loader -->
@@ -1592,14 +1568,6 @@
   </div>
 
 </main>
-
-<!-- MODERN SPINNER (2026) -->
-<div id="modern-spinner" class="modern-spinner" style="display:none">
-  <div class="spinner-content">
-    <div class="spinner-ring"></div>
-    <div class="spinner-text">Analyse en cours...</div>
-  </div>
-</div>
 
 <!-- FOOTER -->
 <footer>

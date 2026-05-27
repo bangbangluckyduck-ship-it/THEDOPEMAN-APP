@@ -957,7 +957,6 @@ async function analyzeVideo() {
   document.getElementById('error-box').style.display      = 'none';
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
-  document.getElementById('modern-spinner').style.display  = 'flex';
   setLoadingText(t('loading_extract'));
 
   if (!serverReady) {
@@ -1014,12 +1013,9 @@ async function analyzeVideo() {
       document.getElementById('market-section').style.display = 'block';
     }
 
-    document.getElementById('modern-spinner').style.display = 'none';
-
   } catch (e) {
     document.getElementById('loading-section').style.display = 'none';
     document.getElementById('upload-section').style.display  = 'block';
-    document.getElementById('modern-spinner').style.display = 'none';
     showError(e.name === 'AbortError' ? t('err_timeout') : '❌ ' + e.message);
   }
 }
