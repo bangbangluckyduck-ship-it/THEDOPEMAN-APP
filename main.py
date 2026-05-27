@@ -6,7 +6,7 @@ import tempfile
 import hashlib
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
@@ -24,6 +24,7 @@ from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
+from echotik_api import echotik_client
 
 # Import Supabase for analytics
 from supabase import create_client, Client
@@ -767,8 +768,69 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 # @app.get("/api/analytics/today")
 # async def get_today_analytics(...): pass
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# VIRAL VIDEOS ENDPOINT (EchoTik API)
+# ════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/viral-videos/{category}")
+async def get_viral_videos(category: str):
+    """
+    Récupère vidéos virales (100K+ vues) avec ventes selon catégorie.
+    Cache 24h pour économiser requêtes API EchoTik (100/mois).
+    """
+    if not supabase_client:
+        return JSONResponse({
+            "ok": False,
+            "error": "Database non configurée"
+        }, status_code=503)
+
+    try:
+        # Vérifier cache
+        cached = supabase_client.table("viral_videos_cache").select("*").eq(
+            "category", category.lower()
+        ).execute()
+
+        if cached.data and cached.data[0]:
+            cache_entry = cached.data[0]
+            # Vérifier si encore valide (< 24h)
+            from datetime import datetime as dt
+            expires_at = dt.fromisoformat(cache_entry["expires_at"].replace("Z", "+00:00"))
+            if dt.now(expires_at.tzinfo) < expires_at:
+                return {
+                    "ok": True,
+                    "category": category,
+                    "videos": cache_entry["videos"],
+                    "cached": True,
+                    "cached_at": cache_entry["cached_at"]
+                }
+
+        # Pas de cache valide → récupérer depuis EchoTik
+        videos = await echotik_client.get_viral_videos(category)
+
+        if videos:
+            # Sauvegarder en cache
+            supabase_client.table("viral_videos_cache").upsert({
+                "category": category.lower(),
+                "videos": videos,
+                "cached_at": datetime.now().isoformat(),
+                "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()
+            }, on_conflict="category").execute()
+
+        return {
+            "ok": True,
+            "category": category,
+            "videos": videos,
+            "cached": False,
+            "count": len(videos)
+        }
+
     except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        print(f"❌ Viral videos error: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
 
 
 if __name__ == "__main__":
