@@ -999,49 +999,63 @@ async function analyzeVideo() {
       }
     }
 
-    // Handle Server-Sent Events streaming
+    // Handle Server-Sent Events streaming (robust parser)
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let completeData = null;
     let buffer = '';
 
+    const handleEvent = (eventType, dataStr) => {
+      if (!eventType || !dataStr) return;
+      let eventData;
+      try { eventData = JSON.parse(dataStr); } catch (e) {
+        console.warn('[STREAM] Invalid JSON:', dataStr.slice(0, 100));
+        return;
+      }
+      if (eventType === 'start') {
+        console.log('[STREAM] Analysis started');
+      } else if (eventType === 'progress') {
+        setLoadingText(eventData.message || '🔄 En cours...');
+        console.log('[STREAM] Progress:', eventData.message);
+      } else if (eventType === 'warning') {
+        console.warn('[STREAM] Warning:', eventData.message);
+      } else if (eventType === 'complete') {
+        completeData = eventData;
+        setLoadingText('✅ Analyse terminée!');
+        console.log('[STREAM] Analysis complete');
+      } else if (eventType === 'error') {
+        throw new Error(eventData.error || 'Erreur analyse');
+      }
+    };
+
+    // SSE blocks are separated by a blank line. Each block has event:/data: lines.
+    const processBlock = (block) => {
+      let evType = 'message';
+      const dataLines = [];
+      for (const raw of block.split('\n')) {
+        const line = raw.replace(/\r$/, '');
+        if (!line) continue;
+        if (line.startsWith('event:')) evType = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length) handleEvent(evType, dataLines.join('\n'));
+    };
+
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            const eventType = line.slice(7);
-            const dataLine = lines[lines.indexOf(line) + 1];
-
-            if (dataLine && dataLine.startsWith('data: ')) {
-              const eventData = JSON.parse(dataLine.slice(6));
-
-              if (eventType === 'start') {
-                console.log('[STREAM] Analysis started');
-              } else if (eventType === 'progress') {
-                // Update loading text with progress message
-                setLoadingText(eventData.message || '🔄 En cours...');
-                console.log('[STREAM] Progress:', eventData.message);
-              } else if (eventType === 'warning') {
-                console.warn('[STREAM] Warning:', eventData.message);
-              } else if (eventType === 'complete') {
-                // Final complete data
-                completeData = eventData;
-                setLoadingText('✅ Analyse terminée!');
-                console.log('[STREAM] Analysis complete');
-              } else if (eventType === 'error') {
-                throw new Error(eventData.error || 'Erreur analyse');
-              }
-            }
-          }
+        // Split on event boundaries (\n\n)
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          if (block.trim()) processBlock(block);
         }
       }
+      // Flush remaining
+      if (buffer.trim()) processBlock(buffer);
 
       if (!completeData) throw new Error('Pas de données reçues');
 
