@@ -111,6 +111,9 @@ class KeyAPIClient:
 
             videos_raw = result.get("data", [])
             print(f"[KeyAPI] Got {len(videos_raw)} videos from API")
+            print(f"[KeyAPI] Full response keys: {list(result.keys())}")
+            if videos_raw:
+                print(f"[KeyAPI] First video sample: {videos_raw[0]}")
 
             # Transformer en format standard
             formatted_videos = []
