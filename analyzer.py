@@ -3,8 +3,172 @@ import base64
 import json
 import os
 import re
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CALENDRIER ÉVÉNEMENTIEL + SAISONNALITÉ (timing, gros impact sur conversion)
+# ════════════════════════════════════════════════════════════════════════════
+
+# Événements clés TikTok Shop FR/EU (jour/mois, types de produits boostés)
+EVENEMENTS_CALENDAIRE = [
+    # (label, mois, jour, [catégories/keywords boostés], jours_avant_pic)
+    ("Saint-Valentin",        2,  14, ["bijou", "parfum", "lingerie", "fleur", "chocolat", "couple"],         21),
+    ("Pâques",                4,  20, ["chocolat", "déco", "enfant"],                                         14),
+    ("Fête des Mères",        5,  26, ["bijou", "parfum", "beauté", "cadeau", "fleur"],                       21),
+    ("Fête des Pères",        6,  16, ["montre", "tech", "alcool", "gadget", "outil"],                        21),
+    ("Vacances été",          7,   1, ["plage", "maillot", "lunettes", "solaire", "voyage", "valise"],        45),
+    ("Rentrée scolaire",      8,  25, ["fourniture", "sac", "mode", "ordinateur", "tech"],                    21),
+    ("Halloween",            10,  31, ["déguisement", "déco", "maquillage", "bonbon"],                        30),
+    ("Black Friday",         11,  29, ["tech", "électronique", "mode", "beauté", "cadeau"],                   14),
+    ("Cyber Monday",         12,   2, ["tech", "abonnement"],                                                 14),
+    ("Calendrier de l'avent",10,  20, ["calendrier", "avent", "cadeau", "beauté", "chocolat"],                15),
+    ("Noël",                 12,  25, ["cadeau", "déco", "tech", "bijou", "enfant", "jouet"],                 28),
+    ("Soldes hiver",          1,   8, ["mode", "chaussure"],                                                   7),
+    ("Soldes été",            6,  25, ["mode", "chaussure"],                                                   7),
+    ("French Days printemps", 4,   1, ["tech", "électroménager", "mode"],                                      7),
+    ("French Days automne",   9,  27, ["tech", "électroménager", "mode"],                                      7),
+]
+
+# Saisonnalité par mots-clés produit (mois où ça performe / mois creux)
+SAISONNALITE_KEYWORDS = {
+    # Été
+    "lunettes": {"peak": [4, 5, 6, 7, 8], "creux": [11, 12, 1, 2]},
+    "solaire": {"peak": [5, 6, 7, 8], "creux": [11, 12, 1]},
+    "maillot": {"peak": [4, 5, 6, 7], "creux": [10, 11, 12, 1, 2]},
+    "piscine": {"peak": [4, 5, 6, 7], "creux": [10, 11, 12, 1, 2]},
+    "plage": {"peak": [4, 5, 6, 7], "creux": [11, 12, 1, 2]},
+    "ventilateur": {"peak": [5, 6, 7, 8], "creux": [11, 12, 1, 2]},
+    "climatiseur": {"peak": [5, 6, 7, 8], "creux": [11, 12, 1]},
+    "glacière": {"peak": [4, 5, 6, 7, 8], "creux": [11, 12, 1, 2]},
+    # Hiver
+    "doudoune": {"peak": [10, 11, 12, 1, 2], "creux": [5, 6, 7, 8]},
+    "manteau": {"peak": [10, 11, 12, 1, 2], "creux": [6, 7, 8]},
+    "écharpe": {"peak": [10, 11, 12, 1, 2], "creux": [6, 7, 8]},
+    "chauffage": {"peak": [10, 11, 12, 1, 2], "creux": [5, 6, 7, 8]},
+    "humidificateur": {"peak": [10, 11, 12, 1, 2], "creux": [6, 7, 8]},
+    "couverture": {"peak": [10, 11, 12, 1], "creux": [6, 7, 8]},
+    "bouillotte": {"peak": [10, 11, 12, 1, 2], "creux": [5, 6, 7, 8]},
+    # Saisonnier événementiel
+    "calendrier de l'avent": {"peak": [10, 11], "creux": [1, 2, 3, 4, 5, 6, 7]},
+    "halloween": {"peak": [9, 10], "creux": [1, 2, 3, 4, 5, 6, 7, 8]},
+    "noël": {"peak": [11, 12], "creux": [1, 2, 3, 4, 5, 6, 7, 8]},
+    "sapin": {"peak": [11, 12], "creux": [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+    # Evergreen avec petites variations
+    "parfum": {"peak": [2, 5, 11, 12], "creux": []},
+    "bijou": {"peak": [2, 5, 11, 12], "creux": []},
+}
+
+
+def _saison_actuelle(mois: int) -> str:
+    if mois in (12, 1, 2): return "hiver"
+    if mois in (3, 4, 5): return "printemps"
+    if mois in (6, 7, 8): return "été"
+    return "automne"
+
+
+def _evenements_proches(today: date, max_days: int = 60) -> list:
+    """Retourne les événements dans les `max_days` prochains jours, triés par proximité."""
+    results = []
+    for label, m, d, keywords, lead_days in EVENEMENTS_CALENDAIRE:
+        # Construit la date de l'événement cette année; si passé, prend l'année prochaine
+        try:
+            ev_date = date(today.year, m, d)
+        except ValueError:
+            continue
+        if ev_date < today:
+            ev_date = date(today.year + 1, m, d)
+        delta = (ev_date - today).days
+        if 0 <= delta <= max_days:
+            results.append({
+                "label": label,
+                "date": ev_date.isoformat(),
+                "jours_avant": delta,
+                "keywords_boostes": keywords,
+                "fenetre_publication_avant_pic_jours": lead_days,
+                "dans_fenetre_optimale": delta <= lead_days,
+            })
+    return sorted(results, key=lambda x: x["jours_avant"])
+
+
+def _get_calendar_context(today: Optional[date] = None) -> dict:
+    """Contexte temporel injecté dans le prompt synthèse."""
+    today = today or date.today()
+    mois = today.month
+    return {
+        "date_actuelle": today.isoformat(),
+        "mois_actuel": mois,
+        "mois_actuel_nom": ["janvier","février","mars","avril","mai","juin",
+                            "juillet","août","septembre","octobre","novembre","décembre"][mois-1],
+        "saison_actuelle": _saison_actuelle(mois),
+        "evenements_60j": _evenements_proches(today, max_days=60),
+    }
+
+
+def _saisonnalite_pour_produit(produit: str, mois: int) -> dict:
+    """Détecte si le produit est en pic/creux/neutre selon mois actuel."""
+    if not produit:
+        return {"statut": "inconnu", "score": 50, "raison": "produit non identifié"}
+    p = produit.lower()
+    for kw, data in SAISONNALITE_KEYWORDS.items():
+        if kw in p:
+            if mois in data["peak"]:
+                return {
+                    "statut": "pic",
+                    "score": 95,
+                    "raison": f"« {kw} » est en pleine saison ({_saison_actuelle(mois)})",
+                    "keyword_detecte": kw,
+                }
+            if mois in data["creux"]:
+                return {
+                    "statut": "creux",
+                    "score": 15,
+                    "raison": f"« {kw} » est à contre-saison ({_saison_actuelle(mois)} = saison défavorable)",
+                    "keyword_detecte": kw,
+                }
+            return {
+                "statut": "neutre",
+                "score": 60,
+                "raison": f"« {kw} » ni en pic ni en creux ce mois-ci",
+                "keyword_detecte": kw,
+            }
+    return {"statut": "evergreen", "score": 70, "raison": "Produit sans saisonnalité forte détectée"}
+
+
+def _format_calendar_for_prompt(cal_ctx: dict, saison_produit: dict) -> str:
+    lines = [
+        "\n================================================================================",
+        "CONTEXTE TEMPOREL ACTUEL (très important pour évaluer le timing du contenu)",
+        "================================================================================",
+        f"Date de l'analyse : {cal_ctx['date_actuelle']}",
+        f"Mois actuel : {cal_ctx['mois_actuel_nom']} (saison : {cal_ctx['saison_actuelle']})",
+        f"",
+        f"SAISONNALITÉ DU PRODUIT ANALYSÉ :",
+        f"  Statut : {saison_produit['statut'].upper()} | Score saison : {saison_produit['score']}/100",
+        f"  Raison : {saison_produit['raison']}",
+    ]
+    evs = cal_ctx.get("evenements_60j", [])
+    if evs:
+        lines.append("\nÉVÉNEMENTS COMMERCIAUX DANS LES 60 PROCHAINS JOURS :")
+        for ev in evs[:6]:
+            in_window = "✅ DANS LA FENÊTRE OPTIMALE" if ev["dans_fenetre_optimale"] else "⏰ trop tôt pour push max"
+            lines.append(
+                f"  - {ev['label']} dans {ev['jours_avant']}j ({ev['date']}) | {in_window}"
+                f" | boost catégories: {', '.join(ev['keywords_boostes'][:4])}"
+            )
+        lines.append("\nSi le produit analysé correspond à une catégorie boostée par un événement proche, "
+                     "et que tu es dans la fenêtre optimale de publication, le score timing doit être élevé. "
+                     "Sinon, score moyen ou bas selon distance/non-correspondance.")
+    else:
+        lines.append("\nAucun événement commercial majeur dans les 60 prochains jours.")
+    lines.append("\nINSTRUCTIONS POUR LE BLOC contexte_temporel DU JSON :")
+    lines.append("  - score_timing /100 = synthèse saisonnalité + événements + cycle")
+    lines.append("  - cycle_tendance ∈ {early, peak, late, dead} basé sur l'écosystème TikTok actuel")
+    lines.append("  - warning_timing : message court ⚠️/🔥/✅ visible en haut du diagnostic UI")
+    lines.append("  - fenetre_publication : nombre de jours optimaux pour publier maintenant (-1 si pas la saison)")
+    return "\n".join(lines)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -191,8 +355,20 @@ DIMENSIONS À NOTER :
 
 FLUX VENTE STRUCTURE : 1.Accroche(0-5s) → 2.Problème(5-20s) → 3.Solution(20-45s) → 4.Produit(45-60s) → 5.CTA(60+s)
 
+🆕 9️⃣ CONTEXTE TEMPOREL /100 (CRITIQUE — peut tout changer)
+Évalue le TIMING de cette publication :
+- Saisonnalité : le produit est-il en pic, creux ou neutre selon la date actuelle ?
+- Événement commercial proche : Saint-Valentin/Noël/Black Friday/etc. dans <60j qui boost ce type de produit ?
+- Cycle de tendance : produit en émergence (early), au pic (peak), en chute (late) ou mort (dead) ?
+- Fenêtre d'opportunité : combien de jours avant qu'il soit trop tard ?
+- Warning : alerte courte affichée en haut de l'analyse si timing critique
+Score 90-100 : timing parfait (pic saison + événement proche)
+Score 70-89 : bon timing
+Score 40-69 : timing neutre / evergreen
+Score 0-39 : à contre-saison ou tendance morte (déconseillé de publier maintenant)
+
 RETOUR JSON OBLIGATOIRE (STRUCTURE EXACTE) :
-{"analyse_8_dimensions": {"hook": {"score": <0-100>, "categorie": "<💰ARGENT|❌ERREUR|🎯OPPORTUNITÉ|⚡SIMPLICITÉ|🚀RÉSULTAT|😤FRUSTRATION|🤯CHOC|🔬RÉVÉLATION>", "feedback": "<>"}, "retention": {"score": <0-100>, "boucles_ouvertes": <0-10>, "feedback": "<>"}, "mecanismes_vente": {"score": <0-100>, "biais_principal": "<>", "nb_biais": <1-4>, "type_vente": "<>", "feedback": "<>"}, "positionnement": {"score": <0-100>, "role": "<>", "accessibilite": <1-10>, "credibilite": <1-10>, "relatable": "<oui/non>", "feedback": "<>"}, "format_visuel": {"score": <0-100>, "supports_utilises": ["<>"], "variation_montage": "<lent/moyen/rapide>", "feedback": "<>"}, "emotion_dominante": {"score": <0-100>, "emotion": "<>", "intensite": <1-10>, "transitions_efficaces": ["<>"], "feedback": "<>"}, "conversion_shop": {"score": <0-100>, "cta_visibles": <0-3>, "cta_implicites": <0-3>, "ce_que_vend": "<>", "engagements": {"commentaires": "<oui/non>", "sauvegardes": "<oui/non>", "partage": "<oui/non>"}, "feedback": "<>"}, "algorithme": {"score": <0-100>, "signaux_forts": ["<>"], "moments_cles": ["<>"], "potentiel_push": "<faible/moyen/fort>", "feedback": "<>"}, "score_persuasion_global": <0-100>}, "scores_legacy": {"accroche": {"note": <0-10>, "commentaire": "<>"}, "discours": {"note": <0-10>, "commentaire": "<>"}, "qualite_visuelle": {"note": <0-10>, "commentaire": "<>"}, "visibilite_produit": {"note": <0-10>, "commentaire": "<>"}, "call_to_action": {"note": <0-10>, "commentaire": "<>"}, "energie_dynamisme": {"note": <0-10>, "commentaire": "<>"}, "credibilite_confiance": {"note": <0-10>, "commentaire": "<>"}}, "detection": {"produit": "<nom>", "prix_estime": "<prix EUR ou non détecté>", "prix_rentable": <true/false>, "hook_type": "<>", "hook_force": <0-10>, "confiance_detection": <0.6-1.0>}, "viral_potential": {"score": <0-100>, "facteur_prix": "<très bas <15€|bon 15-40€|élevé 40-100€|premium 100€+>", "explication": "<2-3 lignes>"}, "structure_vente": {"accroche": {"present": <true/false>, "score": <0-10>, "hook_type": "<>", "feedback": "<>"}, "probleme": {"present": <true/false>, "score": <0-10>, "problem_stated": "<>", "clarity": <0-10>, "feedback": "<>"}, "solution": {"present": <true/false>, "score": <0-10>, "how_solved": "<>", "product_link": "<yes/no>", "feedback": "<>"}, "produit": {"present": <true/false>, "score": <0-10>, "shown_adequately": "<yes/no/partially>", "demo_quality": "<none/basic/good/excellent>", "feedback": "<>"}, "cta": {"present": <true/false>, "score": <0-10>, "cta_type": "<>", "clarity": <0-10>, "persuasion": "<faible/moyen/fort>", "feedback": "<>"}, "ordre_naturel": <true/false>, "transitions": "<fluides/abruptes/absentes>", "score_structure": <0-100>}, "score_global": <0-100>, "points_forts": ["<1>", "<2>", "<3>"], "points_ameliorer": ["<1>", "<2>", "<3>"], "recommendations_hooks": {"hook_type_propose": "<>", "raison": "<1-2 phrases>", "exemples_concrets": ["<>", "<>", "<>"]}, "plan_reproduction": {"hook_similaire": {"structure": "<>", "variables": "<>", "exemple": "<>"}, "mecanique_montage": {"rythme": "<>", "transitions": "<>", "elements_visuels": ["<>"]}, "cta_optimise": {"type": "<direct/implicite/emotionnel>", "placement": "<debut/milieu/fin>", "formulation": "<>"}, "angle_shop": {"produit": "<>", "storytelling": "<>", "emotion": "<>"}}, "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"], "ameliorations_prioritaires": [{"rang": 1, "action": "<>", "impact": "<>"}, {"rang": 2, "action": "<>", "impact": "<>"}, {"rang": 3, "action": "<>", "impact": "<>"}], "verdict": "<3-4 phrases langage probabiliste>", "disclaimer_realisme": "Analyse décortique persuasion + signaux algo. TikTok surprend — mauvaises vidéos vendent bien, excellentes floppent. Repère stratégique, pas certitude."}"""
+{"contexte_temporel": {"score_timing": <0-100>, "score_saison": <0-100>, "statut_saison": "<pic|peak|neutre|creux|evergreen>", "evenement_booster": {"label": "<nom événement ou null>", "jours_avant": <int ou null>, "dans_fenetre_optimale": <true/false>, "boost_applicable": <true/false>}, "cycle_tendance": "<early|peak|late|dead>", "fenetre_publication": {"jours_recommandes": <int>, "moment_optimal": "<ex: 'publier dans les 14 prochains jours' ou 'attendre mars-avril'>"}, "warning_timing": "<🔥 TIMING OPTIMAL / ✅ TIMING OK / ⚠️ TIMING DÉFAVORABLE / ❌ CONTRE-SAISON>", "message_warning": "<2 phrases concrètes>", "recommandation_publication": "<conseil court>"}, "analyse_8_dimensions": {"hook": {"score": <0-100>, "categorie": "<💰ARGENT|❌ERREUR|🎯OPPORTUNITÉ|⚡SIMPLICITÉ|🚀RÉSULTAT|😤FRUSTRATION|🤯CHOC|🔬RÉVÉLATION>", "feedback": "<>"}, "retention": {"score": <0-100>, "boucles_ouvertes": <0-10>, "feedback": "<>"}, "mecanismes_vente": {"score": <0-100>, "biais_principal": "<>", "nb_biais": <1-4>, "type_vente": "<>", "feedback": "<>"}, "positionnement": {"score": <0-100>, "role": "<>", "accessibilite": <1-10>, "credibilite": <1-10>, "relatable": "<oui/non>", "feedback": "<>"}, "format_visuel": {"score": <0-100>, "supports_utilises": ["<>"], "variation_montage": "<lent/moyen/rapide>", "feedback": "<>"}, "emotion_dominante": {"score": <0-100>, "emotion": "<>", "intensite": <1-10>, "transitions_efficaces": ["<>"], "feedback": "<>"}, "conversion_shop": {"score": <0-100>, "cta_visibles": <0-3>, "cta_implicites": <0-3>, "ce_que_vend": "<>", "engagements": {"commentaires": "<oui/non>", "sauvegardes": "<oui/non>", "partage": "<oui/non>"}, "feedback": "<>"}, "algorithme": {"score": <0-100>, "signaux_forts": ["<>"], "moments_cles": ["<>"], "potentiel_push": "<faible/moyen/fort>", "feedback": "<>"}, "score_persuasion_global": <0-100>}, "scores_legacy": {"accroche": {"note": <0-10>, "commentaire": "<>"}, "discours": {"note": <0-10>, "commentaire": "<>"}, "qualite_visuelle": {"note": <0-10>, "commentaire": "<>"}, "visibilite_produit": {"note": <0-10>, "commentaire": "<>"}, "call_to_action": {"note": <0-10>, "commentaire": "<>"}, "energie_dynamisme": {"note": <0-10>, "commentaire": "<>"}, "credibilite_confiance": {"note": <0-10>, "commentaire": "<>"}}, "detection": {"produit": "<nom>", "prix_estime": "<prix EUR ou non détecté>", "prix_rentable": <true/false>, "hook_type": "<>", "hook_force": <0-10>, "confiance_detection": <0.6-1.0>}, "viral_potential": {"score": <0-100>, "facteur_prix": "<très bas <15€|bon 15-40€|élevé 40-100€|premium 100€+>", "explication": "<2-3 lignes>"}, "structure_vente": {"accroche": {"present": <true/false>, "score": <0-10>, "hook_type": "<>", "feedback": "<>"}, "probleme": {"present": <true/false>, "score": <0-10>, "problem_stated": "<>", "clarity": <0-10>, "feedback": "<>"}, "solution": {"present": <true/false>, "score": <0-10>, "how_solved": "<>", "product_link": "<yes/no>", "feedback": "<>"}, "produit": {"present": <true/false>, "score": <0-10>, "shown_adequately": "<yes/no/partially>", "demo_quality": "<none/basic/good/excellent>", "feedback": "<>"}, "cta": {"present": <true/false>, "score": <0-10>, "cta_type": "<>", "clarity": <0-10>, "persuasion": "<faible/moyen/fort>", "feedback": "<>"}, "ordre_naturel": <true/false>, "transitions": "<fluides/abruptes/absentes>", "score_structure": <0-100>}, "score_global": <0-100>, "points_forts": ["<1>", "<2>", "<3>"], "points_ameliorer": ["<1>", "<2>", "<3>"], "recommendations_hooks": {"hook_type_propose": "<>", "raison": "<1-2 phrases>", "exemples_concrets": ["<>", "<>", "<>"]}, "plan_reproduction": {"hook_similaire": {"structure": "<>", "variables": "<>", "exemple": "<>"}, "mecanique_montage": {"rythme": "<>", "transitions": "<>", "elements_visuels": ["<>"]}, "cta_optimise": {"type": "<direct/implicite/emotionnel>", "placement": "<debut/milieu/fin>", "formulation": "<>"}, "angle_shop": {"produit": "<>", "storytelling": "<>", "emotion": "<>"}}, "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"], "ameliorations_prioritaires": [{"rang": 1, "action": "<>", "impact": "<>"}, {"rang": 2, "action": "<>", "impact": "<>"}, {"rang": 3, "action": "<>", "impact": "<>"}], "verdict": "<3-4 phrases langage probabiliste>", "disclaimer_realisme": "Analyse décortique persuasion + signaux algo. TikTok surprend — mauvaises vidéos vendent bien, excellentes floppent. Repère stratégique, pas certitude."}"""
 
 
 def _format_market_context(market: dict) -> str:
@@ -233,6 +409,15 @@ def synthesize_analysis(
 
     parts = [SYNTHESIS_PROMPT]
 
+    # 🆕 Contexte temporel (calendrier + saisonnalité) — calculé côté serveur, fiable
+    cal_ctx = _get_calendar_context()
+    detected_product_name = visual_result.get("produit") if isinstance(visual_result, dict) else None
+    saison_produit = _saisonnalite_pour_produit(
+        detected_product_name or (product or ""),
+        cal_ctx["mois_actuel"],
+    )
+    parts.append(_format_calendar_for_prompt(cal_ctx, saison_produit))
+
     parts.append("\n\n================================================================================")
     parts.append("ANALYSE VISUELLE DÉJÀ EFFECTUÉE (réutilise ces scores tel quel) :")
     parts.append("================================================================================")
@@ -267,14 +452,20 @@ def synthesize_analysis(
     except Exception:
         return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
 
-    return _post_process(parsed, market_context, visual_result)
+    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit)
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # POST-PROCESSING (calculs prix/conversion côté serveur, plus fiable que IA)
 # ════════════════════════════════════════════════════════════════════════════
-def _post_process(parsed: dict, market_context: Optional[dict], visual_result: dict) -> dict:
-    """Applique la logique business prix/conversion + injection des données marché."""
+def _post_process(
+    parsed: dict,
+    market_context: Optional[dict],
+    visual_result: dict,
+    cal_ctx: Optional[dict] = None,
+    saison_produit: Optional[dict] = None,
+) -> dict:
+    """Applique la logique business prix/conversion + injection des données marché + timing."""
     # Extraire structure_vente au top level
     if "structure_vente" in parsed:
         sv = parsed["structure_vente"]
@@ -352,21 +543,34 @@ def _post_process(parsed: dict, market_context: Optional[dict], visual_result: d
                 conseil = (f"Potentiel faible. Prix premium + vidéo moyenne = combinaison difficile. "
                            "J+30 sera décisif, mais les attentes doivent rester modérées.")
                 niveau, delai, champion = "lent", "j30", False
+        pc = parsed.setdefault("prix_conversion", {})
+        pc["montant"] = prix_num
+        pc["categorie"] = cat
+        pc["prix_identifie"] = True
+        pc.setdefault("potentiel_conversion", {}).update({
+            "niveau": niveau,
+            "temps_attendre": delai,
+            "confiance_prechampion": champion,
+        })
+        pc["conseil_prix"] = conseil
     else:
-        cat = "inconnu"
-        conseil = ("Prix non détecté — impossible d'évaluer le potentiel de conversion avec précision. "
-                   "Analyse la vidéo sur J7 pour les produits < 40€, J30 pour les autres.")
-        niveau, delai, champion = "inconnu", "j7", False
-
-    pc = parsed.setdefault("prix_conversion", {})
-    pc["montant"] = prix_num if prix_num > 0 else None
-    pc["categorie"] = cat
-    pc.setdefault("potentiel_conversion", {}).update({
-        "niveau": niveau,
-        "temps_attendre": delai,
-        "confiance_prechampion": champion,
-    })
-    pc["conseil_prix"] = conseil
+        # Prix NON identifié → ne PAS auto-bucketer, l'analyse conversion est juste "non évaluable"
+        pc = parsed.setdefault("prix_conversion", {})
+        pc["montant"] = None
+        pc["categorie"] = "non identifié"
+        pc["prix_identifie"] = False
+        pc["evaluation_conversion_impossible"] = True
+        pc.setdefault("potentiel_conversion", {}).update({
+            "niveau": "non évaluable",
+            "temps_attendre": None,
+            "confiance_prechampion": False,
+        })
+        pc["conseil_prix"] = (
+            "💰 Prix non identifié dans la vidéo — l'analyse de conversion ne peut "
+            "pas être chiffrée avec fiabilité. Ajoute le prix manuellement (champ "
+            "« produit ») pour débloquer le diagnostic complet de potentiel de vente. "
+            "En attendant, l'analyse couvre uniquement la qualité du contenu vidéo."
+        )
 
     # Injecter les données marché si dispo
     if market_context:
@@ -375,6 +579,73 @@ def _post_process(parsed: dict, market_context: Optional[dict], visual_result: d
             "trending": market_context.get("trending", [])[:5],
             "top_creators": market_context.get("top_creators", [])[:3],
         }
+
+    # 🆕 Enrichir / garantir contexte_temporel avec les valeurs calculées serveur
+    if cal_ctx and saison_produit:
+        ct = parsed.setdefault("contexte_temporel", {})
+        # Toujours écraser avec les vraies valeurs calculées côté serveur (fiables)
+        ct["date_analyse"] = cal_ctx["date_actuelle"]
+        ct["mois_actuel"] = cal_ctx["mois_actuel_nom"]
+        ct["saison_actuelle"] = cal_ctx["saison_actuelle"]
+        ct["score_saison"] = saison_produit["score"]
+        ct["statut_saison"] = saison_produit["statut"]
+        ct["saison_raison"] = saison_produit["raison"]
+        ct["evenements_proches"] = cal_ctx.get("evenements_60j", [])[:5]
+
+        # Score timing fallback si l'IA n'a pas répondu correctement
+        if not isinstance(ct.get("score_timing"), (int, float)):
+            ct["score_timing"] = saison_produit["score"]
+
+        # Détecter automatiquement l'événement booster le plus proche
+        produit_lower = (visual_result.get("produit") or "").lower()
+        evt_match = None
+        for ev in cal_ctx.get("evenements_60j", []):
+            if any(kw in produit_lower for kw in ev["keywords_boostes"]):
+                evt_match = ev
+                break
+        if evt_match and not ct.get("evenement_booster", {}).get("label"):
+            ct["evenement_booster"] = {
+                "label": evt_match["label"],
+                "jours_avant": evt_match["jours_avant"],
+                "dans_fenetre_optimale": evt_match["dans_fenetre_optimale"],
+                "boost_applicable": True,
+            }
+        elif not ct.get("evenement_booster"):
+            ct["evenement_booster"] = {
+                "label": None, "jours_avant": None,
+                "dans_fenetre_optimale": False, "boost_applicable": False,
+            }
+
+        # Warning automatique cohérent avec le score
+        if not ct.get("warning_timing"):
+            if ct["score_timing"] >= 85:
+                ct["warning_timing"] = "🔥 TIMING OPTIMAL"
+            elif ct["score_timing"] >= 60:
+                ct["warning_timing"] = "✅ TIMING OK"
+            elif ct["score_timing"] >= 30:
+                ct["warning_timing"] = "⚠️ TIMING DÉFAVORABLE"
+            else:
+                ct["warning_timing"] = "❌ CONTRE-SAISON"
+
+        if not ct.get("message_warning"):
+            if saison_produit["statut"] == "creux":
+                ct["message_warning"] = (
+                    f"Le produit cible une période à l'opposé du moment actuel "
+                    f"({cal_ctx['saison_actuelle']}). Publier maintenant aura un impact très faible. "
+                    f"Attends la bonne saison pour scaler efficacement."
+                )
+            elif evt_match and evt_match["dans_fenetre_optimale"]:
+                ct["message_warning"] = (
+                    f"Tu publies à {evt_match['jours_avant']} jours de « {evt_match['label']} » "
+                    f"— c'est la fenêtre optimale pour ce type de produit. Push maximal recommandé."
+                )
+            elif saison_produit["statut"] == "pic":
+                ct["message_warning"] = (
+                    f"Le produit est en pleine saison ({cal_ctx['saison_actuelle']}). "
+                    f"Bonne fenêtre pour publier — la demande naturelle est élevée."
+                )
+            else:
+                ct["message_warning"] = "Pas de signal temporel fort. Le contenu peut être publié toute l'année."
 
     # Expose visual_result en debug (optionnel)
     parsed["_visual_pass"] = {
