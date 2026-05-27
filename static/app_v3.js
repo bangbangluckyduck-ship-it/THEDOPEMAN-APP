@@ -2109,6 +2109,41 @@ async function loadWinningTrendsTab() {
     document.getElementById('winning-trends-loading').style.display = 'none';
   }
 
+  // Charger vidéos virales EchoTik si catégorie détectée
+  if (detectedCategory) {
+    try {
+      const viralRes = await fetch(`/api/viral-videos/${detectedCategory.toLowerCase().replace(/\s/g, '-')}`);
+      const viralData = await viralRes.json();
+      console.log('[VIRAL-VIDEOS] Response:', viralData);
+
+      if (viralData.ok && viralData.videos && viralData.videos.length > 0) {
+        const viralHtml = `
+          <div style="margin-top: 40px;">
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px">🎬 Vidéos Virales (100K+ vues)</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+              ${viralData.videos.map(v => `
+                <a href="${v.url}" target="_blank" rel="noopener" style="text-decoration:none">
+                  <div style="background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
+                    <img src="${v.thumbnail}" alt="Vidéo viral" style="width:100%;height:120px;object-fit:cover;background:var(--bg)">
+                    <div style="padding:10px">
+                      <div style="font-size:11px;color:var(--primary);font-weight:700;margin-bottom:4px">@${escapeHtml(v.creator_handle)}</div>
+                      <div style="font-size:11px;color:var(--muted);margin-bottom:2px">👁️ ${(v.views/1000).toFixed(0)}K vues</div>
+                      <div style="font-size:11px;color:#059669;font-weight:600">📦 ${(v.sales/1000).toFixed(1)}K ventes</div>
+                      ${v.hashtags && v.hashtags.length > 0 ? `<div style="font-size:10px;color:var(--accent);margin-top:4px">${v.hashtags.slice(0,2).join(' ')}</div>` : ''}
+                    </div>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        document.getElementById('winning-trends-products').insertAdjacentHTML('beforeend', viralHtml);
+      }
+    } catch (e) {
+      console.error('Erreur vidéos virales:', e);
+    }
+  }
+
   // Charger les recommandations produits si catégorie détectée
   if (detectedCategory) {
     try {
