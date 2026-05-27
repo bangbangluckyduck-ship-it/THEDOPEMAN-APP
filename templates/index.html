@@ -1450,6 +1450,19 @@
       <h2>📊 Marché & Tendances</h2>
       <div id="winning-trends-context" style="display:none">
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px" id="winning-trends-detected-category">Catégorie détectée: <strong id="detected-cat-name">—</strong></p>
+        <div style="margin-bottom:16px">
+          <label for="category-selector" style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px">Afficher tendances pour:</label>
+          <select id="category-selector" onchange="changeCategory()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">
+            <option value="">— Auto (dernière analyse) —</option>
+            <option value="beaute">💄 Beauté & Cosmétiques</option>
+            <option value="fashion">👗 Fashion & Vêtements</option>
+            <option value="tech">📱 Technologie & Gadgets</option>
+            <option value="fitness">💪 Fitness & Équipement</option>
+            <option value="sante">🏥 Santé & Bien-être</option>
+            <option value="complement_sante">🌿 Compléments Nutritionnels</option>
+            <option value="electromenager">🏠 Électroménager & Maison</option>
+          </select>
+        </div>
         <div id="market-context-content"></div>
       </div>
       <div id="winning-trends-loading" style="text-align:center;padding:20px">
