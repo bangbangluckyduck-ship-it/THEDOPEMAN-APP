@@ -3,8 +3,10 @@ import asyncio
 import json
 import os
 import tempfile
+import hashlib
 from pathlib import Path
 from typing import Optional
+from datetime import datetime, date
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
@@ -22,6 +24,17 @@ from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
+
+# Import Supabase for analytics
+from supabase import create_client, Client
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+try:
+    supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+except Exception as e:
+    print(f"⚠️  Supabase analytics client init failed: {e}")
+    supabase_client = None
 
 generate_icons()
 
@@ -60,17 +73,20 @@ _BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding=
 _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
 _CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
 _ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
+_ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home():
+async def home(request: Request):
     """Landing page avec tool d'analyse intégré."""
+    await track_visitor("/", request)
     return HTMLResponse(_HOMEPAGE_HTML)
 
 
 @app.get("/app", response_class=HTMLResponse)
-async def app_page():
+async def app_page(request: Request):
     """Page d'analyse complète."""
+    await track_visitor("/app", request)
     return HTMLResponse(_APP_HTML)
 
 
@@ -114,6 +130,12 @@ async def contact():
 async def about():
     """Page à propos."""
     return HTMLResponse(_ABOUT_HTML)
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics():
+    """Analytics dashboard."""
+    return HTMLResponse(_ANALYTICS_HTML)
 
 
 @app.get("/health")
@@ -450,6 +472,21 @@ async def analyze(
 
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, len(frames_list))
+
+        # Increment analysis count in analytics
+        if supabase_client:
+            try:
+                today = date.today().isoformat()
+                existing = supabase_client.table("daily_visitor_stats").select("id,analysis_count").eq("date", today).execute()
+                if existing.data:
+                    new_count = (existing.data[0].get("analysis_count") or 0) + 1
+                    supabase_client.table("daily_visitor_stats").update({
+                        "analysis_count": new_count,
+                        "updated_at": datetime.now().isoformat()
+                    }).eq("date", today).execute()
+            except Exception as e:
+                pass  # Don't fail the analysis if analytics update fails
+
         return result
 
     except asyncio.TimeoutError:
@@ -625,6 +662,110 @@ async def product_recommendations(category: str):
                 "top_creators": []
             }
         }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ANALYTICS ENDPOINTS
+# ════════════════════════════════════════════════════════════════════════════
+
+async def track_visitor(page: str, request: Request, user_email: Optional[str] = None):
+    """Track visitor to analytics database."""
+    if not supabase_client:
+        return
+
+    try:
+        # Get IP hash
+        ip = request.client.ip if request.client else "unknown"
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+        # Get user agent hash
+        user_agent = request.headers.get("user-agent", "")
+        ua_hash = hashlib.sha256(user_agent.encode()).hexdigest()[:16]
+
+        today = date.today().isoformat()
+
+        # Log individual visit
+        supabase_client.table("visitor_logs").insert({
+            "page": page,
+            "ip_hash": ip_hash,
+            "user_agent_hash": ua_hash,
+            "user_email": user_email,
+            "timestamp": datetime.now().isoformat()
+        }).execute()
+
+        # Update daily stats (upsert)
+        existing = supabase_client.table("daily_visitor_stats").select("id,visitor_count").eq("date", today).execute()
+
+        if existing.data:
+            # Update existing
+            supabase_client.table("daily_visitor_stats").update({
+                "visitor_count": existing.data[0]["visitor_count"] + 1,
+                "updated_at": datetime.now().isoformat()
+            }).eq("date", today).execute()
+        else:
+            # Insert new
+            supabase_client.table("daily_visitor_stats").insert({
+                "date": today,
+                "visitor_count": 1,
+                "unique_visitors": 0,
+                "analysis_count": 0
+            }).execute()
+    except Exception as e:
+        print(f"⚠️  Analytics tracking error: {e}")
+
+
+@app.get("/api/analytics")
+async def get_analytics(password: Optional[str] = Query(None)):
+    """Get analytics data (requires admin password)."""
+    if not supabase_client:
+        return JSONResponse({"error": "Analytics not available"}, status_code=503)
+
+    # Check password
+    if password != os.getenv("ANALYTICS_PASSWORD", "admin123"):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    try:
+        # Get last 30 days of stats
+        stats = supabase_client.table("daily_visitor_stats").select("*").order("date", desc=True).limit(30).execute()
+
+        # Get visitor count summary
+        summary = supabase_client.table("daily_visitor_stats").select("visitor_count").execute()
+        total_visitors = sum([s["visitor_count"] for s in summary.data]) if summary.data else 0
+
+        return {
+            "ok": True,
+            "total_visitors": total_visitors,
+            "daily_stats": stats.data or [],
+            "period": "last_30_days"
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/analytics/today")
+async def get_today_analytics(password: Optional[str] = Query(None)):
+    """Get today's visitor count (requires admin password)."""
+    if not supabase_client:
+        return JSONResponse({"error": "Analytics not available"}, status_code=503)
+
+    if password != os.getenv("ANALYTICS_PASSWORD", "admin123"):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    try:
+        today = date.today().isoformat()
+        result = supabase_client.table("daily_visitor_stats").select("visitor_count").eq("date", today).execute()
+
+        visitor_count = 0
+        if result.data:
+            visitor_count = result.data[0]["visitor_count"]
+
+        return {
+            "ok": True,
+            "date": today,
+            "visitor_count": visitor_count
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
