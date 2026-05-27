@@ -443,9 +443,17 @@ async def analyze_stream_sse(
     user = get_user_from_request(request)
     check_quota(user)
 
-    frames_list: list[str] = json.loads(frames)
+    try:
+        frames_list: list[str] = json.loads(frames)
+    except json.JSONDecodeError as e:
+        print(f"[/analyze] Bad frames JSON: {e} | preview={frames[:200] if frames else 'EMPTY'}")
+        raise HTTPException(status_code=400, detail="Frames JSON invalide. Réessaie de sélectionner la vidéo.")
     if not frames_list:
-        raise HTTPException(status_code=400, detail="Aucune frame reçue.")
+        print(f"[/analyze] Empty frames list from {request.client.host if request.client else '?'}")
+        raise HTTPException(status_code=400, detail="Aucune image extraite de la vidéo. Vérifie que la vidéo est valide (mp4, mov) et réessaie.")
+    if not isinstance(frames_list, list) or not all(isinstance(f, str) for f in frames_list):
+        raise HTTPException(status_code=400, detail="Format frames invalide.")
+    print(f"[/analyze] OK frames={len(frames_list)} audio={'yes' if audio else 'no'} product={product or 'auto'}")
 
     async def stream_analysis():
         """Stream analysis progress as it happens."""
@@ -905,8 +913,8 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
         return
 
     try:
-        # Get IP hash
-        ip = request.client.ip if request.client else "unknown"
+        # Get IP hash (starlette Address uses .host, not .ip)
+        ip = request.client.host if request.client else "unknown"
         ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
 
         # Get user agent hash
