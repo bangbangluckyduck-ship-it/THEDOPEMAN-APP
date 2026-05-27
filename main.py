@@ -659,57 +659,6 @@ async def market_recommendations():
         return fallback_data
 
 
-@app.get("/api/product-recommendations/{category}")
-async def product_recommendations(category: str):
-    """Retourne les recommandations produits pour une catégorie spécifique."""
-    import json
-    from pathlib import Path
-
-    try:
-        # Charger hooks_db.json pour obtenir les infos de catégorie
-        db_path = Path("hooks_db.json")
-        if not db_path.exists():
-            raise HTTPException(status_code=404, detail="Base de données produits non trouvée")
-
-        db = json.loads(db_path.read_text(encoding="utf-8"))
-
-        # Chercher la catégorie dans product_categories
-        category_lower = category.lower().replace("-", "_")
-        if category_lower not in db.get("product_categories", {}):
-            return {
-                "ok": False,
-                "error": f"Catégorie '{category}' non trouvée",
-                "available_categories": list(db.get("product_categories", {}).keys())
-            }
-
-        cat_data = db["product_categories"][category_lower]
-
-        # Récupérer les données marché si disponibles
-        market_data = None
-        if _SCRAPER_URL:
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(f"{_SCRAPER_URL}/api/coach-context?category={category_lower}")
-                if resp.is_success:
-                    market_data = resp.json()
-            except Exception:
-                pass  # Continuer sans données marché
-
-        return {
-            "ok": True,
-            "category": category_lower,
-            "category_names": cat_data.get("names", []),
-            "recommended_hooks": cat_data.get("recommended_hooks", []),
-            "price_range": cat_data.get("price_range", "unknown"),
-            "notes": cat_data.get("notes", ""),
-            "market_data": market_data or {
-                "top_products": [],
-                "trending": [],
-                "top_creators": []
-            }
-        }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -835,21 +784,6 @@ async def get_viral_videos(category: str):
         }, status_code=500)
 
 
-@app.get("/api/keyapi-tools")
-async def get_keyapi_tools():
-    """Découvre les outils disponibles dans KeyAPI"""
-    try:
-        tools = await keyapi_client.list_tools()
-        return {
-            "ok": True,
-            "tools": tools,
-            "count": len(tools)
-        }
-    except Exception as e:
-        print(f"❌ KeyAPI tools error: {e}")
-        return {"ok": False, "error": str(e)}
-
-
 # Stratégies produits par catégorie
 CATEGORY_STRATEGIES = {
     "fashion": {
@@ -928,6 +862,9 @@ CATEGORY_STRATEGIES = {
 @app.get("/api/product-recommendations/{category}")
 async def get_product_recommendations(category: str):
     """Retourne produits recommandés + stratégie pour une catégorie"""
+    import json
+    from pathlib import Path
+
     category_lower = category.lower()
 
     # Récupérer la stratégie
@@ -945,12 +882,32 @@ async def get_product_recommendations(category: str):
     # Récupérer les vidéos virales comme base de recommandations
     videos = await keyapi_client.get_viral_videos(category_lower)
 
+    # Essayer de charger données additionnelles depuis hooks_db.json
+    additional_data = {}
+    try:
+        db_path = Path("hooks_db.json")
+        if db_path.exists():
+            db = json.loads(db_path.read_text(encoding="utf-8"))
+            # Convertir category_lower (ex: "beaute") pour chercher dans product_categories
+            product_cat_key = category_lower.replace("-", "_")
+            if product_cat_key in db.get("product_categories", {}):
+                cat_data = db["product_categories"][product_cat_key]
+                additional_data = {
+                    "category_names": cat_data.get("names", []),
+                    "recommended_hooks_db": cat_data.get("recommended_hooks", []),
+                    "price_range": cat_data.get("price_range", "unknown"),
+                    "notes": cat_data.get("notes", "")
+                }
+    except Exception:
+        pass  # Continuer sans données supplémentaires
+
     return {
         "ok": True,
         "category": category_lower,
         "strategy": strategy,
         "recommended_products": videos[:5] if videos else [],
-        "product_count": len(videos) if videos else 0
+        "product_count": len(videos) if videos else 0,
+        **additional_data  # Inclure les données additionnelles si disponibles
     }
 
 
