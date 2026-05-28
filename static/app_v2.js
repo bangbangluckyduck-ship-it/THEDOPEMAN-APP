@@ -405,11 +405,14 @@ function initSessionState() {
 }
 
 // Save session to localStorage and update UI
-function saveSession(email, name) {
+function saveSession(email, name, token) {
   SESSION.email = email;
   SESSION.name = name;
   localStorage.setItem('tts_email', email);
   localStorage.setItem('tts_name', name);
+  if (token) {
+    localStorage.setItem('tts_token', token);
+  }
   updateSessionUI();
   fetchUserInfo();
 }
@@ -420,6 +423,7 @@ function clearSession() {
   SESSION.name = null;
   localStorage.removeItem('tts_email');
   localStorage.removeItem('tts_name');
+  localStorage.removeItem('tts_token');
   localStorage.removeItem(USAGE_KEY);
   location.reload();
 }
@@ -721,7 +725,11 @@ function updateSessionUI() {
 // Fetch user info from server
 function fetchUserInfo() {
   if (!SESSION.email) return;
-  fetch('/api/user-info', { headers: { Authorization: `Bearer ${SESSION.email}` } })
+  fetch('/api/user-info', {
+    headers: {
+      'Authorization': localStorage.getItem('tts_token') ? 'Bearer ' + localStorage.getItem('tts_token') : ''
+    }
+  })
     .then(r => r.json())
     .then(data => {
       window.__userInfo = data;
@@ -985,7 +993,10 @@ async function analyzeVideo() {
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
     const headers = {};
-    if (SESSION.email) headers['Authorization'] = `Bearer ${SESSION.email}`;
+    const _token = localStorage.getItem('tts_token');
+    if (_token) {
+      headers['Authorization'] = 'Bearer ' + _token;
+    }
     const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal, headers });
     clearTimeout(timer);
 
@@ -1800,8 +1811,11 @@ async function handleAuthSubmit(event) {
 
     const data = await response.json();
 
-    // Save session
-    saveSession(email, email); // email for both email and name
+    // Save session (with secure auth token from backend)
+    if (data.token) {
+      localStorage.setItem('tts_token', data.token);
+    }
+    saveSession(email, email, data.token); // email for both email and name
 
     // Close modal
     closeModal();
