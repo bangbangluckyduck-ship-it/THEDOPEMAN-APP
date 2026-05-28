@@ -768,10 +768,34 @@
       #structure-vente-section > div:first-of-type { grid-template-columns: repeat(3, 1fr) !important; }
       #prix-conversion-section > div:first-of-type { grid-template-columns: 1fr 1fr !important; }
       .lang-select { font-size: 12px; padding: 4px 6px; }
+
+      /* Score cards : plus d'air sur mobile (ne pas être écrasé) */
+      .score-card { padding: 16px 14px; }
+      .score-label { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+      .score-value { font-size: 28px; margin-bottom: 10px; }
+      .score-comment { font-size: 13px; line-height: 1.6; }
+      .scores-grid { gap: 14px; margin-bottom: 18px; }
+      .detection-grid { grid-template-columns: 1fr; gap: 10px; }
+      .detection-item { padding: 12px 14px; }
     }
     @media (max-width: 375px) {
       main { padding: 12px; }
       .section { padding: 14px; }
+      .score-value { font-size: 26px; }
+    }
+
+    /* ── DROPDOWN AUTH MENU : éviter overflow horizontal sur mobile ── */
+    .auth-menu {
+      max-width: calc(100vw - 16px);
+      box-sizing: border-box;
+    }
+    @media (max-width: 640px) {
+      .auth-menu {
+        right: 8px !important;
+        left: auto !important;
+        min-width: 200px !important;
+        max-width: calc(100vw - 16px) !important;
+      }
     }
 
     /* ── STREAMING ANALYSIS ANIMATIONS ── */
