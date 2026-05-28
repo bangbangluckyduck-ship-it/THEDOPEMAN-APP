@@ -41,6 +41,10 @@ generate_icons()
 
 app = FastAPI(title="TikTok Shop Analyzer")
 
+# --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
+# Limite le traitement lourd à 1 seule vidéo à la fois sur l'instance Render
+ANALYSIS_SEMAPHORE = asyncio.Semaphore(1)
+
 # Configure max file upload size (100MB for video + audio)
 from starlette.middleware.base import BaseHTTPMiddleware
 class LimitUploadSize(BaseHTTPMiddleware):
@@ -157,7 +161,6 @@ async def about():
 async def analytics(request: Request):
     """Analytics dashboard - ADMIN ONLY."""
     try:
-        # Check if user is authenticated and is admin
         user = get_user_from_request(request)
         if not user.get("valid") or user.get("tier") != "admin":
             return HTMLResponse("""<!DOCTYPE html>
@@ -456,14 +459,27 @@ async def analyze_stream_sse(
     print(f"[/analyze] OK frames={len(frames_list)} audio={'yes' if audio else 'no'} product={product or 'auto'}")
 
     async def stream_analysis():
-        """Stream analysis progress as it happens."""
+        """Stream analysis progress as it happens with queue management."""
         loop = asyncio.get_event_loop()
         audio_path: Optional[str] = None
+        semaphore_acquired = False
 
         try:
             # Send start event
             yield 'event: start\n'
-            yield 'data: {"message": "🎬 Analyse en cours...", "stage": "start"}\n\n'
+            yield 'data: {"message": "🎬 Connexion au serveur établie...", "stage": "start"}\n\n'
+
+            # Vérification immédiate si le serveur est occupé
+            if ANALYSIS_SEMAPHORE.locked():
+                yield 'event: progress\n'
+                yield 'data: {"message": "⏳ Serveur occupé. Placement dans la file d\'attente...", "stage": "queue_waiting"}\n\n'
+
+            # L'utilisateur attend ici que la place se libère
+            await ANALYSIS_SEMAPHORE.acquire()
+            semaphore_acquired = True
+
+            yield 'event: progress\n'
+            yield 'data: {"message": "🚀 Place libérée ! Initialisation de l\'analyse...", "stage": "queue_released"}\n\n'
 
             # Save audio to temp file if provided
             if audio:
@@ -620,6 +636,8 @@ async def analyze_stream_sse(
             yield 'event: error\n'
             yield f'data: {json.dumps({"error": str(e)})}\n\n'
         finally:
+            if semaphore_acquired:
+                ANALYSIS_SEMAPHORE.release()
             if audio_path:
                 try:
                     os.unlink(audio_path)
@@ -638,10 +656,8 @@ async def analyze_stream(
 ):
     """
     Stream analysis results progressively using Server-Sent Events (SSE).
-
     If result is cached: stream sections with visual delays (~300-500ms each).
     If cache miss: stream real-time analysis as Mistral processes the video.
-
     Query params:
     - video_url: TikTok URL to analyze
     - product: (optional) Product name hint for analysis
@@ -693,7 +709,7 @@ async def analyze_stream(
                         yield f'data: {json.dumps({"name": section_name, "data": cached_analysis[section_name]})}\n\n'
 
                 yield 'event: complete\n'
-                yield f'data: {json.dumps({"message": "Analyse complète ✅", "source": "cache", "duration_ms": cached_analysis.get("analysis_duration_ms", 0)})}\n\n'
+                yield f'data: {json.dumps({"message": "Analyse completa ✅", "source": "cache", "duration_ms": cached_analysis.get("analysis_duration_ms", 0)})}\n\n'
 
                 if user["valid"]:
                     increment_usage(user["email"])
@@ -984,7 +1000,7 @@ async def get_viral_videos(category: str):
 
         if cached.data and cached.data[0]:
             cache_entry = cached.data[0]
-            # Vérifier si encore valide (< 24h)
+            # Vérifier se encore valide (< 24h)
             from datetime import datetime as dt
             expires_at = dt.fromisoformat(cache_entry["expires_at"].replace("Z", "+00:00"))
             if dt.now(expires_at.tzinfo) < expires_at:
