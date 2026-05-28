@@ -746,6 +746,20 @@
       .steps-grid { gap: 20px; }
       .upload-box { padding: 24px 16px; }
     }
+
+    /* ── DROPDOWN AUTH MENU : éviter overflow horizontal sur mobile ── */
+    .auth-menu {
+      max-width: calc(100vw - 16px);
+      box-sizing: border-box;
+    }
+    @media (max-width: 640px) {
+      .auth-menu {
+        right: 8px !important;
+        left: auto !important;
+        min-width: 200px !important;
+        max-width: calc(100vw - 16px) !important;
+      }
+    }
   </style>
 </head>
 <body>

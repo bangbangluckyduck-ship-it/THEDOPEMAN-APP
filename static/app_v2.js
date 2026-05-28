@@ -417,19 +417,26 @@ function saveSession(email, name, token) {
   fetchUserInfo();
 }
 
-// Clear session from localStorage and reload
+// Clear session from localStorage and redirect to home
 function clearSession() {
-  SESSION.email = null;
-  SESSION.name = null;
-  localStorage.removeItem('tts_email');
-  localStorage.removeItem('tts_name');
-  localStorage.removeItem('tts_token');
-  localStorage.removeItem(USAGE_KEY);
-  location.reload();
+  try {
+    SESSION.email = null;
+    SESSION.name = null;
+    localStorage.removeItem('tts_token');
+    localStorage.removeItem('tts_email');
+    localStorage.removeItem('tts_name');
+    localStorage.removeItem(USAGE_KEY);
+  } catch (_) { /* localStorage peut être bloqué en privé sur iOS */ }
+  window.location.href = '/';
 }
 
-// Expose logout globally
+// Expose logout in multiple scopes pour être sûr que les onclick="logout()" ou
+// onclick="window.logout()" trouvent toujours la fonction (sécurité de scope).
 window.logout = clearSession;
+window.clearSession = clearSession;
+// eslint-disable-next-line no-unused-vars
+function logout() { return clearSession(); }
+window.logout = window.logout || logout;
 
 // ── UTILITY FUNCTIONS ─────────────────────────────────────────
 function acceptCookies() {
@@ -664,10 +671,19 @@ function showAuthMenu(e) {
 
   document.body.appendChild(menu);
 
-  // Position menu relative to button
+  // Position menu relative to button — clamp right on small screens
+  // to éviter que le menu déborde du viewport (bug iOS Safari).
   const rect = btnAuth.getBoundingClientRect();
   menu.style.top = (rect.bottom + 8) + 'px';
-  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  const isMobile = window.innerWidth <= 640;
+  if (isMobile) {
+    menu.style.right = '8px';
+    menu.style.left = 'auto';
+  } else {
+    const computedRight = Math.max(8, window.innerWidth - rect.right);
+    menu.style.right = computedRight + 'px';
+    menu.style.left = 'auto';
+  }
 
   // Close menu when clicking elsewhere
   function closeMenu(clickEvent) {
@@ -992,17 +1008,67 @@ async function analyzeVideo() {
 
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
-    const headers = {};
-    const _token = localStorage.getItem('tts_token');
-    if (_token) {
-      headers['Authorization'] = 'Bearer ' + _token;
-    }
+    const headers = {
+      'Authorization': localStorage.getItem('tts_token') ? 'Bearer ' + localStorage.getItem('tts_token') : ''
+    };
+    // Use streaming SSE (backend renvoie text/event-stream)
     const res = await fetch('/analyze', { method: 'POST', body: fd, signal: ctrl.signal, headers });
     clearTimeout(timer);
 
-    if (!res.ok) throw new Error((await res.json()).detail || 'Erreur serveur');
+    if (!res.ok) {
+      let errMsg = 'Erreur serveur';
+      try { errMsg = (await res.json()).detail || errMsg; } catch (_) {}
+      throw new Error(errMsg);
+    }
 
-    const data = await res.json();
+    // ─── Parser SSE robuste (identique à app_v3.js) ───────────────────
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let completeData = null;
+    let buffer = '';
+
+    const handleEvent = (eventType, dataStr) => {
+      if (!eventType || !dataStr) return;
+      let eventData;
+      try { eventData = JSON.parse(dataStr); } catch (_) { return; }
+      if (eventType === 'progress') {
+        setLoadingText(eventData.message || '🔄 En cours...');
+      } else if (eventType === 'complete') {
+        completeData = eventData;
+        setLoadingText('✅ Analyse terminée!');
+      } else if (eventType === 'error') {
+        throw new Error(eventData.error || 'Erreur analyse');
+      }
+    };
+
+    const processBlock = (block) => {
+      let evType = 'message';
+      const dataLines = [];
+      for (const raw of block.split('\n')) {
+        const line = raw.replace(/\r$/, '');
+        if (!line) continue;
+        if (line.startsWith('event:')) evType = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length) handleEvent(evType, dataLines.join('\n'));
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (block.trim()) processBlock(block);
+      }
+    }
+    if (buffer.trim()) processBlock(buffer);
+
+    if (!completeData) throw new Error('Pas de données reçues');
+
+    const data = completeData;
     console.log('[DEBUG] Analysis response:', data);
     currentData     = data;
     currentFilename = selectedFile.name;

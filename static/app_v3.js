@@ -417,19 +417,26 @@ function saveSession(email, name, token) {
   fetchUserInfo();
 }
 
-// Clear session from localStorage and reload
+// Clear session from localStorage and redirect to home
 function clearSession() {
-  SESSION.email = null;
-  SESSION.name = null;
-  localStorage.removeItem('tts_email');
-  localStorage.removeItem('tts_name');
-  localStorage.removeItem('tts_token');
-  localStorage.removeItem(USAGE_KEY);
-  location.reload();
+  try {
+    SESSION.email = null;
+    SESSION.name = null;
+    localStorage.removeItem('tts_token');
+    localStorage.removeItem('tts_email');
+    localStorage.removeItem('tts_name');
+    localStorage.removeItem(USAGE_KEY);
+  } catch (_) { /* localStorage peut être bloqué en privé sur iOS */ }
+  window.location.href = '/';
 }
 
-// Expose logout globally
+// Expose logout in multiple scopes pour être sûr que les onclick="logout()" ou
+// onclick="window.logout()" trouvent toujours la fonction (sécurité de scope).
 window.logout = clearSession;
+window.clearSession = clearSession;
+// eslint-disable-next-line no-unused-vars
+function logout() { return clearSession(); }
+window.logout = window.logout || logout;
 
 // ── UTILITY FUNCTIONS ─────────────────────────────────────────
 function acceptCookies() {
@@ -664,10 +671,21 @@ function showAuthMenu(e) {
 
   document.body.appendChild(menu);
 
-  // Position menu relative to button
+  // Position menu relative to button — clamp right on small screens
+  // to éviter que le menu déborde du viewport (bug iOS Safari).
   const rect = btnAuth.getBoundingClientRect();
   menu.style.top = (rect.bottom + 8) + 'px';
-  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  const isMobile = window.innerWidth <= 640;
+  if (isMobile) {
+    // Mobile : ancrer au bord droit avec un petit padding, jamais hors écran
+    menu.style.right = '8px';
+    menu.style.left = 'auto';
+  } else {
+    // Desktop : aligner sur le bord droit du bouton
+    const computedRight = Math.max(8, window.innerWidth - rect.right);
+    menu.style.right = computedRight + 'px';
+    menu.style.left = 'auto';
+  }
 
   // Close menu when clicking elsewhere
   function closeMenu(clickEvent) {
