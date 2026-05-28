@@ -1175,6 +1175,8 @@
           <div class="viral-label" data-i18n="viral_label">Potentiel viral / 100</div>
           <div class="viral-prix" id="viral-prix"></div>
           <p class="viral-expl" id="viral-explication"></p>
+          <!-- Inline timing chip : signal saisonnier discret intégré au bloc viral -->
+          <div id="viral-timing-chip" style="display:none;margin-top:12px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(255,255,255,.12);color:#fff;line-height:1.5"></div>
         </div>
       </div>
 
@@ -1294,31 +1296,6 @@
         </div>
 
         <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:#B45309;line-height:1.6" id="pc-disclaimer"></div>
-      </div>
-
-      <!-- 🆕 CONTEXTE TEMPOREL (saisonnalité + événements) -->
-      <div class="section" id="contexte-temporel-section" style="display:none">
-        <h2>📅 Contexte temporel & timing</h2>
-        <div id="ct-warning-banner" style="margin-bottom:14px"></div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-          <div style="background:var(--bg);padding:12px;border-radius:10px;border:1px solid var(--border);text-align:center;box-shadow:var(--shadow-sm)">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Score timing</div>
-            <div style="font-size:22px;font-weight:800" id="ct-score">—</div>
-          </div>
-          <div style="background:var(--bg);padding:12px;border-radius:10px;border:1px solid var(--border);text-align:center;box-shadow:var(--shadow-sm)">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Saisonnalité</div>
-            <div style="font-size:14px;font-weight:700" id="ct-saison">—</div>
-          </div>
-          <div style="background:var(--bg);padding:12px;border-radius:10px;border:1px solid var(--border);text-align:center;box-shadow:var(--shadow-sm)">
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Événement proche</div>
-            <div style="font-size:13px;font-weight:700" id="ct-evenement">—</div>
-          </div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow-sm)">
-          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Recommandation publication</div>
-          <div style="font-size:13px;color:var(--text);line-height:1.7" id="ct-reco">—</div>
-        </div>
-        <div id="ct-evts-list" style="margin-top:12px"></div>
       </div>
 
       <!-- CTA -->

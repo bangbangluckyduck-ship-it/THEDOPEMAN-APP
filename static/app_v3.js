@@ -1106,90 +1106,63 @@ async function analyzeVideo() {
 }
 
 // 🆕 Render Contexte Temporel (saisonnalité + événements)
+// Chip discret intégré au bloc Potentiel Viral : signal saisonnier minimal,
+// pas de section dédiée. Affiché uniquement si l'IA a renvoyé un signal clair
+// ou si le backend a calculé un momentum non-evergreen.
 function renderContexteTemporel(ct) {
-  const section = document.getElementById('contexte-temporel-section');
-  if (!section) return;
+  const chip = document.getElementById('viral-timing-chip');
+  if (!chip) return;
   if (!ct || typeof ct !== 'object') {
-    section.style.display = 'none';
+    chip.style.display = 'none';
     return;
   }
-  section.style.display = 'block';
 
-  // Banner couleur selon warning
-  const warn = ct.warning_timing || '';
-  const msg = ct.message_warning || '';
-  const banner = document.getElementById('ct-warning-banner');
-  let bg = 'rgba(34,197,94,.08)', border = '#22c55e', color = '#15803d';
-  if (warn.includes('OPTIMAL')) {
-    bg = 'rgba(239,68,68,.10)'; border = '#ef4444'; color = '#b91c1c';
-  } else if (warn.includes('DÉFAVORABLE')) {
-    bg = 'rgba(245,158,11,.12)'; border = '#f59e0b'; color = '#b45309';
-  } else if (warn.includes('CONTRE-SAISON')) {
-    bg = 'rgba(220,38,38,.12)'; border = '#dc2626'; color = '#991b1b';
-  } else if (warn.includes('OK')) {
-    bg = 'rgba(34,197,94,.08)'; border = '#22c55e'; color = '#15803d';
-  }
-  banner.innerHTML = `
-    <div style="background:${bg};border:1px solid ${border};border-left:5px solid ${border};border-radius:12px;padding:14px 16px;color:${color}">
-      <div style="font-size:15px;font-weight:800;margin-bottom:6px">${escapeHtml(warn || '⏱️ Timing')}</div>
-      <div style="font-size:13px;line-height:1.6">${escapeHtml(msg)}</div>
-    </div>
-  `;
+  // Priorité au momentum déterministe (backend) → puis reco IA → puis statut saison
+  const momentum = (ct.momentum_status || '').trim();
+  const reco = (ct.recommandation_publication
+                || (ct.fenetre_publication && ct.fenetre_publication.moment_optimal)
+                || '').trim();
+  const evt = ct.evenement_booster;
 
-  // Score
-  const score = Number(ct.score_timing) || Number(ct.score_saison) || 0;
-  const sEl = document.getElementById('ct-score');
-  sEl.textContent = score + '/100';
-  sEl.style.color = score >= 80 ? '#16a34a' : score >= 50 ? '#f59e0b' : '#dc2626';
-
-  // Saison
-  const stat = ct.statut_saison || '—';
-  const mois = ct.mois_actuel || '';
-  const statLabel = {
-    pic: '🌟 Pic',
-    peak: '🌟 Pic',
-    neutre: '➖ Neutre',
-    creux: '❄️ Creux',
-    evergreen: '🌳 Evergreen',
-    inconnu: '— Inconnu'
-  };
-  document.getElementById('ct-saison').textContent = `${statLabel[stat] || stat}${mois ? ' (' + mois + ')' : ''}`;
-
-  // Événement booster
-  const ev = ct.evenement_booster;
-  const evEl = document.getElementById('ct-evenement');
-  if (ev && ev.label) {
-    const fenetre = ev.dans_fenetre_optimale ? '✅' : '⏳';
-    evEl.innerHTML = `${fenetre} ${escapeHtml(ev.label)}<br><span style="font-size:11px;color:var(--muted);font-weight:400">dans ${ev.jours_avant}j</span>`;
-  } else {
-    evEl.textContent = '—';
-    evEl.style.color = 'var(--muted)';
+  // Ne pas afficher si purement evergreen sans event ni reco utile
+  const isEvergreen = momentum.toLowerCase().includes('evergreen');
+  const hasEvent = evt && evt.label && evt.dans_fenetre_optimale;
+  if (isEvergreen && !hasEvent && !reco) {
+    chip.style.display = 'none';
+    return;
   }
 
-  // Reco publication
-  const reco = ct.recommandation_publication
-    || (ct.fenetre_publication && ct.fenetre_publication.moment_optimal)
-    || ct.saison_raison
-    || '—';
-  document.getElementById('ct-reco').textContent = reco;
+  // Couleur selon le signal momentum
+  let bg = 'rgba(255,255,255,.12)';
+  let icon = '⏱️';
+  if (momentum.includes('Pic de Saison')) { icon = '🔥'; bg = 'rgba(239,68,68,.20)'; }
+  else if (momentum.includes("Phase d'Inception")) { icon = '✨'; bg = 'rgba(34,197,94,.20)'; }
+  else if (momentum.includes('Fin de Tendance')) { icon = '⏳'; bg = 'rgba(245,158,11,.20)'; }
+  else if (momentum.includes('Hors-Saison')) { icon = '⚠️'; bg = 'rgba(220,38,38,.22)'; }
 
-  // Liste des événements à venir
-  const evtsList = document.getElementById('ct-evts-list');
-  const evts = Array.isArray(ct.evenements_proches) ? ct.evenements_proches : [];
-  if (evts.length > 0) {
-    evtsList.innerHTML = `
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📌 Événements commerciaux à venir (60j)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${evts.map(e => `
-          <span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px">
-            <strong>${escapeHtml(e.label)}</strong> · J-${e.jours_avant}
-          </span>
-        `).join('')}
-      </div>
-    `;
-  } else {
-    evtsList.innerHTML = '';
+  // Texte affiché : momentum (priorité) → sinon reco IA → sinon event proche
+  let text = '';
+  if (momentum && !isEvergreen) {
+    // Extraire la première phrase du momentum (avant les ":" ou les "[mot-clé...")
+    const cleaned = momentum.split('[')[0].trim();
+    const firstSentence = cleaned.split(/[:.]/)[0].trim();
+    text = firstSentence;
+    const detail = cleaned.split(':')[1];
+    if (detail) text += ' — ' + detail.replace(/\s*\.$/, '').trim();
+  } else if (hasEvent) {
+    text = `${evt.label} dans ${evt.jours_avant}j — fenêtre de publication idéale`;
+  } else if (reco) {
+    text = reco;
   }
+
+  if (!text) {
+    chip.style.display = 'none';
+    return;
+  }
+
+  chip.style.background = bg;
+  chip.style.display = 'block';
+  chip.innerHTML = `<span style="margin-right:6px">${icon}</span>${escapeHtml(text)}`;
 }
 
 function setLoadingText(txt) {
@@ -1414,6 +1387,8 @@ function showResults(d) {
     document.getElementById('viral-score').textContent      = vp.score ?? '—';
     document.getElementById('viral-prix').textContent       = vp.facteur_prix || '';
     document.getElementById('viral-explication').textContent = vp.explication || '';
+    // Chip timing discret intégré au bloc viral (signal saisonnier en contexte)
+    renderContexteTemporel(d.contexte_temporel);
   }
 
   fillList('points-forts',  d.points_forts,     '', true);
@@ -1503,9 +1478,6 @@ function showResults(d) {
   } else {
     document.getElementById('prix-conversion-section').style.display = 'none';
   }
-
-  // 🆕 CONTEXTE TEMPOREL — saisonnalité + événements
-  renderContexteTemporel(d.contexte_temporel);
 
   if (d.transcript) {
     document.getElementById('transcript-section').style.display = 'block';
