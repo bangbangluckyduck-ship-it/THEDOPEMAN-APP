@@ -9,6 +9,150 @@ from typing import List, Optional
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# MOMENTUM SAISONNIER — Calcul déterministe du timing stratégique
+# ════════════════════════════════════════════════════════════════════════════
+# Mapping mot-clé produit → mois de pic de vente (1=Jan ... 12=Dec).
+# Utilisé par get_seasonality_momentum() pour produire un statut stratégique
+# (Inception / Pic / Déclin / Hors-Saison / Evergreen) injecté dans le prompt
+# de synthèse Mistral. Permet à l'IA de baser ses conseils de publication
+# sur un signal DÉTERMINISTE plutôt que sur sa propre estimation calendaire.
+PEAK_SEASONS: dict[str, list[int]] = {
+    # ─── Beauté / Soleil / Été ─────────────────────────────────────────────
+    "solaire":       [6, 7, 8],
+    "maillot":       [6, 7, 8],
+    "bronzage":      [6, 7, 8],
+    "plage":         [6, 7, 8],
+    "lunettes":      [6, 7, 8],
+    "piscine":       [6, 7, 8],
+    "autobronzant":  [5, 6, 7],
+    "ventilateur":   [6, 7, 8],
+
+    # ─── Q4 / Cadeaux / Fin d'année ────────────────────────────────────────
+    "jouet":         [11, 12],
+    "cadeau":        [11, 12],
+    "noel":          [11, 12],
+    "noël":          [11, 12],
+    "fete":          [11, 12],
+    "fête":          [11, 12],
+    "avent":         [10, 11],
+    "deco":          [11, 12],
+    "déco":          [11, 12],
+
+    # ─── Fitness / Résolutions / Bikini body ───────────────────────────────
+    "fitness":       [1, 5, 6],
+    "sport":         [1, 5, 6],
+    "minceur":       [1, 5, 6],
+    "musculation":   [1, 5, 6],
+    "proteine":      [1, 5, 6],
+    "protéine":      [1, 5, 6],
+    "yoga":          [1, 5, 6],
+
+    # ─── Saint-Valentin ────────────────────────────────────────────────────
+    "bijou":         [2],
+    "amour":         [2],
+    "couple":        [2],
+    "rose":          [2],
+    "parfum":        [2, 5, 11, 12],   # ajouté Fête des Mères + fêtes
+    "lingerie":      [2],
+
+    # ─── Rentrée scolaire / bureau ─────────────────────────────────────────
+    "ecole":         [8, 9],
+    "école":         [8, 9],
+    "bureau":        [8, 9],
+    "organisation":  [8, 9],
+    "rentree":       [8, 9],
+    "rentrée":       [8, 9],
+    "fourniture":    [8, 9],
+    "cartable":      [8, 9],
+
+    # ─── Hiver / Confort / Cocooning ───────────────────────────────────────
+    "doudoune":      [11, 12, 1],
+    "chauffage":     [11, 12, 1, 2],
+    "humidificateur":[11, 12, 1, 2],
+    "couverture":    [11, 12, 1],
+    "echarpe":       [11, 12, 1],
+    "écharpe":       [11, 12, 1],
+    "bouillotte":    [11, 12, 1],
+}
+
+
+def get_seasonality_momentum(product_hint: str) -> str:
+    """
+    Calcul déterministe du momentum saisonnier d'un produit.
+
+    Compare le mois courant au(x) mois de pic listé(s) dans PEAK_SEASONS
+    pour un mot-clé produit, et retourne un statut stratégique actionnable.
+
+    Args:
+        product_hint: Nom du produit (issu de la détection vision ou saisi user).
+                      Insensible à la casse, peut contenir plusieurs mots.
+
+    Returns:
+        Une string descriptive parmi :
+          - "Phase d'Inception (Idéal)" — pic dans 1-2 mois
+          - "Pic de Saison (Chaud)"     — on est en plein pic
+          - "Fin de Tendance (Déclin)"  — pic vient de passer (1-2 mois après)
+          - "Hors-Saison (Risqué)"      — pic loin (>2 mois dans tous les sens)
+          - "Produit Evergreen"         — aucun mot-clé saisonnier détecté
+    """
+    if not product_hint or not isinstance(product_hint, str):
+        return "Produit Evergreen (Ventes stables toute l'année, pas de pic majeur détecté)."
+
+    hint_lower = product_hint.lower()
+    current_month = datetime.now().month
+
+    # Trouve toutes les correspondances mot-clé → liste des mois de pic
+    matched_peak_months: list[int] = []
+    matched_keywords: list[str] = []
+    for keyword, peaks in PEAK_SEASONS.items():
+        if keyword in hint_lower:
+            matched_peak_months.extend(peaks)
+            matched_keywords.append(keyword)
+
+    if not matched_peak_months:
+        return "Produit Evergreen (Ventes stables toute l'année, pas de pic majeur détecté)."
+
+    # Calcul de la distance circulaire (12 mois bouclés) entre mois courant
+    # et chaque pic. Distance signée : positive = pic à venir, négative = passé.
+    def signed_circular_distance(now: int, peak: int) -> int:
+        forward = (peak - now) % 12          # 0..11 mois à attendre
+        backward = (now - peak) % 12          # 0..11 mois écoulés depuis pic
+        if forward <= backward:
+            return forward                    # pic encore à venir (ou aujourd'hui)
+        return -backward                      # pic vient de passer
+
+    distances = [signed_circular_distance(current_month, p) for p in matched_peak_months]
+    # On garde la distance dont la valeur absolue est minimale (pic le plus proche)
+    closest = min(distances, key=lambda d: abs(d))
+    matched_str = ", ".join(sorted(set(matched_keywords))[:3])
+
+    if closest == 0:
+        return (
+            f"Pic de Saison (Chaud) : Nous sommes en plein pic. "
+            f"Scaler les budgets immédiatement, la conversion est maximale. "
+            f"[mot-clé détecté : {matched_str}]"
+        )
+    if 1 <= closest <= 2:
+        return (
+            f"Phase d'Inception (Idéal) : Le pic est dans {closest} mois. "
+            f"C'est le moment parfait pour tester les créas à bas coût. "
+            f"[mot-clé détecté : {matched_str}]"
+        )
+    if -2 <= closest <= -1:
+        return (
+            f"Fin de Tendance (Déclin) : Le pic vient de passer (il y a {abs(closest)} mois). "
+            f"Écouler les stocks, réduire les coûts d'acquisition. "
+            f"[mot-clé détecté : {matched_str}]"
+        )
+    return (
+        f"Hors-Saison (Risqué) : Produit totalement hors saison "
+        f"(prochain pic dans {abs(closest)} mois). "
+        f"Coût d'acquisition potentiellement très élevé. "
+        f"[mot-clé détecté : {matched_str}]"
+    )
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # CALENDRIER ÉVÉNEMENTIEL + SAISONNALITÉ (timing, gros impact sur conversion)
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -418,6 +562,35 @@ def synthesize_analysis(
     )
     parts.append(_format_calendar_for_prompt(cal_ctx, saison_produit))
 
+    # 🆕 MOMENTUM SAISONNIER — Statut stratégique déterministe (priorité au produit
+    # saisi par l'utilisateur, sinon retombe sur la détection vision).
+    product_hint_for_momentum = (product or "").strip() or (detected_product_name or "")
+    momentum_status = get_seasonality_momentum(product_hint_for_momentum)
+    parts.append("\n\n████████████████████████████████████████████████████████████████████████████████")
+    parts.append("█  CONTEXTE TEMPOREL & COMMERCIAL — MOMENTUM SAISONNIER (PRIORITÉ ABSOLUE)")
+    parts.append("████████████████████████████████████████████████████████████████████████████████")
+    parts.append("")
+    parts.append("Le système a calculé de manière DÉTERMINISTE le momentum saisonnier du produit")
+    parts.append(f"analysé (« {product_hint_for_momentum or 'produit inconnu'} »).")
+    parts.append("")
+    parts.append("👉 STATUT MOMENTUM (à utiliser tel quel — c'est une donnée FACTUELLE) :")
+    parts.append(f"   ➤ {momentum_status}")
+    parts.append("")
+    parts.append("RÈGLES OBLIGATOIRES :")
+    parts.append("  1. Tu DOIS baser ta recommandation de publication sur ce statut momentum exact.")
+    parts.append("  2. Tu DOIS reprendre la formule du statut (Inception / Pic / Déclin / Hors-Saison /")
+    parts.append("     Evergreen) dans ton bloc contexte_temporel.recommandation_publication.")
+    parts.append("  3. Tu NE DOIS PAS contredire ce statut : il est calculé sur la base du mois courant")
+    parts.append(f"     ({cal_ctx['mois_actuel_nom']}) et de la saisonnalité réelle du produit.")
+    parts.append("  4. Si le statut indique 'Hors-Saison' ou 'Déclin', tu DOIS le refléter dans le")
+    parts.append("     score_timing (≤ 40) et le warning_timing (⚠️ ou ❌).")
+    parts.append("  5. Si le statut indique 'Pic de Saison' ou 'Phase d'Inception', tu DOIS le")
+    parts.append("     refléter dans le score_timing (≥ 80) et le warning_timing (🔥 ou ✅).")
+    parts.append("  6. 'Evergreen' = score_timing neutre (50-70), pas de pression temporelle.")
+    parts.append("")
+    parts.append("Ce momentum prime sur ton intuition calendaire — c'est la SOURCE DE VÉRITÉ.")
+    parts.append("████████████████████████████████████████████████████████████████████████████████")
+
     parts.append("\n\n================================================================================")
     parts.append("ANALYSE VISUELLE DÉJÀ EFFECTUÉE (réutilise ces scores tel quel) :")
     parts.append("================================================================================")
@@ -451,6 +624,12 @@ def synthesize_analysis(
         parsed = _extract_json(raw)
     except Exception:
         return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
+
+    # Injecte le momentum déterministe dans le résultat final (source de vérité,
+    # même si l'IA l'a reformulé ou ignoré dans son JSON).
+    ct = parsed.setdefault("contexte_temporel", {})
+    ct["momentum_status"] = momentum_status
+    ct["momentum_product_hint"] = product_hint_for_momentum
 
     return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit)
 
