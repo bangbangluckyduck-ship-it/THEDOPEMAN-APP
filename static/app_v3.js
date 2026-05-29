@@ -662,7 +662,16 @@ function installPwa() {
   }
 }
 
+// ⚠️ Passe à true une fois les produits/prix Stripe créés en production.
+const CHECKOUT_ENABLED = false;
+
 async function startCheckout(plan) {
+  // Les abonnements automatiques ne sont pas encore ouverts : message propre.
+  if (!CHECKOUT_ENABLED) {
+    showToast("🚀 L'ouverture des abonnements automatiques arrive dans quelques jours ! Ton compte admin te permet déjà de tester toutes les fonctionnalités.");
+    return;
+  }
+
   const email = SESSION.email || '';
   if (!email) {
     showToast('Veuillez vous connecter d\'abord');
@@ -962,6 +971,10 @@ function setFile(f) {
 
 document.getElementById('analyze-btn').addEventListener('click', analyzeVideo);
 
+// Analyse par liens TikTok (Pro / Gold / Agency)
+const _urlsBtn = document.getElementById('analyze-urls-btn');
+if (_urlsBtn) _urlsBtn.addEventListener('click', analyzeUrls);
+
 // ── FRAME EXTRACTION ──────────────────────────────────────────
 async function extractFrames(file, numFrames = 6) {
   return new Promise((resolve, reject) => {
@@ -1186,6 +1199,99 @@ async function analyzeVideo() {
     document.getElementById('loading-section').style.display = 'none';
     document.getElementById('upload-section').style.display  = 'block';
     showError(e.name === 'AbortError' ? t('err_timeout') : '❌ ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ANALYSE PAR LIENS TIKTOK — Pro = 1 lien, Gold/Agency = batch séquentiel
+// ════════════════════════════════════════════════════════════════════════════
+async function analyzeUrls() {
+  const ta = document.getElementById('tiktok-urls');
+  if (!ta) return;
+
+  const urls = ta.value.split('\n').map(u => u.trim()).filter(Boolean);
+  if (!urls.length) {
+    showError('Colle au moins un lien TikTok (un par ligne).');
+    return;
+  }
+
+  const tier  = window.__userInfo?.tier || 'free';
+  const token = localStorage.getItem('tts_token');
+
+  // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
+  if (!token || tier === 'free') {
+    switchTab('pricing');
+    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement sans rien télécharger !");
+    return;
+  }
+
+  // ── BLOCAGE 2 : PRO + plusieurs liens → upsell Gold ──
+  if (tier === 'pro' && urls.length > 1) {
+    switchTab('pricing');
+    showToast("Votre plan Pro permet d'analyser 1 lien à la fois. Passez au plan Gold pour analyser plusieurs vidéos en masse !");
+    return;
+  }
+
+  // ── UI : passe en mode chargement ──
+  document.getElementById('error-box').style.display      = 'none';
+  document.getElementById('upload-section').style.display  = 'none';
+  document.getElementById('loading-section').style.display = 'block';
+
+  const productInput = document.getElementById('product-input');
+  const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
+
+  const total = urls.length;
+  let lastData = null;
+  let okCount  = 0;
+
+  try {
+    // ── BATCH SÉQUENTIEL : on attend la fin de la vidéo N avant la N+1 (protège la RAM serveur) ──
+    for (let i = 0; i < total; i++) {
+      setLoadingText(`🔗 Analyse de la vidéo ${i + 1}/${total}...`);
+      const res = await fetch('/analyze-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ url: urls[i], product }),
+      });
+
+      if (!res.ok) {
+        let msg = 'Erreur serveur';
+        try { const e = await res.json(); msg = e.detail || msg; } catch (_) {}
+        if (res.status === 403) { switchTab('pricing'); }
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+      lastData        = data;
+      currentData     = data;
+      currentFilename = urls[i];
+      okCount++;
+
+      if (data.usage?.used !== undefined) {
+        localStorage.setItem(USAGE_KEY, data.usage.used);
+        window.__usage = data.usage;
+        updateUsageCounter();
+        updateUsageBadge(data.usage);
+      }
+      saveToHistory(data, urls[i]);
+    }
+
+    // ── Affiche le dernier rapport généré ──
+    if (lastData) {
+      showResults(lastData);
+      if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
+        renderMarketSection(lastData.donnees_marche);
+        document.getElementById('market-section').style.display = 'block';
+      }
+      if (total > 1) showToast(`✅ ${okCount} vidéos analysées ! Voici le dernier rapport.`);
+    }
+  } catch (e) {
+    document.getElementById('loading-section').style.display = 'none';
+    document.getElementById('upload-section').style.display  = 'block';
+    showError('❌ ' + e.message);
   }
 }
 
