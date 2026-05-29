@@ -607,20 +607,41 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 
 @app.get("/api/viral-videos/{category}")
 async def get_viral_videos(category: str):
-    if not supabase_client: return JSONResponse({"ok": False, "error": "Database non configurée"}, status_code=503)
+    cat = category.lower()
+
+    # ── 1. Lecture cache Supabase (best-effort : ne doit JAMAIS faire planter la route) ──
+    if supabase_client:
+        try:
+            cached = supabase_client.table("viral_videos_cache").select("*").eq("category", cat).execute()
+            if cached.data and cached.data[0] and cached.data[0].get("expires_at"):
+                from datetime import datetime as dt
+                entry = cached.data[0]
+                expires_at = dt.fromisoformat(str(entry["expires_at"]).replace("Z", "+00:00"))
+                now = dt.now(expires_at.tzinfo) if expires_at.tzinfo else dt.now()
+                if now < expires_at:
+                    return {"ok": True, "category": category, "videos": entry.get("videos") or [], "cached": True, "cached_at": entry.get("cached_at")}
+        except Exception as e:
+            print(f"[viral-videos] lecture cache échouée ({cat}): {e}")
+
+    # ── 2. Appel KeyAPI (source réelle) ──
     try:
-        cached = supabase_client.table("viral_videos_cache").select("*").eq("category", category.lower()).execute()
-        if cached.data and cached.data[0]:
-            cache_entry = cached.data[0]
-            from datetime import datetime as dt
-            expires_at = dt.fromisoformat(cache_entry["expires_at"].replace("Z", "+00:00"))
-            if dt.now(expires_at.tzinfo) < expires_at:
-                return {"ok": True, "category": category, "videos": cache_entry["videos"], "cached": True, "cached_at": cache_entry["cached_at"]}
-        videos = await keyapi_client.get_viral_videos(category)
-        if videos:
-            supabase_client.table("viral_videos_cache").upsert({"category": category.lower(), "videos": videos, "cached_at": datetime.now().isoformat(), "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()}, on_conflict="category").execute()
-        return {"ok": True, "category": category, "videos": videos, "cached": False, "count": len(videos)}
-    except Exception as e: return JSONResponse({"ok": False, "category": category, "error": str(e), "videos": []}, status_code=500)
+        videos = await keyapi_client.get_viral_videos(cat)
+    except Exception as e:
+        print(f"[viral-videos] KeyAPI échoué ({cat}): {e}")
+        return JSONResponse({"ok": False, "category": category, "error": str(e), "videos": []}, status_code=502)
+
+    # ── 3. Écriture cache (best-effort) ──
+    if supabase_client and videos:
+        try:
+            supabase_client.table("viral_videos_cache").upsert(
+                {"category": cat, "videos": videos, "cached_at": datetime.now().isoformat(),
+                 "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()},
+                on_conflict="category",
+            ).execute()
+        except Exception as e:
+            print(f"[viral-videos] écriture cache échouée ({cat}): {e}")
+
+    return {"ok": True, "category": category, "videos": videos or [], "cached": False, "count": len(videos or [])}
 
 CATEGORY_STRATEGIES = {
     "fashion": {"name": "Fashion & Vêtements", "hooks": ["Before/After looks", "Outfit transitions"], "price_positioning": "mid-premium", "conversion_timing": "instant-30d", "viral_multiplier": 1.3, "average_price": "$30-80", "best_creators": "Lifestyle, Fashion", "key_metrics": ["Views"]},
