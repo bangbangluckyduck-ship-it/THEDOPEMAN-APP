@@ -657,6 +657,7 @@ function showAuthMenu(e) {
     box-shadow: 0 10px 40px rgba(0,0,0,0.15);
     z-index: 2001;
     min-width: 220px;
+    max-width: calc(100vw - 32px);
     overflow: hidden;
   `;
 
@@ -675,17 +676,9 @@ function showAuthMenu(e) {
   // to éviter que le menu déborde du viewport (bug iOS Safari).
   const rect = btnAuth.getBoundingClientRect();
   menu.style.top = (rect.bottom + 8) + 'px';
-  const isMobile = window.innerWidth <= 640;
-  if (isMobile) {
-    // Mobile : ancrer au bord droit avec un petit padding, jamais hors écran
-    menu.style.right = '8px';
-    menu.style.left = 'auto';
-  } else {
-    // Desktop : aligner sur le bord droit du bouton
-    const computedRight = Math.max(8, window.innerWidth - rect.right);
-    menu.style.right = computedRight + 'px';
-    menu.style.left = 'auto';
-  }
+  // Ancrer au bord droit avec un padding fixe, jamais hors écran (bug iOS Safari)
+  menu.style.right = '16px';
+  menu.style.left = 'auto';
 
   // Close menu when clicking elsewhere
   function closeMenu(clickEvent) {
