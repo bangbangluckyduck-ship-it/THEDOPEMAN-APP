@@ -2049,9 +2049,7 @@ async function handleAuthSubmit(event) {
     // Clear form
     if (emailInput) emailInput.value = '';
     if (passwordInput) passwordInput.value = '';
-
-    // Notify user
-    alert('✅ ' + (data.message || 'Connecté avec succès'));
+    // Connexion silencieuse : pas de popup, l'UI se met à jour directement
   } catch (err) {
     alert('❌ Erreur: ' + err.message);
   }
