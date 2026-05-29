@@ -1334,7 +1334,7 @@
         <h3 data-i18n="sec_export">📥 Exporter</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="exportPDF()" data-i18n="btn_pdf">📄 Télécharger PDF</button>
-          <button class="btn btn-accent" onclick="saveToHistory(currentData, currentFilename); alert(t('saved_ok'))" data-i18n="btn_save">💾 Sauvegarder</button>
+          <button class="btn btn-accent" onclick="saveToHistory(currentData, currentFilename); showToast(t('saved_ok'))" data-i18n="btn_save">💾 Sauvegarder</button>
         </div>
       </div>
 

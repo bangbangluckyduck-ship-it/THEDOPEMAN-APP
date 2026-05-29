@@ -1118,7 +1118,7 @@
           <li>Support email</li>
           <li class="disabled">Coach IA</li>
         </ul>
-        <button class="btn-pricing" onclick="alert('Redirection vers checkout')">Choisir PRO</button>
+        <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Choisir PRO</button>
       </div>
 
       <!-- GOLD -->
@@ -1133,7 +1133,7 @@
           <li>Support prioritaire</li>
           <li>Export PDF</li>
         </ul>
-        <button class="btn-pricing" onclick="alert('Redirection vers checkout')">Passer GOLD</button>
+        <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Passer GOLD</button>
       </div>
 
       <!-- AGENCY -->
@@ -1148,7 +1148,7 @@
           <li>Données Echotik</li>
           <li>Support 24/7</li>
         </ul>
-        <button class="btn-pricing" onclick="alert('Redirection vers checkout')">Contacter</button>
+        <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Contacter</button>
       </div>
     </div>
   </div>
@@ -1191,6 +1191,38 @@
 </footer>
 
 <script>
+  // ── TOAST (in-page notifications, no browser popups) ──────────
+  function showToast(message, type) {
+    try {
+      if (!document.getElementById('__toast_style')) {
+        const st = document.createElement('style');
+        st.id = '__toast_style';
+        st.textContent =
+          '#__toast_wrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;width:max-content;max-width:calc(100vw - 32px);pointer-events:none}' +
+          '.__toast{background:#1f2937;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:auto;word-break:break-word;white-space:pre-line}' +
+          '.__toast.show{opacity:1;transform:translateY(0)}' +
+          '.__toast.ok{background:#065f46}.__toast.err{background:#991b1b}';
+        document.head.appendChild(st);
+      }
+      let wrap = document.getElementById('__toast_wrap');
+      if (!wrap) { wrap = document.createElement('div'); wrap.id = '__toast_wrap'; document.body.appendChild(wrap); }
+      const msg = String(message == null ? '' : message);
+      let cls = type || '';
+      if (!cls) {
+        if (msg.indexOf('❌') !== -1 || /erreur/i.test(msg)) cls = 'err';
+        else if (msg.indexOf('✅') !== -1) cls = 'ok';
+      }
+      const el = document.createElement('div');
+      el.className = '__toast ' + cls;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      const dur = Math.min(8000, Math.max(3000, msg.length * 55));
+      setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, dur);
+    } catch (e) { console.warn('toast failed:', message); }
+  }
+  window.showToast = showToast;
+
   // ── DOM ELEMENTS (homepage is self-contained, no external JS controller) ──
   const uploadArea   = document.getElementById('upload-area');
   const videoFile    = document.getElementById('video-file');
@@ -1446,7 +1478,7 @@
       const done = () => {
         const email = emailInput.value.trim();
         if (!email || !email.includes('@')) {
-          alert('Email invalide');
+          showToast('Email invalide');
           return;
         }
         const newSession = JSON.parse(localStorage.getItem('SESSION') || '{}');
@@ -1881,9 +1913,9 @@
     const email    = (emailInput?.value || '').trim().toLowerCase();
     const password = (passwordInput?.value || '').trim();
     const confirm  = (confirmInput?.value || '').trim();
-    if (!email || !password || !confirm) { alert('❌ Veuillez remplir tous les champs'); return; }
-    if (password !== confirm) { alert('❌ Les mots de passe ne correspondent pas'); return; }
-    if (password.length < 6) { alert('❌ Min 6 caractères'); return; }
+    if (!email || !password || !confirm) { showToast('❌ Veuillez remplir tous les champs'); return; }
+    if (password !== confirm) { showToast('❌ Les mots de passe ne correspondent pas'); return; }
+    if (password.length < 6) { showToast('❌ Min 6 caractères'); return; }
     try {
       const response = await fetch('/api/forgot-password', {
         method: 'POST',
@@ -1893,14 +1925,14 @@
       if (!response.ok) {
         let detail = 'Erreur';
         try { detail = (await response.json()).detail || detail; } catch (_) {}
-        alert('❌ ' + detail);
+        showToast('❌ ' + detail);
         return;
       }
-      alert('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
+      showToast('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
       closeForgotPasswordModal();
       emailInput.value = ''; passwordInput.value = ''; confirmInput.value = '';
     } catch (err) {
-      alert('❌ Erreur: ' + err.message);
+      showToast('❌ Erreur: ' + err.message);
     }
   }
   window.openForgotPasswordModal  = openForgotPasswordModal;
