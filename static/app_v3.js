@@ -1033,6 +1033,19 @@ async function extractAudio(file) {
 async function analyzeVideo() {
   if (!selectedFile) return;
 
+  // ── "Aha! Moment" gate : 1 essai libre, puis création de compte ──
+  const token = localStorage.getItem('tts_token');
+  const localUsage = parseInt(localStorage.getItem(USAGE_KEY) || '0', 10);
+
+  // Si pas de compte ET qu'il a déjà fait 1 essai
+  if (!token && localUsage >= 1) {
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) authModal.classList.add('active');
+    showError("🎉 Impressionnant, non ? Crée un compte gratuit pour débloquer tes prochaines analyses !");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return; // On stoppe l'analyse
+  }
+
   document.getElementById('error-box').style.display      = 'none';
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';

@@ -44,6 +44,13 @@ app = FastAPI(title="TikTok Shop Analyzer")
 # --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
 ANALYSIS_SEMAPHORE = asyncio.Semaphore(1)
 
+# --- "Aha! Moment" : blindage backend des essais anonymes par IP ---
+# Stocke les timestamps des requêtes anonymes par IP (fenêtre glissante 24h).
+# 1 essai gratuit + 1 marge d'erreur réseau => on bloque à partir de la 3e requête.
+_ANON_IP_USAGE: dict[str, list[float]] = {}
+_ANON_WINDOW_SECONDS = 24 * 60 * 60   # 24h
+_ANON_MAX_REQUESTS = 2                 # 1 essai + 1 marge
+
 from starlette.middleware.base import BaseHTTPMiddleware
 class LimitUploadSize(BaseHTTPMiddleware):
     def __init__(self, app, max_upload_size: int):
@@ -337,6 +344,19 @@ async def analyze_stream_sse(
 
     user = get_user_from_request(request)
     check_quota(user)
+
+    # ── "Aha! Moment" : blindage backend des anonymes ──
+    # Utilisateur authentifié (token valide) => limite classique via check_quota (plan Supabase).
+    # Utilisateur ANONYME (pas de token) => limite stricte par IP, fenêtre glissante 24h.
+    if not user["valid"]:
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        timestamps = [t for t in _ANON_IP_USAGE.get(client_ip, []) if now - t < _ANON_WINDOW_SECONDS]
+        if len(timestamps) >= _ANON_MAX_REQUESTS:
+            _ANON_IP_USAGE[client_ip] = timestamps
+            raise HTTPException(status_code=429, detail="Quota anonyme atteint. Créez un compte gratuit.")
+        timestamps.append(now)
+        _ANON_IP_USAGE[client_ip] = timestamps
 
     try: frames_list: list[str] = json.loads(frames)
     except json.JSONDecodeError as e: raise HTTPException(status_code=400, detail="Frames JSON invalide.")
