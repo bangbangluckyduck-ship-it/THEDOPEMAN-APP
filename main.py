@@ -723,11 +723,12 @@ async def analyze_url(request: Request):
             import yt_dlp
             ydl_opts = {
                 "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
-                "format": "mp4/best[ext=mp4]/best",
+                # Privilégie une résolution ≤720p pour limiter la RAM/le temps de décodage
+                "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
                 "quiet": True,
                 "no_warnings": True,
                 "noplaylist": True,
-                "max_filesize": 100 * 1024 * 1024,  # 100 Mo garde-fou
+                "max_filesize": 80 * 1024 * 1024,  # 80 Mo garde-fou
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
@@ -805,6 +806,12 @@ async def analyze_url(request: Request):
         try:
             import shutil
             shutil.rmtree(tmpdir, ignore_errors=True)
+        except Exception:
+            pass
+        # Rend la mémoire au système entre 2 analyses (évite l'OOM en batch sur Render)
+        try:
+            import gc
+            gc.collect()
         except Exception:
             pass
 

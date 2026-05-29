@@ -1243,28 +1243,51 @@ async function analyzeUrls() {
   const total = urls.length;
   let lastData = null;
   let okCount  = 0;
+  const failed = [];
 
-  try {
-    // ── BATCH SÉQUENTIEL : on attend la fin de la vidéo N avant la N+1 (protège la RAM serveur) ──
-    for (let i = 0; i < total; i++) {
-      setLoadingText(`🔗 Analyse de la vidéo ${i + 1}/${total}...`);
+  // Une requête /analyze-url, avec timeout + 1 retry automatique sur erreur réseau
+  // ("Failed to fetch" = worker recyclé/OOM sur Render → on laisse respirer puis on réessaie).
+  async function _analyzeOne(url, attempt = 1) {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 180000); // 3 min max par vidéo
+    try {
       const res = await fetch('/analyze-url', {
         method: 'POST',
         headers: {
           'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + token,
         },
-        body: JSON.stringify({ url: urls[i], product }),
+        body: JSON.stringify({ url, product }),
+        signal: ctrl.signal,
       });
-
       if (!res.ok) {
         let msg = 'Erreur serveur';
         try { const e = await res.json(); msg = e.detail || msg; } catch (_) {}
-        if (res.status === 403) { switchTab('pricing'); }
-        throw new Error(msg);
+        if (res.status === 403) switchTab('pricing');
+        const err = new Error(msg);
+        err.httpStatus = res.status;
+        throw err;
       }
+      return await res.json();
+    } catch (e) {
+      // Erreur réseau (connexion tombée / worker recyclé) → 1 seul retry après pause
+      const isNetwork = (e instanceof TypeError) || e.name === 'AbortError';
+      if (isNetwork && attempt === 1) {
+        setLoadingText('⏳ Le serveur récupère, nouvelle tentative...');
+        await new Promise(r => setTimeout(r, 4000));
+        return _analyzeOne(url, 2);
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
-      const data = await res.json();
+  // ── BATCH SÉQUENTIEL : on attend la fin de la vidéo N avant la N+1 (protège la RAM serveur) ──
+  for (let i = 0; i < total; i++) {
+    setLoadingText(`🔗 Analyse de la vidéo ${i + 1}/${total}...`);
+    try {
+      const data = await _analyzeOne(urls[i]);
       lastData        = data;
       currentData     = data;
       currentFilename = urls[i];
@@ -1277,21 +1300,31 @@ async function analyzeUrls() {
         updateUsageBadge(data.usage);
       }
       saveToHistory(data, urls[i]);
+    } catch (e) {
+      // Une vidéo qui échoue ne casse plus tout le lot : on note et on continue
+      console.error('[BATCH] Échec vidéo', i + 1, e);
+      failed.push(i + 1);
     }
 
-    // ── Affiche le dernier rapport généré ──
-    if (lastData) {
-      showResults(lastData);
-      if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
-        renderMarketSection(lastData.donnees_marche);
-        document.getElementById('market-section').style.display = 'block';
-      }
-      if (total > 1) showToast(`✅ ${okCount} vidéos analysées ! Voici le dernier rapport.`);
+    // Petite pause entre 2 vidéos pour laisser le serveur libérer la mémoire
+    if (i < total - 1) await new Promise(r => setTimeout(r, 1500));
+  }
+
+  // ── Bilan ──
+  document.getElementById('loading-section').style.display = 'none';
+  if (lastData) {
+    showResults(lastData);
+    if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
+      renderMarketSection(lastData.donnees_marche);
+      document.getElementById('market-section').style.display = 'block';
     }
-  } catch (e) {
-    document.getElementById('loading-section').style.display = 'none';
-    document.getElementById('upload-section').style.display  = 'block';
-    showError('❌ ' + e.message);
+    if (total > 1) {
+      const note = failed.length ? ` (${failed.length} échec${failed.length > 1 ? 's' : ''} : vidéo${failed.length > 1 ? 's' : ''} ${failed.join(', ')})` : '';
+      showToast(`✅ ${okCount}/${total} vidéos analysées${note}. Voici le dernier rapport.`);
+    }
+  } else {
+    document.getElementById('upload-section').style.display = 'block';
+    showError('❌ Aucune vidéo n\'a pu être analysée. Vérifie les liens et réessaie.');
   }
 }
 
