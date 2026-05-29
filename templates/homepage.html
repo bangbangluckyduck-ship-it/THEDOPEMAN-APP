@@ -838,7 +838,7 @@
         🚀 Analyser avec l'IA
       </button>
 
-      <p class="tool-note">✅ 3 analyses gratuites • Aucune carte bancaire requise</p>
+      <p class="tool-note">✅ 1 essai gratuit, sans inscription • Aucune carte bancaire requise</p>
     </div>
 
     <div class="loading" id="loading">
@@ -853,7 +853,7 @@
 
       <!-- Compteur analyses -->
       <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px;font-weight:500">
-        📊 <span id="free-count">1</span>/3 analyses gratuites
+        🎁 1 essai gratuit — crée un compte pour débloquer les suivantes
       </div>
 
       <!-- SCORE GLOBAL + DÉTECTIONS RAPIDES -->
@@ -1500,6 +1500,19 @@
   analyzeBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
 
+    // ── "Aha! Moment" gate : 1 essai libre, puis création de compte ──
+    const token = localStorage.getItem('tts_token');
+    const used  = parseInt(localStorage.getItem('free_analyses_count') || '0', 10);
+    if (!token && used >= 1) {
+      // Ouvre la modale de connexion/inscription de la homepage
+      openLoginModal();
+      // Message de conversion
+      errorMessage.textContent = "🎉 Impressionnant, non ? Crée un compte gratuit pour débloquer tes prochaines analyses !";
+      errorMessage.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return; // Stoppe l'analyse
+    }
+
     const file = selectedFile;
 
     // Ensure user has email
@@ -1603,18 +1616,8 @@
         const result = completeData;
         sessionStorage.setItem('lastAnalysis', JSON.stringify(result));
 
-        // Check if limit ALREADY reached (4+ analyses)
-        const currentCount = parseInt(localStorage.getItem('free_analyses_count') || '0');
-        if (currentCount >= 3) {
-          // Limite atteinte, afficher pop-up AVANT l'analyse
-          showAnalysisLimitModal();
-          document.getElementById('analyze-btn').disabled = true;
-          loading.classList.remove('active');
-          uploadForm.style.display = 'block';
-          return; // Ne pas afficher les résultats
-        }
-
-        // Sinon, afficher les résultats et incrémenter
+        // "Aha! Moment" : on incrémente le compteur d'essai anonyme.
+        // Le prochain clic (used >= 1) déclenchera la modale d'inscription.
         const count = updateFreeAnalysisCounter();
         displayAnalysisResults(result);
 
@@ -1646,7 +1649,8 @@
   function updateFreeAnalysisCounter() {
     let count = parseInt(localStorage.getItem('free_analyses_count') || '0') + 1;
     localStorage.setItem('free_analyses_count', count);
-    document.getElementById('free-count').textContent = count;
+    const fc = document.getElementById('free-count');
+    if (fc) fc.textContent = count;
     return count;
   }
 
