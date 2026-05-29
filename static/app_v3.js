@@ -547,7 +547,7 @@ async function adminResetPassword(email, resetType) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SESSION.email}`
+        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
       },
       body: JSON.stringify({
         email: email.toLowerCase(),
@@ -2068,7 +2068,7 @@ async function handleAuthSubmit(event) {
 async function adminLoadUsers() {
   try {
     const res = await fetch('/admin/users', {
-      headers: { 'Authorization': `Bearer ${SESSION.email}` }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}` }
     });
     if (!res.ok) {
       alert('❌ Erreur: ' + (await res.json()).detail);
@@ -2132,7 +2132,7 @@ async function adminConfirmTierChange() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SESSION.email}`
+        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
       },
       body: JSON.stringify({ email, tier, expiry })
     });
@@ -2169,7 +2169,7 @@ async function adminGrantBeta() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SESSION.email}`
+        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
       },
       body: JSON.stringify({ email })
     });
@@ -2201,7 +2201,7 @@ async function adminRevoke() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SESSION.email}`
+        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
       },
       body: JSON.stringify({ email })
     });

@@ -1191,7 +1191,7 @@
 </footer>
 
 <script>
-  // All DOM elements and variables are declared in app_v2.js
+  // All DOM elements and variables are declared in app_v3.js
   // No need to redeclare them here
 
   // Upload handling
@@ -1358,7 +1358,7 @@
         return;
       }
 
-      // Save to SESSION (both formats for compatibility with app_v2.js)
+      // Save to SESSION (both formats for compatibility with app_v3.js)
       const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
       session.email = email;
       localStorage.setItem('SESSION', JSON.stringify(session));
@@ -1870,6 +1870,6 @@
   </div>
 </div>
 
-<script src="/static/app_v2.js"></script>
+<script src="/static/app_v3.js"></script>
 </body>
 </html>
