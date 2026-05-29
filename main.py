@@ -6,7 +6,7 @@ import tempfile
 import hashlib
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
@@ -21,7 +21,7 @@ from analyzer import analyze_video, transcribe_audio, analyze_visual, synthesize
 from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
 # 1. Ajout de create_access_token dans l'import
-from auth import get_user_from_request, check_quota, increment_usage, usage_info, create_access_token
+from auth import get_user_from_request, check_quota, increment_usage, usage_info, create_access_token, set_user_tier
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
@@ -31,6 +31,17 @@ from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+# ── STRIPE (paiements automatiques) ───────────────────────────
+import stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+# Mapping price_id Stripe → tier interne (rempli via env Render une fois les prix créés)
+STRIPE_PRICE_TO_TIER: dict[str, str] = {
+    os.getenv("STRIPE_PRICE_PRO", ""):    "pro",
+    os.getenv("STRIPE_PRICE_GOLD", ""):   "gold",
+    os.getenv("STRIPE_PRICE_AGENCY", ""): "agency",
+}
 try:
     supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 except Exception as e:
@@ -634,6 +645,245 @@ async def get_product_recommendations(category: str):
                 additional_data = {"category_names": cat_data.get("names", []), "recommended_hooks_db": cat_data.get("recommended_hooks", []), "price_range": cat_data.get("price_range", "unknown"), "notes": cat_data.get("notes", "")}
     except Exception: pass
     return {"ok": True, "category": category_lower, "strategy": strategy, "recommended_products": videos[:5] if videos else [], "product_count": len(videos) if videos else 0, **additional_data}
+
+# ════════════════════════════════════════════════════════════════════════════
+# ANALYSE PAR LIEN TIKTOK (Pro / Gold / Agency uniquement)
+# ════════════════════════════════════════════════════════════════════════════
+_URL_ANALYSIS_TIERS = {"pro", "gold", "agency", "beta", "admin"}
+
+
+def _extract_frames_opencv(video_path: str, n_frames: int = 6) -> list[str]:
+    """Extrait n_frames réparties sur la durée de la vidéo → liste de base64 JPEG (sans préfixe)."""
+    import cv2
+    import base64
+    cap = cv2.VideoCapture(video_path)
+    try:
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frames_b64: list[str] = []
+        if total <= 0:
+            # Fallback : lecture séquentielle si le compteur de frames est indisponible
+            ok, frame = cap.read()
+            while ok and len(frames_b64) < n_frames:
+                success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                if success:
+                    frames_b64.append(base64.b64encode(buf).decode("utf-8"))
+                ok, frame = cap.read()
+            return frames_b64
+        # Positions réparties (évite la toute 1ère et la toute dernière frame)
+        fractions = [0.05, 0.22, 0.40, 0.58, 0.76, 0.94][:n_frames]
+        for f in fractions:
+            idx = max(0, min(total - 1, int(total * f)))
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ok, frame = cap.read()
+            if not ok:
+                continue
+            success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if success:
+                frames_b64.append(base64.b64encode(buf).decode("utf-8"))
+        return frames_b64
+    finally:
+        cap.release()
+
+
+@app.post("/analyze-url")
+async def analyze_url(request: Request):
+    """
+    Analyse une vidéo TikTok à partir de son lien.
+    Réservé aux plans Pro / Gold / Agency (et beta/admin).
+    Télécharge via yt-dlp → extrait 6 frames (OpenCV) + audio → pipeline Mistral.
+    """
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+
+    # ── SÉCURITÉ : tier requis ──
+    user = get_user_from_request(request)
+    tier = user.get("tier", "free")
+    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+        raise HTTPException(
+            status_code=403,
+            detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency. Passez au plan Pro (9,99€) pour analyser des liens TikTok directement.",
+        )
+
+    # Quota classique selon le plan
+    check_quota(user)
+
+    body = await request.json()
+    url = (body.get("url") or "").strip()
+    product = (body.get("product") or "").strip() or None
+    if not url or not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+
+    loop = asyncio.get_event_loop()
+    tmpdir = tempfile.mkdtemp(prefix="ttsurl_")
+    video_path: Optional[str] = None
+    semaphore_acquired = False
+    try:
+        # ── 1. Téléchargement yt-dlp (dans un thread, bloquant) ──
+        def _download() -> str:
+            import yt_dlp
+            ydl_opts = {
+                "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
+                "format": "mp4/best[ext=mp4]/best",
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True,
+                "max_filesize": 100 * 1024 * 1024,  # 100 Mo garde-fou
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                return ydl.prepare_filename(info)
+
+        try:
+            video_path = await asyncio.wait_for(loop.run_in_executor(None, _download), timeout=60.0)
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="Le téléchargement de la vidéo a pris trop longtemps.")
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Impossible de récupérer cette vidéo TikTok : {str(e)[:160]}")
+
+        if not video_path or not os.path.exists(video_path):
+            raise HTTPException(status_code=422, detail="Vidéo introuvable après téléchargement.")
+
+        # ── 2. Limite de débit serveur (réutilise le sémaphore global anti-crash) ──
+        await ANALYSIS_SEMAPHORE.acquire()
+        semaphore_acquired = True
+
+        # ── 3. Extraction frames (OpenCV) + transcription, en parallèle ──
+        async def _do_frames():
+            return await asyncio.wait_for(loop.run_in_executor(None, _extract_frames_opencv, video_path, 6), timeout=45.0)
+
+        async def _do_transcribe():
+            try:
+                return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=40.0)
+            except asyncio.TimeoutError:
+                return None
+
+        frames_list, transcript = await asyncio.gather(_do_frames(), _do_transcribe(), return_exceptions=True)
+        if isinstance(transcript, Exception):
+            transcript = None
+        if isinstance(frames_list, Exception) or not frames_list:
+            raise HTTPException(status_code=422, detail="Impossible d'extraire les images de la vidéo.")
+
+        # ── 4. Contexte marché (Gold+) ──
+        market_context = None
+        if (tier in ("gold", "agency", "beta") or user.get("is_admin")) and _SCRAPER_URL:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
+                if mresp.is_success:
+                    market_context = mresp.json()
+            except Exception:
+                pass
+
+        # ── 5. Pipeline Mistral : vision → synthèse ──
+        analysis_start = time.time()
+        visual_result = await asyncio.wait_for(
+            loop.run_in_executor(None, analyze_visual, frames_list, product), timeout=60.0
+        )
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product),
+            timeout=90.0,
+        )
+        analysis_duration_ms = int((time.time() - analysis_start) * 1000)
+
+        if user["valid"]:
+            increment_usage(user["email"])
+
+        result["transcript"] = transcript
+        result["frames_analyzed"] = len(frames_list)
+        result["usage"] = usage_info(user)
+        result["analysis_duration_ms"] = analysis_duration_ms
+        result["source"] = "url"
+
+        ip = request.client.host if request.client else "unknown"
+        security_logger.analyze_ok(ip, len(frames_list))
+        return JSONResponse(result)
+
+    finally:
+        # ── PROTECTION SERVEUR : nettoie TOUT, quoi qu'il arrive ──
+        if semaphore_acquired:
+            ANALYSIS_SEMAPHORE.release()
+        try:
+            import shutil
+            shutil.rmtree(tmpdir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# STRIPE WEBHOOK — activation automatique des abonnements
+# ════════════════════════════════════════════════════════════════════════════
+@app.post("/api/v1/stripe/webhook")
+async def stripe_webhook_v1(request: Request):
+    """
+    Reçoit les notifications Stripe et met à jour le tier utilisateur dans Supabase.
+    Événement écouté : checkout.session.completed.
+    Configure l'URL dans Stripe Dashboard → Webhooks :
+      https://<domaine>/api/v1/stripe/webhook
+    """
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Webhook Stripe non configuré (STRIPE_WEBHOOK_SECRET manquant).")
+
+    # ── Vérification cryptographique de la signature ──
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Payload invalide.")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Signature webhook invalide.")
+
+    etype = event.get("type", "")
+    obj = event.get("data", {}).get("object", {})
+
+    # ── Paiement réussi → activer le plan ──
+    if etype == "checkout.session.completed":
+        # 1) Email de l'acheteur
+        email = (obj.get("customer_details") or {}).get("email") or obj.get("customer_email")
+        client_ref = obj.get("client_reference_id")  # peut contenir l'email/ID interne
+        if not email and client_ref and "@" in str(client_ref):
+            email = client_ref
+
+        cust_id = obj.get("customer")
+        sub_id = obj.get("subscription")
+
+        # 2) Identifier le plan : d'abord par price_id, sinon via metadata
+        plan = (obj.get("metadata") or {}).get("plan")
+        if not plan and sub_id:
+            try:
+                sub = stripe.Subscription.retrieve(sub_id)
+                price_id = sub["items"]["data"][0]["price"]["id"]
+                plan = STRIPE_PRICE_TO_TIER.get(price_id)
+            except Exception:
+                plan = None
+        if plan not in ("pro", "gold", "agency"):
+            plan = "pro"  # fallback sûr
+
+        # 3) Date de fin d'abonnement (current_period_end)
+        expiry = None
+        if sub_id:
+            try:
+                sub = stripe.Subscription.retrieve(sub_id)
+                period_end = sub.get("current_period_end")
+                if period_end:
+                    expiry = datetime.fromtimestamp(period_end, tz=timezone.utc).date().isoformat()
+            except Exception:
+                pass
+
+        # 4) Mise à jour Supabase
+        if email:
+            set_user_tier(email.lower().strip(), plan, customer_id=cust_id, subscription_id=sub_id, expiry=expiry)
+
+    # ── Abonnement annulé / expiré → downgrade ──
+    elif etype == "customer.subscription.deleted":
+        cust_id = obj.get("customer")
+        if cust_id:
+            from auth import revoke_by_customer
+            revoke_by_customer(cust_id)
+
+    return {"received": True}
+
 
 if __name__ == "__main__":
     import uvicorn
