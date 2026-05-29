@@ -1366,11 +1366,12 @@
         return;
       }
 
-      // Save to SESSION (both formats for compatibility with app_v3.js)
+      // Save to SESSION (both formats for compatibility with /app)
       const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
       session.email = email;
       localStorage.setItem('SESSION', JSON.stringify(session));
       localStorage.setItem('tts_email', email);  // For /app compatibility
+      if (data.token) localStorage.setItem('tts_token', data.token);  // JWT for authenticated requests
 
       // Update header
       updateHeaderAfterLogin();
