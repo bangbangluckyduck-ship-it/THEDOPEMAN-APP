@@ -438,6 +438,66 @@ window.clearSession = clearSession;
 function logout() { return clearSession(); }
 window.logout = window.logout || logout;
 
+// ── TOAST & CONFIRM (in-page, no browser popups) ──────────────
+function showToast(message, type) {
+  try {
+    if (!document.getElementById('__toast_style')) {
+      const st = document.createElement('style');
+      st.id = '__toast_style';
+      st.textContent =
+        '#__toast_wrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;width:max-content;max-width:calc(100vw - 32px);pointer-events:none}' +
+        '.__toast{background:#1f2937;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:auto;word-break:break-word;white-space:pre-line}' +
+        '.__toast.show{opacity:1;transform:translateY(0)}' +
+        '.__toast.ok{background:#065f46}.__toast.err{background:#991b1b}';
+      document.head.appendChild(st);
+    }
+    let wrap = document.getElementById('__toast_wrap');
+    if (!wrap) { wrap = document.createElement('div'); wrap.id = '__toast_wrap'; document.body.appendChild(wrap); }
+    const msg = String(message == null ? '' : message);
+    let cls = type || '';
+    if (!cls) {
+      if (msg.indexOf('❌') !== -1 || /erreur/i.test(msg)) cls = 'err';
+      else if (msg.indexOf('✅') !== -1) cls = 'ok';
+    }
+    const el = document.createElement('div');
+    el.className = '__toast ' + cls;
+    el.textContent = msg;
+    wrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    const dur = Math.min(8000, Math.max(3000, msg.length * 55));
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, dur);
+  } catch (e) { console.warn('toast failed:', message); }
+}
+window.showToast = showToast;
+
+function showConfirm(message) {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--surface,#fff);color:var(--text,#111);border-radius:14px;padding:22px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)';
+    const txt = document.createElement('div');
+    txt.style.cssText = 'font-size:15px;line-height:1.5;margin-bottom:18px;white-space:pre-line';
+    txt.textContent = String(message || '');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end';
+    const no = document.createElement('button');
+    no.textContent = 'Annuler';
+    no.style.cssText = 'padding:10px 16px;border:1px solid var(--border,#ddd);background:transparent;color:var(--text,#111);border-radius:8px;cursor:pointer;font-size:14px';
+    const yes = document.createElement('button');
+    yes.textContent = 'Confirmer';
+    yes.style.cssText = 'padding:10px 16px;border:none;background:#dc2626;color:#fff;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600';
+    row.appendChild(no); row.appendChild(yes);
+    box.appendChild(txt); box.appendChild(row); ov.appendChild(box);
+    document.body.appendChild(ov);
+    const done = (v) => { ov.remove(); resolve(v); };
+    yes.onclick = () => done(true);
+    no.onclick = () => done(false);
+    ov.onclick = (e) => { if (e.target === ov) done(false); };
+  });
+}
+window.showConfirm = showConfirm;
+
 // ── UTILITY FUNCTIONS ─────────────────────────────────────────
 function acceptCookies() {
   localStorage.setItem('cookieConsent', 'accepted');
@@ -488,17 +548,17 @@ async function submitForgotPassword(event) {
 
   // Validation
   if (!email || !password || !confirm) {
-    alert('❌ Veuillez remplir tous les champs');
+    showToast('❌ Veuillez remplir tous les champs');
     return;
   }
 
   if (password !== confirm) {
-    alert('❌ Les mots de passe ne correspondent pas');
+    showToast('❌ Les mots de passe ne correspondent pas');
     return;
   }
 
   if (password.length < 6) {
-    alert('❌ Min 6 caractères');
+    showToast('❌ Min 6 caractères');
     return;
   }
 
@@ -511,12 +571,12 @@ async function submitForgotPassword(event) {
 
     if (!response.ok) {
       const error = await response.json();
-      alert('❌ ' + (error.detail || 'Erreur'));
+      showToast('❌ ' + (error.detail || 'Erreur'));
       return;
     }
 
     // Success
-    alert('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
+    showToast('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
     closeForgotPasswordModal();
 
     // Clear form
@@ -525,14 +585,14 @@ async function submitForgotPassword(event) {
     confirmInput.value = '';
 
   } catch (err) {
-    alert('❌ Erreur: ' + err.message);
+    showToast('❌ Erreur: ' + err.message);
   }
 }
 
 // ── ADMIN PASSWORD RESET ──────────────────────────────────────
 async function adminResetPassword(email, resetType) {
   if (!email) {
-    alert('❌ Email non trouvé');
+    showToast('❌ Email non trouvé');
     return;
   }
 
@@ -540,7 +600,7 @@ async function adminResetPassword(email, resetType) {
     ? 'Envoyer un lien magique à ' + email + '?'
     : 'Générer et envoyer un mot de passe temporaire à ' + email + '?';
 
-  if (!confirm(confirmMessage)) return;
+  if (!(await showConfirm(confirmMessage))) return;
 
   try {
     const response = await fetch('/admin/reset-user-password', {
@@ -557,7 +617,7 @@ async function adminResetPassword(email, resetType) {
 
     if (!response.ok) {
       const error = await response.json();
-      alert('❌ ' + (error.detail || 'Erreur'));
+      showToast('❌ ' + (error.detail || 'Erreur'));
       return;
     }
 
@@ -565,14 +625,14 @@ async function adminResetPassword(email, resetType) {
 
     if (resetType === 'temporary_password') {
       // Show the temporary password
-      alert(`✅ Mot de passe temporaire généré:\n\n${data.temp_password}\n\nEmail envoyé à ${email}\n\nL'utilisateur devra changer ce mot de passe à sa première connexion.`);
+      showToast(`✅ Mot de passe temporaire généré:\n\n${data.temp_password}\n\nEmail envoyé à ${email}\n\nL'utilisateur devra changer ce mot de passe à sa première connexion.`);
     } else {
       // Magic link
-      alert(`✅ Lien magique envoyé à ${email}\n\nL'utilisateur pourra cliquer sur le lien pour créer un nouveau mot de passe.`);
+      showToast(`✅ Lien magique envoyé à ${email}\n\nL'utilisateur pourra cliquer sur le lien pour créer un nouveau mot de passe.`);
     }
 
   } catch (err) {
-    alert('❌ Erreur: ' + err.message);
+    showToast('❌ Erreur: ' + err.message);
   }
 }
 
@@ -605,7 +665,7 @@ function installPwa() {
 async function startCheckout(plan) {
   const email = SESSION.email || '';
   if (!email) {
-    alert('Veuillez vous connecter d\'abord');
+    showToast('Veuillez vous connecter d\'abord');
     const modal = document.getElementById('auth-modal');
     if (modal) modal.classList.add('active');
     return;
@@ -620,7 +680,7 @@ async function startCheckout(plan) {
 
     if (!res.ok) {
       const err = await res.json();
-      alert('❌ ' + (err.detail || 'Erreur checkout'));
+      showToast('❌ ' + (err.detail || 'Erreur checkout'));
       return;
     }
 
@@ -629,7 +689,7 @@ async function startCheckout(plan) {
       window.location.href = data.checkout_url;
     }
   } catch (err) {
-    alert('❌ Erreur: ' + err.message);
+    showToast('❌ Erreur: ' + err.message);
   }
 }
 
@@ -854,10 +914,10 @@ async function openCustomerPortal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, customer_id }),
     });
-    if (!res.ok) { alert('❌ Portail indisponible.'); return; }
+    if (!res.ok) { showToast('❌ Portail indisponible.'); return; }
     const { url } = await res.json();
     window.location.href = url;
-  } catch { alert('❌ Erreur réseau.'); }
+  } catch { showToast('❌ Erreur réseau.'); }
 }
 
 // ── TABS ──────────────────────────────────────────────────────
@@ -1786,8 +1846,8 @@ function deleteEntry(event, i) {
   updateHistoryBadge(); renderHistory();
 }
 
-function clearHistory() {
-  if (!confirm(t('hist_confirm'))) return;
+async function clearHistory() {
+  if (!(await showConfirm(t('hist_confirm')))) return;
   localStorage.removeItem(STORAGE_KEY);
   updateHistoryBadge(); renderHistory();
 }
@@ -2017,7 +2077,7 @@ async function handleAuthSubmit(event) {
   const password = (passwordInput?.value || '').trim();
 
   if (!email || !password) {
-    alert('Veuillez remplir tous les champs');
+    showToast('Veuillez remplir tous les champs');
     return;
   }
 
@@ -2031,7 +2091,7 @@ async function handleAuthSubmit(event) {
 
     if (!response.ok) {
       const error = await response.json();
-      alert('❌ ' + (error.detail || 'Erreur connexion'));
+      showToast('❌ ' + (error.detail || 'Erreur connexion'));
       return;
     }
 
@@ -2051,7 +2111,7 @@ async function handleAuthSubmit(event) {
     if (passwordInput) passwordInput.value = '';
     // Connexion silencieuse : pas de popup, l'UI se met à jour directement
   } catch (err) {
-    alert('❌ Erreur: ' + err.message);
+    showToast('❌ Erreur: ' + err.message);
   }
 }
 
@@ -2062,7 +2122,7 @@ async function adminLoadUsers() {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}` }
     });
     if (!res.ok) {
-      alert('❌ Erreur: ' + (await res.json()).detail);
+      showToast('❌ Erreur: ' + (await res.json()).detail);
       return;
     }
     const data = await res.json();
@@ -2098,7 +2158,7 @@ async function adminLoadUsers() {
       list.appendChild(card);
     });
   } catch (e) {
-    alert('❌ Erreur: ' + e.message);
+    showToast('❌ Erreur: ' + e.message);
   }
 }
 
@@ -2130,16 +2190,16 @@ async function adminConfirmTierChange() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert('❌ ' + err.detail);
+      showToast('❌ ' + err.detail);
       return;
     }
 
     const result = await res.json();
-    alert('✅ ' + result.message);
+    showToast('✅ ' + result.message);
     adminCloseTierModal();
     adminLoadUsers();
   } catch (e) {
-    alert('❌ Erreur: ' + e.message);
+    showToast('❌ Erreur: ' + e.message);
   }
 }
 
@@ -2151,7 +2211,7 @@ function adminToggleExpiry() {
 async function adminGrantBeta() {
   const email = document.getElementById('admin-beta-email').value.trim();
   if (!email) {
-    alert('Saisis une adresse e-mail');
+    showToast('Saisis une adresse e-mail');
     return;
   }
 
@@ -2167,7 +2227,7 @@ async function adminGrantBeta() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert('❌ ' + err.detail);
+      showToast('❌ ' + err.detail);
       return;
     }
 
@@ -2176,14 +2236,14 @@ async function adminGrantBeta() {
     document.getElementById('admin-beta-email').value = '';
     setTimeout(() => { document.getElementById('admin-action-msg').textContent = ''; }, 3000);
   } catch (e) {
-    alert('❌ Erreur: ' + e.message);
+    showToast('❌ Erreur: ' + e.message);
   }
 }
 
 async function adminRevoke() {
   const email = document.getElementById('admin-beta-email').value.trim();
   if (!email) {
-    alert('Saisis une adresse e-mail');
+    showToast('Saisis une adresse e-mail');
     return;
   }
 
@@ -2199,7 +2259,7 @@ async function adminRevoke() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert('❌ ' + err.detail);
+      showToast('❌ ' + err.detail);
       return;
     }
 
@@ -2208,7 +2268,7 @@ async function adminRevoke() {
     document.getElementById('admin-beta-email').value = '';
     setTimeout(() => { document.getElementById('admin-action-msg').textContent = ''; }, 3000);
   } catch (e) {
-    alert('❌ Erreur: ' + e.message);
+    showToast('❌ Erreur: ' + e.message);
   }
 }
 
