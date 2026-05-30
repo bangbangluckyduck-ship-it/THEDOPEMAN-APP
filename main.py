@@ -185,12 +185,36 @@ async def dope_admin_sw():
     return Response(content=js, media_type="application/javascript")
 
 
+# Comptes internes/bots à exclure des statistiques (configurable via env).
+# Par défaut : tous les bots de test sur le domaine @tts-test.com (setup_test_bots.py).
+_STATS_EXCLUDED_DOMAINS = [
+    d.strip().lower()
+    for d in os.getenv("STATS_EXCLUDED_DOMAINS", "tts-test.com").split(",")
+    if d.strip()
+]
+_STATS_EXCLUDED_EMAILS = [
+    e.strip().lower()
+    for e in os.getenv("STATS_EXCLUDED_EMAILS", "").split(",")
+    if e.strip()
+]
+
+
+def _exclude_internal_users(query):
+    """Applique les filtres d'exclusion (bots/comptes internes) à une requête users."""
+    for domain in _STATS_EXCLUDED_DOMAINS:
+        query = query.not_.ilike("email", f"%@{domain}")
+    for email in _STATS_EXCLUDED_EMAILS:
+        query = query.neq("email", email)
+    return query
+
+
 @app.get("/admin/stats")
 async def admin_stats(request: Request):
     """
     KPIs SaaS pour le pilotage : total inscrits, répartition par plan, total
     d'analyses effectuées. Réservé aux admins. Requêtes optimisées : count()
     côté Supabase (head=True) pour ne télécharger aucune ligne sur la table users.
+    Les bots de test (@tts-test.com) et comptes internes sont exclus des chiffres.
     """
     user = get_user_from_request(request)
     if not user.get("valid") or not (user.get("is_admin") or user.get("tier") == "admin"):
@@ -205,29 +229,48 @@ async def admin_stats(request: Request):
     by_tier = {t: 0 for t in tiers}
     total_users = 0
     total_analyses = 0
+    excluded_count = 0
 
     if SUPABASE_ENABLED and supabase:
-        # Total inscrits — count exact sans rapatrier les lignes
+        # IDs des comptes internes/bots — pour les retirer aussi des analyses
+        excluded_ids = set()
         try:
-            r = supabase.table("users").select("*", count="exact", head=True).execute()
-            total_users = r.count or 0
+            for domain in _STATS_EXCLUDED_DOMAINS:
+                rr = supabase.table("users").select("id").ilike("email", f"%@{domain}").execute()
+                excluded_ids.update(row["id"] for row in (rr.data or []) if row.get("id"))
+            for email in _STATS_EXCLUDED_EMAILS:
+                rr = supabase.table("users").select("id").eq("email", email).execute()
+                excluded_ids.update(row["id"] for row in (rr.data or []) if row.get("id"))
+        except Exception as e:
+            print(f"[admin/stats] récupération IDs exclus échouée : {e}")
+        excluded_count = len(excluded_ids)
+
+        # Total inscrits — count exact sans rapatrier les lignes (bots exclus)
+        try:
+            q = _exclude_internal_users(supabase.table("users").select("*", count="exact", head=True))
+            total_users = q.execute().count or 0
         except Exception as e:
             print(f"[admin/stats] total users échoué : {e}")
 
-        # Répartition par plan — un count() ciblé par tier (aucune ligne téléchargée)
+        # Répartition par plan — un count() ciblé par tier (bots exclus)
         for t in tiers:
             try:
-                r = supabase.table("users").select("*", count="exact", head=True).eq("tier", t).execute()
-                by_tier[t] = r.count or 0
+                q = _exclude_internal_users(
+                    supabase.table("users").select("*", count="exact", head=True).eq("tier", t)
+                )
+                by_tier[t] = q.execute().count or 0
             except Exception as e:
                 print(f"[admin/stats] count tier {t} échoué : {e}")
 
-        # Total analyses = somme des compteurs d'usage (mensuel free/pro + journalier gold/agency)
-        # On ne récupère que la colonne `count`, pas les lignes complètes.
+        # Total analyses = somme des compteurs d'usage (mensuel free/pro + journalier gold/agency),
+        # en ignorant les lignes appartenant aux comptes internes/bots.
         for table in ("monthly_usage", "daily_usage"):
             try:
-                resp = supabase.table(table).select("count").execute()
-                total_analyses += sum(int(row.get("count") or 0) for row in (resp.data or []))
+                resp = supabase.table(table).select("count, user_id").execute()
+                for row in (resp.data or []):
+                    if row.get("user_id") in excluded_ids:
+                        continue
+                    total_analyses += int(row.get("count") or 0)
             except Exception as e:
                 print(f"[admin/stats] somme {table} échouée : {e}")
 
@@ -236,6 +279,7 @@ async def admin_stats(request: Request):
         "total_users": total_users,
         "by_tier": by_tier,
         "total_analyses": total_analyses,
+        "excluded_accounts": excluded_count,
     }
 
 
