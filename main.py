@@ -113,6 +113,8 @@ _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
 _CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
 _ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
+# Back-office admin isolé (vue + JS dédiés, hors espace client)
+_DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -154,6 +156,72 @@ async def analytics(request: Request):
         return HTMLResponse(_ANALYTICS_HTML)
     except Exception as e:
         return JSONResponse({"error": f"Internal error: {str(e)}"}, status_code=500)
+
+# ════════════════════════════════════════════════════════════════════════════
+# BACK-OFFICE ADMIN ISOLÉ — /dope-admin
+# La page elle-même est servie en clair (le navigateur ne peut pas envoyer de
+# header Bearer sur une navigation) : la sécurité front est dans dope_admin.html
+# (redirection si pas de token / rôle ≠ admin) et la sécurité réelle est sur les
+# routes de données /admin/* qui exigent un Bearer admin valide.
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/dope-admin", response_class=HTMLResponse)
+async def dope_admin():
+    return HTMLResponse(_DOPE_ADMIN_HTML)
+
+
+@app.get("/admin/stats")
+async def admin_stats(request: Request):
+    """
+    KPIs SaaS pour le pilotage : total inscrits, répartition par plan, total
+    d'analyses effectuées. Réservé aux admins. Requêtes optimisées : count()
+    côté Supabase (head=True) pour ne télécharger aucune ligne sur la table users.
+    """
+    user = get_user_from_request(request)
+    if not user.get("valid") or not (user.get("is_admin") or user.get("tier") == "admin"):
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    try:
+        from supabase_client import supabase, SUPABASE_ENABLED
+    except Exception:
+        supabase, SUPABASE_ENABLED = None, False
+
+    tiers = ["free", "pro", "gold", "agency", "beta", "admin"]
+    by_tier = {t: 0 for t in tiers}
+    total_users = 0
+    total_analyses = 0
+
+    if SUPABASE_ENABLED and supabase:
+        # Total inscrits — count exact sans rapatrier les lignes
+        try:
+            r = supabase.table("users").select("*", count="exact", head=True).execute()
+            total_users = r.count or 0
+        except Exception as e:
+            print(f"[admin/stats] total users échoué : {e}")
+
+        # Répartition par plan — un count() ciblé par tier (aucune ligne téléchargée)
+        for t in tiers:
+            try:
+                r = supabase.table("users").select("*", count="exact", head=True).eq("tier", t).execute()
+                by_tier[t] = r.count or 0
+            except Exception as e:
+                print(f"[admin/stats] count tier {t} échoué : {e}")
+
+        # Total analyses = somme des compteurs d'usage (mensuel free/pro + journalier gold/agency)
+        # On ne récupère que la colonne `count`, pas les lignes complètes.
+        for table in ("monthly_usage", "daily_usage"):
+            try:
+                resp = supabase.table(table).select("count").execute()
+                total_analyses += sum(int(row.get("count") or 0) for row in (resp.data or []))
+            except Exception as e:
+                print(f"[admin/stats] somme {table} échouée : {e}")
+
+    return {
+        "ok": True,
+        "total_users": total_users,
+        "by_tier": by_tier,
+        "total_analyses": total_analyses,
+    }
+
 
 @app.get("/health")
 async def health():
