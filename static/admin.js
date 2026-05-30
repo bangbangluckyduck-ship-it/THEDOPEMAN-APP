@@ -1,6 +1,8 @@
 /* ════════════════════════════════════════════════════════════════════════
  * Dope Admin — script de contrôle du back-office isolé (/dope-admin)
- * Sécurité : vérifie le token + le rôle admin au chargement, sinon redirige.
+ * App autonome : écran de connexion intégré + vérification du rôle admin.
+ * Si non connecté/non admin → écran de login (jamais de redirection hors scope,
+ * pour rester fonctionnel en mode PWA installé sur l'écran d'accueil).
  * RÈGLE : toutes les requêtes incluent le header Authorization: Bearer <token>.
  * ════════════════════════════════════════════════════════════════════════ */
 'use strict';
@@ -44,27 +46,81 @@ function showToast(msg) {
   _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
 
-/* ── SÉCURITÉ : garde d'accès au chargement ───────────────────────────── */
-async function guardAdmin() {
-  const token = getToken();
-  if (!token) { window.location.replace('/'); return false; }
+/* ── AFFICHAGE : écran de connexion vs back-office ────────────────────── */
+function showLogin() {
+  const shell = document.getElementById('app-shell');
+  const login = document.getElementById('login-screen');
+  if (shell) shell.style.display = 'none';
+  if (login) login.style.display = 'flex';
+}
 
+function showShell() {
+  const shell = document.getElementById('app-shell');
+  const login = document.getElementById('login-screen');
+  if (login) login.style.display = 'none';
+  if (shell) shell.style.display = 'block';
+}
+
+/* ── SÉCURITÉ : vérifie le rôle admin via le token courant ────────────── */
+async function checkIsAdmin() {
+  const token = getToken();
+  if (!token) return false;
   try {
     const res = await fetch('/api/user-info', { headers: authHeaders() });
-    if (!res.ok) { window.location.replace('/'); return false; }
+    if (!res.ok) return false;
     const data = await res.json();
-    const isAdmin = data && (data.is_admin === true || data.tier === 'admin');
-    if (!isAdmin) { window.location.replace('/'); return false; }
-    return true;
+    return !!(data && (data.is_admin === true || data.tier === 'admin'));
   } catch (e) {
-    window.location.replace('/');
     return false;
+  }
+}
+
+/* ── CONNEXION INTÉGRÉE (app autonome sur l'écran d'accueil) ──────────── */
+async function doLogin() {
+  const email = (document.getElementById('login-email').value || '').trim();
+  const password = document.getElementById('login-password').value || '';
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Email et mot de passe requis.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      errEl.textContent = '❌ ' + (e.detail || 'Identifiants invalides.');
+      errEl.style.display = 'block';
+      return;
+    }
+    const data = await res.json();
+    if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+
+    // Vérifie que ce compte est bien admin
+    const isAdmin = await checkIsAdmin();
+    if (!isAdmin) {
+      localStorage.removeItem(TOKEN_KEY);
+      errEl.textContent = '🔒 Ce compte n\'a pas les droits administrateur.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('login-password').value = '';
+    showShell();
+    showView('stats');
+  } catch (e) {
+    errEl.textContent = '❌ Erreur réseau.';
+    errEl.style.display = 'block';
   }
 }
 
 function adminLogout() {
   localStorage.removeItem(TOKEN_KEY);
-  window.location.replace('/');
+  showLogin();
 }
 
 /* ── NAVIGATION ENTRE LES VUES ────────────────────────────────────────── */
@@ -84,7 +140,7 @@ async function loadStats() {
   try {
     const res = await fetch('/admin/stats', { headers: authHeaders() });
     if (!res.ok) {
-      if (res.status === 403) { window.location.replace('/'); return; }
+      if (res.status === 403) { showLogin(); return; }
       showToast('❌ Erreur chargement stats');
       return;
     }
@@ -118,7 +174,7 @@ async function loadUsers() {
   try {
     const res = await fetch('/admin/users', { headers: authHeaders() });
     if (!res.ok) {
-      if (res.status === 403) { window.location.replace('/'); return; }
+      if (res.status === 403) { showLogin(); return; }
       list.innerHTML = '<div class="empty">❌ Erreur de chargement</div>';
       return;
     }
@@ -190,10 +246,11 @@ async function confirmTierChange() {
 
 /* ── INITIALISATION ───────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
-  const ok = await guardAdmin();
-  if (!ok) return;
-  // Révèle le back-office uniquement après validation du rôle admin
-  const shell = document.getElementById('app-shell');
-  if (shell) shell.style.display = 'block';
-  loadStats();
+  const isAdmin = await checkIsAdmin();
+  if (isAdmin) {
+    showShell();
+    loadStats();
+  } else {
+    showLogin();
+  }
 });
