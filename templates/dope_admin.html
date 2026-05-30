@@ -246,6 +246,23 @@
   </style>
 </head>
 <body>
+  <!-- ── ÉCRAN DE CONNEXION (app autonome) ── -->
+  <div id="login-screen" style="display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 24px);text-align:center">
+    <div style="font-size:40px;margin-bottom:10px">🛠️</div>
+    <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Dope<span style="color:var(--accent)">Admin</span></h1>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:26px">Back-office réservé à l'administrateur.</p>
+    <div style="width:100%;max-width:360px;text-align:left">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">Email</label>
+      <input type="email" id="login-email" autocomplete="username" placeholder="admin@exemple.com"
+        style="width:100%;padding:13px 12px;border:1px solid var(--border);border-radius:12px;font-size:15px;background:var(--surface);color:var(--text);margin-bottom:14px;-webkit-appearance:none">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">Mot de passe</label>
+      <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••"
+        style="width:100%;padding:13px 12px;border:1px solid var(--border);border-radius:12px;font-size:15px;background:var(--surface);color:var(--text);margin-bottom:18px;-webkit-appearance:none">
+      <button class="btn btn-block" style="padding:14px" onclick="doLogin()">Se connecter</button>
+      <div id="login-error" style="display:none;color:var(--red);font-size:13px;font-weight:600;margin-top:14px;text-align:center"></div>
+    </div>
+  </div>
+
   <!-- Garde de sécurité front : caché tant que le rôle admin n'est pas validé -->
   <div id="app-shell" style="display:none">
     <header class="appbar">
