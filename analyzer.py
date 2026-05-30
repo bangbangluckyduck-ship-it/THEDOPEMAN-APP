@@ -852,3 +852,112 @@ def analyze_video(
     """
     visual = analyze_visual(frames_b64, product)
     return synthesize_analysis(visual, transcript, market_context, product)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# MÉTA-SYNTHÈSE MULTI-VIDÉOS — patterns gagnants / perdants (coaching personnel)
+#
+# Principe : l'analyse multi-lien porte sur les vidéos de l'utilisateur. On croise
+# les N analyses pour faire émerger ce qui REVIENT (récurrences), côté forces
+# (patterns gagnants à reproduire) ET côté faiblesses (patterns qui plombent
+# potentiellement l'algo TikTok Shop, à corriger).
+#
+# Aujourd'hui : raisonnement basé sur les scores des 8 dimensions déjà calculés.
+# Demain (connexion compte TikTok) : chaque vidéo portera un champ `performance`
+# (ventes/vues réelles) qui pondèrera les patterns → corrélation data-driven.
+# ════════════════════════════════════════════════════════════════════════════
+BATCH_PATTERNS_PROMPT = """Tu es un coach expert TikTok Shop. On te donne l'analyse de PLUSIEURS vidéos d'UN MÊME créateur (au format JSON compact : scores des 8 dimensions, hook, produit, forces/faiblesses, et éventuellement des stats réelles de ventes/vues).
+
+Ta mission : faire émerger les PATTERNS RÉCURRENTS de ce créateur, pas analyser chaque vidéo isolément.
+
+RÈGLES DE RAISONNEMENT :
+- Un "pattern" = un trait qui REVIENT sur plusieurs vidéos (≥2). Ignore ce qui n'apparaît qu'une fois.
+- PATTERNS GAGNANTS = récurrences associées à des scores élevés (et, si dispo, à de vraies ventes). À reproduire.
+- PATTERNS PERDANTS = récurrences associées à des scores faibles / signaux faibles pour l'algo TikTok Shop (hook mou, pas de CTA, rétention basse, conversion shop faible…). À corriger en priorité.
+- Si `stats_reelles_disponibles` est true, PRIORISE la corrélation avec les ventes réelles plutôt que les scores.
+- Langage probabiliste ("tend à", "semble"), français, concret et actionnable. Tutoie le créateur.
+
+RETOUR JSON UNIQUEMENT, structure exacte :
+{
+  "nb_videos": <int>,
+  "base_analyse": "<'scores d'analyse' ou 'ventes réelles + scores'>",
+  "patterns_gagnants": [
+    {"pattern": "<ce qui revient et marche>", "occurrences": <int>, "preuve": "<dimensions/scores qui le soutiennent>", "conseil": "<comment le réutiliser/amplifier>"}
+  ],
+  "patterns_perdants": [
+    {"pattern": "<ce qui revient et plombe>", "occurrences": <int>, "risque_algo": "<pourquoi ça nuit à la portée/conversion TikTok Shop>", "correction": "<action concrète>"}
+  ],
+  "recette_personnelle": "<2-3 phrases : LA formule gagnante de ce créateur, à garder>",
+  "priorite_coaching": "<l'action n°1 à corriger maintenant pour le plus d'impact>"
+}"""
+
+
+def _summarize_analysis_for_batch(analysis: dict, index: int, performance: Optional[dict] = None) -> dict:
+    """Résumé compact d'une analyse pour la méta-synthèse (limite la taille du prompt)."""
+    dims = analysis.get("analyse_8_dimensions") or {}
+    detection = analysis.get("detection") or {}
+
+    def _score(key: str):
+        d = dims.get(key)
+        return d.get("score") if isinstance(d, dict) else None
+
+    summary = {
+        "video": index + 1,
+        "produit": detection.get("produit"),
+        "hook_type": detection.get("hook_type"),
+        "score_global": analysis.get("score_global"),
+        "scores": {
+            "hook": _score("hook"),
+            "retention": _score("retention"),
+            "mecanismes_vente": _score("mecanismes_vente"),
+            "positionnement": _score("positionnement"),
+            "format_visuel": _score("format_visuel"),
+            "emotion": _score("emotion_dominante"),
+            "conversion_shop": _score("conversion_shop"),
+            "algorithme": _score("algorithme"),
+        },
+        "points_forts": (analysis.get("points_forts") or [])[:3],
+        "points_ameliorer": (analysis.get("points_ameliorer") or [])[:3],
+    }
+    # Tuyauterie future : stats réelles TikTok (ventes/vues). None tant que non connecté.
+    if performance:
+        summary["performance"] = performance
+    return summary
+
+
+def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[Optional[dict]]] = None) -> dict:
+    """
+    Croise N analyses d'un même créateur → patterns gagnants + patterns perdants.
+    `performances` : liste optionnelle alignée sur `analyses` (stats réelles futures).
+    """
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        raise Exception("MISTRAL_API_KEY missing")
+
+    summaries = []
+    for i, a in enumerate(analyses):
+        perf = performances[i] if (performances and i < len(performances)) else None
+        summaries.append(_summarize_analysis_for_batch(a or {}, i, perf))
+
+    has_perf = any(s.get("performance") for s in summaries)
+    payload = json.dumps(
+        {"videos": summaries, "stats_reelles_disponibles": has_perf},
+        ensure_ascii=False,
+    )
+    prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
+
+    raw = _mistral_call(api_key, "mistral-small-latest", prompt, timeout=60.0)
+    try:
+        result = _extract_json(raw)
+    except Exception:
+        result = {
+            "nb_videos": len(summaries),
+            "base_analyse": "ventes réelles + scores" if has_perf else "scores d'analyse",
+            "patterns_gagnants": [],
+            "patterns_perdants": [],
+            "recette_personnelle": "Synthèse indisponible pour ce lot.",
+            "priorite_coaching": "",
+        }
+    result["nb_videos"] = len(summaries)
+    result["stats_reelles"] = has_perf
+    return result

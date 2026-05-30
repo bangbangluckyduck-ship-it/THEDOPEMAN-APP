@@ -1243,7 +1243,8 @@ async function analyzeUrls() {
   const total = urls.length;
   let lastData = null;
   let okCount  = 0;
-  const failed = [];
+  const failed  = [];
+  const results = [];   // toutes les analyses réussies (pour la méta-synthèse)
 
   // Une requête /analyze-url, avec timeout + 1 retry automatique sur erreur réseau
   // ("Failed to fetch" = worker recyclé/OOM sur Render → on laisse respirer puis on réessaie).
@@ -1300,6 +1301,7 @@ async function analyzeUrls() {
         updateUsageBadge(data.usage);
       }
       saveToHistory(data, urls[i]);
+      results.push(data);
     } catch (e) {
       // Une vidéo qui échoue ne casse plus tout le lot : on note et on continue
       console.error('[BATCH] Échec vidéo', i + 1, e);
@@ -1322,10 +1324,124 @@ async function analyzeUrls() {
       const note = failed.length ? ` (${failed.length} échec${failed.length > 1 ? 's' : ''} : vidéo${failed.length > 1 ? 's' : ''} ${failed.join(', ')})` : '';
       showToast(`✅ ${okCount}/${total} vidéos analysées${note}. Voici le dernier rapport.`);
     }
+
+    // ── Méta-synthèse cross-vidéos : détection des patterns gagnants/perdants ──
+    // Réservé aux tiers gold/agency/beta/admin et nécessite ≥2 analyses réussies.
+    if (results.length >= 2 && ['gold', 'agency', 'beta', 'admin'].includes(tier)) {
+      try {
+        const patternsSection = document.getElementById('batch-patterns-section');
+        if (patternsSection) {
+          patternsSection.style.display = 'block';
+          patternsSection.innerHTML = '<div style="text-align:center;padding:24px;color:#8b8ba7;">🧠 Détection de tes patterns gagnants en cours...</div>';
+        }
+        const token = localStorage.getItem('tts_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const resp = await fetch('/analyze-batch-patterns', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            analyses: results,
+            performances: results.map(r => r.performance || null),
+          }),
+        });
+        if (resp.ok) {
+          const patternsData = await resp.json();
+          renderBatchPatterns(patternsData);
+        } else {
+          if (patternsSection) patternsSection.style.display = 'none';
+          console.warn('[batch-patterns] échec', resp.status);
+        }
+      } catch (err) {
+        const patternsSection = document.getElementById('batch-patterns-section');
+        if (patternsSection) patternsSection.style.display = 'none';
+        console.warn('[batch-patterns] erreur', err);
+      }
+    }
   } else {
     document.getElementById('upload-section').style.display = 'block';
     showError('❌ Aucune vidéo n\'a pu être analysée. Vérifie les liens et réessaie.');
   }
+}
+
+// 🆕 Render Méta-synthèse cross-vidéos : patterns gagnants & perdants personnels
+// Affiche le résultat de /analyze-batch-patterns : recette personnelle de l'utilisateur,
+// patterns à reproduire (gagnants) et patterns à corriger (risque algo TikTok Shop).
+function renderBatchPatterns(data) {
+  const section = document.getElementById('batch-patterns-section');
+  if (!section || !data) return;
+
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const gagnants = Array.isArray(data.patterns_gagnants) ? data.patterns_gagnants : [];
+  const perdants = Array.isArray(data.patterns_perdants) ? data.patterns_perdants : [];
+  const recette = (data.recette_personnelle || '').trim();
+  const priorite = (data.priorite_coaching || '').trim();
+  const nbVideos = data.nb_videos || results?.length || 0;
+  const statsReelles = !!data.stats_reelles;
+
+  let html = '';
+  html += '<div class="batch-patterns-card" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid #2d2d44;border-radius:16px;padding:24px;margin-top:24px;">';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
+  html += '<span style="font-size:24px;">🧠</span>';
+  html += '<h2 style="margin:0;font-size:20px;color:#fff;">Tes patterns personnels</h2>';
+  html += '</div>';
+  html += `<p style="color:#8b8ba7;font-size:13px;margin:0 0 20px;">Méta-synthèse croisée sur ${esc(nbVideos)} vidéos${statsReelles ? ' · pondérée par tes stats réelles' : ' · basée sur les scores d\'analyse'}.</p>`;
+
+  if (recette) {
+    html += '<div style="background:rgba(124,77,255,0.12);border-left:3px solid #7c4dff;border-radius:8px;padding:14px 16px;margin-bottom:20px;">';
+    html += '<div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#b39ddb;margin-bottom:6px;">🎯 Ta recette personnelle</div>';
+    html += `<div style="color:#e8e8f0;font-size:15px;line-height:1.5;">${esc(recette)}</div>`;
+    html += '</div>';
+  }
+
+  // Patterns gagnants
+  html += '<div style="margin-bottom:20px;">';
+  html += '<h3 style="font-size:15px;color:#4caf50;margin:0 0 12px;">✅ Patterns gagnants — à reproduire</h3>';
+  if (gagnants.length) {
+    gagnants.forEach((p) => {
+      html += '<div style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:10px;padding:14px;margin-bottom:10px;">';
+      html += `<div style="font-weight:600;color:#fff;font-size:14px;">${esc(p.pattern || '')}`;
+      if (p.occurrences) html += `<span style="color:#8b8ba7;font-weight:400;font-size:12px;"> · ${esc(p.occurrences)} vidéos</span>`;
+      html += '</div>';
+      if (p.preuve) html += `<div style="color:#b8c5b9;font-size:13px;margin-top:6px;">📊 ${esc(p.preuve)}</div>`;
+      if (p.conseil) html += `<div style="color:#a5d6a7;font-size:13px;margin-top:6px;">💡 ${esc(p.conseil)}</div>`;
+      html += '</div>';
+    });
+  } else {
+    html += '<p style="color:#8b8ba7;font-size:13px;">Aucun pattern gagnant récurrent détecté pour l\'instant.</p>';
+  }
+  html += '</div>';
+
+  // Patterns perdants
+  html += '<div style="margin-bottom:8px;">';
+  html += '<h3 style="font-size:15px;color:#ff7043;margin:0 0 12px;">⚠️ Patterns à corriger — risque pour l\'algo TikTok Shop</h3>';
+  if (perdants.length) {
+    perdants.forEach((p) => {
+      html += '<div style="background:rgba(255,112,67,0.08);border:1px solid rgba(255,112,67,0.25);border-radius:10px;padding:14px;margin-bottom:10px;">';
+      html += `<div style="font-weight:600;color:#fff;font-size:14px;">${esc(p.pattern || '')}`;
+      if (p.occurrences) html += `<span style="color:#8b8ba7;font-weight:400;font-size:12px;"> · ${esc(p.occurrences)} vidéos</span>`;
+      html += '</div>';
+      if (p.risque_algo) html += `<div style="color:#ffccbc;font-size:13px;margin-top:6px;">🚨 ${esc(p.risque_algo)}</div>`;
+      if (p.correction) html += `<div style="color:#ffab91;font-size:13px;margin-top:6px;">🔧 ${esc(p.correction)}</div>`;
+      html += '</div>';
+    });
+  } else {
+    html += '<p style="color:#8b8ba7;font-size:13px;">Aucun pattern pénalisant récurrent détecté. 👍</p>';
+  }
+  html += '</div>';
+
+  if (priorite) {
+    html += '<div style="background:rgba(255,193,7,0.1);border-left:3px solid #ffc107;border-radius:8px;padding:14px 16px;margin-top:16px;">';
+    html += '<div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd54f;margin-bottom:6px;">🏆 Priorité de coaching</div>';
+    html += `<div style="color:#e8e8f0;font-size:14px;line-height:1.5;">${esc(priorite)}</div>`;
+    html += '</div>';
+  }
+
+  html += '</div>';
+  section.innerHTML = html;
+  section.style.display = 'block';
 }
 
 // 🆕 Render Contexte Temporel (saisonnalité + événements)
