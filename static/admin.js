@@ -162,6 +162,18 @@ async function loadStats() {
         <span class="tier-count">${byTier[t] || 0}</span>
       </div>
     `).join('');
+
+    // Note transparence : comptes internes/bots exclus des chiffres
+    const note = document.getElementById('excluded-note');
+    if (note) {
+      const n = data.excluded_accounts || 0;
+      if (n > 0) {
+        note.textContent = `${n} compte${n > 1 ? 's' : ''} interne${n > 1 ? 's' : ''}/bot exclu${n > 1 ? 's' : ''} des statistiques.`;
+        note.style.display = 'block';
+      } else {
+        note.style.display = 'none';
+      }
+    }
   } catch (e) {
     showToast('❌ Erreur réseau (stats)');
   }
