@@ -2,13 +2,23 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <title>Dope Admin — Back-Office</title>
+  <title>Dope Admin</title>
+
+  <!-- PWA : installable sur l'écran d'accueil du téléphone -->
+  <link rel="manifest" href="/static/admin-manifest.json">
+  <meta name="theme-color" content="#6c5ce7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dope Admin">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="icon" href="/static/icon-192.png">
+
   <style>
     :root {
       --bg: #0f1117;
-      --sidebar: #161922;
       --surface: #1c2030;
       --surface2: #232838;
       --border: #2c3245;
@@ -20,237 +30,253 @@
       --amber: #f59e0b;
       --red: #ef4444;
       --blue: #3b82f6;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
+      -webkit-font-smoothing: antialiased;
     }
-    /* ── SIDEBAR ── */
-    .sidebar {
-      width: 240px;
-      background: var(--sidebar);
-      border-right: 1px solid var(--border);
-      padding: 24px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+
+    /* ── APP BAR (haut) ── */
+    .appbar {
       position: sticky;
       top: 0;
-      height: 100vh;
-    }
-    .sidebar .brand {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      padding: 0 12px 20px;
+      z-index: 50;
+      background: rgba(15,17,23,0.92);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      margin-bottom: 12px;
-    }
-    .sidebar .brand span { color: var(--accent); }
-    .nav-item {
+      padding: calc(var(--safe-top) + 14px) 18px 14px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--muted);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      text-align: left;
-      width: 100%;
-      transition: background .15s, color .15s;
+      justify-content: space-between;
     }
-    .nav-item:hover { background: var(--surface2); color: var(--text); }
-    .nav-item.active { background: var(--accent); color: #fff; }
-    .sidebar .spacer { flex: 1; }
-    .nav-item.logout { color: var(--red); }
-    .nav-item.logout:hover { background: rgba(239,68,68,0.12); }
-    /* ── MAIN ── */
-    .main { flex: 1; padding: 32px 40px; overflow-y: auto; }
-    .view-title { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
-    .view-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .appbar .title { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
+    .appbar .title span { color: var(--accent); }
+    .appbar .logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    /* ── CONTENU ── */
+    .main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 18px 16px calc(96px + var(--safe-bottom));
+    }
     .view { display: none; }
     .view.active { display: block; }
+    .view-title { font-size: 22px; font-weight: 800; margin-bottom: 2px; }
+    .view-sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+
     /* ── KPI CARDS ── */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
-      margin-bottom: 28px;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
     }
     .kpi-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 22px;
+      padding: 18px 16px;
     }
-    .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
-    .kpi-value { font-size: 34px; font-weight: 800; line-height: 1; }
-    .kpi-card.accent { border-color: var(--accent); }
-    .kpi-card.accent .kpi-value { color: var(--accent); }
-    /* ── TIER BREAKDOWN ── */
+    .kpi-card.wide { grid-column: 1 / -1; }
+    .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
+    .kpi-value { font-size: 32px; font-weight: 800; line-height: 1; }
+    .kpi-card.accent { border-color: var(--accent); background: linear-gradient(135deg, rgba(108,92,231,0.18), var(--surface)); }
+    .kpi-card.accent .kpi-value { color: #b9adff; }
+
+    /* ── RÉPARTITION PLANS ── */
     .tier-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 22px;
+      padding: 18px 16px;
     }
-    .tier-card h3 { font-size: 14px; margin-bottom: 16px; }
+    .tier-card h3 { font-size: 14px; margin-bottom: 14px; }
     .tier-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 11px 0;
       border-bottom: 1px solid var(--border);
       font-size: 14px;
     }
     .tier-row:last-child { border-bottom: none; }
     .tier-badge {
       display: inline-block;
-      padding: 3px 10px;
+      padding: 3px 11px;
       border-radius: 20px;
       font-size: 11px;
       font-weight: 700;
       color: #fff;
     }
-    .tier-count { font-weight: 800; font-size: 16px; }
-    /* ── TABLE ── */
-    .table-wrap {
+    .tier-count { font-weight: 800; font-size: 17px; }
+
+    /* ── LISTE UTILISATEURS (cartes mobiles) ── */
+    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+    .user-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
     }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 14px 18px; font-size: 13px; }
-    th {
-      background: var(--surface2);
-      color: var(--muted);
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.5px;
-    }
-    tbody tr { border-top: 1px solid var(--border); }
-    tbody tr:hover { background: var(--surface2); }
+    .user-card .email { font-weight: 700; font-size: 14px; word-break: break-all; }
+    .user-card .meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .user-card .exp { font-size: 12px; color: var(--muted); }
+    .user-card .actions { margin-top: 12px; }
     .btn {
-      padding: 7px 13px;
-      border-radius: 8px;
-      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
       font-weight: 600;
       border: none;
       cursor: pointer;
       background: var(--accent);
       color: #fff;
-      transition: background .15s;
     }
-    .btn:hover { background: var(--accent-dk); }
+    .btn:active { background: var(--accent-dk); }
+    .btn-block { width: 100%; }
     .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-    .empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
-    /* ── MODAL ── */
+    .empty { padding: 26px; text-align: center; color: var(--muted); font-size: 13px; }
+
+    /* ── BARRE DE NAVIGATION BAS (style app native) ── */
+    .bottom-nav {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 60;
+      background: rgba(22,25,34,0.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: var(--safe-bottom);
+    }
+    .nav-item {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 10px 4px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-item .ic { font-size: 21px; line-height: 1; }
+    .nav-item.active { color: var(--accent); }
+
+    /* ── MODALE ── */
     .modal-backdrop {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.65);
-      z-index: 1000;
-      align-items: center;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: flex-end;
       justify-content: center;
-      padding: 20px;
     }
     .modal-backdrop.active { display: flex; }
     .modal {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 26px;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
       width: 100%;
-      max-width: 420px;
+      max-width: 520px;
     }
-    .modal h3 { font-size: 18px; margin-bottom: 6px; }
-    .modal p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
-    .modal label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px; }
+    .modal h3 { font-size: 18px; margin-bottom: 4px; }
+    .modal p { font-size: 13px; color: var(--muted); margin-bottom: 18px; word-break: break-all; }
+    .modal label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px; color: var(--muted); }
     .modal select, .modal input {
       width: 100%;
-      padding: 11px 12px;
+      padding: 13px 12px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 14px;
+      border-radius: 12px;
+      font-size: 15px;
       background: var(--bg);
       color: var(--text);
       margin-bottom: 16px;
+      -webkit-appearance: none;
+      appearance: none;
     }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn { flex: 1; padding: 13px; }
+
+    @media (min-width: 600px) {
+      .modal-backdrop { align-items: center; }
+      .modal { border-radius: 20px; }
+    }
+
     /* ── TOAST ── */
     #toast {
       position: fixed;
-      bottom: 24px;
+      bottom: calc(86px + var(--safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 12px 20px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 13px;
       font-weight: 600;
-      z-index: 2000;
+      z-index: 200;
       display: none;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
-    @media (max-width: 720px) {
-      body { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }
-      .sidebar .brand { width: 100%; border-bottom: none; }
-      .main { padding: 20px; }
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 90vw;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <!-- Garde de sécurité front : tant que la vérification n'est pas passée, on cache tout -->
-  <div id="app-shell" style="display:none;width:100%">
-    <aside class="sidebar">
-      <div class="brand">🛠️ Dope<span>Admin</span></div>
-      <button class="nav-item active" data-view="stats" onclick="showView('stats')">📊 Statistiques</button>
-      <button class="nav-item" data-view="users" onclick="showView('users')">👥 Utilisateurs</button>
-      <div class="spacer"></div>
-      <button class="nav-item" onclick="window.location.href='/app'">↩️ Retour à l'app</button>
-      <button class="nav-item logout" onclick="adminLogout()">🚪 Déconnexion</button>
-    </aside>
+  <!-- Garde de sécurité front : caché tant que le rôle admin n'est pas validé -->
+  <div id="app-shell" style="display:none">
+    <header class="appbar">
+      <div class="title">🛠️ Dope<span>Admin</span></div>
+      <button class="logout" onclick="adminLogout()">Déconnexion</button>
+    </header>
 
     <main class="main">
       <!-- ── VUE STATISTIQUES ── -->
       <section id="view-stats" class="view active">
         <h1 class="view-title">📊 Statistiques</h1>
-        <p class="view-sub">Indicateurs clés de pilotage de l'application.</p>
+        <p class="view-sub">Pilotage de l'application en temps réel.</p>
 
         <div class="kpi-grid">
           <div class="kpi-card accent">
-            <div class="kpi-label">Utilisateurs inscrits</div>
+            <div class="kpi-label">Inscrits</div>
             <div class="kpi-value" id="kpi-total-users">—</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Analyses vidéo (total)</div>
-            <div class="kpi-value" id="kpi-total-analyses">—</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Clients payants</div>
             <div class="kpi-value" id="kpi-paying">—</div>
           </div>
+          <div class="kpi-card wide">
+            <div class="kpi-label">Analyses vidéo (total)</div>
+            <div class="kpi-value" id="kpi-total-analyses">—</div>
+          </div>
         </div>
 
         <div class="tier-card">
           <h3>Répartition par plan</h3>
-          <div id="tier-breakdown">
-            <div class="empty">Chargement…</div>
-          </div>
+          <div id="tier-breakdown"><div class="empty">Chargement…</div></div>
         </div>
       </section>
 
@@ -263,23 +289,19 @@
           <button class="btn btn-ghost" onclick="loadUsers()">🔄 Rafraîchir</button>
         </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Plan</th>
-                <th>Expiration</th>
-                <th style="text-align:right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="users-tbody">
-              <tr><td colspan="4" class="empty">Chargement…</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <div id="users-list"><div class="empty">Chargement…</div></div>
       </section>
     </main>
+
+    <!-- ── NAVIGATION BAS ── -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="stats" onclick="showView('stats')">
+        <span class="ic">📊</span>Stats
+      </button>
+      <button class="nav-item" data-view="users" onclick="showView('users')">
+        <span class="ic">👥</span>Users
+      </button>
+    </nav>
   </div>
 
   <!-- ── MODALE CHANGEMENT DE PLAN ── -->
@@ -307,6 +329,12 @@
 
   <div id="toast"></div>
 
+  <script>
+    // Service worker (scope racine) — rend l'app installable sur le téléphone
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/dope-admin-sw.js').catch(() => {});
+    }
+  </script>
   <script src="/static/admin.js"></script>
 </body>
 </html>

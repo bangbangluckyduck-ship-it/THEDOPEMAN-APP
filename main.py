@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta, timezone
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import time
@@ -167,6 +167,22 @@ async def analytics(request: Request):
 @app.get("/dope-admin", response_class=HTMLResponse)
 async def dope_admin():
     return HTMLResponse(_DOPE_ADMIN_HTML)
+
+
+@app.get("/dope-admin-sw.js")
+async def dope_admin_sw():
+    """
+    Service worker de l'app admin, servi depuis la racine pour avoir un scope
+    qui couvre /dope-admin (installable sur l'écran d'accueil du téléphone).
+    Volontairement sans cache : un back-office doit toujours afficher des
+    données et un code à jour.
+    """
+    js = (
+        "self.addEventListener('install', e => self.skipWaiting());\n"
+        "self.addEventListener('activate', e => self.clients.claim());\n"
+        "self.addEventListener('fetch', e => { return; });\n"
+    )
+    return Response(content=js, media_type="application/javascript")
 
 
 @app.get("/admin/stats")

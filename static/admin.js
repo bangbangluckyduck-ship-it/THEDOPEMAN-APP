@@ -113,36 +113,39 @@ async function loadStats() {
 
 /* ── VUE UTILISATEURS ─────────────────────────────────────────────────── */
 async function loadUsers() {
-  const tbody = document.getElementById('users-tbody');
-  tbody.innerHTML = '<tr><td colspan="4" class="empty">Chargement…</td></tr>';
+  const list = document.getElementById('users-list');
+  list.innerHTML = '<div class="empty">Chargement…</div>';
   try {
     const res = await fetch('/admin/users', { headers: authHeaders() });
     if (!res.ok) {
       if (res.status === 403) { window.location.replace('/'); return; }
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">❌ Erreur de chargement</td></tr>';
+      list.innerHTML = '<div class="empty">❌ Erreur de chargement</div>';
       return;
     }
     const data = await res.json();
     const users = (data && data.users) || [];
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">Aucun utilisateur</td></tr>';
+      list.innerHTML = '<div class="empty">Aucun utilisateur</div>';
       return;
     }
-    tbody.innerHTML = users.map(u => {
+    list.innerHTML = users.map(u => {
       const email = esc(u.email || '');
-      const expiry = u.expiry ? esc(u.expiry) : '<span style="color:var(--muted)">—</span>';
+      const safeEmail = email.replace(/'/g, "\\'");
+      const expiry = u.expiry ? `Expire le ${esc(u.expiry)}` : 'Sans expiration';
       return `
-        <tr>
-          <td>${email}</td>
-          <td>${tierBadge(u.tier)}</td>
-          <td>${expiry}</td>
-          <td style="text-align:right">
-            <button class="btn" onclick="changeUserTier('${email.replace(/'/g, "\\'")}', '${esc(u.tier)}')">⚙️ Changer plan</button>
-          </td>
-        </tr>`;
+        <div class="user-card">
+          <div class="email">${email}</div>
+          <div class="meta">
+            ${tierBadge(u.tier)}
+            <span class="exp">${expiry}</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-block" onclick="changeUserTier('${safeEmail}', '${esc(u.tier)}')">⚙️ Changer le plan</button>
+          </div>
+        </div>`;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty">❌ Erreur réseau</td></tr>';
+    list.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
   }
 }
 
@@ -191,6 +194,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!ok) return;
   // Révèle le back-office uniquement après validation du rôle admin
   const shell = document.getElementById('app-shell');
-  if (shell) shell.style.display = 'flex';
+  if (shell) shell.style.display = 'block';
   loadStats();
 });
