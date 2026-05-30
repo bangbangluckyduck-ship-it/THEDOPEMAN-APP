@@ -17,7 +17,7 @@ import time
 
 load_dotenv()
 
-from analyzer import analyze_video, transcribe_audio, analyze_visual, synthesize_analysis
+from analyzer import analyze_video, transcribe_audio, analyze_visual, synthesize_analysis, synthesize_batch_patterns
 from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
 # 1. Ajout de create_access_token dans l'import
@@ -731,6 +731,9 @@ async def analyze_url(request: Request):
     body = await request.json()
     url = (body.get("url") or "").strip()
     product = (body.get("product") or "").strip() or None
+    # Tuyauterie future : stats réelles de la vidéo (ventes/vues) une fois le compte
+    # TikTok connecté. None tant que la connexion n'existe pas — passé tel quel au résultat.
+    performance = body.get("performance") if isinstance(body.get("performance"), dict) else None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
 
@@ -815,6 +818,8 @@ async def analyze_url(request: Request):
         result["usage"] = usage_info(user)
         result["analysis_duration_ms"] = analysis_duration_ms
         result["source"] = "url"
+        result["source_url"] = url
+        result["performance"] = performance  # None pour l'instant (futur : stats TikTok)
 
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, len(frames_list))
@@ -835,6 +840,50 @@ async def analyze_url(request: Request):
             gc.collect()
         except Exception:
             pass
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# MÉTA-SYNTHÈSE MULTI-VIDÉOS — patterns gagnants / perdants (Gold / Agency)
+# ════════════════════════════════════════════════════════════════════════════
+_BATCH_PATTERNS_TIERS = {"gold", "agency", "beta", "admin"}
+
+
+@app.post("/analyze-batch-patterns")
+async def analyze_batch_patterns(request: Request):
+    """
+    Reçoit les N analyses d'un lot multi-liens et fait émerger les patterns
+    gagnants/perdants récurrents du créateur. Réservé Gold / Agency (analyse en masse).
+    Body : {"analyses": [ {...}, ... ], "performances": [ {...}|null, ... ] }
+    """
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+
+    user = get_user_from_request(request)
+    tier = user.get("tier", "free")
+    if not user.get("valid") or tier not in _BATCH_PATTERNS_TIERS:
+        raise HTTPException(
+            status_code=403,
+            detail="La détection de patterns multi-vidéos est réservée aux plans Gold et Agency.",
+        )
+
+    body = await request.json()
+    analyses = body.get("analyses") or []
+    performances = body.get("performances") if isinstance(body.get("performances"), list) else None
+    if not isinstance(analyses, list) or len(analyses) < 2:
+        raise HTTPException(status_code=400, detail="Au moins 2 analyses sont nécessaires pour détecter des patterns.")
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, synthesize_batch_patterns, analyses, performances),
+            timeout=70.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="La synthèse des patterns a pris trop longtemps.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur synthèse patterns : {str(e)[:160]}")
+
+    return JSONResponse(result)
 
 
 # ════════════════════════════════════════════════════════════════════════════
