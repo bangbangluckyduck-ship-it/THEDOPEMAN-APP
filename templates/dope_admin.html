@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dope Admin — Back-Office</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --sidebar: #161922;
+      --surface: #1c2030;
+      --surface2: #232838;
+      --border: #2c3245;
+      --text: #e8eaf0;
+      --muted: #8b90a5;
+      --accent: #6c5ce7;
+      --accent-dk: #564fd1;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .sidebar .brand {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      padding: 0 12px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .sidebar .brand span { color: var(--accent); }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: #fff; }
+    .sidebar .spacer { flex: 1; }
+    .nav-item.logout { color: var(--red); }
+    .nav-item.logout:hover { background: rgba(239,68,68,0.12); }
+    /* ── MAIN ── */
+    .main { flex: 1; padding: 32px 40px; overflow-y: auto; }
+    .view-title { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+    .view-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+    }
+    .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+    .kpi-value { font-size: 34px; font-weight: 800; line-height: 1; }
+    .kpi-card.accent { border-color: var(--accent); }
+    .kpi-card.accent .kpi-value { color: var(--accent); }
+    /* ── TIER BREAKDOWN ── */
+    .tier-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+    }
+    .tier-card h3 { font-size: 14px; margin-bottom: 16px; }
+    .tier-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .tier-row:last-child { border-bottom: none; }
+    .tier-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .tier-count { font-weight: 800; font-size: 16px; }
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 14px 18px; font-size: 13px; }
+    th {
+      background: var(--surface2);
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody tr:hover { background: var(--surface2); }
+    .btn {
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      transition: background .15s;
+    }
+    .btn:hover { background: var(--accent-dk); }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+    /* ── MODAL ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 26px;
+      width: 100%;
+      max-width: 420px;
+    }
+    .modal h3 { font-size: 18px; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .modal label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px; }
+    .modal select, .modal input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 2000;
+      display: none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    @media (max-width: 720px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }
+      .sidebar .brand { width: 100%; border-bottom: none; }
+      .main { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Garde de sécurité front : tant que la vérification n'est pas passée, on cache tout -->
+  <div id="app-shell" style="display:none;width:100%">
+    <aside class="sidebar">
+      <div class="brand">🛠️ Dope<span>Admin</span></div>
+      <button class="nav-item active" data-view="stats" onclick="showView('stats')">📊 Statistiques</button>
+      <button class="nav-item" data-view="users" onclick="showView('users')">👥 Utilisateurs</button>
+      <div class="spacer"></div>
+      <button class="nav-item" onclick="window.location.href='/app'">↩️ Retour à l'app</button>
+      <button class="nav-item logout" onclick="adminLogout()">🚪 Déconnexion</button>
+    </aside>
+
+    <main class="main">
+      <!-- ── VUE STATISTIQUES ── -->
+      <section id="view-stats" class="view active">
+        <h1 class="view-title">📊 Statistiques</h1>
+        <p class="view-sub">Indicateurs clés de pilotage de l'application.</p>
+
+        <div class="kpi-grid">
+          <div class="kpi-card accent">
+            <div class="kpi-label">Utilisateurs inscrits</div>
+            <div class="kpi-value" id="kpi-total-users">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Analyses vidéo (total)</div>
+            <div class="kpi-value" id="kpi-total-analyses">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Clients payants</div>
+            <div class="kpi-value" id="kpi-paying">—</div>
+          </div>
+        </div>
+
+        <div class="tier-card">
+          <h3>Répartition par plan</h3>
+          <div id="tier-breakdown">
+            <div class="empty">Chargement…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VUE UTILISATEURS ── -->
+      <section id="view-users" class="view">
+        <h1 class="view-title">👥 Utilisateurs</h1>
+        <p class="view-sub">Gestion des clients et de leur plan.</p>
+
+        <div class="toolbar">
+          <button class="btn btn-ghost" onclick="loadUsers()">🔄 Rafraîchir</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Expiration</th>
+                <th style="text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="4" class="empty">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ── MODALE CHANGEMENT DE PLAN ── -->
+  <div class="modal-backdrop" id="tier-modal">
+    <div class="modal">
+      <h3>Changer le plan</h3>
+      <p id="tier-modal-email">—</p>
+      <label for="tier-modal-select">Nouveau plan</label>
+      <select id="tier-modal-select">
+        <option value="free">FREE</option>
+        <option value="pro">PRO</option>
+        <option value="gold">GOLD</option>
+        <option value="agency">AGENCY</option>
+        <option value="beta">BETA</option>
+        <option value="admin">ADMIN</option>
+      </select>
+      <label for="tier-modal-expiry">Date d'expiration (optionnel)</label>
+      <input type="date" id="tier-modal-expiry">
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeTierModal()">Annuler</button>
+        <button class="btn" onclick="confirmTierChange()">Valider</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>

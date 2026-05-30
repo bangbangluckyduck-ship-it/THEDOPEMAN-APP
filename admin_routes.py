@@ -41,6 +41,7 @@ async def list_users(request: Request):
                     "email": email,
                     "tier": tier,
                     "label": cfg["label"],
+                    "expiry": user_data.get("expiry"),
                     "customer_id": None,  # Not stored in simple query
                 })
             return {"ok": True, "count": len(users), "users": users}

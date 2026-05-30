@@ -828,12 +828,8 @@ function updateTierBadge(data) {
   tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
   tierBadge.style.background = colors[data.tier] || '#6B7280';
   tierBadge.style.display = 'inline-block';
-
-  // Afficher l'onglet admin si l'utilisateur est admin
-  const adminTab = document.getElementById('tab-admin');
-  if (adminTab) {
-    adminTab.style.display = data.tier === 'admin' ? 'block' : 'none';
-  }
+  // NB : le back-office admin est désormais isolé sur /dope-admin
+  // (plus aucun onglet admin exposé dans l'espace client).
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -931,7 +927,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'winning-trends', 'admin', 'account'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'winning-trends', 'account'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -2383,162 +2379,10 @@ async function handleAuthSubmit(event) {
   }
 }
 
-// ── ADMIN FUNCTIONS ──────────────────────────────────────────
-async function adminLoadUsers() {
-  try {
-    const res = await fetch('/admin/users', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}` }
-    });
-    if (!res.ok) {
-      showToast('❌ Erreur: ' + (await res.json()).detail);
-      return;
-    }
-    const data = await res.json();
-    const list = document.getElementById('admin-users-list');
-    list.innerHTML = '';
-
-    if (!data.users || data.users.length === 0) {
-      list.innerHTML = '<p style="color:var(--muted);font-size:13px">Aucun utilisateur trouvé</p>';
-      return;
-    }
-
-    data.users.forEach(user => {
-      const card = document.createElement('div');
-      card.style.cssText = `
-        background: var(--surface2);
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
-      `;
-      card.innerHTML = `
-        <div>
-          <strong>${user.email}</strong><br>
-          <span style="color:var(--muted);font-size:12px">${user.label} ${user.tier === 'free' ? '(gratuit)' : ''}</span>
-        </div>
-        <button onclick="adminSetTierModal('${user.email}')" style="padding:6px 12px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">
-          ⚙️ Changer plan
-        </button>
-      `;
-      list.appendChild(card);
-    });
-  } catch (e) {
-    showToast('❌ Erreur: ' + e.message);
-  }
-}
-
-function adminSetTierModal(email) {
-  document.getElementById('admin-modal-email').textContent = email;
-  document.getElementById('admin-modal-email-input').value = email;
-  document.getElementById('admin-tier-modal').style.display = 'flex';
-}
-
-function adminCloseTierModal() {
-  document.getElementById('admin-tier-modal').style.display = 'none';
-}
-
-async function adminConfirmTierChange() {
-  const email = document.getElementById('admin-modal-email-input').value;
-  const tier = document.getElementById('admin-tier-select').value;
-  const hasExpiry = !document.getElementById('admin-no-expiry-check').checked;
-  const expiry = hasExpiry ? document.getElementById('admin-expiry-input').value : null;
-
-  try {
-    const res = await fetch('/admin/set-tier', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
-      },
-      body: JSON.stringify({ email, tier, expiry })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showToast('❌ ' + err.detail);
-      return;
-    }
-
-    const result = await res.json();
-    showToast('✅ ' + result.message);
-    adminCloseTierModal();
-    adminLoadUsers();
-  } catch (e) {
-    showToast('❌ Erreur: ' + e.message);
-  }
-}
-
-function adminToggleExpiry() {
-  const input = document.getElementById('admin-expiry-input');
-  input.style.display = document.getElementById('admin-no-expiry-check').checked ? 'none' : 'block';
-}
-
-async function adminGrantBeta() {
-  const email = document.getElementById('admin-beta-email').value.trim();
-  if (!email) {
-    showToast('Saisis une adresse e-mail');
-    return;
-  }
-
-  try {
-    const res = await fetch('/admin/grant-beta', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
-      },
-      body: JSON.stringify({ email })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showToast('❌ ' + err.detail);
-      return;
-    }
-
-    const result = await res.json();
-    document.getElementById('admin-action-msg').textContent = '✅ ' + result.message;
-    document.getElementById('admin-beta-email').value = '';
-    setTimeout(() => { document.getElementById('admin-action-msg').textContent = ''; }, 3000);
-  } catch (e) {
-    showToast('❌ Erreur: ' + e.message);
-  }
-}
-
-async function adminRevoke() {
-  const email = document.getElementById('admin-beta-email').value.trim();
-  if (!email) {
-    showToast('Saisis une adresse e-mail');
-    return;
-  }
-
-  try {
-    const res = await fetch('/admin/revoke', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('tts_token') || ''}`
-      },
-      body: JSON.stringify({ email })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showToast('❌ ' + err.detail);
-      return;
-    }
-
-    const result = await res.json();
-    document.getElementById('admin-action-msg').textContent = '✅ Accès beta révoqué';
-    document.getElementById('admin-beta-email').value = '';
-    setTimeout(() => { document.getElementById('admin-action-msg').textContent = ''; }, 3000);
-  } catch (e) {
-    showToast('❌ Erreur: ' + e.message);
-  }
-}
+// ── ADMIN ────────────────────────────────────────────────────
+// Le back-office d'administration est désormais isolé sur la route /dope-admin
+// (template templates/dope_admin.html + static/admin.js). Aucune logique admin
+// n'est exposée dans l'espace client pour ne laisser aucune surface d'attaque.
 
 // ── ECHOTIK TAB FUNCTIONS ──────────────────────────────────────────────────
 async function loadWinningTrendsTab() {
