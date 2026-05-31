@@ -362,6 +362,14 @@ async def login(request: Request):
                 new_user = {"email": email, "tier": "free", "password": password_hash}
                 supabase.table("users").insert(new_user).execute()
                 token = create_access_token(email)
+
+                # Email de bienvenue (best-effort : un échec ne bloque jamais l'inscription)
+                try:
+                    from email_service import email_service
+                    await email_service.send_welcome_email(email)
+                except Exception as mail_err:
+                    print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
+
                 return {"ok": True, "email": email, "message": "Compte créé", "created": True, "token": token}
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
