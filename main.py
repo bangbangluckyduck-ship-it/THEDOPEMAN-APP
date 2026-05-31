@@ -116,6 +116,58 @@ _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
+# ── CAPTCHA anti-bot (Cloudflare Turnstile) ──────────────────────────────────
+# Protège la création de compte (qui déclenche un email) contre le spam de bots.
+# Clés lues depuis l'environnement — aucun secret hardcodé. Tant que les clés ne
+# sont pas configurées, le CAPTCHA est inactif (l'app fonctionne normalement).
+TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
+
+
+def _inject_turnstile(html: str) -> str:
+    """Remplace les marqueurs <!--TURNSTILE_*--> par le widget/script Cloudflare.
+    Si aucune clé de site n'est configurée, les marqueurs sont retirés (no-op)."""
+    if TURNSTILE_SITE_KEY:
+        widget = (
+            f'<div class="cf-turnstile" data-sitekey="{TURNSTILE_SITE_KEY}" '
+            f'data-theme="auto" style="margin:14px 0;"></div>'
+        )
+        script = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
+    else:
+        widget = ""
+        script = ""
+    return html.replace("<!--TURNSTILE_WIDGET-->", widget).replace("<!--TURNSTILE_SCRIPT-->", script)
+
+
+_HOMEPAGE_HTML = _inject_turnstile(_HOMEPAGE_HTML)
+_APP_HTML = _inject_turnstile(_APP_HTML)
+
+
+async def verify_turnstile(token: str, remote_ip: str = "") -> bool:
+    """Vérifie un token Turnstile auprès de Cloudflare.
+
+    - Si TURNSTILE_SECRET_KEY n'est pas configurée → renvoie True (CAPTCHA désactivé).
+    - Token manquant alors que le CAPTCHA est actif → False (on bloque).
+    - Erreur réseau vers Cloudflare → True (fail-open : on ne bloque pas les
+      inscriptions légitimes si Cloudflare est momentanément injoignable).
+    """
+    if not TURNSTILE_SECRET_KEY:
+        return True
+    if not token:
+        return False
+    try:
+        data = {"secret": TURNSTILE_SECRET_KEY, "response": token}
+        if remote_ip:
+            data["remoteip"] = remote_ip
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify", data=data
+            )
+            return bool(resp.json().get("success"))
+    except Exception as e:
+        print(f"[turnstile] vérification impossible (fail-open) : {e}")
+        return True
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     await track_visitor("/", request)
@@ -357,6 +409,14 @@ async def login(request: Request):
             else:
                 raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
         else:
+            # Nouveau compte → cette branche déclenche un email de bienvenue.
+            # On exige une vérification anti-bot (Turnstile) AVANT toute création,
+            # pour ne pas laisser des bots générer des envois en masse.
+            cf_token = body.get("cf_turnstile_token", "") if isinstance(body, dict) else ""
+            remote_ip = request.client.host if request.client else ""
+            if not await verify_turnstile(cf_token, remote_ip):
+                raise HTTPException(status_code=400, detail="Vérification anti-robot échouée. Merci de réessayer.")
+
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
             try:
                 new_user = {"email": email, "tier": "free", "password": password_hash}
