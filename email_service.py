@@ -24,6 +24,17 @@ from email.utils import formataddr
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+# Sur Render/uvicorn, aucun handler n'est attaché à nos loggers custom : par
+# défaut seuls les WARNING+ remontent (les INFO de succès sont masqués). On
+# attache un StreamHandler dédié pour garantir la visibilité des logs d'envoi.
+if not logger.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
 _executor = ThreadPoolExecutor(max_workers=2)
 
 # ── Configuration SMTP (lue depuis l'environnement, aucun secret hardcodé) ──
