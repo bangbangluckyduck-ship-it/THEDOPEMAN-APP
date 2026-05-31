@@ -1390,6 +1390,13 @@
         ? (window.turnstile.getResponse() || '')
         : '';
 
+      // Widget affiché mais pas encore validé → on évite une requête vouée à l'échec
+      if (document.querySelector('.cf-turnstile') && !cfToken) {
+        messageDiv.textContent = '⏳ Vérification de sécurité en cours — attends la coche verte puis réessaie.';
+        messageDiv.style.display = 'block';
+        return;
+      }
+
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

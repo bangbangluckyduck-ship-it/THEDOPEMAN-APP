@@ -2351,6 +2351,13 @@ async function handleAuthSubmit(event) {
       ? (window.turnstile.getResponse() || '')
       : '';
 
+    // Si le widget est affiché mais pas encore validé, on évite une requête vouée
+    // à l'échec : on invite l'utilisateur à attendre la coche verte.
+    if (document.querySelector('.cf-turnstile') && !cfToken) {
+      showToast('⏳ Vérification de sécurité en cours — attends la coche verte puis réessaie.');
+      return;
+    }
+
     // Call the /api/login endpoint
     const response = await fetch('/api/login', {
       method: 'POST',
