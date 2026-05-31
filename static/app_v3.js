@@ -2346,16 +2346,23 @@ async function handleAuthSubmit(event) {
   }
 
   try {
+    // Jeton CAPTCHA Turnstile (présent uniquement si le widget est activé)
+    const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
+      ? (window.turnstile.getResponse() || '')
+      : '';
+
     // Call the /api/login endpoint
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
     });
 
     if (!response.ok) {
       const error = await response.json();
       showToast('❌ ' + (error.detail || 'Erreur connexion'));
+      // Réinitialise le CAPTCHA pour permettre une nouvelle tentative
+      if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset();
       return;
     }
 

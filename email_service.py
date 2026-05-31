@@ -219,16 +219,11 @@ class EmailService:
             return False
 
     async def send_welcome_email(self, email: str) -> bool:
-        """Email de bienvenue après création de compte.
-
-        ⚠️ TEST DÉLIVRABILITÉ (temporaire) : contenu minimal sans emoji, sans
-        bouton, sans lien ni template HTML, afin d'isoler le filtre MailChannels
-        [PSFD]. À restaurer (_wrap + _welcome_body) une fois le diagnostic fait.
-        """
+        """Email de bienvenue après création de compte."""
         return await self._send(
             email,
-            "Confirmation de la creation de votre compte",
-            "<p>Bonjour,</p><p>Votre compte est bien actif. Merci de votre confiance.</p>",
+            "Bienvenue sur TikTok Shop Analyzer 🎉",
+            _wrap("Bienvenue à bord 🎉", _welcome_body()),
         )
 
     async def send_temporary_password_email(self, email: str, temp_password: str) -> bool:

@@ -1385,16 +1385,23 @@
     }
 
     try {
+      // Jeton CAPTCHA Turnstile (présent uniquement si le widget est activé)
+      const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
+        ? (window.turnstile.getResponse() || '')
+        : '';
+
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
       });
 
       const data = await res.json();
       if (!res.ok) {
         messageDiv.textContent = data.detail || 'Erreur d\'authentification';
         messageDiv.style.display = 'block';
+        // Réinitialise le CAPTCHA pour permettre une nouvelle tentative
+        if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset();
         return;
       }
 
@@ -1966,6 +1973,7 @@
       </button>
     </div>
     <div id="login-message" style="color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none;"></div>
+    <!--TURNSTILE_WIDGET-->
     <button onclick="submitLoginModal()" style="width: 100%; padding: 12px; background: var(--primary);
       color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;">
       Se connecter
@@ -2006,5 +2014,6 @@
   </div>
 </div>
 
+<!--TURNSTILE_SCRIPT-->
 </body>
 </html>
