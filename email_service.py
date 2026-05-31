@@ -1,178 +1,244 @@
-"""Email service for sending password reset and notification emails using SendGrid."""
+"""
+Service d'emails transactionnels — SMTP Hostinger via bibliothèques natives Python.
+
+Aucune dépendance externe (smtplib + email.mime), connexion SSL (port 465).
+Toutes les fonctions sont robustes : une erreur d'envoi est loguée mais ne fait
+jamais planter l'appelant (inscription, reset, etc.).
+
+Variables d'environnement (configurées sur Render) :
+  SMTP_SERVER    (défaut "smtp.hostinger.com")
+  SMTP_PORT      (défaut 465 — SSL)
+  SMTP_USERNAME  (ex. contact@tiktokshop-analyzer.com)
+  SMTP_PASSWORD  (jamais hardcodé)
+  SMTP_FROM_NAME (défaut "TikTok Shop Analyzer")
+"""
 
 import os
+import ssl
+import smtplib
 import logging
 import asyncio
-from typing import Optional
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
 from concurrent.futures import ThreadPoolExecutor
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Email, To, Content
-from jinja2 import Template
 
 logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
 
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
-SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@tts-analyzer.fr")
+# ── Configuration SMTP (lue depuis l'environnement, aucun secret hardcodé) ──
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.hostinger.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "contact@tiktokshop-analyzer.com")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "TikTok Shop Analyzer")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", SMTP_USERNAME)
+
+# Le service est « actif » uniquement si un mot de passe SMTP est fourni.
+SMTP_ENABLED = bool(SMTP_PASSWORD)
+
+APP_URL = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com")
 
 
-# Email templates
-TEMPORARY_PASSWORD_EMAIL_TEMPLATE = """
-<h1>Réinitialisation de mot de passe</h1>
-<p>Bonjour,</p>
-<p>Vous avez demandé une réinitialisation de votre mot de passe pour <strong>TikTok Shop Analyzer</strong>.</p>
-<p>Votre <strong>mot de passe temporaire</strong> est :</p>
-<div style="background: #f5f5f5; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 18px; letter-spacing: 2px; margin: 20px 0;">
-  <strong>{{ temp_password }}</strong>
-</div>
-<p><strong>⚠️ Importants :</strong></p>
-<ul>
-  <li>Connectez-vous avec ce mot de passe temporaire</li>
-  <li>À votre première connexion, vous serez invité à définir un nouveau mot de passe</li>
-  <li>Ce mot de passe temporaire expirera dans 24 heures</li>
-</ul>
-<p>Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer ce message.</p>
-<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>
-"""
-
-MAGIC_LINK_EMAIL_TEMPLATE = """
-<h1>Réinitialisation de mot de passe</h1>
-<p>Bonjour,</p>
-<p>Vous avez demandé une réinitialisation de votre mot de passe pour <strong>TikTok Shop Analyzer</strong>.</p>
-<p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
-<div style="margin: 30px 0;">
-  <a href="{{ reset_link }}" style="background: #D4AF37; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-    Réinitialiser mon mot de passe
-  </a>
-</div>
-<p><strong>Ou copiez ce lien :</strong></p>
-<p style="background: #f5f5f5; padding: 12px; border-radius: 8px; word-break: break-all;">
-  {{ reset_link }}
-</p>
-<p><strong>⚠️ Important :</strong></p>
-<ul>
-  <li>Ce lien expirera dans 24 heures</li>
-  <li>Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer ce message</li>
-</ul>
-<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>
-"""
-
-PASSWORD_CHANGED_EMAIL_TEMPLATE = """
-<h1>Mot de passe modifié</h1>
-<p>Bonjour,</p>
-<p>Votre mot de passe pour <strong>TikTok Shop Analyzer</strong> a été modifié avec succès.</p>
-<p>Si vous n'avez pas fait cette modification, veuillez contacter le support immédiatement à <strong>dopeventure44@gmail.com</strong>.</p>
-<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>
-"""
+# ════════════════════════════════════════════════════════════════════════════
+# GABARIT HTML COMMUN — design épuré, responsive, inline CSS (compatibilité mail)
+# ════════════════════════════════════════════════════════════════════════════
+def _wrap(title: str, body_html: str) -> str:
+    """Enveloppe un contenu HTML dans un gabarit d'email propre et sobre."""
+    return f"""<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a2e;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+        <tr><td style="background:#1a1a2e;padding:28px 32px;text-align:center;">
+          <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.4px;">TikTok Shop <span style="color:#6c5ce7;">Analyzer</span></span>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <h1 style="font-size:21px;font-weight:800;margin:0 0 16px;color:#1a1a2e;">{title}</h1>
+          <div style="font-size:15px;line-height:1.6;color:#3a3a4a;">{body_html}</div>
+        </td></tr>
+        <tr><td style="padding:20px 32px;border-top:1px solid #ecedf2;text-align:center;">
+          <p style="font-size:12px;color:#9a9ab0;margin:0;">
+            TikTok Shop Analyzer · Cet email vous est envoyé par <a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;text-decoration:none;">{SUPPORT_EMAIL}</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
 
 
+def _button(label: str, url: str) -> str:
+    return (
+        f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td '
+        f'style="border-radius:10px;background:#6c5ce7;"><a href="{url}" '
+        f'style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:700;color:#ffffff;'
+        f'text-decoration:none;border-radius:10px;">{label}</a></td></tr></table>'
+    )
+
+
+# ── Contenus des emails ──────────────────────────────────────────────────────
+def _welcome_body() -> str:
+    return (
+        "<p>Bonjour,</p>"
+        "<p>Bienvenue sur <strong>TikTok Shop Analyzer</strong> 🎉 Votre compte est prêt.</p>"
+        "<p>Vous pouvez dès maintenant analyser vos vidéos TikTok Shop grâce à l'IA : "
+        "détection produit, accroche optimale, potentiel viral et conseils personnalisés.</p>"
+        f"{_button('Lancer ma première analyse', APP_URL + '/app')}"
+        "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'êtes pas à l'origine de cette inscription, "
+        "vous pouvez ignorer cet email.</p>"
+        "<p>À très vite,<br>L'équipe TikTok Shop Analyzer</p>"
+    )
+
+
+def _temporary_password_body(temp_password: str) -> str:
+    return (
+        "<p>Bonjour,</p>"
+        "<p>Vous avez demandé la réinitialisation de votre mot de passe.</p>"
+        "<p>Votre <strong>mot de passe temporaire</strong> est :</p>"
+        f'<div style="background:#f4f5f7;padding:16px;border-radius:10px;font-family:monospace;'
+        f'font-size:18px;letter-spacing:2px;text-align:center;margin:18px 0;font-weight:700;">{temp_password}</div>'
+        "<ul style=\"padding-left:18px;\">"
+        "<li>Connectez-vous avec ce mot de passe temporaire.</li>"
+        "<li>Pensez à le remplacer par un nouveau mot de passe.</li>"
+        "<li>Ce mot de passe expire dans 24 heures.</li>"
+        "</ul>"
+        "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
+        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+    )
+
+
+def _magic_link_body(reset_link: str) -> str:
+    return (
+        "<p>Bonjour,</p>"
+        "<p>Vous avez demandé la réinitialisation de votre mot de passe. "
+        "Cliquez sur le bouton ci-dessous pour en définir un nouveau :</p>"
+        f"{_button('Réinitialiser mon mot de passe', reset_link)}"
+        "<p style=\"font-size:13px;color:#3a3a4a;\">Ou copiez ce lien dans votre navigateur :</p>"
+        f'<p style="background:#f4f5f7;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;">{reset_link}</p>'
+        "<p style=\"font-size:13px;color:#9a9ab0;\">Ce lien expire dans 24 heures. "
+        "Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
+        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+    )
+
+
+def _password_changed_body() -> str:
+    return (
+        "<p>Bonjour,</p>"
+        "<p>Votre mot de passe a bien été <strong>modifié avec succès</strong>.</p>"
+        f"<p>Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement le support à "
+        f'<a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;">{SUPPORT_EMAIL}</a>.</p>'
+        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+    )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ENVOI SMTP NATIF (synchrone) — cœur du service
+# ════════════════════════════════════════════════════════════════════════════
+def send_transactional_email(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Envoie un email transactionnel HTML via le SMTP Hostinger (SSL/465).
+    Retourne True si l'envoi réussit, False sinon. Ne lève jamais d'exception :
+    une panne d'email ne doit jamais faire planter l'application appelante.
+    """
+    if not SMTP_ENABLED:
+        logger.warning(
+            "[email] SMTP désactivé (SMTP_PASSWORD absent) — email NON envoyé à %s (sujet: %s)",
+            to_email, subject,
+        )
+        return False
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = formataddr((SMTP_FROM_NAME, SMTP_USERNAME))
+        msg["To"] = to_email
+
+        # Version texte minimale (fallback) + version HTML
+        plain_fallback = "Cet email nécessite un client compatible HTML."
+        msg.attach(MIMEText(plain_fallback, "plain", "utf-8"))
+        msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context, timeout=15) as server:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
+
+        logger.info("[email] ✅ envoyé à %s (sujet: %s)", to_email, subject)
+        return True
+
+    except (smtplib.SMTPException, ssl.SSLError, OSError) as e:
+        logger.error("[email] ❌ échec SMTP vers %s : %s", to_email, str(e))
+        return False
+    except Exception as e:  # garde-fou ultime
+        logger.error("[email] ❌ erreur inattendue vers %s : %s", to_email, str(e))
+        return False
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SERVICE ASYNC — wrappe l'envoi synchrone dans un thread pour ne pas bloquer
+# l'event loop FastAPI. Conserve l'API attendue par main.py & admin_routes.py.
+# ════════════════════════════════════════════════════════════════════════════
 class EmailService:
-    """Service pour envoyer des emails via SendGrid."""
+    """Service d'emails transactionnels (Hostinger SMTP), interface async-safe."""
 
     def __init__(self):
-        self.sg = SendGridAPIClient(SENDGRID_API_KEY) if SENDGRID_API_KEY else None
-        self.enabled = bool(SENDGRID_API_KEY)
+        self.enabled = SMTP_ENABLED
+
+    async def _send(self, to_email: str, subject: str, html_content: str) -> bool:
+        """Exécute l'envoi SMTP (bloquant) dans un thread, avec timeout."""
+        if not self.enabled:
+            logger.warning("[email] service désactivé — simulerait l'envoi à %s", to_email)
+            return True  # comportement dev : on ne bloque pas les flux
+
+        try:
+            loop = asyncio.get_event_loop()
+            return await asyncio.wait_for(
+                loop.run_in_executor(_executor, send_transactional_email, to_email, subject, html_content),
+                timeout=20.0,
+            )
+        except asyncio.TimeoutError:
+            logger.error("[email] ❌ timeout envoi vers %s", to_email)
+            return False
+        except Exception as e:
+            logger.error("[email] ❌ erreur async vers %s : %s", to_email, str(e))
+            return False
+
+    async def send_welcome_email(self, email: str) -> bool:
+        """Email de bienvenue après création de compte."""
+        return await self._send(
+            email,
+            "Bienvenue sur TikTok Shop Analyzer 🎉",
+            _wrap("Bienvenue à bord 🎉", _welcome_body()),
+        )
 
     async def send_temporary_password_email(self, email: str, temp_password: str) -> bool:
-        """Send temporary password email to user."""
-        if not self.enabled:
-            logger.warning(f"Email service disabled. Would send to {email}: temp password reset")
-            return True  # Pretend success for development
-
-        try:
-            template = Template(TEMPORARY_PASSWORD_EMAIL_TEMPLATE)
-            html_content = template.render(temp_password=temp_password)
-
-            message = Mail(
-                from_email=Email(SMTP_FROM_EMAIL, SMTP_FROM_NAME),
-                to_emails=To(email),
-                subject="Réinitialisation de mot de passe - TikTok Shop Analyzer",
-                html_content=html_content,
-            )
-
-            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
-            loop = asyncio.get_event_loop()
-            response = await asyncio.wait_for(
-                loop.run_in_executor(_executor, self.sg.send, message),
-                timeout=10.0
-            )
-            logger.info(f"✅ Password reset email sent to {email} (status: {response.status_code})")
-            return response.status_code in [200, 201]
-
-        except asyncio.TimeoutError:
-            logger.error(f"❌ SendGrid timeout sending password reset email to {email}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Failed to send password reset email to {email}: {str(e)}")
-            return False
+        """Email contenant un mot de passe temporaire."""
+        return await self._send(
+            email,
+            "Réinitialisation de mot de passe — TikTok Shop Analyzer",
+            _wrap("Réinitialisation de mot de passe", _temporary_password_body(temp_password)),
+        )
 
     async def send_magic_link_email(self, email: str, reset_link: str) -> bool:
-        """Send magic link email to user."""
-        if not self.enabled:
-            logger.warning(f"Email service disabled. Would send magic link to {email}")
-            return True
-
-        try:
-            template = Template(MAGIC_LINK_EMAIL_TEMPLATE)
-            html_content = template.render(reset_link=reset_link)
-
-            message = Mail(
-                from_email=Email(SMTP_FROM_EMAIL, SMTP_FROM_NAME),
-                to_emails=To(email),
-                subject="Réinitialiser votre mot de passe - TikTok Shop Analyzer",
-                html_content=html_content,
-            )
-
-            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
-            loop = asyncio.get_event_loop()
-            response = await asyncio.wait_for(
-                loop.run_in_executor(_executor, self.sg.send, message),
-                timeout=10.0
-            )
-            logger.info(f"✅ Magic link email sent to {email} (status: {response.status_code})")
-            return response.status_code in [200, 201]
-
-        except asyncio.TimeoutError:
-            logger.error(f"❌ SendGrid timeout sending magic link email to {email}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Failed to send magic link email to {email}: {str(e)}")
-            return False
+        """Email contenant un lien magique de réinitialisation."""
+        return await self._send(
+            email,
+            "Réinitialiser votre mot de passe — TikTok Shop Analyzer",
+            _wrap("Réinitialisation de mot de passe", _magic_link_body(reset_link)),
+        )
 
     async def send_password_changed_notification(self, email: str) -> bool:
-        """Send password change confirmation email."""
-        if not self.enabled:
-            logger.warning(f"Email service disabled. Would send confirmation to {email}")
-            return True
-
-        try:
-            template = Template(PASSWORD_CHANGED_EMAIL_TEMPLATE)
-            html_content = template.render()
-
-            message = Mail(
-                from_email=Email(SMTP_FROM_EMAIL, SMTP_FROM_NAME),
-                to_emails=To(email),
-                subject="Votre mot de passe a été modifié - TikTok Shop Analyzer",
-                html_content=html_content,
-            )
-
-            # Run synchronous SendGrid call in thread pool to avoid blocking event loop
-            loop = asyncio.get_event_loop()
-            response = await asyncio.wait_for(
-                loop.run_in_executor(_executor, self.sg.send, message),
-                timeout=10.0
-            )
-            logger.info(f"✅ Password change confirmation sent to {email} (status: {response.status_code})")
-            return response.status_code in [200, 201]
-
-        except asyncio.TimeoutError:
-            logger.error(f"❌ SendGrid timeout sending password change confirmation to {email}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Failed to send password change confirmation to {email}: {str(e)}")
-            return False
+        """Confirmation après changement de mot de passe."""
+        return await self._send(
+            email,
+            "Votre mot de passe a été modifié — TikTok Shop Analyzer",
+            _wrap("Mot de passe modifié", _password_changed_body()),
+        )
 
 
-# Global instance
+# Instance globale réutilisée par l'application
 email_service = EmailService()
