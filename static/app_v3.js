@@ -2482,7 +2482,7 @@ async function clearHistory() {
 
 // ── ACCOUNT PAGE ─────────────────────────────────────────────
 function renderAccountPage() {
-  const container = document.getElementById('account-content');
+  const container = document.getElementById('tab-account-content') || document.getElementById('account-content');
   if (!container) return;
 
   const userInfo = window.__userInfo || {};
