@@ -56,7 +56,8 @@ def make_icon(size: int) -> Image.Image:
 def generate_icons():
     static = Path(__file__).parent / "static"
     static.mkdir(exist_ok=True)
-    # Priorité : TTS-LOGO.jpg > logo.png > icône générée
+
+    # ── Front office (PWA principale) : TTS-LOGO.jpg > logo.png > icône générée
     logo = static / "TTS-LOGO.jpg"
     if not logo.exists():
         logo = static / "logo.png"
@@ -66,6 +67,17 @@ def generate_icons():
         else:
             img = make_icon(sz)
         img.save(static / f"icon-{sz}.png", "PNG")
+
+    # ── Back office (Dope Admin) : on utilise le TOUT PREMIER logo (logo.png)
+    # afin de distinguer visuellement l'app admin de l'app front une fois les
+    # deux PWA installées sur le smartphone.
+    admin_logo = static / "logo.png"
+    for sz in (192, 512):
+        if admin_logo.exists():
+            img = Image.open(admin_logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        else:
+            img = make_icon(sz)
+        img.save(static / f"admin-icon-{sz}.png", "PNG")
 
 
 def generate_qr_b64(url: str) -> str:
