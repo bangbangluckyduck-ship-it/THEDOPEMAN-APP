@@ -1905,6 +1905,11 @@ function buildAnalysisSlider() {
     if (el.id === 'analysis-slider' || el.id === 'slider-footer') return;
     if (el.hasAttribute('data-slider-footer')) { footerEls.push(el); return; }
     if (window.getComputedStyle(el).display === 'none') return;  // sections masquées
+    // Anti-slide-vide : on écarte les sections visibles mais sans contenu
+    // (ni texte, ni média) qui apparaîtraient comme des pages blanches.
+    const hasText = (el.textContent || '').trim().length > 0;
+    const hasMedia = el.querySelector('img, canvas, svg, video');
+    if (!hasText && !hasMedia) return;
     slideEls.push(el);
   });
 
@@ -1929,11 +1934,13 @@ function buildAnalysisSlider() {
   viewport.appendChild(track);
   slider.appendChild(viewport);
 
+  const slideWrappers = [];
   slideEls.forEach(el => {
     const slide = document.createElement('div');
     slide.className = 'analysis-slide';
     slide.appendChild(el);
     track.appendChild(slide);
+    slideWrappers.push(slide);
   });
 
   // 5) Navigation (flèches + points + compteur)
@@ -1972,7 +1979,7 @@ function buildAnalysisSlider() {
   });
 
   // 8) État + handlers
-  window.__slider = { index: 0, count: slideEls.length, viewport };
+  window.__slider = { index: 0, count: slideWrappers.length, viewport, slides: slideWrappers };
   nav.querySelector('#slider-prev').addEventListener('click', () => sliderGoTo(window.__slider.index - 1));
   nav.querySelector('#slider-next').addEventListener('click', () => sliderGoTo(window.__slider.index + 1));
 
@@ -1986,7 +1993,30 @@ function buildAnalysisSlider() {
     }, 80);
   });
 
-  sliderSetActive(0);
+  // Recalcule la hauteur sur rotation / redimensionnement de l'écran
+  if (!window.__sliderResizeBound) {
+    window.__sliderResizeBound = true;
+    window.addEventListener('resize', () => {
+      if (window.__slider) updateSliderHeight(window.__slider.index);
+    });
+  }
+
+  // La hauteur dépend du rendu final (images/polices) → on attend un frame
+  requestAnimationFrame(() => sliderSetActive(0));
+}
+
+// Adapte la hauteur du viewport à la slide active : pas de grand vide blanc
+// sous les sections courtes, et les sections plus hautes que l'écran défilent
+// verticalement à l'intérieur de leur slide.
+function updateSliderHeight(i) {
+  const s = window.__slider;
+  if (!s || !s.slides) return;
+  const slide = s.slides[i];
+  if (!slide) return;
+  const maxH = Math.round(window.innerHeight * 0.74);   // garde de la place pour la nav
+  const natural = slide.scrollHeight;
+  const h = Math.min(natural, maxH);
+  s.viewport.style.height = h + 'px';
 }
 
 function sliderGoTo(i) {
@@ -2002,6 +2032,7 @@ function sliderSetActive(i) {
   if (!s) return;
   i = Math.max(0, Math.min(i, s.count - 1));
   s.index = i;
+  updateSliderHeight(i);
   document.querySelectorAll('#slider-dots .slider-dot')
     .forEach((d, idx) => d.classList.toggle('active', idx === i));
   const counter = document.getElementById('slider-counter');
