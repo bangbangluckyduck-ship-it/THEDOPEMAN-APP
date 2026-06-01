@@ -115,6 +115,9 @@ _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
 _CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
 _ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
+# Pages légales publiques (URLs dédiées exigées par TikTok / RGPD)
+_PRIVACY_HTML = Path("templates/privacy.html").read_text(encoding="utf-8")
+_TERMS_HTML = Path("templates/terms.html").read_text(encoding="utf-8")
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
@@ -143,6 +146,24 @@ def _inject_turnstile(html: str) -> str:
 
 _HOMEPAGE_HTML = _inject_turnstile(_HOMEPAGE_HTML)
 _APP_HTML = _inject_turnstile(_APP_HTML)
+
+
+# ── Vérification de propriété de domaine TikTok (URL properties) ─────────────
+# TikTok demande de prouver que tu possèdes le domaine. Méthode « balise meta » :
+# on insère <meta name="tiktok-developers-site-verification" content="..."> dans
+# le <head> de la page d'accueil. Le code de vérification vient de l'env (aucun
+# hardcode) → il suffit de définir TIKTOK_SITE_VERIFICATION sur Render.
+TIKTOK_SITE_VERIFICATION = os.getenv("TIKTOK_SITE_VERIFICATION", "")
+
+
+def _inject_tiktok_verification(html: str) -> str:
+    if TIKTOK_SITE_VERIFICATION:
+        tag = f'<meta name="tiktok-developers-site-verification" content="{TIKTOK_SITE_VERIFICATION}" />'
+        return html.replace("</head>", tag + "\n</head>", 1)
+    return html
+
+
+_HOMEPAGE_HTML = _inject_tiktok_verification(_HOMEPAGE_HTML)
 
 
 async def verify_turnstile(token: str, remote_ip: str = "") -> bool:
@@ -179,6 +200,14 @@ async def home(request: Request):
 async def app_page(request: Request):
     await track_visitor("/app", request)
     return HTMLResponse(_APP_HTML)
+
+@app.get("/confidentialite", response_class=HTMLResponse)
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(): return HTMLResponse(_PRIVACY_HTML)
+
+@app.get("/conditions", response_class=HTMLResponse)
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(): return HTMLResponse(_TERMS_HTML)
 
 @app.get("/blog", response_class=HTMLResponse)
 async def blog(): return HTMLResponse(_BLOG_HTML)
