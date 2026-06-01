@@ -1275,6 +1275,22 @@ async def tiktok_callback(
     return RedirectResponse(f"{app_url}/app?tiktok={status}")
 
 
+@app.get("/api/tiktok/me")
+async def tiktok_me(request: Request):
+    """Profil + vidéos (avec métriques réelles) du compte TikTok connecté."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        data = await tiktok_oauth.get_profile_and_videos(user["email"])
+    except Exception as e:
+        print(f"/api/tiktok/me error: {e}")
+        data = None
+    if not data:
+        return {"connected": False}
+    return {"connected": True, "profile": data.get("profile") or {}, "videos": data.get("videos") or []}
+
+
 @app.get("/api/auth/tiktok/status")
 async def tiktok_status(request: Request):
     """Indique si l'utilisateur connecté a déjà relié sa boutique TikTok Shop."""

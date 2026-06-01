@@ -59,6 +59,17 @@ REDIRECT_URI = os.getenv(
     "TIKTOK_REDIRECT_URI", f"{APP_PUBLIC_URL}/api/auth/tiktok/callback"
 )
 
+# Base des endpoints de données Display API (user info + video list).
+API_BASE = os.getenv("TIKTOK_API_BASE", "https://open.tiktokapis.com/v2").rstrip("/")
+_USER_FIELDS = (
+    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,"
+    "follower_count,following_count,likes_count,video_count"
+)
+_VIDEO_FIELDS = (
+    "id,title,video_description,duration,cover_image_url,embed_link,share_url,"
+    "like_count,comment_count,share_count,view_count,create_time"
+)
+
 # Durée de validité du paramètre state (anti-CSRF).
 _STATE_TTL_SECONDS = 600
 
@@ -204,3 +215,118 @@ def save_tiktok_token(email: str, data: dict) -> bool:
     except Exception as e:  # pragma: no cover - best effort
         print(f"tiktok_oauth.save_tiktok_token error: {e}")
         return False
+
+
+# ── Récupération des données (profil + vidéos) ───────────────────────────────
+def get_saved_token(email: str) -> Optional[dict]:
+    """Charge la ligne token de l'utilisateur depuis Supabase."""
+    try:
+        from supabase_client import supabase
+    except Exception:
+        return None
+    if not supabase:
+        return None
+    try:
+        r = (
+            supabase.table("tiktok_tokens")
+            .select("*")
+            .eq("email", (email or "").lower())
+            .execute()
+        )
+        return r.data[0] if r.data else None
+    except Exception as e:
+        print(f"tiktok_oauth.get_saved_token error: {e}")
+        return None
+
+
+def _persist_refreshed(email: str, data: dict) -> None:
+    """Met à jour uniquement les colonnes token après un refresh."""
+    try:
+        from supabase_client import supabase
+    except Exception:
+        return
+    if not supabase:
+        return
+    now = int(time.time())
+    access_ttl = data.get("expires_in") or data.get("access_token_expire_in")
+    refresh_ttl = data.get("refresh_expires_in") or data.get("refresh_token_expires_in")
+    upd = {
+        "access_token": data.get("access_token"),
+        "access_token_expires_at": (now + int(access_ttl)) if access_ttl else None,
+        "updated_at": now,
+    }
+    if data.get("refresh_token"):
+        upd["refresh_token"] = data["refresh_token"]
+        if refresh_ttl:
+            upd["refresh_token_expires_at"] = now + int(refresh_ttl)
+    try:
+        supabase.table("tiktok_tokens").update(upd).eq("email", (email or "").lower()).execute()
+    except Exception as e:
+        print(f"tiktok_oauth._persist_refreshed error: {e}")
+
+
+async def _ensure_access_token(row: dict) -> Optional[str]:
+    """Retourne un access_token valide, en le rafraîchissant si expiré."""
+    now = int(time.time())
+    exp = int(row.get("access_token_expires_at") or 0)
+    access = row.get("access_token")
+    if access and now < (exp - 60):
+        return access
+    refresh = row.get("refresh_token")
+    if not refresh:
+        return access
+    try:
+        refreshed = await refresh_access_token(refresh)
+    except Exception as e:
+        print(f"tiktok_oauth refresh failed: {e}")
+        return access
+    if refreshed.get("access_token"):
+        _persist_refreshed(row.get("email"), refreshed)
+        return refreshed["access_token"]
+    return access
+
+
+async def fetch_user_info(access_token: str) -> dict:
+    """GET /v2/user/info/ → profil du créateur."""
+    url = f"{API_BASE}/user/info/?fields={_USER_FIELDS}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(url, headers=headers)
+    resp.raise_for_status()
+    body = resp.json()
+    return (body.get("data") or {}).get("user") or {}
+
+
+async def fetch_video_list(access_token: str, max_count: int = 20) -> list[dict]:
+    """POST /v2/video/list/ → vidéos publiées + métriques réelles."""
+    url = f"{API_BASE}/video/list/?fields={_VIDEO_FIELDS}"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=25.0) as client:
+        resp = await client.post(url, headers=headers, json={"max_count": max_count})
+    resp.raise_for_status()
+    body = resp.json()
+    return (body.get("data") or {}).get("videos") or []
+
+
+async def get_profile_and_videos(email: str) -> Optional[dict]:
+    """Récupère profil + vidéos pour l'utilisateur connecté (ou None si non relié)."""
+    row = get_saved_token(email)
+    if not row or not row.get("access_token"):
+        return None
+    access = await _ensure_access_token(row)
+    if not access:
+        return None
+    profile: dict = {}
+    videos: list = []
+    try:
+        profile = await fetch_user_info(access)
+    except Exception as e:
+        print(f"tiktok_oauth.fetch_user_info error: {e}")
+    try:
+        videos = await fetch_video_list(access)
+    except Exception as e:
+        print(f"tiktok_oauth.fetch_video_list error: {e}")
+    return {"profile": profile, "videos": videos}
