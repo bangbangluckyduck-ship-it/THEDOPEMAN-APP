@@ -2539,6 +2539,14 @@ function renderAccountPage() {
             <div style="font-size:24px;font-weight:700;color:${tier === 'free' || tier === 'pro' ? 'var(--warning)' : 'var(--success)'}">${tier === 'free' ? '3' : tier === 'pro' ? '20' : '∞'}</div>
           </div>
         </div>
+      </div>
+
+      <!-- Connexion compte TikTok -->
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">🎵 Mon compte TikTok</div>
+        <div id="tiktok-shop-status" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:4px">Vérification…</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Relie ton compte créateur pour analyser tes vraies performances (vues, likes, partages) et laisser l'IA apprendre ce qui fonctionne pour toi.</div>
+        <button class="btn btn-primary" id="tiktok-connect-btn" onclick="connectTikTokShop()" style="width:100%">🔗 Connecter mon compte TikTok</button>
       </div>`;
 
   // Buttons
@@ -2562,7 +2570,72 @@ function renderAccountPage() {
   html += `</div>`;
 
   container.innerHTML = html;
+  loadTikTokShopStatus();
 }
+
+// ── 🛍️ Connexion boutique TikTok Shop (OAuth Partner API) ────────────
+async function loadTikTokShopStatus() {
+  const statusEl = document.getElementById('tiktok-shop-status');
+  const btn = document.getElementById('tiktok-connect-btn');
+  if (!statusEl) return;
+  const token = localStorage.getItem('tts_token');
+  if (!token) { statusEl.textContent = 'Connecte-toi pour relier ta boutique.'; return; }
+  try {
+    const res = await fetch('/api/auth/tiktok/status', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (data.connected) {
+      statusEl.innerHTML = `✅ Compte TikTok connecté${data.seller_name ? ' — <strong>' + escapeHtml(data.seller_name) + '</strong>' : ''}.`;
+      if (btn) btn.textContent = '🔄 Reconnecter mon compte TikTok';
+    } else {
+      statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
+  }
+}
+
+async function connectTikTokShop() {
+  const token = localStorage.getItem('tts_token');
+  if (!token) { showToast('Connecte-toi d\'abord.'); return; }
+  try {
+    const res = await fetch('/api/auth/tiktok/login', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast('❌ ' + (err.detail || 'Connexion TikTok indisponible.'));
+      return;
+    }
+    const data = await res.json();
+    if (data.authorize_url) {
+      window.location.href = data.authorize_url;   // redirige vers TikTok
+    }
+  } catch (e) {
+    showToast('❌ Erreur de connexion TikTok.');
+  }
+}
+
+// Retour du callback OAuth : affiche un toast selon le paramètre ?tiktok=
+(function handleTikTokCallbackParam() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('tiktok');
+    if (!t) return;
+    const messages = {
+      connected: '✅ Compte TikTok connecté !',
+      warn_not_saved: '⚠️ Compte autorisé mais sauvegarde incomplète. Réessaie.',
+      error: '❌ La connexion TikTok a échoué.'
+    };
+    const msg = messages[t] || (t.startsWith('error') ? messages.error : null);
+    if (msg && typeof showToast === 'function') setTimeout(() => showToast(msg), 600);
+    // Nettoie l'URL pour éviter de re-déclencher le toast au refresh.
+    params.delete('tiktok'); params.delete('reason');
+    const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', clean);
+  } catch (e) { /* no-op */ }
+})();
 
 // ── EXPORT PDF ───────────────────────────────────────────────
 function exportPDF() {

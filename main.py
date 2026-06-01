@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta, timezone
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import time
@@ -27,6 +27,7 @@ from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 from keyapi_integration import keyapi_client
 from insights_store import save_insight, build_winning_payload
+import tiktok_oauth
 
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -1179,6 +1180,83 @@ async def stripe_webhook_v1(request: Request):
             revoke_by_customer(cust_id)
 
     return {"received": True}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# OAUTH TIKTOK SHOP (Partner API) — autorisation marchand
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/auth/tiktok/login")
+async def tiktok_login(request: Request):
+    """
+    Démarre l'autorisation TikTok Shop pour l'utilisateur connecté.
+    Renvoie l'URL d'autorisation (le frontend redirige dessus).
+    """
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if not tiktok_oauth.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Connexion TikTok Shop indisponible (configuration manquante).",
+        )
+    state = tiktok_oauth.make_state(user["email"])
+    return {"authorize_url": tiktok_oauth.build_authorize_url(state)}
+
+
+@app.get("/api/auth/tiktok/callback")
+async def tiktok_callback(
+    request: Request,
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+):
+    """
+    Callback OAuth TikTok Shop : vérifie le state, échange le code contre un token
+    et le sauvegarde (rattaché à l'email), puis redirige vers l'app.
+    """
+    app_url = tiktok_oauth.APP_PUBLIC_URL
+
+    if not code or not state:
+        return RedirectResponse(f"{app_url}/app?tiktok=error&reason=missing_params")
+
+    email = tiktok_oauth.verify_state(state)
+    if not email:
+        return RedirectResponse(f"{app_url}/app?tiktok=error&reason=invalid_state")
+
+    try:
+        token_data = await tiktok_oauth.exchange_code_for_token(code)
+    except Exception as e:
+        print(f"❌ TikTok token exchange failed: {e}")
+        return RedirectResponse(f"{app_url}/app?tiktok=error&reason=exchange_failed")
+
+    saved = tiktok_oauth.save_tiktok_token(email, token_data)
+    status = "connected" if saved else "warn_not_saved"
+    return RedirectResponse(f"{app_url}/app?tiktok={status}")
+
+
+@app.get("/api/auth/tiktok/status")
+async def tiktok_status(request: Request):
+    """Indique si l'utilisateur connecté a déjà relié sa boutique TikTok Shop."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if not supabase_client:
+        return {"connected": False}
+    try:
+        resp = (
+            supabase_client.table("tiktok_tokens")
+            .select("seller_name,open_id,access_token_expires_at")
+            .eq("email", user["email"])
+            .execute()
+        )
+        if resp.data:
+            row = resp.data[0]
+            return {
+                "connected": bool(row.get("access_token_expires_at")),
+                "seller_name": row.get("seller_name"),
+            }
+    except Exception:
+        pass
+    return {"connected": False}
 
 
 if __name__ == "__main__":
