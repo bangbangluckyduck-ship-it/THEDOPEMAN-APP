@@ -1085,6 +1085,54 @@
       transition: transform .15s;
     }
     .freemium-cta .fc-btn:hover { transform: translateY(-2px); }
+
+    /* ── Slider d'analyse (sections en diapositives horizontales) ── */
+    #analysis-slider { position: relative; margin-bottom: 8px; }
+    .slider-viewport {
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .slider-viewport::-webkit-scrollbar { display: none; }
+    .slider-track { display: flex; }
+    .analysis-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      box-sizing: border-box;
+      padding: 0 2px;
+    }
+    /* Les sections gardent leur style ; on neutralise juste la marge verticale en mode slide */
+    .analysis-slide > .section,
+    .analysis-slide > .cta-fidelization { margin: 0; height: 100%; }
+
+    .slider-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px; margin-top: 14px;
+    }
+    .slider-arrow {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm); flex: 0 0 auto;
+      transition: transform .15s, opacity .15s;
+    }
+    .slider-arrow:hover:not(:disabled) { transform: scale(1.08); }
+    .slider-arrow:disabled { opacity: .35; cursor: default; }
+    .slider-dots { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; max-width: 60%; }
+    .slider-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); border: none; padding: 0; cursor: pointer;
+      transition: background .15s, transform .15s;
+    }
+    .slider-dot.active { background: var(--primary); transform: scale(1.35); }
+    .slider-counter { font-size: 12px; color: var(--muted); min-width: 42px; text-align: center; font-weight: 600; }
+    .slider-hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 6px; }
+    #slider-footer { margin-top: 18px; }
   </style>
 </head>
 <body>
@@ -1449,14 +1497,14 @@
       </div>
 
       <!-- CTA -->
-      <div class="cta-fidelization">
+      <div class="cta-fidelization" data-slider-footer="1">
         <h2 data-i18n="cta_title">🔄 Refais ta vidéo et reviens l'analyser</h2>
         <p data-i18n="cta_desc">Applique les recommandations IA, re-filme, et analyse à nouveau pour mesurer tes progrès.</p>
         <button class="btn-cta" onclick="resetAnalysis()" data-i18n="cta_btn">Nouvelle analyse ➜</button>
       </div>
 
       <!-- EXPORT -->
-      <div class="section">
+      <div class="section" data-slider-footer="1">
         <h3 data-i18n="sec_export">📥 Exporter</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="exportPDF()" data-i18n="btn_pdf">📄 Télécharger PDF</button>
