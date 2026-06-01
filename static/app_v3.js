@@ -2298,8 +2298,16 @@ function detectProductCategory(productName) {
 }
 
 function saveToHistory(data, filename) {
+  if (!data) return;
   const entries = getHistory();
-  if (entries[0]?.id === data.id) return;
+
+  // Dédup robuste : le serveur ne renvoie PAS d'identifiant stable (data.id est
+  // toujours undefined), donc l'ancien test `entries[0]?.id === data.id`
+  // valait `undefined === undefined` = true et bloquait TOUTE sauvegarde.
+  // On déduplique désormais sur une signature de contenu, ce qui évite aussi le
+  // double enregistrement (auto-save SSE + clic « Sauvegarder »).
+  const sig = `${filename || ''}|${data.score_global ?? ''}|${(data.verdict || '').slice(0, 40)}`;
+  if (entries[0]?._sig === sig) return;
 
   // Detect product category from detected product name
   const productName = data.detection?.produit || null;
@@ -2307,6 +2315,7 @@ function saveToHistory(data, filename) {
 
   entries.unshift({
     id:                    Date.now(),
+    _sig:                  sig,
     date:                  new Date().toISOString(),
     filename:              filename || 'vidéo',
     score_global:          data.score_global,
