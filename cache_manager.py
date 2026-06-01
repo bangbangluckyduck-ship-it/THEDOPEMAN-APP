@@ -117,6 +117,13 @@ async def save_to_cache(
     try:
         normalized_url, video_id = normalize_tiktok_url(video_url)
 
+        # ── Étanchéité tier : on ne met JAMAIS en cache la "👑 Stratégie de
+        # Conversion (Premium)". Sinon un Gold pourrait remplir le cache d'un
+        # lien, et un Pro/Free récupérerait ce bloc réservé. Le bloc premium est
+        # de toute façon régénéré à chaque analyse pour les plans habilités.
+        if isinstance(analysis_data, dict) and "strategie_conversion_premium" in analysis_data:
+            analysis_data = {k: v for k, v in analysis_data.items() if k != "strategie_conversion_premium"}
+
         # Determine TTL based on popularity (future view_count)
         ttl_days = CACHE_TTL_DAYS
 

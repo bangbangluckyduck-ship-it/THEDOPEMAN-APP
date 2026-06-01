@@ -1859,7 +1859,45 @@ function showResults(d) {
   // un composant d'upsell pour pousser vers Gold.
   renderPremiumStrategy(d);
 
+  // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
+  applyFreemiumBlur();
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Flou des fonctionnalités verrouillées pour le plan Free ──────────
+function applyFreemiumBlur() {
+  const resultsSection = document.getElementById('results-section');
+  if (!resultsSection) return;
+
+  const locks = resultsSection.querySelectorAll('[data-free-lock]');
+
+  // Nettoie l'état précédent (re-analyse / changement de plan)
+  document.getElementById('freemium-unlock-cta')?.remove();
+  locks.forEach(el => el.classList.remove('freemium-locked'));
+
+  const tier = window.__userInfo?.tier || 'free';
+  if (tier !== 'free') return;   // Pro / Gold / Agency / Beta / Admin : aucun flou
+
+  let firstLocked = null;
+  locks.forEach(el => {
+    el.classList.add('freemium-locked');
+    if (!firstLocked) firstLocked = el;
+  });
+
+  // Un seul bandeau de conversion, juste avant la première section floutée
+  if (firstLocked) {
+    const cta = document.createElement('div');
+    cta.id = 'freemium-unlock-cta';
+    cta.className = 'section freemium-cta';
+    cta.innerHTML = `
+      <div class="fc-icon">🔒</div>
+      <div class="fc-title">Choisissez votre plan pour débloquer toutes les fonctionnalités</div>
+      <div class="fc-sub">Conseils IA personnalisés, structure de vente, potentiel de conversion, détection produit et bien plus — passez à un plan payant pour accéder à l'analyse complète.</div>
+      <button class="fc-btn" onclick="switchTab('pricing')">Voir les plans →</button>
+    `;
+    firstLocked.parentNode.insertBefore(cta, firstLocked);
+  }
 }
 
 // ── 👑 Stratégie de Conversion (Premium) + Upsell Gold ───────────────
@@ -1946,6 +1984,8 @@ function resetAnalysis() {
   document.getElementById('error-box').style.display                = 'none';
   document.getElementById('premium-strategy-section')?.remove();
   document.getElementById('gold-upsell-section')?.remove();
+  document.getElementById('freemium-unlock-cta')?.remove();
+  document.querySelectorAll('#results-section [data-free-lock]').forEach(el => el.classList.remove('freemium-locked'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

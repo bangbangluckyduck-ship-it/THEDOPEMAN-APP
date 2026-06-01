@@ -1057,6 +1057,34 @@
     /* Affichage conditionnel mensuel / annuel selon data-billing de la grille */
     #pricing-grid[data-billing="month"] .price-year { display: none; }
     #pricing-grid[data-billing="year"]  .price-month { display: none; }
+
+    /* ── Flou des fonctionnalités verrouillées (plan Free) ── */
+    .freemium-locked {
+      filter: blur(6px);
+      pointer-events: none;
+      user-select: none;
+      opacity: .55;
+      transition: filter .2s;
+    }
+    .freemium-cta {
+      background: linear-gradient(135deg, rgba(124,58,237,.10), rgba(37,99,235,.10));
+      border: 1.5px solid var(--primary);
+      border-radius: 14px;
+      text-align: center;
+      padding: 22px 18px;
+      margin: 4px 0 4px;
+    }
+    .freemium-cta .fc-icon { font-size: 34px; margin-bottom: 8px; }
+    .freemium-cta .fc-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+    .freemium-cta .fc-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; max-width: 380px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+    .freemium-cta .fc-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dk, #6d28d9));
+      color: #fff; font-weight: 800; border: none;
+      padding: 12px 26px; border-radius: 10px; cursor: pointer; font-size: 14px;
+      box-shadow: 0 4px 14px rgba(124,58,237,.3);
+      transition: transform .15s;
+    }
+    .freemium-cta .fc-btn:hover { transform: translateY(-2px); }
   </style>
 </head>
 <body>
@@ -1237,7 +1265,7 @@
       </div>
 
       <!-- DÉTECTION -->
-      <div class="section">
+      <div class="section" data-free-lock="1">
         <h2 data-i18n="sec_detection">🔍 Détection automatique</h2>
         <div class="detection-grid" id="detection-grid"></div>
       </div>
@@ -1303,7 +1331,7 @@
       </div>
 
       <!-- POINTS FORTS / FAIBLES -->
-      <div class="section">
+      <div class="section" data-free-lock="1">
         <div class="two-column">
           <div>
             <h3 data-i18n="sec_forts">✅ Points forts</h3>
@@ -1317,7 +1345,7 @@
       </div>
 
       <!-- CONSEILS IA -->
-      <div class="section">
+      <div class="section" data-free-lock="1">
         <h2 data-i18n="sec_advice">💡 Conseils personnalisés</h2>
 
         <div class="conseils-section">
@@ -1343,13 +1371,13 @@
       </div>
 
       <!-- VERDICT -->
-      <div class="section" id="verdict-section" style="display:none">
+      <div class="section" id="verdict-section" data-free-lock="1" style="display:none">
         <h2 data-i18n="sec_verdict">🏆 Verdict</h2>
         <div style="font-size:14px;line-height:1.7;color:var(--text)" id="verdict-text"></div>
       </div>
 
       <!-- STRUCTURE DE VENTE -->
-      <div class="section" id="structure-vente-section" style="display:none">
+      <div class="section" id="structure-vente-section" data-free-lock="1" style="display:none">
         <h2 data-i18n="sec_structure">🔄 Structure de vente</h2>
 
         <!-- Funnel 5 étapes -->
@@ -1395,7 +1423,7 @@
       </div>
 
       <!-- POTENTIEL DE CONVERSION PAR PRIX -->
-      <div class="section" id="prix-conversion-section" style="display:none">
+      <div class="section" id="prix-conversion-section" data-free-lock="1" style="display:none">
         <h2 data-i18n="sec_conversion">💰 Potentiel de conversion</h2>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
