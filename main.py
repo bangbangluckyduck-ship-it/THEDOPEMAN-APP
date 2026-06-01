@@ -26,6 +26,7 @@ from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 from keyapi_integration import keyapi_client
+from insights_store import save_insight, build_winning_payload
 
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -667,6 +668,17 @@ async def analyze_stream_sse(
             try: await save_to_cache(video_url_to_cache, result, analysis_duration_ms, product_id=product)
             except Exception: pass
 
+            # Nourrit la base de connaissances (anonymisé) — best effort.
+            try: save_insight(result, product=product, price=price)
+            except Exception: pass
+            # 🏆 Structures gagnantes (Gold/Agency) : si score < 75, propose des
+            # accroches/scripts qui ont dépassé 75 sur un produit similaire.
+            # Ajouté APRÈS le cache (donnée gated par tier, ne doit pas être cachée).
+            try:
+                winning = build_winning_payload(result, tier, product=product, price=price)
+                if winning: result["structures_gagnantes"] = winning
+            except Exception: pass
+
             ip = request.client.host if request.client else "unknown"
             security_logger.analyze_ok(ip, len(frames_list))
 
@@ -1018,6 +1030,15 @@ async def analyze_url(request: Request):
         result["source"] = "url"
         result["source_url"] = url
         result["performance"] = performance  # None pour l'instant (futur : stats TikTok)
+
+        # Nourrit la base de connaissances (anonymisé) — best effort.
+        try: save_insight(result, product=product, price=price)
+        except Exception: pass
+        # 🏆 Structures gagnantes (Gold/Agency) si score < 75.
+        try:
+            winning = build_winning_payload(result, tier, product=product, price=price)
+            if winning: result["structures_gagnantes"] = winning
+        except Exception: pass
 
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, len(frames_list))

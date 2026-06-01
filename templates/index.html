@@ -1028,6 +1028,42 @@
     }
     .gold-upsell-btn:hover { transform: translateY(-2px); }
 
+    /* 🏆 Structures gagnantes — Gold / Agency (score < 75) */
+    .winning-structures {
+      background: linear-gradient(135deg, rgba(34,197,94,0.10), rgba(16,185,129,0.05));
+      border: 1.5px solid rgba(34,197,94,0.45);
+    }
+    .winning-structures h2 { color: #16a34a; }
+    .winning-intro { margin: 6px 0 16px; line-height: 1.5; color: var(--muted); }
+    .winning-grid { display: grid; gap: 14px; }
+    .winning-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+    }
+    .winning-card-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .winning-score {
+      font-weight: 800; font-size: 14px; color: #fff;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      padding: 3px 10px; border-radius: 8px;
+    }
+    .winning-product { font-weight: 700; }
+    .winning-hook-type { margin: 6px 0; }
+    .winning-examples { margin: 6px 0 6px 18px; line-height: 1.5; }
+    .winning-script { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+    .winning-script p { margin: 6px 0; line-height: 1.5; }
+    .winning-script .premium-tag {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .4px;
+      background: #16a34a; color: #fff;
+      padding: 2px 8px; border-radius: 6px; margin-right: 6px;
+    }
+    .winning-advice {
+      margin-top: 14px; font-weight: 600; line-height: 1.5;
+      background: rgba(34,197,94,0.10); padding: 10px 12px; border-radius: 10px;
+    }
+
     /* ── Bascule de facturation Mensuel / Annuel ── */
     .billing-toggle {
       display: inline-flex; gap: 4px; margin-top: 18px;
@@ -1821,6 +1857,7 @@
 
       <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">5. Données personnelles (RGPD)</h3>
       <p>Nous collectons uniquement votre <strong>adresse e-mail</strong> pour identifier votre compte et gérer vos quotas d'utilisation. Aucune donnée vidéo n'est stockée sur nos serveurs — l'analyse se fait en local puis est envoyée directement à l'IA.</p>
+      <p style="margin-top:8px">Afin d'améliorer la qualité de nos recommandations, nous conservons des <strong>statistiques d'analyse 100% anonymisées</strong> (catégorie de produit, prix, score, type d'accroche) — sans aucun lien avec votre identité, votre e-mail ou vos vidéos. Ces données agrégées servent uniquement à proposer des structures de contenu plus performantes.</p>
       <p style="margin-top:8px">Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Contactez-nous à dopeventure44@gmail.com.</p>
 
       <h3 style="font-size:15px;margin:16px 0 8px;color:var(--navy)">6. Cookies</h3>
