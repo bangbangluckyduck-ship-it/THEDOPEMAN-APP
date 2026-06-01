@@ -2547,6 +2547,7 @@ function renderAccountPage() {
         <div id="tiktok-shop-status" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:4px">Vérification…</div>
         <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Relie ton compte créateur pour analyser tes vraies performances (vues, likes, partages) et laisser l'IA apprendre ce qui fonctionne pour toi.</div>
         <button class="btn btn-primary" id="tiktok-connect-btn" onclick="connectTikTokShop()" style="width:100%">🔗 Connecter mon compte TikTok</button>
+        <div id="tiktok-data" style="margin-top:14px"></div>
       </div>`;
 
   // Buttons
@@ -2588,11 +2589,76 @@ async function loadTikTokShopStatus() {
     if (data.connected) {
       statusEl.innerHTML = `✅ Compte TikTok connecté${data.seller_name ? ' — <strong>' + escapeHtml(data.seller_name) + '</strong>' : ''}.`;
       if (btn) btn.textContent = '🔄 Reconnecter mon compte TikTok';
+      loadTikTokData();
     } else {
       statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
     }
   } catch (e) {
     statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
+  }
+}
+
+// Récupère et affiche le profil + les vidéos (avec métriques réelles) du compte TikTok.
+async function loadTikTokData() {
+  const box = document.getElementById('tiktok-data');
+  if (!box) return;
+  const token = localStorage.getItem('tts_token');
+  if (!token) return;
+  box.innerHTML = '<div style="font-size:13px;color:var(--muted)">Chargement de tes données TikTok…</div>';
+  try {
+    const res = await fetch('/api/tiktok/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    if (!data.connected) { box.innerHTML = ''; return; }
+    const p = data.profile || {};
+    const videos = data.videos || [];
+
+    const fmt = (n) => {
+      n = Number(n) || 0;
+      if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.0', '') + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1).replace('.0', '') + 'k';
+      return String(n);
+    };
+
+    let html = '';
+    // Profil
+    html += `
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+        ${p.avatar_url ? `<img src="${escapeHtml(p.avatar_url)}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover">` : ''}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;color:var(--text)">${escapeHtml(p.display_name || 'Mon compte TikTok')}</div>
+          <div style="font-size:12px;color:var(--muted)">
+            ${fmt(p.follower_count)} abonnés · ${fmt(p.likes_count)} likes · ${fmt(p.video_count)} vidéos
+          </div>
+        </div>
+      </div>`;
+
+    // Vidéos
+    if (videos.length) {
+      html += `<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">📹 Tes vidéos récentes (performances réelles)</div>`;
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
+      videos.forEach(v => {
+        const cover = v.cover_image_url || '';
+        const title = v.title || v.video_description || 'Vidéo';
+        html += `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${cover ? `<div style="aspect-ratio:9/16;background:#000 url('${escapeHtml(cover)}') center/cover"></div>` : ''}
+            <div style="padding:8px">
+              <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(title)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+                <span>👁 ${fmt(v.view_count)}</span>
+                <span>❤️ ${fmt(v.like_count)}</span>
+                <span>💬 ${fmt(v.comment_count)}</span>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += '</div>';
+    } else {
+      html += `<div style="font-size:12px;color:var(--muted)">Aucune vidéo récupérée (compte sans vidéos publiques ou autorisation limitée).</div>`;
+    }
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Impossible de charger les données TikTok pour le moment.</div>';
   }
 }
 
