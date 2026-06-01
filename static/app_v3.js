@@ -1091,6 +1091,11 @@ async function analyzeVideo() {
     if (productInput && productInput.value.trim()) {
       fd.append('product', productInput.value.trim());
     }
+    // Ajouter le prix saisi manuellement (facilite l'analyse de conversion)
+    const priceInput = document.getElementById('price-input');
+    if (priceInput && priceInput.value.trim()) {
+      fd.append('price', priceInput.value.trim());
+    }
 
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
@@ -1244,6 +1249,8 @@ async function analyzeUrls() {
 
   const productInput = document.getElementById('product-input');
   const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
+  const priceInput = document.getElementById('price-input');
+  const price = (priceInput && priceInput.value.trim()) ? priceInput.value.trim() : null;
 
   const total = urls.length;
   let lastData = null;
@@ -1263,7 +1270,7 @@ async function analyzeUrls() {
           'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + token,
         },
-        body: JSON.stringify({ url, product }),
+        body: JSON.stringify({ url, product, price }),
         signal: ctrl.signal,
       });
       if (!res.ok) {

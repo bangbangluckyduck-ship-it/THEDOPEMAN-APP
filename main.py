@@ -541,6 +541,7 @@ async def analyze_stream_sse(
     frames: str = Form(...),
     audio: Optional[UploadFile] = File(None),
     product: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
 ):
     if not os.getenv("MISTRAL_API_KEY"): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
@@ -613,7 +614,7 @@ async def analyze_stream_sse(
                 except asyncio.TimeoutError: return None
 
             async def _do_visual():
-                return await asyncio.wait_for(loop.run_in_executor(None, analyze_visual, frames_list, product), timeout=60.0)
+                return await asyncio.wait_for(loop.run_in_executor(None, analyze_visual, frames_list, product, price), timeout=60.0)
 
             transcript_task = asyncio.create_task(_do_transcribe())
             visual_task = asyncio.create_task(_do_visual())
@@ -643,7 +644,7 @@ async def analyze_stream_sse(
 
             try:
                 result = await asyncio.wait_for(
-                    loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier),
+                    loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
                     timeout=90.0
                 )
             except asyncio.TimeoutError:
@@ -927,6 +928,7 @@ async def analyze_url(request: Request):
     body = await request.json()
     url = (body.get("url") or "").strip()
     product = (body.get("product") or "").strip() or None
+    price = (body.get("price") or "").strip() or None
     # Tuyauterie future : stats réelles de la vidéo (ventes/vues) une fois le compte
     # TikTok connecté. None tant que la connexion n'existe pas — passé tel quel au résultat.
     performance = body.get("performance") if isinstance(body.get("performance"), dict) else None
@@ -998,10 +1000,10 @@ async def analyze_url(request: Request):
         # ── 5. Pipeline Mistral : vision → synthèse ──
         analysis_start = time.time()
         visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_visual, frames_list, product), timeout=60.0
+            loop.run_in_executor(None, analyze_visual, frames_list, product, price), timeout=60.0
         )
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
             timeout=90.0,
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
