@@ -1862,7 +1862,154 @@ function showResults(d) {
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
+  // 🎚️ Slider horizontal : chaque section devient une slide (glisser vers la
+  // gauche). Le Coach IA est placé en dernière slide ; le CTA "nouvelle analyse"
+  // + l'export passent SOUS le slider. Construit en tout dernier pour englober
+  // les sections premium/upsell ajoutées dynamiquement ci-dessus.
+  buildAnalysisSlider();
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 🎚️ Slider d'analyse (carousel horizontal scroll-snap) ────────────
+// Idempotent : on désassemble un slider existant avant de reconstruire, pour
+// supporter les ré-analyses successives sans empiler les wrappers.
+function unwrapAnalysisSlider() {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  const slider = document.getElementById('analysis-slider');
+  if (slider) {
+    slider.querySelectorAll('.analysis-slide').forEach(slide => {
+      while (slide.firstChild) results.appendChild(slide.firstChild);
+    });
+    slider.remove();
+  }
+  const footer = document.getElementById('slider-footer');
+  if (footer) {
+    while (footer.firstChild) results.appendChild(footer.firstChild);
+    footer.remove();
+  }
+}
+
+function buildAnalysisSlider() {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+
+  // 1) Repartir d'un état propre (les sections reviennent enfants directs)
+  unwrapAnalysisSlider();
+
+  // 2) Trier les enfants directs : slides (visibles) vs footer (CTA + export)
+  const footerEls = [];
+  const slideEls = [];
+  Array.from(results.children).forEach(el => {
+    if (el.id === 'analysis-slider' || el.id === 'slider-footer') return;
+    if (el.hasAttribute('data-slider-footer')) { footerEls.push(el); return; }
+    if (window.getComputedStyle(el).display === 'none') return;  // sections masquées
+    slideEls.push(el);
+  });
+
+  // 3) Coach IA toujours en dernière slide
+  const coachIdx = slideEls.findIndex(
+    el => el.id === 'coaching-section' || el.id === 'locked-coaching-section'
+  );
+  if (coachIdx > -1) {
+    const [coach] = slideEls.splice(coachIdx, 1);
+    slideEls.push(coach);
+  }
+
+  if (slideEls.length === 0) return;
+
+  // 4) Construire la structure du slider
+  const slider = document.createElement('div');
+  slider.id = 'analysis-slider';
+  const viewport = document.createElement('div');
+  viewport.className = 'slider-viewport';
+  const track = document.createElement('div');
+  track.className = 'slider-track';
+  viewport.appendChild(track);
+  slider.appendChild(viewport);
+
+  slideEls.forEach(el => {
+    const slide = document.createElement('div');
+    slide.className = 'analysis-slide';
+    slide.appendChild(el);
+    track.appendChild(slide);
+  });
+
+  // 5) Navigation (flèches + points + compteur)
+  const nav = document.createElement('div');
+  nav.className = 'slider-nav';
+  nav.innerHTML = `
+    <button class="slider-arrow" id="slider-prev" type="button" aria-label="Précédent">‹</button>
+    <div class="slider-dots" id="slider-dots"></div>
+    <div class="slider-counter" id="slider-counter"></div>
+    <button class="slider-arrow" id="slider-next" type="button" aria-label="Suivant">›</button>
+  `;
+  slider.appendChild(nav);
+
+  const hint = document.createElement('div');
+  hint.className = 'slider-hint';
+  hint.textContent = '← Glissez pour naviguer dans l’analyse →';
+  slider.appendChild(hint);
+
+  // 6) Footer SOUS le slider (nouvelle analyse + export)
+  const footer = document.createElement('div');
+  footer.id = 'slider-footer';
+  footerEls.forEach(el => footer.appendChild(el));
+
+  results.appendChild(slider);
+  if (footerEls.length) results.appendChild(footer);
+
+  // 7) Points cliquables
+  const dotsWrap = nav.querySelector('#slider-dots');
+  slideEls.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Section ${i + 1}`);
+    dot.addEventListener('click', () => sliderGoTo(i));
+    dotsWrap.appendChild(dot);
+  });
+
+  // 8) État + handlers
+  window.__slider = { index: 0, count: slideEls.length, viewport };
+  nav.querySelector('#slider-prev').addEventListener('click', () => sliderGoTo(window.__slider.index - 1));
+  nav.querySelector('#slider-next').addEventListener('click', () => sliderGoTo(window.__slider.index + 1));
+
+  // Synchronise l'état actif lors d'un swipe / scroll manuel
+  let scrollTO;
+  viewport.addEventListener('scroll', () => {
+    clearTimeout(scrollTO);
+    scrollTO = setTimeout(() => {
+      const i = Math.round(viewport.scrollLeft / viewport.clientWidth);
+      sliderSetActive(i);
+    }, 80);
+  });
+
+  sliderSetActive(0);
+}
+
+function sliderGoTo(i) {
+  const s = window.__slider;
+  if (!s) return;
+  i = Math.max(0, Math.min(i, s.count - 1));
+  s.viewport.scrollTo({ left: i * s.viewport.clientWidth, behavior: 'smooth' });
+  sliderSetActive(i);
+}
+
+function sliderSetActive(i) {
+  const s = window.__slider;
+  if (!s) return;
+  i = Math.max(0, Math.min(i, s.count - 1));
+  s.index = i;
+  document.querySelectorAll('#slider-dots .slider-dot')
+    .forEach((d, idx) => d.classList.toggle('active', idx === i));
+  const counter = document.getElementById('slider-counter');
+  if (counter) counter.textContent = `${i + 1} / ${s.count}`;
+  const prev = document.getElementById('slider-prev');
+  const next = document.getElementById('slider-next');
+  if (prev) prev.disabled = (i === 0);
+  if (next) next.disabled = (i === s.count - 1);
 }
 
 // ── Flou des fonctionnalités verrouillées pour le plan Free ──────────
@@ -1972,6 +2119,7 @@ function fillList(id, items, icon, noIcon) {
 // ── RESET ────────────────────────────────────────────────────
 function resetAnalysis() {
   selectedFile = null; currentData = null;
+  unwrapAnalysisSlider();   // remet les sections à plat avant de masquer / ré-analyser
   document.getElementById('results-section').style.display    = 'none';
   document.getElementById('upload-section').style.display     = 'block';
   document.getElementById('file-tag').style.display           = 'none';

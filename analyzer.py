@@ -591,10 +591,9 @@ def synthesize_analysis(
 
     # base_prompt : instructions d'analyse standard (tous les plans)
     base_prompt = SYNTHESIS_PROMPT
-    # Concaténation conditionnelle du bloc premium (Gold / Agency / beta / admin)
+    # Le bloc premium (Gold / Agency / beta / admin) sera ajouté À LA FIN du prompt
+    # (recency) pour maximiser la fiabilité d'émission de la clé JSON par le modèle.
     is_premium = (user_tier or "free").lower() in PREMIUM_STRATEGY_TIERS
-    if is_premium:
-        base_prompt = base_prompt + PREMIUM_PROMPT_BLOCK
 
     parts = [base_prompt]
 
@@ -656,6 +655,11 @@ def synthesize_analysis(
         parts.append(_format_market_context(market_context))
 
     parts.append(_HOOKS_CONTEXT)
+
+    # Bloc PREMIUM en TOUT DERNIER (recency) → le modèle lit l'instruction juste
+    # avant de répondre, ce qui fiabilise l'ajout de la clé strategie_conversion_premium.
+    if is_premium:
+        parts.append(PREMIUM_PROMPT_BLOCK)
 
     full_prompt = "\n".join(parts)
 
