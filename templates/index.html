@@ -1090,24 +1090,33 @@
     #analysis-slider { position: relative; margin-bottom: 8px; }
     .slider-viewport {
       overflow-x: auto;
+      overflow-y: hidden;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      /* La hauteur est pilotée en JS pour s'adapter à la slide active
+         (évite les grands espaces blancs sous les sections courtes). */
+      transition: height .25s ease;
     }
     .slider-viewport::-webkit-scrollbar { display: none; }
-    .slider-track { display: flex; }
+    .slider-track { display: flex; height: 100%; align-items: flex-start; }
     .analysis-slide {
       flex: 0 0 100%;
       width: 100%;
+      height: 100%;
       scroll-snap-align: center;
       scroll-snap-stop: always;
       box-sizing: border-box;
       padding: 0 2px;
+      /* Une section plus haute que l'écran défile verticalement DANS sa slide */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
+    .analysis-slide::-webkit-scrollbar { display: none; }
     /* Les sections gardent leur style ; on neutralise juste la marge verticale en mode slide */
     .analysis-slide > .section,
-    .analysis-slide > .cta-fidelization { margin: 0; height: 100%; }
+    .analysis-slide > .cta-fidelization { margin: 0; }
 
     .slider-nav {
       display: flex; align-items: center; justify-content: center;
