@@ -1269,7 +1269,7 @@
       <div class="file-tag" id="file-tag"></div>
       <div class="error-box" id="error-box"></div>
 
-      <!-- Champ optionnel du produit -->
+      <!-- Champs optionnels : produit + prix -->
       <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
         <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
           📦 Quel produit analyses-tu? <span style="color:var(--muted);font-weight:400">(optionnel)</span>
@@ -1280,7 +1280,18 @@
           placeholder="Ex: Tablette tactile, montre connectée, casque Bluetooth..."
           style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
         >
-        <p style="font-size:12px;color:var(--muted);margin-top:6px">💡 Aide l'IA à mieux identifier le produit et affine les conseils</p>
+
+        <label style="display:block;font-size:13px;font-weight:600;margin:14px 0 8px;color:var(--text)">
+          💶 Prix de vente du produit <span style="color:var(--muted);font-weight:400">(optionnel)</span>
+        </label>
+        <input
+          type="text"
+          inputmode="decimal"
+          id="price-input"
+          placeholder="Ex: 29,90 € — si le prix n'apparaît pas dans la vidéo"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
+        >
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">💡 Produit + prix aident l'IA à affiner la détection et le potentiel de conversion</p>
       </div>
 
       <button class="btn btn-primary btn-block" id="analyze-btn" disabled data-i18n="btn_analyze">

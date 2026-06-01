@@ -439,7 +439,7 @@ def _extract_json(raw: str) -> dict:
     return json.loads(match.group())
 
 
-def analyze_visual(frames_b64: List[str], product: Optional[str] = None) -> dict:
+def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: Optional[str] = None) -> dict:
     """
     Vision pass : Mistral Pixtral analyse SEULEMENT les frames.
     Prompt minimal → réponse JSON courte → 10-15s au lieu de 60-90s.
@@ -459,6 +459,8 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None) -> dict
 
     if product:
         content.append({"type": "text", "text": f"\n🎯 PRODUIT INDIQUÉ par l'utilisateur : {product}. Utilise pour valider ta détection."})
+    if price:
+        content.append({"type": "text", "text": f"\n💶 PRIX INDIQUÉ par l'utilisateur : {price}. Considère-le comme le prix de référence du produit (ne le remets pas en cause même s'il n'est pas visible à l'écran)."})
 
     content.append({"type": "text", "text": VISION_PROMPT})
 
@@ -576,6 +578,7 @@ def synthesize_analysis(
     market_context: Optional[dict] = None,
     product: Optional[str] = None,
     user_tier: str = "free",
+    price: Optional[str] = None,
 ) -> dict:
     """
     Synthèse text-only via mistral-small : combine vision + transcript + marché.
@@ -651,6 +654,13 @@ def synthesize_analysis(
     if product:
         parts.append(f"\n\n🎯 PRODUIT INDIQUÉ PAR L'UTILISATEUR : {product}")
 
+    if price:
+        parts.append(
+            f"\n\n💶 PRIX INDIQUÉ PAR L'UTILISATEUR : {price}. "
+            "Considère ce prix comme la donnée de référence (detection.prix_estime) du produit "
+            "et base toute l'analyse prix / potentiel de conversion dessus, même s'il n'apparaît pas à l'écran."
+        )
+
     if market_context:
         parts.append(_format_market_context(market_context))
 
@@ -685,7 +695,7 @@ def synthesize_analysis(
     if not is_premium:
         parsed.pop("strategie_conversion_premium", None)
 
-    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit)
+    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit, manual_price=price)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -697,8 +707,12 @@ def _post_process(
     visual_result: dict,
     cal_ctx: Optional[dict] = None,
     saison_produit: Optional[dict] = None,
+    manual_price: Optional[str] = None,
 ) -> dict:
     """Applique la logique business prix/conversion + injection des données marché + timing."""
+    # Prix saisi manuellement par l'utilisateur → fait autorité sur la détection IA.
+    if manual_price and str(manual_price).strip():
+        parsed.setdefault("detection", {})["prix_estime"] = str(manual_price).strip()
     # Extraire structure_vente au top level
     if "structure_vente" in parsed:
         sv = parsed["structure_vente"]
