@@ -515,6 +515,39 @@ RETOUR JSON OBLIGATOIRE (STRUCTURE EXACTE) :
 {"contexte_temporel": {"score_timing": <0-100>, "score_saison": <0-100>, "statut_saison": "<pic|peak|neutre|creux|evergreen>", "evenement_booster": {"label": "<nom événement ou null>", "jours_avant": <int ou null>, "dans_fenetre_optimale": <true/false>, "boost_applicable": <true/false>}, "cycle_tendance": "<early|peak|late|dead>", "fenetre_publication": {"jours_recommandes": <int>, "moment_optimal": "<ex: 'publier dans les 14 prochains jours' ou 'attendre mars-avril'>"}, "warning_timing": "<🔥 TIMING OPTIMAL / ✅ TIMING OK / ⚠️ TIMING DÉFAVORABLE / ❌ CONTRE-SAISON>", "message_warning": "<2 phrases concrètes>", "recommandation_publication": "<conseil court>"}, "analyse_8_dimensions": {"hook": {"score": <0-100>, "categorie": "<💰ARGENT|❌ERREUR|🎯OPPORTUNITÉ|⚡SIMPLICITÉ|🚀RÉSULTAT|😤FRUSTRATION|🤯CHOC|🔬RÉVÉLATION>", "feedback": "<>"}, "retention": {"score": <0-100>, "boucles_ouvertes": <0-10>, "feedback": "<>"}, "mecanismes_vente": {"score": <0-100>, "biais_principal": "<>", "nb_biais": <1-4>, "type_vente": "<>", "feedback": "<>"}, "positionnement": {"score": <0-100>, "role": "<>", "accessibilite": <1-10>, "credibilite": <1-10>, "relatable": "<oui/non>", "feedback": "<>"}, "format_visuel": {"score": <0-100>, "supports_utilises": ["<>"], "variation_montage": "<lent/moyen/rapide>", "feedback": "<>"}, "emotion_dominante": {"score": <0-100>, "emotion": "<>", "intensite": <1-10>, "transitions_efficaces": ["<>"], "feedback": "<>"}, "conversion_shop": {"score": <0-100>, "cta_visibles": <0-3>, "cta_implicites": <0-3>, "ce_que_vend": "<>", "engagements": {"commentaires": "<oui/non>", "sauvegardes": "<oui/non>", "partage": "<oui/non>"}, "feedback": "<>"}, "algorithme": {"score": <0-100>, "signaux_forts": ["<>"], "moments_cles": ["<>"], "potentiel_push": "<faible/moyen/fort>", "feedback": "<>"}, "score_persuasion_global": <0-100>}, "scores_legacy": {"accroche": {"note": <0-10>, "commentaire": "<>"}, "discours": {"note": <0-10>, "commentaire": "<>"}, "qualite_visuelle": {"note": <0-10>, "commentaire": "<>"}, "visibilite_produit": {"note": <0-10>, "commentaire": "<>"}, "call_to_action": {"note": <0-10>, "commentaire": "<>"}, "energie_dynamisme": {"note": <0-10>, "commentaire": "<>"}, "credibilite_confiance": {"note": <0-10>, "commentaire": "<>"}}, "detection": {"produit": "<nom>", "prix_estime": "<prix EUR ou non détecté>", "prix_rentable": <true/false>, "hook_type": "<>", "hook_force": <0-10>, "confiance_detection": <0.6-1.0>}, "viral_potential": {"score": <0-100>, "facteur_prix": "<très bas <15€|bon 15-40€|élevé 40-100€|premium 100€+>", "explication": "<2-3 lignes>"}, "structure_vente": {"accroche": {"present": <true/false>, "score": <0-10>, "hook_type": "<>", "feedback": "<>"}, "probleme": {"present": <true/false>, "score": <0-10>, "problem_stated": "<>", "clarity": <0-10>, "feedback": "<>"}, "solution": {"present": <true/false>, "score": <0-10>, "how_solved": "<>", "product_link": "<yes/no>", "feedback": "<>"}, "produit": {"present": <true/false>, "score": <0-10>, "shown_adequately": "<yes/no/partially>", "demo_quality": "<none/basic/good/excellent>", "feedback": "<>"}, "cta": {"present": <true/false>, "score": <0-10>, "cta_type": "<>", "clarity": <0-10>, "persuasion": "<faible/moyen/fort>", "feedback": "<>"}, "ordre_naturel": <true/false>, "transitions": "<fluides/abruptes/absentes>", "score_structure": <0-100>}, "score_global": <0-100>, "points_forts": ["<1>", "<2>", "<3>"], "points_ameliorer": ["<1>", "<2>", "<3>"], "recommendations_hooks": {"hook_type_propose": "<>", "raison": "<1-2 phrases>", "exemples_concrets": ["<>", "<>", "<>"]}, "plan_reproduction": {"hook_similaire": {"structure": "<>", "variables": "<>", "exemple": "<>"}, "mecanique_montage": {"rythme": "<>", "transitions": "<>", "elements_visuels": ["<>"]}, "cta_optimise": {"type": "<direct/implicite/emotionnel>", "placement": "<debut/milieu/fin>", "formulation": "<>"}, "angle_shop": {"produit": "<>", "storytelling": "<>", "emotion": "<>"}}, "conseils_concrets": ["<1>", "<2>", "<3>", "<4>"], "ameliorations_prioritaires": [{"rang": 1, "action": "<>", "impact": "<>"}, {"rang": 2, "action": "<>", "impact": "<>"}, {"rang": 3, "action": "<>", "impact": "<>"}], "verdict": "<3-4 phrases langage probabiliste>", "disclaimer_realisme": "Analyse décortique persuasion + signaux algo. TikTok surprend — mauvaises vidéos vendent bien, excellentes floppent. Repère stratégique, pas certitude."}"""
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# PROMPT PREMIUM DYNAMIQUE — réservé aux plans Gold / Agency (+ beta / admin)
+# Concaténé au prompt de synthèse UNIQUEMENT pour ces tiers. Le contrôle du tier
+# est fait 100% côté serveur (token JWT / Supabase) ; jamais via le frontend.
+# ════════════════════════════════════════════════════════════════════════════
+PREMIUM_STRATEGY_TIERS = {"gold", "agency", "beta", "admin"}
+
+PREMIUM_PROMPT_BLOCK = """
+
+████████████████████████████████████████████████████████████████████████████████
+█  INSTRUCTION PREMIUM (Génération de revenus) — RÉSERVÉ PLANS GOLD / AGENCY
+████████████████████████████████████████████████████████████████████████████████
+
+En plus de l'analyse ci-dessus, tu dois identifier formellement le produit vendu ou mis en avant. Ensuite, dresse le profil psychologique du meilleur public cible (Persona) pour l'acheter. Enfin, rédige un script TikTok clé en main (Hook de 0-3s, Démonstration organique, Call-to-Action vers le TikTok Shop) hautement optimisé pour convertir cette audience précise. Structure cette réponse sous le titre exact '👑 Stratégie de Conversion (Premium)'.
+
+⚠️ CONTRAINTE DE FORMAT : tu produis du JSON UNIQUEMENT. Tu DOIS donc ajouter au JSON final une clé supplémentaire `strategie_conversion_premium` avec EXACTEMENT cette structure :
+"strategie_conversion_premium": {
+  "titre": "👑 Stratégie de Conversion (Premium)",
+  "produit_identifie": "<nom précis du produit vendu / mis en avant>",
+  "persona": {
+    "profil": "<âge, genre, situation de vie, niveau de revenu typique de l'acheteur idéal>",
+    "psychologie": "<motivations profondes, douleurs et désirs qui déclenchent l'achat>",
+    "declencheurs_achat": ["<déclencheur 1>", "<déclencheur 2>", "<déclencheur 3>"]
+  },
+  "script_tiktok": {
+    "hook_0_3s": "<phrase d'accroche exacte à dire face caméra, 0-3s>",
+    "demonstration_organique": "<déroulé de la démonstration produit, naturelle et non publicitaire>",
+    "call_to_action": "<CTA exact et incitatif vers le TikTok Shop>"
+  }
+}
+"""
+
+
 def _format_market_context(market: dict) -> str:
     try:
         lines = ["\n================================================================================",
@@ -542,16 +575,28 @@ def synthesize_analysis(
     transcript: Optional[str],
     market_context: Optional[dict] = None,
     product: Optional[str] = None,
+    user_tier: str = "free",
 ) -> dict:
     """
     Synthèse text-only via mistral-small : combine vision + transcript + marché.
     Bcp + rapide que pixtral car pas d'images à traiter (8-15s vs 30-60s).
+
+    `user_tier` est résolu côté serveur (token JWT / Supabase). Pour les plans
+    Gold / Agency (+ beta / admin), on concatène le bloc PREMIUM qui génère la
+    section "👑 Stratégie de Conversion (Premium)" (persona + script de vente).
     """
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
         raise Exception("MISTRAL_API_KEY missing")
 
-    parts = [SYNTHESIS_PROMPT]
+    # base_prompt : instructions d'analyse standard (tous les plans)
+    base_prompt = SYNTHESIS_PROMPT
+    # Concaténation conditionnelle du bloc premium (Gold / Agency / beta / admin)
+    is_premium = (user_tier or "free").lower() in PREMIUM_STRATEGY_TIERS
+    if is_premium:
+        base_prompt = base_prompt + PREMIUM_PROMPT_BLOCK
+
+    parts = [base_prompt]
 
     # 🆕 Contexte temporel (calendrier + saisonnalité) — calculé côté serveur, fiable
     cal_ctx = _get_calendar_context()
@@ -630,6 +675,11 @@ def synthesize_analysis(
     ct = parsed.setdefault("contexte_temporel", {})
     ct["momentum_status"] = momentum_status
     ct["momentum_product_hint"] = product_hint_for_momentum
+
+    # Sécurité : la stratégie premium n'est conservée que pour les plans habilités.
+    # (Si un modèle renvoyait le bloc sans qu'on l'ait demandé, on le supprime.)
+    if not is_premium:
+        parsed.pop("strategie_conversion_premium", None)
 
     return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit)
 
@@ -844,6 +894,7 @@ def analyze_video(
     transcript: Optional[str] = None,
     market_context: Optional[dict] = None,
     product: Optional[str] = None,
+    user_tier: str = "free",
 ) -> dict:
     """
     Compat : exécute vision puis synthèse en séquence (utile pour tests/fallback).
@@ -851,7 +902,7 @@ def analyze_video(
     directement avec asyncio.gather() depuis main.py.
     """
     visual = analyze_visual(frames_b64, product)
-    return synthesize_analysis(visual, transcript, market_context, product)
+    return synthesize_analysis(visual, transcript, market_context, product, user_tier)
 
 
 # ════════════════════════════════════════════════════════════════════════════

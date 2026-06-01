@@ -978,6 +978,55 @@
       min-height: 200px;
       margin-top: 20px;
     }
+
+    /* 👑 Stratégie de Conversion (Premium) — Gold / Agency / Beta */
+    .premium-strategy {
+      background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,170,0,0.04));
+      border: 1.5px solid rgba(255,200,40,0.55);
+      box-shadow: 0 6px 26px rgba(255,190,40,0.18);
+      position: relative;
+    }
+    .premium-strategy h2 { color: #d4a017; }
+    .premium-strategy .premium-product {
+      font-size: 15px; margin: 6px 0 14px; color: var(--text, #1a1a2e);
+    }
+    .premium-strategy .premium-block {
+      background: rgba(255,255,255,0.55);
+      border-left: 3px solid #e8b923;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 12px;
+    }
+    .premium-strategy .premium-block h3 { margin: 0 0 8px; color: #b8860b; }
+    .premium-strategy .premium-block p { margin: 6px 0; line-height: 1.5; }
+    .premium-strategy .premium-list { margin: 4px 0 4px 18px; }
+    .premium-strategy .premium-tag {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .4px;
+      background: #e8b923; color: #3a2c00;
+      padding: 2px 8px; border-radius: 6px; margin-right: 6px;
+    }
+
+    /* 🔒 Upsell Gold — plans free / pro */
+    .gold-upsell {
+      background: linear-gradient(135deg, rgba(255,215,0,0.10), rgba(120,80,255,0.06));
+      border: 1.5px dashed rgba(255,200,40,0.6);
+    }
+    .gold-upsell-inner {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .gold-upsell-icon { font-size: 34px; }
+    .gold-upsell-text { flex: 1; min-width: 200px; line-height: 1.45; }
+    .gold-upsell-text strong { color: #d4a017; }
+    .gold-upsell-btn {
+      background: linear-gradient(135deg, #f5c518, #e8a317);
+      color: #2a1f00; font-weight: 800; border: none;
+      padding: 12px 22px; border-radius: 10px; cursor: pointer;
+      font-size: 14px; white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(232,163,23,0.35);
+      transition: transform .15s ease;
+    }
+    .gold-upsell-btn:hover { transform: translateY(-2px); }
   </style>
 </head>
 <body>
@@ -1414,11 +1463,11 @@
         <div class="pc-price">0 €</div>
         <div class="pc-period">pour toujours</div>
         <ul class="pc-features">
-          <li>✅ 3 analyses / mois</li>
-          <li>✅ Scoring basique</li>
-          <li>❌ Email de rapport</li>
-          <li>❌ Coach IA</li>
-          <li>❌ Recommandations produits</li>
+          <li>✅ 3 analyses gratuites (upload)</li>
+          <li>✅ Système de notation complet</li>
+          <li>🔒 Analyse par lien TikTok</li>
+          <li>🔒 Coach IA & script personnalisé</li>
+          <li>🔒 Produits tendances & créateurs</li>
         </ul>
         <button class="btn pc-btn pc-btn-free" disabled>Plan actuel</button>
       </div>
@@ -1426,14 +1475,14 @@
       <!-- PRO -->
       <div class="pricing-card">
         <div class="pc-badge" style="background:rgba(37,99,235,.1);color:var(--accent)">PRO</div>
-        <div class="pc-price">9<span style="font-size:18px">,99 €</span></div>
+        <div class="pc-price">19<span style="font-size:18px">,90 €</span></div>
         <div class="pc-period">/ mois</div>
         <ul class="pc-features">
-          <li>✅ 20 analyses / mois</li>
+          <li>✅ <strong>300 analyses / mois</strong></li>
+          <li>✅ Analyse upload <strong>+ lien TikTok</strong></li>
           <li>✅ Scoring complet</li>
-          <li>✅ Email de rapport PDF</li>
-          <li>❌ Coach IA</li>
-          <li>❌ Recommandations produits</li>
+          <li>🔒 Coach IA & script personnalisé</li>
+          <li>🔒 Analyse multi-liens (patterns)</li>
         </ul>
         <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">Choisir PRO →</button>
       </div>
@@ -1444,11 +1493,11 @@
         <div class="pc-price" style="color:var(--primary)">99 €</div>
         <div class="pc-period">/ mois</div>
         <ul class="pc-features">
-          <li>✅ <strong>Analyses illimitées</strong> (25/j)</li>
-          <li>✅ Scoring complet</li>
-          <li>✅ Email de rapport PDF</li>
-          <li>✅ <strong>Coach IA</strong></li>
-          <li>✅ Recommandations produits</li>
+          <li>✅ <strong>Tout le plan Pro</strong></li>
+          <li>✅ <strong>1000 analyses / mois</strong></li>
+          <li>✅ <strong>Coaching IA + script personnalisé</strong> par produit</li>
+          <li>✅ Produits tendances, meilleurs créateurs & vidéos recommandées</li>
+          <li>✅ <strong>Analyse multi-liens</strong> : patterns gagnants & ralentissants</li>
         </ul>
         <button class="btn pc-btn pc-btn-gold" onclick="startCheckout('gold')">Choisir GOLD ⭐</button>
       </div>
@@ -1456,13 +1505,13 @@
       <!-- AGENCY -->
       <div class="pricing-card pricing-card-navy">
         <div class="pc-badge" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)">AGENCY</div>
-        <div class="pc-price" style="color:#FFFFFF">249 €</div>
+        <div class="pc-price" style="color:#FFFFFF">5 × Gold</div>
         <div class="pc-period" style="color:rgba(255,255,255,.6)">/ mois</div>
         <ul class="pc-features pc-features-navy">
-          <li>✅ <strong>5 sièges inclus</strong></li>
-          <li>✅ Analyses illimitées (25/j × 5)</li>
-          <li>✅ Scoring complet</li>
-          <li>✅ <strong>Coach IA Premium</strong></li>
+          <li>✅ <strong>5 comptes Gold inclus</strong></li>
+          <li>✅ Toutes les fonctionnalités Gold</li>
+          <li>✅ 1000 analyses / mois × 5</li>
+          <li>✅ <strong>Coaching IA + scripts personnalisés</strong></li>
           <li>✅ <strong>Données Echotik</strong> (tendances marché)</li>
         </ul>
         <button class="btn pc-btn pc-btn-navy" onclick="startCheckout('agency')">Choisir AGENCY →</button>
