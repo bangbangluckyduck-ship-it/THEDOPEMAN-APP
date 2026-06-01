@@ -4,5 +4,6 @@ __pycache__/
 *.pyc
 .env
 static/icon-*.png
+static/admin-icon-*.png
 .DS_Store
 exports/
