@@ -1217,7 +1217,7 @@ async function analyzeUrls() {
   // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement sans rien télécharger !");
+    showToast("Passez au plan Pro (19,90€) pour analyser des liens TikTok directement sans rien télécharger !");
     return;
   }
 
@@ -1845,7 +1845,75 @@ function showResults(d) {
     coachSection.style.display = 'block';
   }
 
+  // 👑 STRATÉGIE DE CONVERSION (PREMIUM) — Gold / Agency / Beta uniquement.
+  // La donnée n'est générée côté serveur QUE pour ces plans ; sinon on affiche
+  // un composant d'upsell pour pousser vers Gold.
+  renderPremiumStrategy(d);
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 👑 Stratégie de Conversion (Premium) + Upsell Gold ───────────────
+function renderPremiumStrategy(d) {
+  const resultsSection = document.getElementById('results-section');
+  if (!resultsSection) return;
+
+  // Nettoie un éventuel rendu précédent
+  document.getElementById('premium-strategy-section')?.remove();
+  document.getElementById('gold-upsell-section')?.remove();
+
+  const sp = d.strategie_conversion_premium;
+
+  if (sp && (sp.persona || sp.script_tiktok)) {
+    // → Plan habilité : on affiche la stratégie complète, style doré premium
+    const persona = sp.persona || {};
+    const script = sp.script_tiktok || {};
+    const declencheurs = (persona.declencheurs_achat || [])
+      .map(x => `<li>${escapeHtml(x)}</li>`).join('');
+
+    const sec = document.createElement('section');
+    sec.id = 'premium-strategy-section';
+    sec.className = 'section premium-strategy';
+    sec.innerHTML = `
+      <h2 style="display:flex;align-items:center;gap:8px;">${escapeHtml(sp.titre || '👑 Stratégie de Conversion (Premium)')}</h2>
+      ${sp.produit_identifie ? `<p class="premium-product">🛍️ Produit identifié : <strong>${escapeHtml(sp.produit_identifie)}</strong></p>` : ''}
+
+      <div class="premium-block">
+        <h3>🎯 Persona cible</h3>
+        ${persona.profil ? `<p><strong>Profil :</strong> ${escapeHtml(persona.profil)}</p>` : ''}
+        ${persona.psychologie ? `<p><strong>Psychologie :</strong> ${escapeHtml(persona.psychologie)}</p>` : ''}
+        ${declencheurs ? `<p><strong>Déclencheurs d'achat :</strong></p><ul class="premium-list">${declencheurs}</ul>` : ''}
+      </div>
+
+      <div class="premium-block">
+        <h3>🎬 Script TikTok clé en main</h3>
+        ${script.hook_0_3s ? `<p><span class="premium-tag">Hook 0-3s</span> ${escapeHtml(script.hook_0_3s)}</p>` : ''}
+        ${script.demonstration_organique ? `<p><span class="premium-tag">Démonstration</span> ${escapeHtml(script.demonstration_organique)}</p>` : ''}
+        ${script.call_to_action ? `<p><span class="premium-tag">CTA Shop</span> ${escapeHtml(script.call_to_action)}</p>` : ''}
+      </div>
+    `;
+    resultsSection.appendChild(sec);
+    return;
+  }
+
+  // → Plan free / pro : composant d'upsell statique attractif
+  const tier = window.__userInfo?.tier || 'free';
+  if (tier === 'free' || tier === 'pro' || tier === 'basic') {
+    const up = document.createElement('section');
+    up.id = 'gold-upsell-section';
+    up.className = 'section gold-upsell';
+    up.innerHTML = `
+      <div class="gold-upsell-inner">
+        <div class="gold-upsell-icon">🔒</div>
+        <div class="gold-upsell-text">
+          <strong>Passez au plan Gold</strong> pour que notre IA identifie votre audience cible
+          et rédige le script de vente parfait pour ce produit.
+        </div>
+        <button class="gold-upsell-btn" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
+      </div>
+    `;
+    resultsSection.appendChild(up);
+  }
 }
 
 function fillList(id, items, icon, noIcon) {
@@ -1867,6 +1935,8 @@ function resetAnalysis() {
   document.getElementById('structure-vente-section').style.display   = 'none';
   document.getElementById('prix-conversion-section').style.display   = 'none';
   document.getElementById('error-box').style.display                = 'none';
+  document.getElementById('premium-strategy-section')?.remove();
+  document.getElementById('gold-upsell-section')?.remove();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

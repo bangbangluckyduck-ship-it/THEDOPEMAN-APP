@@ -5,9 +5,9 @@ Variables d'environnement Render à configurer :
   STRIPE_SECRET_KEY        sk_live_...  (ou sk_test_... en dev)
   STRIPE_PUBLISHABLE_KEY   pk_live_...
   STRIPE_WEBHOOK_SECRET    whsec_...
-  STRIPE_PRICE_PRO         price_...    (9,99 €/mois)
+  STRIPE_PRICE_PRO         price_...    (19,90 €/mois)
   STRIPE_PRICE_GOLD        price_...    (99 €/mois)
-  STRIPE_PRICE_AGENCY      price_...    (249 €/mois)
+  STRIPE_PRICE_AGENCY      price_...    (5 × Gold)
 """
 from __future__ import annotations
 import os
@@ -29,9 +29,9 @@ PRICE_IDS: dict[str, str] = {
 }
 
 PLAN_NAMES = {
-    "pro":    "PRO — 9,99 €/mois",
+    "pro":    "PRO — 19,90 €/mois",
     "gold":   "GOLD — 99 €/mois",
-    "agency": "AGENCY — 249 €/mois",
+    "agency": "AGENCY — 5 comptes Gold",
 }
 
 

@@ -2,10 +2,10 @@
 Authentification et gestion des quotas par tier.
 
 Tiers :
-  free   → 3 analyses/mois   (0 €)
-  pro    → 20 analyses/mois  (9,99 €/mois)
-  gold   → 25 analyses/jour  (99 €/mois)
-  agency → 125 analyses/jour (249 €/mois — 5 sièges × 25)
+  free   → 3 analyses/mois (upload uniquement) (0 €)
+  pro    → 300 analyses/mois  (19,90 €/mois)
+  gold   → 1000 analyses/mois (99 €/mois)
+  agency → 5000 analyses/mois (5 comptes Gold × 1000)
 
 Stockage : Supabase PostgreSQL (persiste entre redémarrages).
 Fallback : in-memory si Supabase non configuré.
@@ -44,10 +44,10 @@ SECRET_KEY = os.getenv("SUPABASE_ANON_KEY", "fallback-secret-for-dev-only").enco
 # ── CONFIGURATION DES TIERS ───────────────────────────────────
 TIER_CONFIG: dict[str, dict] = {
     "free":   {"monthly": 3,    "daily": None, "seats": 1,  "label": "FREE"},
-    "pro":    {"monthly": 20,   "daily": None, "seats": 1,  "label": "PRO"},
-    "gold":   {"monthly": None, "daily": 25,   "seats": 1,  "label": "GOLD"},
-    "agency": {"monthly": None, "daily": 125,  "seats": 5,  "label": "AGENCY"},
-    "beta":   {"monthly": 999,  "daily": None, "seats": 1,  "label": "BETA"},
+    "pro":    {"monthly": 300,  "daily": None, "seats": 1,  "label": "PRO"},
+    "gold":   {"monthly": 1000, "daily": None, "seats": 1,  "label": "GOLD"},
+    "agency": {"monthly": 5000, "daily": None, "seats": 5,  "label": "AGENCY"},
+    "beta":   {"monthly": 999999, "daily": None, "seats": 1, "label": "BETA"},
     "admin":  {"monthly": None, "daily": None, "seats": 99, "label": "ADMIN"},
 }
 

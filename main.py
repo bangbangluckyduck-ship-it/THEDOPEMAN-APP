@@ -643,7 +643,7 @@ async def analyze_stream_sse(
 
             try:
                 result = await asyncio.wait_for(
-                    loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product),
+                    loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier),
                     timeout=90.0
                 )
             except asyncio.TimeoutError:
@@ -1001,7 +1001,7 @@ async def analyze_url(request: Request):
             loop.run_in_executor(None, analyze_visual, frames_list, product), timeout=60.0
         )
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier),
             timeout=90.0,
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
