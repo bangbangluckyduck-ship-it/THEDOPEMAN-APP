@@ -209,6 +209,19 @@ async def privacy_page(): return HTMLResponse(_PRIVACY_HTML)
 @app.get("/terms", response_class=HTMLResponse)
 async def terms_page(): return HTMLResponse(_TERMS_HTML)
 
+# ── Fichier de vérification de propriété TikTok (méthode « préfixe d'URL ») ───
+# TikTok fournit un fichier de signature à héberger à la racine du domaine. On le
+# sert dynamiquement à partir de 2 variables d'env (aucun secret hardcodé, aucun
+# redeploy de code nécessaire) :
+#   TIKTOK_VERIFY_FILENAME = nom exact du fichier (ex: tiktokXXXXXXXX.txt)
+#   TIKTOK_VERIFY_CONTENT  = contenu exact du fichier
+_TIKTOK_VERIFY_FILENAME = os.getenv("TIKTOK_VERIFY_FILENAME", "").strip().lstrip("/")
+_TIKTOK_VERIFY_CONTENT = os.getenv("TIKTOK_VERIFY_CONTENT", "")
+if _TIKTOK_VERIFY_FILENAME and _TIKTOK_VERIFY_CONTENT:
+    @app.get("/" + _TIKTOK_VERIFY_FILENAME)
+    async def _tiktok_verify_file():
+        return Response(content=_TIKTOK_VERIFY_CONTENT, media_type="text/plain")
+
 @app.get("/blog", response_class=HTMLResponse)
 async def blog(): return HTMLResponse(_BLOG_HTML)
 
