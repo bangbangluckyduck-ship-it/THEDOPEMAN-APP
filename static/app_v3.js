@@ -665,6 +665,15 @@ function installPwa() {
 // ⚠️ Passe à true une fois les produits/prix Stripe créés en production.
 const CHECKOUT_ENABLED = false;
 
+// Période de facturation choisie dans la grille tarifaire ("month" | "year")
+let BILLING_PERIOD = 'month';
+function setBilling(period) {
+  BILLING_PERIOD = period === 'year' ? 'year' : 'month';
+  document.getElementById('pricing-grid')?.setAttribute('data-billing', BILLING_PERIOD);
+  document.querySelectorAll('.billing-toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.period === BILLING_PERIOD));
+}
+
 async function startCheckout(plan) {
   // Les abonnements automatiques ne sont pas encore ouverts : message propre.
   if (!CHECKOUT_ENABLED) {
@@ -684,7 +693,7 @@ async function startCheckout(plan) {
     const res = await fetch('/create-checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, email })
+      body: JSON.stringify({ plan, email, billing: BILLING_PERIOD })
     });
 
     if (!res.ok) {
