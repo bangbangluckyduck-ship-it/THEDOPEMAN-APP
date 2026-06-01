@@ -77,12 +77,30 @@ class KeyAPIClient:
                     },
                 )
             print(f"[KeyAPI] {endpoint} → {resp.status_code}")
+
+            # ── 🚨 DEBUG : audit de la qualité des données KeyAPI ──────────────
+            # Imprime la réponse BRUTE exacte reçue (corps complet), y compris en
+            # cas d'erreur HTTP (401/403/429…) ou de JSON vide. Logging uniquement,
+            # n'altère en rien le comportement de l'application.
+            print("🚨 DEBUG KEYAPI RAW DATA 🚨")
+            print(f"   endpoint : {endpoint}")
+            print(f"   params   : {params}")
+            print(f"   status   : {resp.status_code}")
+            _raw_body = resp.text
+            if not _raw_body or not _raw_body.strip():
+                print("   ⚠️ CORPS VIDE — la réponse KeyAPI ne contient aucune donnée.")
+            else:
+                print(f"   body     : {_raw_body}")
+            print("🚨 FIN DEBUG KEYAPI RAW DATA 🚨")
+            # ───────────────────────────────────────────────────────────────────
+
             if resp.status_code != 200:
-                print(f"❌ KeyAPI HTTP error {resp.status_code}: {resp.text[:200]}")
+                # Erreur complète (status + corps entier, non tronqué)
+                print(f"❌ KeyAPI HTTP error {resp.status_code} (erreur complète): {resp.text}")
                 return {"error": f"Status {resp.status_code}"}
             result = resp.json()
             if result.get("code") != 0:
-                print(f"❌ KeyAPI API error: {result.get('message')}")
+                print(f"❌ KeyAPI API error (réponse complète): {result}")
                 return {"error": result.get("message", "Unknown error")}
             return result
         except Exception as e:
