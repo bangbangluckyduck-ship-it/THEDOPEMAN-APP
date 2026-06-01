@@ -1866,6 +1866,10 @@ function showResults(d) {
   // un composant d'upsell pour pousser vers Gold.
   renderPremiumStrategy(d);
 
+  // 🏆 Structures gagnantes (Gold / Agency) : affiché quand le serveur a renvoyé
+  // un payload structures_gagnantes (score < 75 + plan habilité).
+  renderWinningStructures(d);
+
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
@@ -2148,6 +2152,51 @@ function renderPremiumStrategy(d) {
   }
 }
 
+// 🏆 STRUCTURES GAGNANTES — réservé Gold / Agency. Le serveur ne renvoie le
+// payload `structures_gagnantes` QUE si l'analyse < 75 et que le plan est habilité.
+function renderWinningStructures(d) {
+  const resultsSection = document.getElementById('results-section');
+  if (!resultsSection) return;
+  document.getElementById('winning-structures-section')?.remove();
+
+  const ws = d.structures_gagnantes;
+  if (!ws || !Array.isArray(ws.items) || ws.items.length === 0) return;
+
+  const cards = ws.items.map(it => {
+    const examples = (it.hook_examples || [])
+      .map(x => `<li>${escapeHtml(x)}</li>`).join('');
+    const s = it.script || {};
+    const scriptHtml = (s.hook_0_3s || s.demonstration_organique || s.call_to_action) ? `
+      <div class="winning-script">
+        ${s.hook_0_3s ? `<p><span class="premium-tag">Hook 0-3s</span> ${escapeHtml(s.hook_0_3s)}</p>` : ''}
+        ${s.demonstration_organique ? `<p><span class="premium-tag">Démonstration</span> ${escapeHtml(s.demonstration_organique)}</p>` : ''}
+        ${s.call_to_action ? `<p><span class="premium-tag">CTA Shop</span> ${escapeHtml(s.call_to_action)}</p>` : ''}
+      </div>` : '';
+    const priceTxt = (it.price != null) ? ` · ${escapeHtml(String(it.price))} €` : '';
+    return `
+      <div class="winning-card">
+        <div class="winning-card-head">
+          <span class="winning-score">${escapeHtml(String(it.score ?? '?'))}/100</span>
+          <span class="winning-product">${escapeHtml(it.product || 'Produit similaire')}${priceTxt}</span>
+        </div>
+        ${it.hook_type ? `<p class="winning-hook-type">📌 Accroche : <strong>${escapeHtml(it.hook_type)}</strong></p>` : ''}
+        ${examples ? `<ul class="winning-examples">${examples}</ul>` : ''}
+        ${scriptHtml}
+      </div>`;
+  }).join('');
+
+  const sec = document.createElement('section');
+  sec.id = 'winning-structures-section';
+  sec.className = 'section winning-structures';
+  sec.innerHTML = `
+    <h2>${escapeHtml(ws.titre || '🏆 Les structures qui ont mieux fonctionné')}</h2>
+    <p class="winning-intro">${escapeHtml(ws.intro || '')}</p>
+    <div class="winning-grid">${cards}</div>
+    <p class="winning-advice">💡 Refais ta vidéo en t'appuyant sur ces structures déjà éprouvées : elles ont dépassé 75 sur des produits comparables.</p>
+  `;
+  resultsSection.appendChild(sec);
+}
+
 function fillList(id, items, icon, noIcon) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -2170,6 +2219,7 @@ function resetAnalysis() {
   document.getElementById('error-box').style.display                = 'none';
   document.getElementById('premium-strategy-section')?.remove();
   document.getElementById('gold-upsell-section')?.remove();
+  document.getElementById('winning-structures-section')?.remove();
   document.getElementById('freemium-unlock-cta')?.remove();
   document.querySelectorAll('#results-section [data-free-lock]').forEach(el => el.classList.remove('freemium-locked'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
