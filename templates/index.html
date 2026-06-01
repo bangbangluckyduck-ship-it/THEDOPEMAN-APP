@@ -1027,6 +1027,36 @@
       transition: transform .15s ease;
     }
     .gold-upsell-btn:hover { transform: translateY(-2px); }
+
+    /* ── Bascule de facturation Mensuel / Annuel ── */
+    .billing-toggle {
+      display: inline-flex; gap: 4px; margin-top: 18px;
+      background: var(--surface2); padding: 4px; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .billing-toggle-btn {
+      border: none; background: transparent; cursor: pointer;
+      padding: 9px 18px; border-radius: 9px; font-size: 14px; font-weight: 700;
+      color: var(--muted); display: inline-flex; align-items: center; gap: 8px;
+      transition: background .15s, color .15s;
+    }
+    .billing-toggle-btn.active {
+      background: var(--surface); color: var(--text);
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .billing-save {
+      font-size: 11px; font-weight: 800; color: #1f9d55;
+      background: rgba(31,157,85,.12); padding: 2px 7px; border-radius: 999px;
+    }
+    /* Prix barré (effet levier) */
+    .pc-old {
+      text-decoration: line-through; opacity: .5; font-size: 15px;
+      font-weight: 600; margin-right: 8px;
+    }
+    .pc-annual-note { min-height: 0; }
+    /* Affichage conditionnel mensuel / annuel selon data-billing de la grille */
+    #pricing-grid[data-billing="month"] .price-year { display: none; }
+    #pricing-grid[data-billing="year"]  .price-month { display: none; }
   </style>
 </head>
 <body>
@@ -1452,16 +1482,25 @@
         Choisis ton plan <span style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Coach IA</span>
       </h2>
       <p style="color:var(--muted);font-size:14px">Sans engagement · Annulation en 1 clic · Facture automatique</p>
+
+      <!-- Bascule Mensuel / Annuel (2 mois offerts) -->
+      <div class="billing-toggle" role="group" aria-label="Période de facturation">
+        <button type="button" class="billing-toggle-btn active" data-period="month" onclick="setBilling('month')">Mensuel</button>
+        <button type="button" class="billing-toggle-btn" data-period="year" onclick="setBilling('year')">
+          Annuel <span class="billing-save">2 mois offerts 🎁</span>
+        </button>
+      </div>
     </div>
 
     <!-- 4 cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px" id="pricing-grid">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px" id="pricing-grid" data-billing="month">
 
       <!-- FREE -->
       <div class="pricing-card">
         <div class="pc-badge" style="background:var(--surface2);color:var(--muted)">GRATUIT</div>
         <div class="pc-price">0 €</div>
         <div class="pc-period">pour toujours</div>
+        <div class="pc-annual-note">&nbsp;</div>
         <ul class="pc-features">
           <li>✅ 3 analyses gratuites (upload)</li>
           <li>✅ Système de notation complet</li>
@@ -1475,8 +1514,11 @@
       <!-- PRO -->
       <div class="pricing-card">
         <div class="pc-badge" style="background:rgba(37,99,235,.1);color:var(--accent)">PRO</div>
-        <div class="pc-price">19<span style="font-size:18px">,90 €</span></div>
-        <div class="pc-period">/ mois</div>
+        <div class="pc-price price-month">19<span style="font-size:18px">,90 €</span></div>
+        <div class="pc-period price-month">/ mois</div>
+        <div class="pc-price price-year"><span class="pc-old">238,80 €</span>199 €</div>
+        <div class="pc-period price-year">/ an · 2 mois offerts 🎁</div>
+        <div class="pc-annual-note">&nbsp;</div>
         <ul class="pc-features">
           <li>✅ <strong>300 analyses / mois</strong></li>
           <li>✅ Analyse upload <strong>+ lien TikTok</strong></li>
@@ -1490,8 +1532,11 @@
       <!-- GOLD ⭐ POPULAIRE -->
       <div class="pricing-card pricing-card-gold">
         <div class="pc-badge pc-badge-gold">⭐ POPULAIRE</div>
-        <div class="pc-price" style="color:var(--primary)">99 €</div>
-        <div class="pc-period">/ mois</div>
+        <div class="pc-price price-month" style="color:var(--primary)">99 €</div>
+        <div class="pc-period price-month">/ mois</div>
+        <div class="pc-price price-year" style="color:var(--primary)"><span class="pc-old">1188 €</span>990 €</div>
+        <div class="pc-period price-year">/ an · 2 mois offerts 🎁</div>
+        <div class="pc-annual-note">&nbsp;</div>
         <ul class="pc-features">
           <li>✅ <strong>Tout le plan Pro</strong></li>
           <li>✅ <strong>1000 analyses / mois</strong></li>
@@ -1505,8 +1550,11 @@
       <!-- AGENCY -->
       <div class="pricing-card pricing-card-navy">
         <div class="pc-badge" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)">AGENCY</div>
-        <div class="pc-price" style="color:#FFFFFF">5 × Gold</div>
-        <div class="pc-period" style="color:rgba(255,255,255,.6)">/ mois</div>
+        <div class="pc-price price-month" style="color:#FFFFFF">299 €</div>
+        <div class="pc-period price-month" style="color:rgba(255,255,255,.6)">/ mois · 5 comptes Gold</div>
+        <div class="pc-price price-year" style="color:#FFFFFF"><span class="pc-old">3588 €</span>2990 €</div>
+        <div class="pc-period price-year" style="color:rgba(255,255,255,.6)">/ an · 2 mois offerts 🎁</div>
+        <div class="pc-annual-note">&nbsp;</div>
         <ul class="pc-features pc-features-navy">
           <li>✅ <strong>5 comptes Gold inclus</strong></li>
           <li>✅ Toutes les fonctionnalités Gold</li>
@@ -1523,6 +1571,7 @@
     <div class="section" style="max-width:640px;margin:0 auto 16px">
       <h2>Questions fréquentes</h2>
       <div style="display:flex;flex-direction:column;gap:14px">
+        <div><strong style="font-size:14px">💰 Mensuel ou annuel ?</strong><br><span style="font-size:13px;color:var(--muted)">En choisissant l'annuel, tu profites de <strong>2 mois offerts</strong> (tu ne paies que 10 mois sur 12) sur Pro, Gold et Agency.</span></div>
         <div><strong style="font-size:14px">📅 Puis-je annuler à tout moment ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, sans engagement. L'annulation prend effet à la fin de la période en cours.</span></div>
         <div><strong style="font-size:14px">💳 Quels moyens de paiement ?</strong><br><span style="font-size:13px;color:var(--muted)">CB Visa/Mastercard, Apple Pay, Google Pay — via Stripe (100% sécurisé).</span></div>
         <div><strong style="font-size:14px">🔄 Puis-je changer de plan ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, upgrade ou downgrade à tout moment depuis ton portail client.</span></div>

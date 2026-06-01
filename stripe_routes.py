@@ -5,9 +5,14 @@ Variables d'environnement Render à configurer :
   STRIPE_SECRET_KEY        sk_live_...  (ou sk_test_... en dev)
   STRIPE_PUBLISHABLE_KEY   pk_live_...
   STRIPE_WEBHOOK_SECRET    whsec_...
+  Mensuel :
   STRIPE_PRICE_PRO         price_...    (19,90 €/mois)
   STRIPE_PRICE_GOLD        price_...    (99 €/mois)
-  STRIPE_PRICE_AGENCY      price_...    (5 × Gold)
+  STRIPE_PRICE_AGENCY      price_...    (299 €/mois — 5 comptes Gold)
+  Annuel (2 mois offerts = paie 10 mois) :
+  STRIPE_PRICE_PRO_YEAR    price_...    (199 €/an)
+  STRIPE_PRICE_GOLD_YEAR   price_...    (990 €/an)
+  STRIPE_PRICE_AGENCY_YEAR price_...    (2990 €/an)
 """
 from __future__ import annotations
 import os
@@ -21,25 +26,41 @@ router = APIRouter(tags=["stripe"])
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
-# Price IDs — remplis dans Render une fois les prix créés dans le dashboard Stripe
+# Price IDs — remplis dans Render une fois les prix créés dans le dashboard Stripe.
+# Clé = (plan, période) ; période ∈ {"month", "year"}. L'annuel applique 2 mois
+# offerts (paiement de 10 mois pour 12).
 PRICE_IDS: dict[str, str] = {
     "pro":    os.getenv("STRIPE_PRICE_PRO",    ""),
     "gold":   os.getenv("STRIPE_PRICE_GOLD",   ""),
     "agency": os.getenv("STRIPE_PRICE_AGENCY", ""),
 }
+PRICE_IDS_YEAR: dict[str, str] = {
+    "pro":    os.getenv("STRIPE_PRICE_PRO_YEAR",    ""),
+    "gold":   os.getenv("STRIPE_PRICE_GOLD_YEAR",   ""),
+    "agency": os.getenv("STRIPE_PRICE_AGENCY_YEAR", ""),
+}
+
+
+def get_price_id(plan: str, billing: str = "month") -> str:
+    """Retourne le price_id Stripe pour un plan et une période de facturation."""
+    if billing == "year":
+        return PRICE_IDS_YEAR.get(plan, "")
+    return PRICE_IDS.get(plan, "")
+
 
 PLAN_NAMES = {
-    "pro":    "PRO — 19,90 €/mois",
-    "gold":   "GOLD — 99 €/mois",
-    "agency": "AGENCY — 5 comptes Gold",
+    "pro":    "PRO — 19,90 €/mois (199 €/an)",
+    "gold":   "GOLD — 99 €/mois (990 €/an)",
+    "agency": "AGENCY — 299 €/mois (5 comptes Gold)",
 }
 
 
 # ── CHECKOUT ──────────────────────────────────────────────────
 
 class CheckoutRequest(BaseModel):
-    plan:  str            # "pro" | "gold" | "agency"
-    email: Optional[str] = None
+    plan:    str                  # "pro" | "gold" | "agency"
+    email:   Optional[str] = None
+    billing: Optional[str] = "month"   # "month" | "year"
 
 
 @router.post("/create-checkout-session")
@@ -48,11 +69,13 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     if not stripe.api_key:
         raise HTTPException(503, detail="Stripe non configuré (STRIPE_SECRET_KEY manquant).")
 
-    price_id = PRICE_IDS.get(body.plan)
+    billing = "year" if (body.billing or "month").lower().startswith("year") else "month"
+    price_id = get_price_id(body.plan, billing)
     if not price_id:
+        suffix = "_YEAR" if billing == "year" else ""
         raise HTTPException(
             400,
-            detail=f"Plan '{body.plan}' inconnu ou STRIPE_PRICE_{body.plan.upper()} non configuré.",
+            detail=f"Plan '{body.plan}' ({billing}) inconnu ou STRIPE_PRICE_{body.plan.upper()}{suffix} non configuré.",
         )
 
     base = str(request.base_url).rstrip("/")
@@ -63,7 +86,7 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
             "line_items":   [{"price": price_id, "quantity": 1}],
             "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url":   f"{base}/?checkout=cancel",
-            "metadata":     {"plan": body.plan},
+            "metadata":     {"plan": body.plan, "billing": billing},
             "allow_promotion_codes": True,
         }
         if body.email:
