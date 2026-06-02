@@ -1225,24 +1225,25 @@ async def stripe_webhook_v1(request: Request):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# OAUTH TIKTOK SHOP (Partner API) — autorisation marchand
+# OAUTH TIKTOK — 2 providers : "display" (vidéos+perfs) & "business" (audience)
 # ════════════════════════════════════════════════════════════════════════════
+_TIKTOK_PROVIDERS = {"display", "business"}
+
+
 @app.get("/api/auth/tiktok/login")
-async def tiktok_login(request: Request):
-    """
-    Démarre l'autorisation TikTok Shop pour l'utilisateur connecté.
-    Renvoie l'URL d'autorisation (le frontend redirige dessus).
-    """
+async def tiktok_login(request: Request, provider: str = Query("display")):
+    """Démarre l'autorisation TikTok et renvoie l'URL (le frontend redirige)."""
+    provider = provider if provider in _TIKTOK_PROVIDERS else "display"
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if not tiktok_oauth.is_configured():
+    if not tiktok_oauth.is_configured(provider):
         raise HTTPException(
             status_code=503,
-            detail="Connexion TikTok Shop indisponible (configuration manquante).",
+            detail="Connexion TikTok indisponible (configuration manquante).",
         )
-    state = tiktok_oauth.make_state(user["email"])
-    return {"authorize_url": tiktok_oauth.build_authorize_url(state)}
+    state = tiktok_oauth.make_state(user["email"], provider)
+    return {"authorize_url": tiktok_oauth.build_authorize_url(state, provider)}
 
 
 @app.get("/api/auth/tiktok/callback")
@@ -1251,33 +1252,31 @@ async def tiktok_callback(
     code: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
 ):
-    """
-    Callback OAuth TikTok Shop : vérifie le state, échange le code contre un token
-    et le sauvegarde (rattaché à l'email), puis redirige vers l'app.
-    """
+    """Callback OAuth (commun aux 2 providers) : vérifie le state → échange → sauve."""
     app_url = tiktok_oauth.APP_PUBLIC_URL
 
     if not code or not state:
         return RedirectResponse(f"{app_url}/app?tiktok=error&reason=missing_params")
 
-    email = tiktok_oauth.verify_state(state)
+    email, provider = tiktok_oauth.verify_state(state)
     if not email:
         return RedirectResponse(f"{app_url}/app?tiktok=error&reason=invalid_state")
+    provider = provider or "display"
 
     try:
-        token_data = await tiktok_oauth.exchange_code_for_token(code)
+        token_data = await tiktok_oauth.exchange_code_for_token(code, provider)
     except Exception as e:
-        print(f"❌ TikTok token exchange failed: {e}")
+        print(f"❌ TikTok token exchange failed ({provider}): {e}")
         return RedirectResponse(f"{app_url}/app?tiktok=error&reason=exchange_failed")
 
-    saved = tiktok_oauth.save_tiktok_token(email, token_data)
+    saved = tiktok_oauth.save_tiktok_token(email, token_data, provider)
     status = "connected" if saved else "warn_not_saved"
-    return RedirectResponse(f"{app_url}/app?tiktok={status}")
+    return RedirectResponse(f"{app_url}/app?tiktok={status}&provider={provider}")
 
 
 @app.get("/api/tiktok/me")
 async def tiktok_me(request: Request):
-    """Profil + vidéos (avec métriques réelles) du compte TikTok connecté."""
+    """Profil + vidéos (métriques réelles) du compte TikTok connecté (display)."""
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
@@ -1291,30 +1290,48 @@ async def tiktok_me(request: Request):
     return {"connected": True, "profile": data.get("profile") or {}, "videos": data.get("videos") or []}
 
 
-@app.get("/api/auth/tiktok/status")
-async def tiktok_status(request: Request):
-    """Indique si l'utilisateur connecté a déjà relié sa boutique TikTok Shop."""
+@app.get("/api/tiktok/insights")
+async def tiktok_insights(request: Request):
+    """Insights d'audience (démographie) via le provider business."""
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if not supabase_client:
+    try:
+        data = await tiktok_oauth.get_audience_insights(user["email"])
+    except Exception as e:
+        print(f"/api/tiktok/insights error: {e}")
+        data = None
+    if not data:
         return {"connected": False}
+    return {"connected": True, "insights": data}
+
+
+@app.get("/api/auth/tiktok/status")
+async def tiktok_status(request: Request):
+    """État des connexions TikTok de l'utilisateur (par provider)."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    out = {"connected": False, "providers": {}}
+    if not supabase_client:
+        return out
     try:
         resp = (
             supabase_client.table("tiktok_tokens")
-            .select("seller_name,open_id,access_token_expires_at")
+            .select("provider,seller_name,open_id,access_token_expires_at")
             .eq("email", user["email"])
             .execute()
         )
-        if resp.data:
-            row = resp.data[0]
-            return {
-                "connected": bool(row.get("access_token_expires_at")),
-                "seller_name": row.get("seller_name"),
-            }
+        for row in (resp.data or []):
+            prov = row.get("provider") or "display"
+            connected = bool(row.get("access_token_expires_at"))
+            out["providers"][prov] = {"connected": connected, "seller_name": row.get("seller_name")}
+            if prov == "display" and connected:
+                out["connected"] = True
+                out["seller_name"] = row.get("seller_name")
     except Exception:
         pass
-    return {"connected": False}
+    return out
 
 
 if __name__ == "__main__":
