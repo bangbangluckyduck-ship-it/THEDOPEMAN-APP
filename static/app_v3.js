@@ -2548,6 +2548,12 @@ function renderAccountPage() {
         <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Relie ton compte créateur pour analyser tes vraies performances (vues, likes, partages) et laisser l'IA apprendre ce qui fonctionne pour toi.</div>
         <button class="btn btn-primary" id="tiktok-connect-btn" onclick="connectTikTokShop()" style="width:100%">🔗 Connecter mon compte TikTok</button>
         <div id="tiktok-data" style="margin-top:14px"></div>
+
+        <div style="border-top:1px solid var(--border);margin:16px 0 12px"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">📊 Statistiques d'audience</div>
+        <div id="tiktok-biz-status" style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px">Connecte ton compte pour voir la démographie de ton audience (âge, genre, pays).</div>
+        <button class="btn btn-secondary" id="tiktok-biz-btn" onclick="connectTikTokBusiness()" style="width:100%">📈 Connecter mes statistiques d'audience</button>
+        <div id="tiktok-insights" style="margin-top:14px"></div>
       </div>`;
 
   // Buttons
@@ -2586,12 +2592,24 @@ async function loadTikTokShopStatus() {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
-    if (data.connected) {
-      statusEl.innerHTML = `✅ Compte TikTok connecté${data.seller_name ? ' — <strong>' + escapeHtml(data.seller_name) + '</strong>' : ''}.`;
+    const providers = data.providers || {};
+
+    // Provider display (vidéos + perfs)
+    if (providers.display?.connected) {
+      statusEl.innerHTML = `✅ Compte TikTok connecté${providers.display.seller_name ? ' — <strong>' + escapeHtml(providers.display.seller_name) + '</strong>' : ''}.`;
       if (btn) btn.textContent = '🔄 Reconnecter mon compte TikTok';
       loadTikTokData();
     } else {
       statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
+    }
+
+    // Provider business (audience)
+    const bizStatus = document.getElementById('tiktok-biz-status');
+    const bizBtn = document.getElementById('tiktok-biz-btn');
+    if (providers.business?.connected) {
+      if (bizStatus) bizStatus.innerHTML = '✅ Statistiques d\'audience connectées.';
+      if (bizBtn) bizBtn.textContent = '🔄 Reconnecter mes statistiques';
+      loadTikTokInsights();
     }
   } catch (e) {
     statusEl.textContent = 'Aucun compte TikTok connecté pour le moment.';
@@ -2662,11 +2680,11 @@ async function loadTikTokData() {
   }
 }
 
-async function connectTikTokShop() {
+async function startTikTokConnect(provider) {
   const token = localStorage.getItem('tts_token');
   if (!token) { showToast('Connecte-toi d\'abord.'); return; }
   try {
-    const res = await fetch('/api/auth/tiktok/login', {
+    const res = await fetch('/api/auth/tiktok/login?provider=' + encodeURIComponent(provider), {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (!res.ok) {
@@ -2680,6 +2698,55 @@ async function connectTikTokShop() {
     }
   } catch (e) {
     showToast('❌ Erreur de connexion TikTok.');
+  }
+}
+function connectTikTokShop()     { return startTikTokConnect('display'); }
+function connectTikTokBusiness() { return startTikTokConnect('business'); }
+
+// Récupère et affiche les insights d'audience (provider business).
+async function loadTikTokInsights() {
+  const box = document.getElementById('tiktok-insights');
+  if (!box) return;
+  const token = localStorage.getItem('tts_token');
+  if (!token) return;
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Chargement de ton audience…</div>';
+  try {
+    const res = await fetch('/api/tiktok/insights', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    if (!data.connected || !data.insights) { box.innerHTML = ''; return; }
+    const ins = data.insights;
+
+    const renderBreakdown = (title, arr, labelKey) => {
+      if (!Array.isArray(arr) || !arr.length) return '';
+      const total = arr.reduce((s, x) => s + (Number(x.percentage ?? x.value ?? 0) || 0), 0) || 1;
+      const rows = arr.slice(0, 6).map(x => {
+        const label = x[labelKey] ?? x.name ?? x.label ?? '—';
+        const val = Number(x.percentage ?? x.value ?? 0) || 0;
+        const pct = Math.round((val / total) * 100);
+        return `
+          <div style="margin:4px 0">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text)">
+              <span>${escapeHtml(String(label))}</span><span>${pct}%</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:var(--accent)"></div>
+            </div>
+          </div>`;
+      }).join('');
+      return `<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${title}</div>${rows}</div>`;
+    };
+
+    let html = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">';
+    html += renderBreakdown('👥 Genre', ins.audience_genders, 'gender');
+    html += renderBreakdown('🎂 Âge', ins.audience_ages, 'age');
+    html += renderBreakdown('🌍 Pays', ins.audience_countries, 'country');
+    if (!ins.audience_genders && !ins.audience_ages && !ins.audience_countries) {
+      html += '<div style="font-size:12px;color:var(--muted)">Données d\'audience pas encore disponibles (compte récent ou volume insuffisant côté TikTok).</div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Impossible de charger l\'audience pour le moment.</div>';
   }
 }
 
