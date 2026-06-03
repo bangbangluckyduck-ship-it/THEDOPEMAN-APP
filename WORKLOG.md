@@ -88,6 +88,24 @@
 
 **Prochaine étape avant tout code** : confirmer que la source (KeyAPI ou alternative) expose bien créateurs + leurs vidéos + leurs produits avec liens directs et visuels réels. Sinon → changer de source.
 
+### ✅ KeyAPI VALIDÉ (audit 2/6, base https://api.keyapi.ai, header `Authorization: Bearer <KEYAPI_TOKEN>`)
+Chaîne créateur-centric confirmée (endpoint debug admin `/api/_debug/keyapi` — À RETIRER après build) :
+
+1. **Top créateurs** : `GET /v1/tiktok/influencer/ranking/analytics`
+   params requis : `date` (yyyy-MM-dd, 1er du mois si mensuel), `region` (US), `rank_type` (1=jour,2=semaine,3=mois), `influencer_rank_field` (1=followers,2=ventes), `page_num` (1), `page_size` (≤10).
+   → champs : `avatar`, `nick_name`, `unique_id` (handle), `user_id`, `total_followers_history_cnt`, `total_sale_history_cnt`, `total_sale_gmv_history_amt`, `most_category_id`, `region`.
+   → **lien profil** = `https://www.tiktok.com/@{unique_id}`
+
+2. **Vidéos d'un créateur** : `GET /v1/tiktok/influencer/videos`
+   param requis : **`unique_id`** (PAS user_id) + `page_num`, `page_size`.
+   → `data.aweme_list[]` : `aweme_id`, `desc`, `share_url` (lien direct), `video.cover.url_list[0]` / `origin_cover` (miniature), `statistics.{play_count,digg_count,comment_count,share_count,collect_count}`.
+
+3. **Produits d'un créateur** : `GET /v1/tiktok/influencer/products/analytics`
+   param : **`user_id`** + `page_num`, `page_size`.
+   → `cover_url` (JSON string array → parser), `product_id`, `product_name`, `spu_avg_price`, `total_sale_cnt`, `total_sale_gmv_amt`.
+
+⚠️ Les URLs d'images/vidéos TikTok sont **signées avec expiration** (`x-expires`) → les récupérer à la volée (pas de cache long). Lien fiche produit à confirmer (format `shop.tiktok.com/view/product/{product_id}` non vérifié).
+
 ---
 
 ## 🔐 Contraintes permanentes
