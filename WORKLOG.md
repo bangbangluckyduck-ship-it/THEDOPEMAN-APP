@@ -63,6 +63,33 @@
 
 ---
 
+## 🎯 CAHIER DES CHARGES — Données marché / créateurs [VALIDÉ 2/6/2026]
+
+> Remplaçant de l'ancienne intégration KeyAPI (supprimée). À NE PAS recoder tant que
+> la source de données (KeyAPI ou autre) n'a pas été confirmée comme exposant
+> réellement les champs ci-dessous (liens + visuels réels).
+
+**But** : intelligence **marché / concurrents** — l'œil sur LES AUTRES (≠ API officielle TikTok = SON propre compte). Les deux sont complémentaires.
+
+**Cœur de la fonctionnalité = LES CRÉATEURS** : donner aux abonnés Gold un accès aux **créateurs qui performent le mieux dans le monde**, **ce qu'ils font** (leur contenu / vidéos) et **ce qu'ils vendent** (leurs produits).
+
+**Doit afficher (données 100% réelles, par catégorie) :**
+1. **Top créateurs mondiaux** qui cartonnent → **lien direct vers leur profil** + vraie photo de profil.
+2. **Leur contenu** : les **vraies vidéos gagnantes** → **lien direct vers la bonne vidéo** + vraie miniature.
+3. **Ce qu'ils vendent** : les **produits** → **lien direct vers la fiche produit TikTok** + vraie image produit.
+
+**Règle qualité (échec passé à ne pas reproduire) :**
+- ❌ Interdit : faux liens (URLs de recherche), faux créateurs déduits des produits, vidéos bidon, thumbnails qui ne correspondent pas.
+- ✅ Obligatoire : uniquement des données réelles de l'API, liens directs réels (créateur / vidéo / produit), visuels exacts. Donnée absente → on ne l'affiche pas (jamais inventer).
+
+**Accès (gating) :**
+- **Gold & Agency** : accès complet.
+- **Plans inférieurs (free/pro)** : affichage **partiel + reste flouté** (teasing → upsell Gold).
+
+**Prochaine étape avant tout code** : confirmer que la source (KeyAPI ou alternative) expose bien créateurs + leurs vidéos + leurs produits avec liens directs et visuels réels. Sinon → changer de source.
+
+---
+
 ## 🔐 Contraintes permanentes
 - Vérif du plan **100% serveur** (JWT/Supabase), jamais de confiance au frontend.
 - **Aucun secret hardcodé** — tout via env.
