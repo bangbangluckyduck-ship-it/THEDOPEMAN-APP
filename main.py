@@ -27,6 +27,7 @@ from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
+import market_creators
 
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -1215,6 +1216,88 @@ async def tiktok_status(request: Request):
     except Exception:
         pass
     return out
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# MARCHÉ — Créateurs Gagnants (Gold/Agency) — KeyAPI créateur-centric
+# ════════════════════════════════════════════════════════════════════════════
+_MARKET_PREMIUM_TIERS = {"gold", "agency", "beta", "admin"}
+
+
+def _market_cache_get(key: str):
+    if not supabase_client:
+        return None
+    try:
+        r = supabase_client.table("market_cache").select("payload,expires_at").eq("cache_key", key).execute()
+        if r.data:
+            from datetime import datetime as _dt
+            exp = r.data[0].get("expires_at")
+            if exp:
+                exp_dt = _dt.fromisoformat(str(exp).replace("Z", "+00:00"))
+                now = _dt.now(exp_dt.tzinfo) if exp_dt.tzinfo else _dt.now()
+                if now < exp_dt:
+                    return r.data[0].get("payload")
+    except Exception:
+        pass
+    return None
+
+
+def _market_cache_set(key: str, payload, hours: int = 24):
+    if not supabase_client:
+        return
+    try:
+        supabase_client.table("market_cache").upsert({
+            "cache_key": key,
+            "payload": payload,
+            "expires_at": (datetime.now() + timedelta(hours=hours)).isoformat(),
+        }, on_conflict="cache_key").execute()
+    except Exception:
+        pass
+
+
+@app.get("/api/market/creators")
+async def market_creators_list(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+    """Top créateurs (ventes). Gold/Agency = complet ; free/pro = aperçu partiel flouté."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+
+    cache_key = f"creators::{(category or 'all').lower()}::{region}"
+    creators = _market_cache_get(cache_key)
+    if creators is None:
+        try:
+            creators = await market_creators.get_top_creators(category, region, limit=10)
+        except Exception as e:
+            print(f"/api/market/creators error: {e}")
+            return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
+        if creators:
+            _market_cache_set(cache_key, creators)
+
+    if not premium:
+        return {"ok": True, "preview": True, "creators": (creators or [])[:2]}
+    return {"ok": True, "preview": False, "creators": creators or []}
+
+
+@app.get("/api/market/creator/{unique_id}")
+async def market_creator_detail(request: Request, unique_id: str, user_id: str = Query(...)):
+    """Vidéos + produits d'un créateur. Réservé Gold/Agency."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+
+    cache_key = f"creator::{unique_id}::{user_id}"
+    detail = _market_cache_get(cache_key)
+    if detail is None:
+        try:
+            detail = await market_creators.get_creator_detail(unique_id, user_id)
+        except Exception as e:
+            print(f"/api/market/creator error: {e}")
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+        _market_cache_set(cache_key, detail, hours=12)
+    return {"ok": True, **(detail or {})}
 
 
 # ════════════════════════════════════════════════════════════════════════════

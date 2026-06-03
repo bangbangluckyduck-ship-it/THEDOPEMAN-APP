@@ -936,7 +936,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -945,6 +945,7 @@ function switchTab(tab) {
   if (tab === 'history') renderHistory();
   if (tab === 'pricing') updatePricingCTA();
   if (tab === 'account') renderAccountPage();
+  if (tab === 'creators') loadCreatorsTab();
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────
@@ -2967,7 +2968,142 @@ async function handleAuthSubmit(event) {
 // (template templates/dope_admin.html + static/admin.js). Aucune logique admin
 // n'est exposée dans l'espace client pour ne laisser aucune surface d'attaque.
 
+// ── 🔥 CRÉATEURS GAGNANTS (marché KeyAPI, Gold/Agency) ───────────────────────
+function _cfmt(n) {
+  n = Number(n) || 0;
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.0', '') + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1).replace('.0', '') + 'k';
+  return String(Math.round(n));
+}
+
+async function loadCreatorsTab() {
+  const grid = document.getElementById('creators-grid');
+  const loading = document.getElementById('creators-loading');
+  const upsell = document.getElementById('creators-upsell');
+  const detail = document.getElementById('creator-detail');
+  if (!grid) return;
+  if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
+  grid.innerHTML = ''; upsell.style.display = 'none'; loading.style.display = 'block';
+
+  const token = localStorage.getItem('tts_token');
+  const cat = document.getElementById('creators-category')?.value || '';
+  try {
+    const res = await fetch('/api/market/creators?category=' + encodeURIComponent(cat), {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
+    const data = await res.json();
+    loading.style.display = 'none';
+    if (!data.ok || !data.creators || !data.creators.length) {
+      grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">Aucune donnée marché pour le moment. Réessaie plus tard.</p>';
+      return;
+    }
+    const preview = data.preview;
+    data.creators.forEach((c, i) => {
+      const locked = preview && i >= 1;  // free/pro : 1ère visible, reste flouté
+      grid.insertAdjacentHTML('beforeend', renderCreatorCard(c, locked));
+    });
+    if (preview) {
+      upsell.style.display = 'block';
+      upsell.innerHTML = `
+        <div class="gold-upsell"><div class="gold-upsell-inner">
+          <div class="gold-upsell-icon">🔒</div>
+          <div class="gold-upsell-text"><strong>Passe au plan Gold</strong> pour voir tous les créateurs gagnants, leurs vidéos et leurs produits.</div>
+          <button class="gold-upsell-btn" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
+        </div></div>`;
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+    grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">Erreur de chargement.</p>';
+  }
+}
+
+function renderCreatorCard(c, locked) {
+  const blur = locked ? 'filter:blur(5px);pointer-events:none;user-select:none' : '';
+  const onclick = locked ? '' : `onclick="openCreatorDetail('${encodeURIComponent(c.unique_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname||'').replace(/'/g,''))}')"`;
+  return `
+    <div ${onclick} style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
+      ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 8px;border:2px solid var(--primary)">` : '<div style="width:64px;height:64px;border-radius:50%;background:var(--border);margin:0 auto 8px"></div>'}
+      <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || '')}</div>
+      <div style="font-size:11px;color:var(--muted)">@${escapeHtml(c.unique_id || '')}</div>
+      <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:6px">
+        <span>👥 ${_cfmt(c.followers)}</span>
+        <span>📦 ${_cfmt(c.sales)}</span>
+      </div>
+      <div style="font-size:11px;color:#059669;font-weight:700;margin-top:2px">💰 $${_cfmt(c.gmv)} GMV</div>
+    </div>`;
+}
+
+async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
+  const uniqueId = decodeURIComponent(uniqueIdEnc);
+  const userId = decodeURIComponent(userIdEnc || '');
+  const box = document.getElementById('creator-detail');
+  if (!box) return;
+  box.style.display = 'block';
+  box.innerHTML = '<div class="section"><p style="color:var(--muted)">⏳ Chargement du créateur…</p></div>';
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const token = localStorage.getItem('tts_token');
+  try {
+    const res = await fetch(`/api/market/creator/${encodeURIComponent(uniqueId)}?user_id=${encodeURIComponent(userId)}`, {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
+    const d = await res.json();
+    if (!d.ok) { box.innerHTML = '<div class="section"><p style="color:var(--muted)">Accès réservé Gold/Agency.</p></div>'; return; }
+
+    const profileUrl = 'https://www.tiktok.com/@' + encodeURIComponent(uniqueId);
+    let html = `<div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 style="margin:0">@${escapeHtml(uniqueId)}</h2>
+        <a href="${profileUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:13px">Voir le profil ↗</a>
+      </div>`;
+
+    // Vidéos
+    const vids = d.videos || [];
+    html += `<div style="font-size:13px;font-weight:700;margin:6px 0 8px">📹 Ses vidéos</div>`;
+    if (vids.length) {
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px">';
+      vids.forEach(v => {
+        html += `<a href="${escapeHtml(v.url || profileUrl)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${v.cover ? `<div style="aspect-ratio:9/16;background:#000 center/cover url('${escapeHtml(v.cover)}')"></div>` : ''}
+            <div style="padding:8px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px">
+              <span>👁 ${_cfmt(v.views)}</span><span>❤️ ${_cfmt(v.likes)}</span><span>💬 ${_cfmt(v.comments)}</span>
+            </div>
+          </div></a>`;
+      });
+      html += '</div>';
+    } else {
+      html += '<p style="font-size:12px;color:var(--muted);margin-bottom:18px">Aucune vidéo récupérée.</p>';
+    }
+
+    // Produits
+    const prods = d.products || [];
+    html += `<div style="font-size:13px;font-weight:700;margin:6px 0 8px">🛍️ Ce qu'il vend</div>`;
+    if (prods.length) {
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
+      prods.forEach(p => {
+        html += `<a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+            <div style="padding:8px">
+              <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
+              <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
+              <div style="font-size:11px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
+            </div>
+          </div></a>`;
+      });
+      html += '</div>';
+    } else {
+      html += '<p style="font-size:12px;color:var(--muted)">Aucun produit récupéré.</p>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    box.innerHTML = '<div class="section"><p style="color:var(--muted)">Erreur de chargement du créateur.</p></div>';
+  }
+}
+
 function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return text.replace(/[&<>"']/g, m => map[m]);
+  return String(text == null ? '' : text).replace(/[&<>"']/g, m => map[m]);
 }
