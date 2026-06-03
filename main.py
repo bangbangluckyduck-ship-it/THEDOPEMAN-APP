@@ -1279,6 +1279,35 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
     return {"ok": True, "preview": False, "creators": creators or []}
 
 
+@app.get("/api/market/category")
+async def market_category_overview(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+    """Vue catégorie (créateurs + produits) pour la reco auto post-analyse.
+    Gold/Agency = complet ; free/pro = aperçu partiel (preview=True)."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+
+    cache_key = f"catov::{(category or 'all').lower()}::{region}"
+    ov = _market_cache_get(cache_key)
+    if ov is None:
+        try:
+            ov = await market_creators.get_category_overview(category, region)
+        except Exception as e:
+            print(f"/api/market/category error: {e}")
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+        if ov and (ov.get("creators") or ov.get("products")):
+            _market_cache_set(cache_key, ov)
+
+    ov = ov or {"creators": [], "products": []}
+    if not premium:
+        return {"ok": True, "preview": True,
+                "creators": (ov.get("creators") or [])[:2],
+                "products": (ov.get("products") or [])[:2]}
+    return {"ok": True, "preview": False,
+            "creators": ov.get("creators") or [], "products": ov.get("products") or []}
+
+
 @app.get("/api/market/creator/{unique_id}")
 async def market_creator_detail(request: Request, unique_id: str, user_id: str = Query(...)):
     """Vidéos + produits d'un créateur. Réservé Gold/Agency."""

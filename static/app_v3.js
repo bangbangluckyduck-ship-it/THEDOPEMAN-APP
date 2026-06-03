@@ -1870,6 +1870,11 @@ function showResults(d) {
   // un payload structures_gagnantes (score < 75 + plan habilité).
   renderWinningStructures(d);
 
+  // 🔥 Reco marché auto : créateurs + produits qui cartonnent dans la catégorie
+  // détectée (Gold/Agency complet, free/pro flouté). Placeholder synchrone puis
+  // remplissage async (pour être inclus dans le slider).
+  renderMarketForCategory(d);
+
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
@@ -2220,6 +2225,7 @@ function resetAnalysis() {
   document.getElementById('premium-strategy-section')?.remove();
   document.getElementById('gold-upsell-section')?.remove();
   document.getElementById('winning-structures-section')?.remove();
+  document.getElementById('market-category-section')?.remove();
   document.getElementById('freemium-unlock-cta')?.remove();
   document.querySelectorAll('#results-section [data-free-lock]').forEach(el => el.classList.remove('freemium-locked'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2967,6 +2973,95 @@ async function handleAuthSubmit(event) {
 // Le back-office d'administration est désormais isolé sur la route /dope-admin
 // (template templates/dope_admin.html + static/admin.js). Aucune logique admin
 // n'est exposée dans l'espace client pour ne laisser aucune surface d'attaque.
+
+// ── 🔥 RECO MARCHÉ AUTO (post-analyse) : créateurs + produits de la catégorie ──
+function renderMarketForCategory(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('market-category-section')?.remove();
+
+  const productName = (d.detection && d.detection.produit) || '';
+  let category = null;
+  try { category = detectProductCategory(productName); } catch (e) { category = null; }
+  if (!category) return;  // pas de catégorie détectée → on n'affiche rien
+
+  const catLabels = { beaute:'Beauté', fashion:'Mode', mode:'Mode', tech:'Tech & Gadgets', fitness:'Fitness', sante:'Santé', complement_sante:'Santé', electromenager:'Maison', maison:'Maison' };
+  const catLabel = catLabels[category] || category;
+
+  const sec = document.createElement('section');
+  sec.id = 'market-category-section';
+  sec.className = 'section';
+  sec.innerHTML = `<h2>🔥 Ce qui cartonne en « ${escapeHtml(catLabel)} »</h2>
+    <div id="market-cat-body" style="font-size:13px;color:var(--muted)">⏳ Chargement du marché…</div>`;
+  results.appendChild(sec);
+
+  (async () => {
+    const body = document.getElementById('market-cat-body');
+    const token = localStorage.getItem('tts_token');
+    try {
+      const res = await fetch('/api/market/category?category=' + encodeURIComponent(category), {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
+      const data = await res.json();
+      if (!data.ok || (!data.creators?.length && !data.products?.length)) {
+        sec.remove(); return;
+      }
+      const preview = data.preview;
+      let html = '';
+
+      if (data.creators?.length) {
+        html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">👑 Créateurs qui vendent le plus</div>`;
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px">';
+        data.creators.forEach((c, i) => {
+          const locked = preview && i >= 1;
+          const blur = locked ? 'filter:blur(5px);pointer-events:none' : '';
+          const link = locked ? '#' : (c.profile_url || '#');
+          html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+              ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin:0 auto 6px">` : ''}
+              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(c.unique_id||'')}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px">👥 ${_cfmt(c.followers)} · 📦 ${_cfmt(c.sales)}</div>
+            </div></a>`;
+        });
+        html += '</div>';
+      }
+
+      if (data.products?.length) {
+        html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">🛍️ Produits qui se vendent</div>`;
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">';
+        data.products.forEach((p, i) => {
+          const locked = preview && i >= 1;
+          const blur = locked ? 'filter:blur(5px);pointer-events:none' : '';
+          const link = locked ? '#' : (p.url || '#');
+          html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
+              <div style="padding:8px">
+                <div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name||'Produit')}</div>
+                <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:3px">$${escapeHtml(String(p.price||'—'))}</div>
+                <div style="font-size:10px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
+              </div>
+            </div></a>`;
+        });
+        html += '</div>';
+      }
+
+      if (preview) {
+        html += `<div style="margin-top:14px;background:rgba(255,215,0,.10);border:1px dashed rgba(255,200,40,.6);border-radius:10px;padding:12px;text-align:center">
+          <strong style="color:#d4a017">Passe au plan Gold</strong> pour voir tous les créateurs et produits gagnants de cette catégorie.
+          <div style="margin-top:8px"><button class="btn btn-primary" onclick="switchTab('pricing')" style="font-size:13px">Débloquer Gold 👑</button></div>
+        </div>`;
+      } else {
+        html += `<div style="margin-top:12px;text-align:center"><button class="btn btn-secondary" onclick="switchTab('creators')" style="font-size:13px">Voir tous les créateurs gagnants →</button></div>`;
+      }
+
+      body.innerHTML = html;
+      if (window.__slider) { try { updateSliderHeight(window.__slider.index); } catch (e) {} }
+    } catch (e) {
+      sec.remove();
+    }
+  })();
+}
 
 // ── 🔥 CRÉATEURS GAGNANTS (marché KeyAPI, Gold/Agency) ───────────────────────
 function _cfmt(n) {
