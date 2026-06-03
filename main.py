@@ -25,7 +25,6 @@ from auth import get_user_from_request, check_quota, increment_usage, usage_info
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
-from keyapi_integration import keyapi_client
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
 
@@ -786,61 +785,6 @@ async def analyze_stream(request: Request, video_url: str = Query(...), product:
             yield f'data: {json.dumps({"error": str(e)})}\n\n'
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
-from keyapi_integration import CATEGORY_ID_MAP as _KEYAPI_CAT_MAP
-def _format_price(p: float) -> str: return "—" if not p else f"${p:.2f}" if p < 1000 else f"${p:.0f}"
-def _viral_score(p: dict) -> float:
-    import math
-    views = p.get("views", 0) or 0
-    sales = p.get("sales", 0) or 0
-    gmv = p.get("gmv", 0) or 0
-    score = 0
-    if views > 0: score += min(4.0, math.log10(views) - 4)
-    if sales > 0: score += min(3.0, math.log10(sales) - 2)
-    if gmv > 0: score += min(3.0, math.log10(gmv) - 4)
-    return round(max(1.0, min(10.0, score + 5.0)), 1)
-def _trend_emoji(sales: int) -> str: return "🚀🚀🚀" if sales > 100000 else "🚀🚀" if sales > 10000 else "🚀" if sales > 1000 else "⬆️"
-def _format_followers(n: int) -> str: return f"{n/1_000_000:.1f}M" if n >= 1_000_000 else f"{n/1_000:.0f}K" if n >= 1_000 else str(n)
-
-async def _fetch_market_for_category(category: str) -> dict:
-    top_products_raw = await keyapi_client.get_viral_videos(category, page_size=10, sort_field=1)
-    trending_raw = await keyapi_client.get_trending_up(category, page_size=10)
-    top_products = [{"name": p["title"], "image": p.get("image"), "url": p.get("tiktok_search_url") or p.get("url"), "price": _format_price(p.get("price", 0)), "viral_score": _viral_score(p), "trend": "⬆️ Hausse" if p.get("sales", 0) > 1000 else "→ Stable", "sales": p.get("sales", 0), "gmv": p.get("gmv", 0), "views": p.get("views", 0)} for p in top_products_raw[:5]]
-    trending = [{"name": p["title"], "image": p.get("image"), "url": p.get("tiktok_search_url") or p.get("url"), "trend_momentum": _trend_emoji(p.get("sales", 0)), "creator_count": p.get("creators_count", 0), "video_count": p.get("video_count", 0), "price": _format_price(p.get("price", 0))} for p in trending_raw[:5] if p["title"] not in {tp["name"] for tp in top_products}][:5]
-    creators_pool = sorted(top_products_raw + trending_raw, key=lambda x: x.get("creators_count", 0), reverse=True)
-    seen_ids = set()
-    top_creators = []
-    for p in creators_pool:
-        pid = p.get("id")
-        if pid in seen_ids: continue
-        seen_ids.add(pid)
-        cc = p.get("creators_count", 0)
-        if cc <= 0: continue
-        top_creators.append({"handle": (p.get("title", "creator")[:25] or "creator").lower().replace(" ", "_"), "product": p.get("title", "")[:60], "image": p.get("image"), "followers_display": _format_followers(cc * 1000), "video_count": p.get("video_count", 0), "url": f"https://www.tiktok.com/search/user?q={(p.get('title') or '').split()[0]}"})
-        if len(top_creators) >= 5: break
-    return {"top_products": top_products, "trending": trending, "top_creators": top_creators}
-
-@app.get("/api/market-recommendations")
-async def market_recommendations(category: Optional[str] = None):
-    cat = (category or "").lower().strip()
-    if cat not in _KEYAPI_CAT_MAP: cat = "beaute"
-    cache_key = f"market_{cat}"
-    if supabase_client:
-        try:
-            cached = supabase_client.table("viral_videos_cache").select("*").eq("category", cache_key).execute()
-            if cached.data:
-                entry = cached.data[0]
-                from datetime import datetime as dt
-                expires_at = dt.fromisoformat(entry["expires_at"].replace("Z", "+00:00"))
-                if dt.now(expires_at.tzinfo) < expires_at:
-                    return {"ok": True, "category": cat, "market_context": entry["videos"], "cached": True}
-        except Exception: pass
-    try: market_context = await _fetch_market_for_category(cat)
-    except Exception as e: return JSONResponse({"ok": False, "error": str(e), "category": cat, "market_context": None}, status_code=502)
-    if supabase_client and market_context.get("top_products"):
-        try:
-            supabase_client.table("viral_videos_cache").upsert({"category": cache_key, "videos": market_context, "cached_at": datetime.now().isoformat(), "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()}, on_conflict="category").execute()
-        except Exception: pass
-    return {"ok": True, "category": cat, "market_context": market_context, "cached": False}
 
 async def track_visitor(page: str, request: Request, user_email: Optional[str] = None):
     if not supabase_client: return
@@ -857,67 +801,6 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
             supabase_client.table("daily_visitor_stats").insert({"date": today, "visitor_count": 1, "unique_visitors": 0, "analysis_count": 0}).execute()
     except Exception: pass
 
-@app.get("/api/viral-videos/{category}")
-async def get_viral_videos(category: str):
-    cat = category.lower()
-
-    # ── 1. Lecture cache Supabase (best-effort : ne doit JAMAIS faire planter la route) ──
-    if supabase_client:
-        try:
-            cached = supabase_client.table("viral_videos_cache").select("*").eq("category", cat).execute()
-            if cached.data and cached.data[0] and cached.data[0].get("expires_at"):
-                from datetime import datetime as dt
-                entry = cached.data[0]
-                expires_at = dt.fromisoformat(str(entry["expires_at"]).replace("Z", "+00:00"))
-                now = dt.now(expires_at.tzinfo) if expires_at.tzinfo else dt.now()
-                if now < expires_at:
-                    return {"ok": True, "category": category, "videos": entry.get("videos") or [], "cached": True, "cached_at": entry.get("cached_at")}
-        except Exception as e:
-            print(f"[viral-videos] lecture cache échouée ({cat}): {e}")
-
-    # ── 2. Appel KeyAPI (source réelle) ──
-    try:
-        videos = await keyapi_client.get_viral_videos(cat)
-    except Exception as e:
-        print(f"[viral-videos] KeyAPI échoué ({cat}): {e}")
-        return JSONResponse({"ok": False, "category": category, "error": str(e), "videos": []}, status_code=502)
-
-    # ── 3. Écriture cache (best-effort) ──
-    if supabase_client and videos:
-        try:
-            supabase_client.table("viral_videos_cache").upsert(
-                {"category": cat, "videos": videos, "cached_at": datetime.now().isoformat(),
-                 "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()},
-                on_conflict="category",
-            ).execute()
-        except Exception as e:
-            print(f"[viral-videos] écriture cache échouée ({cat}): {e}")
-
-    return {"ok": True, "category": category, "videos": videos or [], "cached": False, "count": len(videos or [])}
-
-CATEGORY_STRATEGIES = {
-    "fashion": {"name": "Fashion & Vêtements", "hooks": ["Before/After looks", "Outfit transitions"], "price_positioning": "mid-premium", "conversion_timing": "instant-30d", "viral_multiplier": 1.3, "average_price": "$30-80", "best_creators": "Lifestyle, Fashion", "key_metrics": ["Views"]},
-    "beaute": {"name": "Beauté & Cosmétiques", "hooks": ["Makeup tutorials", "Before/After transformation"], "price_positioning": "mid-premium", "conversion_timing": "7-30d", "viral_multiplier": 1.5, "average_price": "$15-50", "best_creators": "Makeup artists", "key_metrics": ["Views"]}
-}
-
-@app.get("/api/product-recommendations/{category}")
-async def get_product_recommendations(category: str):
-    import json
-    from pathlib import Path
-    category_lower = category.lower()
-    strategy = CATEGORY_STRATEGIES.get(category_lower, {"name": category.capitalize(), "hooks": ["Feature highlight"], "price_positioning": "mid", "conversion_timing": "30d", "viral_multiplier": 1.0, "average_price": "variable", "best_creators": "Relevant niche", "key_metrics": ["Views"]})
-    videos = await keyapi_client.get_viral_videos(category_lower)
-    additional_data = {}
-    try:
-        db_path = Path("hooks_db.json")
-        if db_path.exists():
-            db = json.loads(db_path.read_text(encoding="utf-8"))
-            product_cat_key = category_lower.replace("-", "_")
-            if product_cat_key in db.get("product_categories", {}):
-                cat_data = db["product_categories"][product_cat_key]
-                additional_data = {"category_names": cat_data.get("names", []), "recommended_hooks_db": cat_data.get("recommended_hooks", []), "price_range": cat_data.get("price_range", "unknown"), "notes": cat_data.get("notes", "")}
-    except Exception: pass
-    return {"ok": True, "category": category_lower, "strategy": strategy, "recommended_products": videos[:5] if videos else [], "product_count": len(videos) if videos else 0, **additional_data}
 
 # ════════════════════════════════════════════════════════════════════════════
 # ANALYSE PAR LIEN TIKTOK (Pro / Gold / Agency uniquement)
