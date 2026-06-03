@@ -1234,6 +1234,8 @@ async def _debug_keyapi(request: Request, path: str = Query(...)):
     from auth import verify_access_token
     auth_header = request.headers.get("Authorization", "")
     tok = auth_header[7:].strip() if auth_header.startswith("Bearer ") else request.query_params.get("token", "")
+    # Dans une URL, le '+' de la base64 est décodé en espace → on le restaure.
+    tok = (tok or "").replace(" ", "+")
     email = verify_access_token(tok) if tok else None
     admin_email = os.getenv("ADMIN_EMAIL", "").lower().strip()
     if not email or not admin_email or email.lower() != admin_email:
