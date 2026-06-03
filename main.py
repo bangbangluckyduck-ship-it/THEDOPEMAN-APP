@@ -1217,6 +1217,58 @@ async def tiktok_status(request: Request):
     return out
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# DEBUG TEMPORAIRE — inspection brute KeyAPI (admin only). À RETIRER après audit.
+# ════════════════════════════════════════════════════════════════════════════
+_KEYAPI_DEBUG_BASE = "https://api.keyapi.ai"
+
+
+@app.get("/api/_debug/keyapi")
+async def _debug_keyapi(request: Request, path: str = Query(...)):
+    """
+    Appelle un endpoint KeyAPI et renvoie le JSON brut, pour auditer les vrais
+    champs (liens créateur/vidéo/produit + visuels). ADMIN uniquement.
+    Auth : header Bearer OU ?token=<tts_token> (pour ouverture directe navigateur).
+    Ex : /api/_debug/keyapi?token=XXX&path=/v1/tiktok/influencer/ranking/analytics&region=US&page_size=5
+    """
+    from auth import verify_access_token
+    auth_header = request.headers.get("Authorization", "")
+    tok = auth_header[7:].strip() if auth_header.startswith("Bearer ") else request.query_params.get("token", "")
+    email = verify_access_token(tok) if tok else None
+    admin_email = os.getenv("ADMIN_EMAIL", "").lower().strip()
+    if not email or not admin_email or email.lower() != admin_email:
+        raise HTTPException(status_code=403, detail="Admin requis.")
+
+    if not path.startswith("/v1/tiktok/"):
+        raise HTTPException(status_code=400, detail="Path non autorisé (doit commencer par /v1/tiktok/).")
+
+    token = os.getenv("KEYAPI_TOKEN", "")
+    if not token:
+        raise HTTPException(status_code=503, detail="KEYAPI_TOKEN manquant sur le serveur.")
+
+    params = {k: v for k, v in request.query_params.items() if k not in ("path", "token")}
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            resp = await client.get(
+                f"{_KEYAPI_DEBUG_BASE}{path}",
+                params=params,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            )
+        try:
+            data = resp.json()
+        except Exception:
+            data = None
+        return JSONResponse({
+            "status": resp.status_code,
+            "path": path,
+            "params": params,
+            "json": data,
+            "raw": None if data is not None else resp.text[:8000],
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e), "path": path}, status_code=502)
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
