@@ -150,6 +150,28 @@ async def get_top_creators(category: Optional[str] = None, region: str = "US", l
     return [_clean_creator(r) for r in rows][:limit]
 
 
+async def get_category_overview(category: Optional[str], region: str = "US") -> dict:
+    """Vue catégorie : top créateurs + produits portés par les meilleurs d'entre eux."""
+    creators = await get_top_creators(category, region, limit=6)
+    products: list = []
+    seen: set = set()
+    for c in creators[:2]:  # produits des 2 meilleurs créateurs (données réelles validées)
+        uid, user_id = c.get("unique_id"), c.get("user_id")
+        if not (uid and user_id):
+            continue
+        try:
+            detail = await get_creator_detail(uid, user_id)
+            for p in detail.get("products", []):
+                pid = p.get("id")
+                if pid and pid not in seen:
+                    seen.add(pid)
+                    products.append(p)
+        except Exception as e:
+            print(f"category_overview product fetch error: {e}")
+    products.sort(key=lambda p: p.get("sales") or 0, reverse=True)
+    return {"creators": creators, "products": products[:8]}
+
+
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
     videos: list = []
     products: list = []
