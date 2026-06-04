@@ -122,6 +122,23 @@ Chaîne créateur-centric confirmée (endpoint debug admin `/api/_debug/keyapi` 
 
 ---
 
+## 💳 KeyAPI — état (2/6 soir)
+- Feature « Créateurs Gagnants » + reco marché auto **codées, déployées, validées** sur la vraie chaîne (ranking → videos → products/analytics).
+- ⚠️ **Essai gratuit 7j terminé → 0 crédit.** Décision : **abonnement KeyAPI payant** (option choisie). Dès recharge, la feature remarche telle quelle (aucun re-dev).
+- Sans crédit : les endpoints renvoient 402 → l'UI dégrade proprement (vide), pas de plantage.
+- Le **cache Supabase** (24h créateurs/catégorie, 12h détail) limite la conso → activer la table `market_cache` (SQL fourni) pour économiser le quota.
+- 🔧 Endpoint debug `/api/_debug/keyapi` = consomme du quota → **à retirer** une fois le multi-pays fini.
+
+## 🌍 Multi-pays (demandé, EN ATTENTE de quota)
+Objectif : Top créateurs par **pays** (mensuel ≈ 30j), localisé selon la langue de l'app — l'utilisateur voit d'abord son pays puis les autres marchés (US, UK, BR…).
+- ⚠️ **FR = 0 créateur** (TikTok Shop France pas couvert par KeyAPI). GB/BR à reconfirmer quand quota dispo (les 0 récents étaient dus au quota épuisé, pas à l'absence de données).
+- Param `region` du ranking (US confirmé). À tester : GB, BR, autres.
+- À coder une fois la liste des régions réellement dispo connue.
+
+## 🐛 Bugs marché restants
+- **Lien produit** : `shop.tiktok.com/view/product/{id}` ne redirige pas (peut-être géo-bloqué FR). À tester `www.tiktok.com/view/product/{id}` dans le navigateur (sans quota). Endpoint `insights/product/detail` = payant (402), inutilisable.
+- **Miniatures vidéo** : étaient en `.heic` (KO Chrome) → fix `.heic→.jpeg` + `<img onerror>` déployé (à reconfirmer en prod).
+
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
 - [ ] **Repartir de zéro sur les « données marché »** (remplaçant de KeyAPI) — direction à définir.
