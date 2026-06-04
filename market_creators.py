@@ -13,12 +13,28 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import date, timedelta
 from typing import Any, Optional
 
 import httpx
 
 KEYAPI_BASE = "https://api.keyapi.ai"
+
+# ── Disjoncteur quota : si KeyAPI renvoie 402 (quota épuisé), on arrête d'appeler
+# l'API pendant _COOLDOWN_SECONDS pour ne pas gaspiller de tentatives. ───────────
+_COOLDOWN_SECONDS = 1800  # 30 min
+_cooldown_until = 0.0
+
+
+def _in_cooldown() -> bool:
+    return time.time() < _cooldown_until
+
+
+def _trip_cooldown() -> None:
+    global _cooldown_until
+    _cooldown_until = time.time() + _COOLDOWN_SECONDS
+    print(f"⚠️ KeyAPI quota épuisé → cooldown {_COOLDOWN_SECONDS}s")
 
 # app category → product_category_id TikTok (filtre optionnel du ranking)
 CATEGORY_ID_MAP: dict[str, str] = {
@@ -36,18 +52,28 @@ def _token() -> str:
 
 
 async def _get(path: str, params: dict) -> Any:
-    """Appel KeyAPI authentifié → renvoie body['data'] (ou lève)."""
+    """Appel KeyAPI authentifié → renvoie body['data'] (ou lève). Disjoncteur quota intégré."""
     token = _token()
     if not token:
         raise RuntimeError("KEYAPI_TOKEN manquant")
+    if _in_cooldown():
+        raise RuntimeError("KeyAPI en cooldown (quota récemment épuisé)")
     async with httpx.AsyncClient(timeout=25.0) as client:
         resp = await client.get(
             f"{KEYAPI_BASE}{path}",
             params=params,
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
+    try:
+        body = resp.json()
+    except Exception:
+        body = None
+    # Détection quota épuisé → déclenche le disjoncteur
+    msg = str((body or {}).get("message", "")).lower() if isinstance(body, dict) else ""
+    if resp.status_code == 402 or (isinstance(body, dict) and body.get("code") == 402) or "quota" in msg:
+        _trip_cooldown()
+        raise RuntimeError("KeyAPI quota épuisé")
     resp.raise_for_status()
-    body = resp.json()
     if isinstance(body, dict) and body.get("code") not in (0, None):
         raise RuntimeError(f"KeyAPI error: {body.get('message') or body}")
     return body.get("data") if isinstance(body, dict) else None
