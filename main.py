@@ -1272,7 +1272,7 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
             print(f"/api/market/creators error: {e}")
             return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
         if creators:
-            _market_cache_set(cache_key, creators)
+            _market_cache_set(cache_key, creators, hours=168)  # ranking mensuel → 7j
 
     if not premium:
         return {"ok": True, "preview": True, "creators": (creators or [])[:2]}
@@ -1297,7 +1297,7 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
             print(f"/api/market/category error: {e}")
             return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
         if ov and (ov.get("creators") or ov.get("products")):
-            _market_cache_set(cache_key, ov)
+            _market_cache_set(cache_key, ov, hours=168)  # vue catégorie → 7j
 
     ov = ov or {"creators": [], "products": []}
     if not premium:
@@ -1327,60 +1327,6 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
             return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
         _market_cache_set(cache_key, detail, hours=12)
     return {"ok": True, **(detail or {})}
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# DEBUG TEMPORAIRE — inspection brute KeyAPI (admin only). À RETIRER après audit.
-# ════════════════════════════════════════════════════════════════════════════
-_KEYAPI_DEBUG_BASE = "https://api.keyapi.ai"
-
-
-@app.get("/api/_debug/keyapi")
-async def _debug_keyapi(request: Request, path: str = Query(...)):
-    """
-    Appelle un endpoint KeyAPI et renvoie le JSON brut, pour auditer les vrais
-    champs (liens créateur/vidéo/produit + visuels). ADMIN uniquement.
-    Auth : header Bearer OU ?token=<tts_token> (pour ouverture directe navigateur).
-    Ex : /api/_debug/keyapi?token=XXX&path=/v1/tiktok/influencer/ranking/analytics&region=US&page_size=5
-    """
-    from auth import verify_access_token
-    auth_header = request.headers.get("Authorization", "")
-    tok = auth_header[7:].strip() if auth_header.startswith("Bearer ") else request.query_params.get("token", "")
-    # Dans une URL, le '+' de la base64 est décodé en espace → on le restaure.
-    tok = (tok or "").replace(" ", "+")
-    email = verify_access_token(tok) if tok else None
-    admin_email = os.getenv("ADMIN_EMAIL", "").lower().strip()
-    if not email or not admin_email or email.lower() != admin_email:
-        raise HTTPException(status_code=403, detail="Admin requis.")
-
-    if not path.startswith("/v1/tiktok/"):
-        raise HTTPException(status_code=400, detail="Path non autorisé (doit commencer par /v1/tiktok/).")
-
-    token = os.getenv("KEYAPI_TOKEN", "")
-    if not token:
-        raise HTTPException(status_code=503, detail="KEYAPI_TOKEN manquant sur le serveur.")
-
-    params = {k: v for k, v in request.query_params.items() if k not in ("path", "token")}
-    try:
-        async with httpx.AsyncClient(timeout=25.0) as client:
-            resp = await client.get(
-                f"{_KEYAPI_DEBUG_BASE}{path}",
-                params=params,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            )
-        try:
-            data = resp.json()
-        except Exception:
-            data = None
-        return JSONResponse({
-            "status": resp.status_code,
-            "path": path,
-            "params": params,
-            "json": data,
-            "raw": None if data is not None else resp.text[:8000],
-        })
-    except Exception as e:
-        return JSONResponse({"error": str(e), "path": path}, status_code=502)
 
 
 if __name__ == "__main__":
