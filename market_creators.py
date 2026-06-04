@@ -147,6 +147,11 @@ async def get_top_creators(category: Optional[str] = None, region: str = "US", l
         params["product_category_id"] = cid
     data = await _get("/v1/tiktok/influencer/ranking/analytics", params)
     rows = data if isinstance(data, list) else []
+    # Fallback : si le filtre catégorie ne renvoie rien, on retombe sur le global
+    if not rows and cid:
+        params.pop("product_category_id", None)
+        data = await _get("/v1/tiktok/influencer/ranking/analytics", params)
+        rows = data if isinstance(data, list) else []
     return [_clean_creator(r) for r in rows][:limit]
 
 

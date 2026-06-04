@@ -3070,6 +3070,11 @@ function _cfmt(n) {
   if (n >= 1e3) return (n / 1e3).toFixed(1).replace('.0', '') + 'k';
   return String(Math.round(n));
 }
+// Les miniatures TikTok sont en .heic (non lues par Chrome) → on tente le .jpeg
+function _ttImg(url) {
+  if (!url) return url;
+  return url.replace(/\.heic(\?|$)/i, '.jpeg$1');
+}
 
 async function loadCreatorsTab() {
   const grid = document.getElementById('creators-grid');
@@ -3159,7 +3164,7 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
       vids.forEach(v => {
         html += `<a href="${escapeHtml(v.url || profileUrl)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${v.cover ? `<div style="aspect-ratio:9/16;background:#000 center/cover url('${escapeHtml(v.cover)}')"></div>` : ''}
+            ${v.cover ? `<img src="${escapeHtml(_ttImg(v.cover))}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111">` : ''}
             <div style="padding:8px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px">
               <span>👁 ${_cfmt(v.views)}</span><span>❤️ ${_cfmt(v.likes)}</span><span>💬 ${_cfmt(v.comments)}</span>
             </div>
