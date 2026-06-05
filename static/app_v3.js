@@ -1875,6 +1875,9 @@ function showResults(d) {
   // remplissage async (pour être inclus dans le slider).
   renderMarketForCategory(d);
 
+  // 🛍️ Produits similaires en tendance (recherche temps-réel par mot-clé produit).
+  renderSimilarProducts(d);
+
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
@@ -2226,6 +2229,7 @@ function resetAnalysis() {
   document.getElementById('gold-upsell-section')?.remove();
   document.getElementById('winning-structures-section')?.remove();
   document.getElementById('market-category-section')?.remove();
+  document.getElementById('similar-products-section')?.remove();
   document.getElementById('freemium-unlock-cta')?.remove();
   document.querySelectorAll('#results-section [data-free-lock]').forEach(el => el.classList.remove('freemium-locked'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3055,6 +3059,63 @@ function renderMarketForCategory(d) {
         html += `<div style="margin-top:12px;text-align:center"><button class="btn btn-secondary" onclick="switchTab('creators')" style="font-size:13px">Voir tous les créateurs gagnants →</button></div>`;
       }
 
+      body.innerHTML = html;
+      if (window.__slider) { try { updateSliderHeight(window.__slider.index); } catch (e) {} }
+    } catch (e) {
+      sec.remove();
+    }
+  })();
+}
+
+// ── 🛍️ PRODUITS SIMILAIRES EN TENDANCE (realtime product/search) ─────────────
+function renderSimilarProducts(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('similar-products-section')?.remove();
+
+  const productName = (d.detection && d.detection.produit) || '';
+  if (!productName || productName.length < 3) return;  // pas de mot-clé exploitable
+
+  const sec = document.createElement('section');
+  sec.id = 'similar-products-section';
+  sec.className = 'section';
+  sec.innerHTML = `<h2>🛍️ Produits similaires en tendance</h2>
+    <div id="similar-products-body" style="font-size:13px;color:var(--muted)">⏳ Recherche des best-sellers…</div>`;
+  results.appendChild(sec);
+
+  (async () => {
+    const body = document.getElementById('similar-products-body');
+    const token = localStorage.getItem('tts_token');
+    try {
+      const res = await fetch('/api/market/products/search?keyword=' + encodeURIComponent(productName), {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
+      const data = await res.json();
+      if (!data.ok || !data.products || !data.products.length) { sec.remove(); return; }
+      const preview = data.preview;
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">';
+      data.products.forEach((p, i) => {
+        const locked = preview && i >= 1;
+        const blur = locked ? 'filter:blur(5px);pointer-events:none' : '';
+        const link = locked ? '#' : (p.url || '#');
+        const price = p.price ? `${escapeHtml(String(p.price))}` : '—';
+        html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${p.image ? `<img src="${escapeHtml(_ttImg(p.image))}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
+            <div style="padding:8px">
+              <div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name||'Produit')}</div>
+              <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:3px">${price}</div>
+              <div style="font-size:10px;color:#059669">⭐ ${escapeHtml(String(p.rating||'—'))} · 📦 ${_cfmt(p.sales)}</div>
+            </div>
+          </div></a>`;
+      });
+      html += '</div>';
+      if (preview) {
+        html += `<div style="margin-top:14px;background:rgba(255,215,0,.10);border:1px dashed rgba(255,200,40,.6);border-radius:10px;padding:12px;text-align:center">
+          <strong style="color:#d4a017">Passe au plan Gold</strong> pour voir tous les produits gagnants similaires.
+          <div style="margin-top:8px"><button class="btn btn-primary" onclick="switchTab('pricing')" style="font-size:13px">Débloquer Gold 👑</button></div>
+        </div>`;
+      }
       body.innerHTML = html;
       if (window.__slider) { try { updateSliderHeight(window.__slider.index); } catch (e) {} }
     } catch (e) {

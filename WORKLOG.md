@@ -139,6 +139,25 @@ Objectif : Top créateurs par **pays** (mensuel ≈ 30j), localisé selon la lan
 - **Lien produit** : `shop.tiktok.com/view/product/{id}` ne redirige pas (peut-être géo-bloqué FR). À tester `www.tiktok.com/view/product/{id}` dans le navigateur (sans quota). Endpoint `insights/product/detail` = payant (402), inutilisable.
 - **Miniatures vidéo** : étaient en `.heic` (KO Chrome) → fix `.heic→.jpeg` + `<img onerror>` déployé (à reconfirmer en prod).
 
+## 🆕 Endpoints KeyAPI « realtime » (branchés, à tester au 1er paiement)
+Schéma validé sur exemples KeyAPI réels (2026-06). Tout est gated Gold/Agency + caché 7j.
+- **Fix lien produit** : `_clean_product` passe de `shop.tiktok.com` → `www.tiktok.com/view/product/{id}`
+  (confirmé par `share_deep_link` de `detail_new_app`). C'était la cause des liens qui ne redirigeaient pas.
+- **`detail_new_app`** → `market_creators.get_product_detail(product_id, region)` :
+  navigue `data.data.goda_protocol.data.global.product_info_resp.products[0]` → titre, image
+  (`product_base.images[].url_list[0]`), prix (`price.real_price/original_price`), `sold_count`,
+  note (`product_detail_review`), vendeur, **VRAIE URL** (`share_info.share_deep_link`, on garde le nu).
+  Endpoint : `GET /api/market/product/{product_id}` (Gold/Agency only).
+- **`product/search`** → `market_creators.search_products(keyword, region)` :
+  parse `data.body.sections[].items[].data.raw_data` (string JSON Lynx) → `view_object.commonLogParams.cardLog`
+  (title_text, show_price, currency, rate, volume) + `dynamicData.cover` + `baseLog.seller_name`.
+  Endpoint : `GET /api/market/products/search?keyword=&region=` (Gold full / free-pro preview[:2]).
+  Front : `renderSimilarProducts(d)` dans les résultats d'analyse (« 🛍️ Produits similaires en tendance »).
+- ⚠️ **À CONFIRMER au 1er test payant** : (1) noms exacts des params (`keyword`/`region`/`product_id`) ;
+  (2) coût crédits « realtime » (peut être > endpoints influencer) ; (3) `product/search` est géolocalisé
+  → forcer `region` selon langue app sinon prix en devise locale (test a renvoyé MY/VN en RM).
+- `photo-search` / `photo-search/page` : non branchés (reco par image, à évaluer plus tard).
+
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
 - [ ] **Repartir de zéro sur les « données marché »** (remplaçant de KeyAPI) — direction à définir.
