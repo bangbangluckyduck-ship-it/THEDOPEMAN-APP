@@ -1329,6 +1329,56 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
     return {"ok": True, **(detail or {})}
 
 
+@app.get("/api/market/products/search")
+async def market_products_search(request: Request, keyword: str = Query(...), region: str = Query("US")):
+    """Produits tendance pour un mot-clé (reco « produits similaires en tendance »).
+    Gold/Agency = complet ; free/pro = aperçu partiel flouté. Cache 7j (realtime → on limite la conso)."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+
+    cache_key = f"psearch::{keyword.lower().strip()}::{region}"
+    products = _market_cache_get(cache_key)
+    if products is None:
+        try:
+            products = await market_creators.search_products(keyword, region, limit=8)
+        except Exception as e:
+            print(f"/api/market/products/search error: {e}")
+            return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
+        if products:
+            _market_cache_set(cache_key, products, hours=168)
+
+    products = products or []
+    if not premium:
+        return {"ok": True, "preview": True, "products": products[:2]}
+    return {"ok": True, "preview": False, "products": products}
+
+
+@app.get("/api/market/product/{product_id}")
+async def market_product_detail(request: Request, product_id: str, region: str = Query("US")):
+    """Fiche produit réelle (titre, image, prix, ventes, VRAIE URL). Réservé Gold/Agency. Cache 7j."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+
+    cache_key = f"pdetail::{product_id}::{region}"
+    detail = _market_cache_get(cache_key)
+    if detail is None:
+        try:
+            detail = await market_creators.get_product_detail(product_id, region)
+        except Exception as e:
+            print(f"/api/market/product error: {e}")
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+        if detail:
+            _market_cache_set(cache_key, detail, hours=168)
+    if not detail:
+        return JSONResponse({"ok": False, "error": "introuvable"}, status_code=404)
+    return {"ok": True, "product": detail}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))

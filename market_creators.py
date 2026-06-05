@@ -155,7 +155,7 @@ def _clean_product(p: dict) -> dict:
         "price": p.get("spu_avg_price") or 0,
         "sales": p.get("total_sale_cnt") or 0,
         "gmv": p.get("total_sale_gmv_amt") or 0,
-        "url": f"https://shop.tiktok.com/view/product/{pid}" if pid else None,
+        "url": f"https://www.tiktok.com/view/product/{pid}" if pid else None,
     }
 
 
@@ -201,6 +201,105 @@ async def get_category_overview(category: Optional[str], region: str = "US") -> 
             print(f"category_overview product fetch error: {e}")
     products.sort(key=lambda p: p.get("sales") or 0, reverse=True)
     return {"creators": creators, "products": products[:8]}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints « realtime » (nouveaux 2026) :
+#   /v1/tiktok/realtime/product/search       → recherche produits par mot-clé
+#   /v1/tiktok/realtime/product/detail_new_app → fiche produit + VRAIE URL
+# Schéma validé sur exemples KeyAPI ; params à reconfirmer au 1er test payant.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clean_search_product(item: dict) -> Optional[dict]:
+    """Parse un item de /realtime/product/search (carte Lynx → raw_data JSON string)."""
+    try:
+        raw = item.get("data", {}).get("raw_data")
+        parsed = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        vo = parsed.get("view_object") or {}
+        clp = (vo.get("commonLogParams") or {}).get("cardLog") or {}
+        base = (vo.get("commonLogParams") or {}).get("baseLog") or {}
+        pid = clp.get("product_id") or parsed.get("search_result_id")
+        if not pid:
+            return None
+        return {
+            "id": pid,
+            "name": (clp.get("title_text") or "")[:120],
+            "image": (vo.get("dynamicData") or {}).get("cover"),
+            "price": clp.get("show_price") or clp.get("sales_price") or "",
+            "currency": clp.get("currency") or "",
+            "rating": clp.get("rate") or "",
+            "sales": clp.get("volume") or 0,
+            "seller": base.get("seller_name") or "",
+            "url": f"https://www.tiktok.com/view/product/{pid}",
+        }
+    except Exception:
+        return None
+
+
+async def search_products(keyword: str, region: str = "US", limit: int = 8) -> list[dict]:
+    """Recherche les produits tendance pour un mot-clé (reco « produits similaires »)."""
+    if not keyword:
+        return []
+    params = {"keyword": keyword, "region": region or "US"}
+    data = await _get("/v1/tiktok/realtime/product/search", params)
+    items: list = []
+    # structure : data.body.sections[].items[]
+    body = (data or {}).get("body") if isinstance(data, dict) else None
+    for sec in (body or {}).get("sections", []) if isinstance(body, dict) else []:
+        for it in sec.get("items", []) or []:
+            cleaned = _clean_search_product(it)
+            if cleaned:
+                items.append(cleaned)
+    return items[:limit]
+
+
+def _dig(d: Any, *keys: str) -> Any:
+    """Navigation défensive dans un dict imbriqué."""
+    cur = d
+    for k in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(k)
+    return cur
+
+
+async def get_product_detail(product_id: str, region: str = "US") -> Optional[dict]:
+    """Fiche produit réelle via detail_new_app → titre, image, prix, ventes, VRAIE URL."""
+    if not product_id:
+        return None
+    data = await _get("/v1/tiktok/realtime/product/detail_new_app",
+                      {"product_id": product_id, "region": region or "US"})
+    # data = bloc intermédiaire {code, data:{goda_protocol...}, message}
+    products = _dig(data, "data", "goda_protocol", "data", "global", "product_info_resp", "products")
+    if not (isinstance(products, list) and products):
+        return None
+    p = products[0]
+    base = p.get("product_base") or {}
+    price = base.get("price") or {}
+    images = base.get("images") or []
+    img = None
+    if images and isinstance(images[0], dict):
+        ul = images[0].get("url_list") or []
+        img = ul[0] if ul else None
+    review = p.get("product_detail_review") or {}
+    seller = p.get("seller") or {}
+    # VRAIE URL : share_deep_link nu (sans encode_params de tracking)
+    pid = p.get("product_id") or product_id
+    return {
+        "id": pid,
+        "name": (base.get("title") or "")[:160],
+        "image": img,
+        "price": price.get("real_price") or "",
+        "original_price": price.get("original_price") or "",
+        "currency": price.get("currency") or "",
+        "discount": price.get("discount") or "",
+        "sales": base.get("sold_count") or 0,
+        "rating": review.get("product_rating") or "",
+        "reviews": review.get("review_count") or 0,
+        "category": base.get("category_name") or "",
+        "seller": seller.get("name") or "",
+        "url": f"https://www.tiktok.com/view/product/{pid}",
+    }
 
 
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
