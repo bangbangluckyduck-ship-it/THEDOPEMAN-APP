@@ -158,6 +158,22 @@ Schéma validé sur exemples KeyAPI réels (2026-06). Tout est gated Gold/Agency
   → forcer `region` selon langue app sinon prix en devise locale (test a renvoyé MY/VN en RM).
 - `photo-search` / `photo-search/page` : non branchés (reco par image, à évaluer plus tard).
 
+## 🎯 Métriques produit par période (à valider AU PAIEMENT, NE PAS coder à l'aveugle)
+Catalogue KeyAPI complet reçu (2026-06). Le user veut sur un produit : **commandes 7j/28j, CTR,
+nb de créateurs ayant posté une vidéo (période), nb d'add-to-cart**. Ces métriques ne sont PAS dans
+`detail_new_app` (qui ne donne que `sold_count` cumulé) → elles sont dans la famille **« (Analytics) »
++ « Intelligence »** (= données Affiliate Center, visibles par tous les créateurs, donc scrapables).
+Mapping le plus probable :
+- **Commandes 7j/28j** → `Product Detail (Analytics)` + `Product Trends (Analytics)` (séries par période).
+- **CTR + add-to-cart** → `Top Product Insights Detail` (Intelligence / Affiliate Center).
+- **Nb créateurs ayant posté une vidéo (période)** → `Product Creators (Analytics)`.
+- Bonus pipeline : `Get Product ID from Share Link` (lien → product_id), `Product Videos (Analytics)`.
+PLAN AU PAIEMENT (3 appels test, puis le user colle les réponses → je construis les parseurs sur le vrai schéma) :
+  1. `Product Detail (Analytics)` sur un product_id connu → champs période (order_cnt_7d, ctr…).
+  2. `Product Creators (Analytics)` → confirme « nb créateurs / période ».
+  3. `Top Product Insights Detail` → confirme CTR + add-to-cart.
+⚠️ Discipline : on a déjà été piégés à deviner les schémas KeyAPI → AUCUN code avant d'avoir la vraie réponse JSON.
+
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
 - [ ] **Repartir de zéro sur les « données marché »** (remplaçant de KeyAPI) — direction à définir.
