@@ -3181,13 +3181,36 @@ function _psHandleFile(f) {
   reader.readAsDataURL(f);
 }
 
+let _psData = {};      // données cumulées (stratégie + contenu) pour rendu progressif
+let _psTimerId = null;
+
+function _psStartTimer(msg) {
+  const out = document.getElementById('ps-result');
+  if (!out) return;
+  const t0 = Date.now();
+  out.innerHTML = `<div id="ps-loader" style="text-align:center;padding:20px;color:var(--muted)">
+    <div style="font-size:14px">${msg}</div>
+    <div style="font-size:12px;margin-top:6px">⏱️ <span id="ps-elapsed">0</span>s <span style="opacity:.7">· estimation ~20-40s</span></div></div>`;
+  _psStopTimer();
+  _psTimerId = setInterval(() => {
+    const el = document.getElementById('ps-elapsed');
+    if (el) el.textContent = Math.round((Date.now() - t0) / 1000);
+  }, 1000);
+}
+function _psStopTimer() { if (_psTimerId) { clearInterval(_psTimerId); _psTimerId = null; } }
+function _psSetLoaderMsg(msg) {
+  const l = document.getElementById('ps-loader');
+  if (l) { const d = l.querySelector('div'); if (d) d.innerHTML = msg; }
+}
+
 async function generatePhotoSlide() {
   if (!_psImageB64) { showToast('Ajoute une image produit.'); return; }
   const btn = document.getElementById('ps-generate');
   const out = document.getElementById('ps-result');
   const token = localStorage.getItem('tts_token');
-  btn.disabled = true; btn.textContent = '⏳ Génération en cours…';
-  out.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">⏳ L\'IA analyse ton produit…</div>';
+  btn.disabled = true; btn.textContent = '⏳ Génération…';
+  _psData = {};
+  _psStartTimer("👁️ L'IA analyse ton image produit…");
 
   const fd = new FormData();
   fd.append('image', _psImageB64);
@@ -3204,12 +3227,56 @@ async function generatePhotoSlide() {
       headers: token ? { 'Authorization': 'Bearer ' + token } : {},
       body: fd,
     });
-    const data = await res.json();
-    if (!data.ok || !data.result) { out.innerHTML = `<div style="color:var(--err,#DC2626);padding:12px">${escapeHtml(data.error || 'Erreur de génération.')}</div>`; return; }
-    renderPhotoSlideResult(data.result);
+    if (!res.ok) {
+      let msg = 'Erreur de génération.';
+      try { msg = (await res.json()).detail || msg; } catch (e) {}
+      _psStopTimer(); out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(msg)}</div>`;
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const processBlock = (block) => {
+      let evType = 'message'; const dataLines = [];
+      for (const raw of block.split('\n')) {
+        const line = raw.replace(/\r$/, '');
+        if (line.startsWith('event:')) evType = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+      }
+      if (!dataLines.length) return;
+      let d; try { d = JSON.parse(dataLines.join('\n')); } catch (e) { return; }
+      if (evType === 'progress') {
+        _psSetLoaderMsg(d.message || '🔄 En cours…');
+      } else if (evType === 'strategy') {
+        _psStopTimer();                       // 1ʳᵉ partie arrivée → on affiche déjà
+        _psData = { ..._psData, ...d };
+        renderPhotoSlideResult(_psData, true);  // partiel : slides « en cours »
+      } else if (evType === 'content') {
+        _psData = { ..._psData, ...d };
+        renderPhotoSlideResult(_psData, false);
+      } else if (evType === 'error') {
+        _psStopTimer(); out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(d.error || 'Erreur.')}</div>`;
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx); buffer = buffer.slice(idx + 2);
+        if (block.trim()) processBlock(block);
+      }
+    }
+    if (buffer.trim()) processBlock(buffer);
   } catch (e) {
-    out.innerHTML = '<div style="color:var(--err,#DC2626);padding:12px">Erreur réseau. Réessaie.</div>';
+    _psStopTimer();
+    out.innerHTML = '<div style="color:#DC2626;padding:12px">Erreur réseau. Réessaie.</div>';
   } finally {
+    _psStopTimer();
     btn.disabled = false; btn.textContent = '✨ Régénérer';
   }
 }
@@ -3219,7 +3286,7 @@ function _psCopyBtn(text) {
   return `<button onclick="navigator.clipboard.writeText(decodeURIComponent('${enc}')).then(()=>showToast('Copié ✓'))" style="font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer">📋 Copier</button>`;
 }
 
-function renderPhotoSlideResult(r) {
+function renderPhotoSlideResult(r, partial) {
   const out = document.getElementById('ps-result');
   if (!out) return;
   const st = r.type_slide || {};
@@ -3243,6 +3310,12 @@ function renderPhotoSlideResult(r) {
   let variantes = (r.titre_variantes || []).map(v => `<div style="font-size:13px;color:var(--muted);margin-top:4px">↳ ${escapeHtml(v)}</div>`).join('');
   html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">🏷️ Titre du carrousel ${_psCopyBtn(r.titre_carrousel)}</div>
     <div style="font-size:15px;font-weight:600;margin-top:6px">${escapeHtml(r.titre_carrousel || '')}</div>${variantes}`);
+
+  // Pendant l'étape 2 : indicateur « rédaction des slides en cours »
+  if (partial && !(Array.isArray(r.slides) && r.slides.length)) {
+    html += `<div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:12px">
+      ✍️ Rédaction des slides, du CTA et de la description… <span id="ps-elapsed2">⏳</span></div>`;
+  }
 
   // 4. Slides (avec type de photo à prendre)
   if (Array.isArray(r.slides) && r.slides.length) {
