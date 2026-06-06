@@ -1408,20 +1408,20 @@
             <div id="market-category-context" style="font-size:13px;line-height:1.7;color:var(--text)">—</div>
           </div>
 
-          <!-- Top Produits -->
-          <div style="margin-bottom:20px">
+          <!-- Top Produits / Trending / Créateurs (source scraper, sans liens ni images)
+               → masqués : remplacés par les blocs KeyAPI cliquables (créateurs multi-pays,
+               produits région, produits similaires). -->
+          <div id="market-top-products-block" style="margin-bottom:20px;display:none">
             <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">🔥 Top Produits en Vente</h3>
             <div id="market-top-products" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"></div>
           </div>
 
-          <!-- Trending -->
-          <div style="margin-bottom:20px">
+          <div id="market-trending-block" style="margin-bottom:20px;display:none">
             <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📈 Tendances (Croissance Rapide)</h3>
             <div id="market-trending" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
           </div>
 
-          <!-- Top Creators -->
-          <div style="margin-bottom:20px">
+          <div id="market-creators-block" style="margin-bottom:20px;display:none">
             <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">👑 Top Créateurs (Ta Catégorie)</h3>
             <div id="market-creators" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
           </div>
