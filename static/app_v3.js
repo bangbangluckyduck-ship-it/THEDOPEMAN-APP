@@ -1879,25 +1879,14 @@ function showResults(d) {
     document.getElementById('verdict-text').textContent = d.verdict;
   }
 
-  // COACHING: verrouillé pour FREE/PRO, complet pour GOLD/AGENCY
+  // COACHING : pour FREE/PRO on garde le teaser verrouillé (upsell). Pour les plans
+  // premium, l'ancien encart "🤖 Coach IA" faisait DOUBLON avec les autres volets
+  // (conseils déjà couverts par points à améliorer / structure / stratégie) → retiré.
   const userTierForCoaching = window.__userInfo?.tier || 'free';
   const isFreemium = userTierForCoaching === 'free' || userTierForCoaching === 'pro';
+  document.getElementById('coaching-section')?.remove();   // nettoie un éventuel encart obsolète
   if (isFreemium && d.conseils_concrets?.length > 0) {
     showLockedCoachingSection(d.conseils_concrets[0]);
-  } else if (!isFreemium && d.conseils_concrets?.length > 0) {
-    const coachSection = document.getElementById('coaching-section') || document.createElement('section');
-    if (!coachSection.id) {
-      coachSection.id = 'coaching-section';
-      coachSection.className = 'section';
-      document.getElementById('results-section').appendChild(coachSection);
-    }
-    coachSection.innerHTML = `
-      <h2>🤖 Coach IA personnalisé</h2>
-      <ul class="points-list" style="border-left:3px solid var(--primary)">
-        ${(d.conseils_concrets || []).map(c => `<li>${c}</li>`).join('')}
-      </ul>
-    `;
-    coachSection.style.display = 'block';
   }
 
   // 👑 STRATÉGIE DE CONVERSION (PREMIUM) — Gold / Agency / Beta uniquement.
@@ -1917,14 +1906,17 @@ function showResults(d) {
   // 🛍️ Produits similaires en tendance (recherche temps-réel par mot-clé produit).
   renderSimilarProducts(d);
 
+  // 🏆 Carte verdict en tête : récap (verdict + 3 forces / 3 axes) juste après les
+  // scores. Évite le doublon en masquant les sections verdict + forts/faibles.
+  renderVerdictHero(d);
+
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
-  // 🎚️ Slider horizontal : chaque section devient une slide (glisser vers la
-  // gauche). Le Coach IA est placé en dernière slide ; le CTA "nouvelle analyse"
-  // + l'export passent SOUS le slider. Construit en tout dernier pour englober
-  // les sections premium/upsell ajoutées dynamiquement ci-dessus.
-  buildAnalysisSlider();
+  // 🧱 Vue VERTICALE (remplace l'ancien slider horizontal) : les sections se
+  // suivent de haut en bas, lecture naturelle. On aplatit tout slider résiduel
+  // et on masque les sections visibles mais vides (anti-carte blanche).
+  layoutAnalysisVertical();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1947,6 +1939,61 @@ function unwrapAnalysisSlider() {
     while (footer.firstChild) results.appendChild(footer.firstChild);
     footer.remove();
   }
+}
+
+// 🏆 Carte « verdict » récapitulative, insérée juste après la section des scores.
+// Reprend verdict + top 3 forces / top 3 axes, et masque les sections doublons.
+function renderVerdictHero(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('verdict-hero')?.remove();
+  const ff = document.getElementById('points-forts')?.closest('.section');
+  const vs = document.getElementById('verdict-section');
+  if (ff) ff.style.display = '';        // reset (au cas où masqué à l'analyse précédente)
+
+  const forts = (d.points_forts || []).slice(0, 3);
+  const axes  = (d.points_ameliorer || []).slice(0, 3);
+  if (!d.verdict && !forts.length && !axes.length) return;
+
+  const hero = document.createElement('div');
+  hero.id = 'verdict-hero';
+  hero.className = 'section';
+  hero.setAttribute('data-free-lock', '1');     // cohérence avec le flou freemium
+  hero.style.borderLeft = '4px solid var(--primary)';
+  const li = (arr) => arr.length ? arr.map(x => `<li>${escapeHtml(String(x))}</li>`).join('') : '<li>—</li>';
+  hero.innerHTML = `
+    <h2 style="margin-bottom:10px">🏆 Verdict</h2>
+    ${d.verdict ? `<p style="font-size:14px;line-height:1.55;margin:0 0 14px">${escapeHtml(d.verdict)}</p>` : ''}
+    <div class="two-column">
+      <div><h3 style="color:#059669;margin-bottom:6px">✅ Forces clés</h3><ul class="points-list">${li(forts)}</ul></div>
+      <div><h3 style="color:#D97706;margin-bottom:6px">⚠️ Axes prioritaires</h3><ul class="points-list neg">${li(axes)}</ul></div>
+    </div>`;
+
+  const scoresSection = document.getElementById('scores-grid')?.closest('.section');
+  if (scoresSection && scoresSection.parentNode === results) scoresSection.after(hero);
+  else results.insertBefore(hero, results.firstChild);
+
+  if (vs) vs.style.display = 'none';    // masque le verdict autonome (doublon)
+  if (ff) ff.style.display = 'none';    // masque forts/faibles autonome (doublon)
+}
+
+// 🧱 Vue verticale : aplatit tout slider existant + masque les sections vides.
+// (Remplace buildAnalysisSlider dans le flux. Les fonctions slider restent
+// définies plus bas mais ne sont plus appelées — window.__slider reste indéfini.)
+function layoutAnalysisVertical() {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  unwrapAnalysisSlider();
+  window.__slider = null;
+  // Coach IA (premium) en dernière position s'il existe encore (legacy), et footer
+  // (CTA nouvelle analyse + export) toujours tout en bas.
+  Array.from(results.children).forEach(el => {
+    if (window.getComputedStyle(el).display === 'none') return;
+    const hasText = (el.textContent || '').trim().length > 0;
+    const hasMedia = el.querySelector('img, canvas, svg, video, button, input, select');
+    if (!hasText && !hasMedia) { el.style.display = 'none'; }  // anti-carte blanche
+  });
+  results.querySelectorAll('[data-slider-footer]').forEach(el => results.appendChild(el));
 }
 
 function buildAnalysisSlider() {
