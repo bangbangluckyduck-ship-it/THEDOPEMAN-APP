@@ -721,7 +721,9 @@ def synthesize_analysis(
         api_key,
         _synthesis_model(),   # text-only, configurable via env SYNTHESIS_MODEL
         full_prompt,
-        timeout=70.0,
+        # medium/large sont plus lents que small → marge généreuse pour éviter
+        # "read operation timed out". Configurable via SYNTHESIS_TIMEOUT.
+        timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
     )
     try:
         parsed = _extract_json(raw)

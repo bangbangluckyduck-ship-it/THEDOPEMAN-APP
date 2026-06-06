@@ -709,15 +709,29 @@ async def analyze_stream_sse(
             yield 'event: progress\n'
             yield 'data: {"message": "🤖 Synthèse finale (scoring + conseils)...", "stage": "synthesis"}\n\n'
 
-            try:
-                result = await asyncio.wait_for(
-                    loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
-                    timeout=90.0
-                )
-            except asyncio.TimeoutError:
-                yield 'event: error\n'
-                yield 'data: {"error": "La synthèse a pris trop longtemps."}\n\n'
-                return
+            # Keepalive pendant la synthèse (medium/large peut être long) : un ping
+            # toutes les 4s → la connexion n'est jamais muette (pas de coupure proxy).
+            synth_task = loop.run_in_executor(
+                None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price)
+            _waited = 0.0
+            result = None
+            while True:
+                done, _pending = await asyncio.wait({synth_task}, timeout=4.0)
+                if synth_task in done:
+                    try:
+                        result = synth_task.result()
+                    except Exception as e:
+                        yield 'event: error\n'
+                        yield f'data: {json.dumps({"error": f"Synthèse: {str(e)[:200]}"})}\n\n'
+                        return
+                    break
+                _waited += 4.0
+                if _waited >= 140.0:
+                    synth_task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "La synthèse a pris trop longtemps."}\n\n'
+                    return
+                yield ': keepalive\n\n'
 
             analysis_duration_ms = int((time.time() - analysis_start) * 1000)
             yield 'event: progress\n'
@@ -966,7 +980,7 @@ async def analyze_url(request: Request):
         )
         result = await asyncio.wait_for(
             loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
-            timeout=90.0,
+            timeout=140.0,   # medium/large peut être lent (cohérent avec SYNTHESIS_TIMEOUT)
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
 
