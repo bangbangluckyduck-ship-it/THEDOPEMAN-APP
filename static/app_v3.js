@@ -3169,14 +3169,34 @@ function _psHandleFile(f) {
   if (f.size > 10 * 1024 * 1024) { showToast('Image trop lourde (max 10 Mo).'); return; }
   const reader = new FileReader();
   reader.onload = () => {
-    const dataUrl = reader.result;
-    _psImageB64 = String(dataUrl).split(',')[1] || null;
-    const prev = document.getElementById('ps-preview');
-    const empty = document.getElementById('ps-drop-empty');
-    if (prev) { prev.src = dataUrl; prev.style.display = 'block'; }
-    if (empty) empty.style.display = 'none';
-    const btn = document.getElementById('ps-generate');
-    if (btn) btn.disabled = false;
+    // Downscale à max 1024px (canvas) → upload léger + pixtral bien plus rapide.
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      let dataUrl;
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        dataUrl = cv.toDataURL('image/jpeg', 0.85);
+      } catch (e) {
+        dataUrl = reader.result;   // fallback : image d'origine
+      }
+      _psImageB64 = String(dataUrl).split(',')[1] || null;
+      const prev = document.getElementById('ps-preview');
+      const empty = document.getElementById('ps-drop-empty');
+      if (prev) { prev.src = dataUrl; prev.style.display = 'block'; }
+      if (empty) empty.style.display = 'none';
+      const btn = document.getElementById('ps-generate');
+      if (btn) btn.disabled = false;
+    };
+    img.onerror = () => { showToast("Image illisible."); };
+    img.src = reader.result;
   };
   reader.readAsDataURL(f);
 }
