@@ -3124,15 +3124,19 @@ function renderMarketForCategory(d) {
   const productName = (d.detection && d.detection.produit) || '';
   let category = null;
   try { category = detectProductCategory(productName); } catch (e) { category = null; }
-  if (!category) return;  // pas de catégorie détectée → on n'affiche rien
 
+  // Pas de catégorie détectée → on ne bloque plus : on retombe sur le classement
+  // GLOBAL (le backend gère category vide en renvoyant le top mondial).
   const catLabels = { beaute:'Beauté', fashion:'Mode', mode:'Mode', tech:'Tech & Gadgets', fitness:'Fitness', sante:'Santé', complement_sante:'Santé', electromenager:'Maison', maison:'Maison' };
-  const catLabel = catLabels[category] || category;
+  const catLabel = category ? (catLabels[category] || category) : null;
+  const titleHtml = catLabel
+    ? `🔥 Ce qui cartonne en « ${escapeHtml(catLabel)} »`
+    : `🔥 Ce qui cartonne sur TikTok Shop`;
 
   const sec = document.createElement('section');
   sec.id = 'market-category-section';
   sec.className = 'section';
-  sec.innerHTML = `<h2>🔥 Ce qui cartonne en « ${escapeHtml(catLabel)} »</h2>
+  sec.innerHTML = `<h2>${titleHtml}</h2>
     <div id="market-cat-body" style="font-size:13px;color:var(--muted)">⏳ Chargement du marché…</div>`;
   results.appendChild(sec);
 
@@ -3140,7 +3144,7 @@ function renderMarketForCategory(d) {
     const body = document.getElementById('market-cat-body');
     const token = localStorage.getItem('tts_token');
     try {
-      const res = await fetch('/api/market/category?category=' + encodeURIComponent(category), {
+      const res = await fetch('/api/market/category?category=' + encodeURIComponent(category || ''), {
         headers: token ? { 'Authorization': 'Bearer ' + token } : {}
       });
       const data = await res.json();
