@@ -649,14 +649,11 @@ async def analyze_stream_sse(
                     audio_path = tmp.name
                     tmp.write(await audio.read())
 
+            # Scraper retiré : les données marché viennent désormais de KeyAPI
+            # (blocs créateurs/produits cliquables côté UI). L'IA de synthèse reste
+            # lean (momentum + saisonnalité + exigences qualité suffisent).
             market_context = None
             tier = user.get("tier", "free")
-            if (tier in ("gold", "agency", "beta") or user.get("is_admin")) and _SCRAPER_URL:
-                try:
-                    async with httpx.AsyncClient(timeout=5.0) as client:
-                        mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
-                    if mresp.is_success: market_context = mresp.json()
-                except Exception: pass
 
             analysis_start = time.time()
             yield 'event: progress\n'
@@ -962,16 +959,8 @@ async def analyze_url(request: Request):
         if isinstance(frames_list, Exception) or not frames_list:
             raise HTTPException(status_code=422, detail="Impossible d'extraire les images de la vidéo.")
 
-        # ── 4. Contexte marché (Gold+) ──
+        # ── 4. Contexte marché : scraper retiré (données marché via KeyAPI côté UI) ──
         market_context = None
-        if (tier in ("gold", "agency", "beta") or user.get("is_admin")) and _SCRAPER_URL:
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    mresp = await client.get(f"{_SCRAPER_URL}/api/coach-context")
-                if mresp.is_success:
-                    market_context = mresp.json()
-            except Exception:
-                pass
 
         # ── 5. Pipeline Mistral : vision → synthèse ──
         analysis_start = time.time()
