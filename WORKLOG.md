@@ -174,6 +174,21 @@ PLAN AU PAIEMENT (3 appels test, puis le user colle les réponses → je constru
   3. `Top Product Insights Detail` → confirme CTR + add-to-cart.
 ⚠️ Discipline : on a déjà été piégés à deviner les schémas KeyAPI → AUCUN code avant d'avoir la vraie réponse JSON.
 
+## 📸 Photo Slide Coach (livré — MVP, GOLD/AGENCY)
+Onglet `📸 Photo Slide` (à droite de Créateurs Gagnants). Upload image produit + nature/prix/description
+→ IA vision **pixtral-12b** → plan carrousel : type de slide (3 styles), Hook slide 1, titre carrousel
+(+variantes), description optimisée, plan slide par slide AVEC type de photo à prendre, CTA dernière slide,
+hashtags, conseils saves. Boutons « Copier » partout.
+- **`photo_slide.py`** : `PHOTO_SLIDE_SYSTEM_PROMPT` (directives + 3 styles) avec **2 ZONES ÉDITABLES**
+  balisées (`⬇️ ZONE ÉDITABLE 1 — HOOKS GAGNANTS`, `ZONE ÉDITABLE 2 — IDÉES DE SLIDES`) pour que le PO
+  enrichisse l'IA sans toucher au code. `generate_photo_slide()` → pixtral, fallback mock si échec (`_fallback`).
+- **`main.py`** : `POST /api/photo-slide/generate` (Form: image b64 + champs), gated `_MARKET_PREMIUM_TIERS`,
+  exécuté en executor, timeout 90s. Image ÉPHÉMÈRE (base64 → IA, pas de stockage).
+- **Front** : onglet `tab-photoslide`, gate non-premium → pricing, upload drag&drop (`_psHandleFile`),
+  `generatePhotoSlide()` + `renderPhotoSlideResult()`. tier via `window.__userInfo`.
+- **Différé (phase 2)** : export PDF/image, historique (table `photo_slide_generations`), partage AGENCY,
+  suggestions musique, quotas/mois. Stripe reste désactivé → upsell pointe vers pricing.
+
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
 - [ ] **Repartir de zéro sur les « données marché »** (remplaçant de KeyAPI) — direction à définir.

@@ -28,6 +28,7 @@ from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_u
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
 import market_creators
+import photo_slide
 
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -1377,6 +1378,50 @@ async def market_product_detail(request: Request, product_id: str, region: str =
     if not detail:
         return JSONResponse({"ok": False, "error": "introuvable"}, status_code=404)
     return {"ok": True, "product": detail}
+
+
+@app.post("/api/photo-slide/generate")
+async def photo_slide_generate(
+    request: Request,
+    image: str = Form(...),                       # image produit en base64 (sans préfixe data:)
+    product_name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    currency: str = Form("EUR"),
+    niche: Optional[str] = Form(None),
+    preferred_style: Optional[str] = Form(None),  # auto | quad_photo | fond_blanc | ia_cartoon
+):
+    """📸 Photo Slide Coach — plan de carrousel TikTok Shop. Réservé Gold/Agency."""
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+
+    img = (image or "").strip()
+    if "," in img and img.lower().startswith("data:"):
+        img = img.split(",", 1)[1]              # tolère un data-URL complet
+    if not img:
+        raise HTTPException(status_code=400, detail="Image produit manquante.")
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: photo_slide.generate_photo_slide(
+                    img, product_name, price, currency, description, niche, preferred_style),
+            ),
+            timeout=90.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="La génération a pris trop longtemps.")
+    except Exception as e:
+        print(f"/api/photo-slide/generate error: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+    return {"ok": True, "result": result}
 
 
 if __name__ == "__main__":
