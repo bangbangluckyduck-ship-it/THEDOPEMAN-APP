@@ -1418,30 +1418,49 @@ async def photo_slide_generate(
 
     async def stream():
         loop = asyncio.get_event_loop()
+
+        async def _run(fn, timeout):
+            """Exécute fn dans un thread en envoyant un keepalive toutes les 4s.
+            Renvoie un générateur : yields des pings (str) puis ('RESULT', valeur)."""
+            task = loop.run_in_executor(None, fn)
+            waited = 0.0
+            while True:
+                done, _pending = await asyncio.wait({task}, timeout=4.0)
+                if task in done:
+                    yield ("RESULT", task.result())
+                    return
+                waited += 4.0
+                if waited >= timeout:
+                    task.cancel()
+                    raise asyncio.TimeoutError()
+                yield (": keepalive\n\n", None)  # commentaire SSE → garde la connexion vivante
+
         try:
             # ── ÉTAPE 1 : stratégie (vision) ──
             yield 'event: progress\n'
             yield 'data: {"message": "\\ud83d\\udc41\\ufe0f Analyse de l\'image produit\\u2026", "stage": "strategy"}\n\n'
-            strategy = await asyncio.wait_for(
-                loop.run_in_executor(
-                    None,
-                    lambda: photo_slide.generate_strategy(
-                        img, product_name, price, currency, description, niche, preferred_style)),
-                timeout=70.0,
-            )
+            strategy = None
+            async for kind, val in _run(
+                lambda: photo_slide.generate_strategy(
+                    img, product_name, price, currency, description, niche, preferred_style), 75.0):
+                if kind == "RESULT":
+                    strategy = val
+                else:
+                    yield kind
             yield 'event: strategy\n'
             yield f'data: {json.dumps(strategy)}\n\n'
 
             # ── ÉTAPE 2 : contenu (texte) ──
             yield 'event: progress\n'
             yield 'data: {"message": "\\u270d\\ufe0f R\\u00e9daction des slides\\u2026", "stage": "content"}\n\n'
-            content = await asyncio.wait_for(
-                loop.run_in_executor(
-                    None,
-                    lambda: photo_slide.generate_content(
-                        strategy, product_name, price, currency, description, niche)),
-                timeout=70.0,
-            )
+            content = None
+            async for kind, val in _run(
+                lambda: photo_slide.generate_content(
+                    strategy, product_name, price, currency, description, niche), 75.0):
+                if kind == "RESULT":
+                    content = val
+                else:
+                    yield kind
             yield 'event: content\n'
             yield f'data: {json.dumps(content)}\n\n'
 
