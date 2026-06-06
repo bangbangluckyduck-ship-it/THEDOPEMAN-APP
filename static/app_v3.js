@@ -1072,6 +1072,7 @@ async function analyzeVideo() {
   document.getElementById('error-box').style.display      = 'none';
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
+  document.getElementById('analysis-preview')?.remove();   // reset aperçu progressif
   setLoadingText(t('loading_extract'));
 
   if (!serverReady) {
@@ -1140,6 +1141,8 @@ async function analyzeVideo() {
       } else if (eventType === 'progress') {
         setLoadingText(eventData.message || '🔄 En cours...');
         console.log('[STREAM] Progress:', eventData.message);
+      } else if (eventType === 'partial') {
+        renderAnalysisPreview(eventData);   // aperçu vision avant la synthèse finale
       } else if (eventType === 'warning') {
         console.warn('[STREAM] Warning:', eventData.message);
       } else if (eventType === 'complete') {
@@ -1523,6 +1526,37 @@ function renderContexteTemporel(ct) {
 
 function setLoadingText(txt) {
   document.getElementById('loading-text').textContent = txt;
+}
+
+// Aperçu progressif vidéo : carte « premier coup d'œil » affichée après la passe
+// vision, AVANT la synthèse finale (produit détecté + scores visuels préliminaires).
+function renderAnalysisPreview(p) {
+  const host = document.getElementById('loading-section');
+  if (!host || !p) return;
+  let card = document.getElementById('analysis-preview');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'analysis-preview';
+    card.style.cssText = 'max-width:420px;margin:18px auto 0;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;animation:fadeIn .3s ease';
+    host.appendChild(card);
+  }
+  const sc = (v) => (v == null ? '—' : Math.round(v));
+  const bar = (label, v) => {
+    const val = (v == null ? 0 : Math.max(0, Math.min(100, v)));
+    const col = val >= 70 ? '#059669' : (val >= 45 ? '#D97706' : '#DC2626');
+    return `<div style="margin-top:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${label}</span><span style="font-weight:700;color:${col}">${sc(v)}</span></div>
+      <div style="height:6px;background:var(--border);border-radius:4px;margin-top:3px;overflow:hidden"><div style="height:100%;width:${val}%;background:${col}"></div></div>
+    </div>`;
+  };
+  card.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.04em">👁️ Premier aperçu</div>
+    ${p.produit ? `<div style="font-size:14px;font-weight:700;margin-top:4px">${escapeHtml(p.produit)}</div>` : ''}
+    ${p.description_visuelle ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4">${escapeHtml(p.description_visuelle)}</div>` : ''}
+    ${bar('Qualité visuelle', p.qualite_visuelle_score)}
+    ${bar('Format', p.format_visuel_score)}
+    ${bar('Hook visuel', p.hook_visuel_score)}
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center">🤖 Rédaction des conseils détaillés en cours…</div>`;
 }
 
 function showError(msg) {

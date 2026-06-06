@@ -689,6 +689,19 @@ async def analyze_stream_sse(
             yield 'event: progress\n'
             yield f'data: {json.dumps({"message": vision_msg, "stage": "vision_done"})}\n\n'
 
+            # ── Aperçu progressif : on envoie déjà ce que la vision a vu (produit +
+            # scores visuels préliminaires) pour l'afficher AVANT la synthèse finale.
+            if isinstance(visual_result, dict):
+                partial_payload = {
+                    "produit": detected_product,
+                    "description_visuelle": str(visual_result.get("description_visuelle") or "")[:400],
+                    "qualite_visuelle_score": visual_result.get("qualite_visuelle_score"),
+                    "format_visuel_score": visual_result.get("format_visuel_score"),
+                    "hook_visuel_score": visual_result.get("hook_visuel_score"),
+                }
+                yield 'event: partial\n'
+                yield f'data: {json.dumps(partial_payload)}\n\n'
+
             if transcript:
                 yield 'event: progress\n'
                 yield 'data: {"message": "✅ Transcription complète", "stage": "transcription_done"}\n\n'
