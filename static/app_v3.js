@@ -1910,6 +1910,9 @@ function showResults(d) {
   // scores. Évite le doublon en masquant les sections verdict + forts/faibles.
   renderVerdictHero(d);
 
+  // 🧬 8 dimensions de persuasion en cartes visuelles (donnée analyse_8_dimensions).
+  renderDimensions(d);
+
   // Plan Free : on garde la notation visible, on floute le reste + CTA conversion.
   applyFreemiumBlur();
 
@@ -1975,6 +1978,54 @@ function renderVerdictHero(d) {
 
   if (vs) vs.style.display = 'none';    // masque le verdict autonome (doublon)
   if (ff) ff.style.display = 'none';    // masque forts/faibles autonome (doublon)
+}
+
+// 🧬 8 dimensions de persuasion en cartes (icône + score + barre + feedback).
+function renderDimensions(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('dimensions-section')?.remove();
+  const dim = d.analyse_8_dimensions;
+  if (!dim || typeof dim !== 'object') return;
+
+  const MAP = [
+    ['hook', '🎣', 'Hook'],
+    ['retention', '⏳', 'Rétention'],
+    ['mecanismes_vente', '🧠', 'Mécanismes de vente'],
+    ['positionnement', '🎯', 'Positionnement'],
+    ['format_visuel', '🎬', 'Format visuel'],
+    ['emotion_dominante', '❤️', 'Émotion'],
+    ['conversion_shop', '🛒', 'Conversion Shop'],
+    ['algorithme', '🚀', 'Algorithme'],
+  ];
+  const col = (v) => { v = Number(v) || 0; return v >= 70 ? '#059669' : (v >= 45 ? '#D97706' : '#DC2626'); };
+  const cards = MAP.map(([k, ic, lbl]) => {
+    const o = dim[k];
+    if (!o || typeof o !== 'object') return '';
+    const sc = Number(o.score) || 0;
+    const fb = o.feedback || '';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700">${ic} ${lbl}</span>
+        <span style="font-size:14px;font-weight:800;color:${col(sc)}">${Math.round(sc)}<span style="font-size:10px;color:var(--muted)">/100</span></span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:4px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${Math.max(0, Math.min(100, sc))}%;background:${col(sc)}"></div></div>
+      ${fb ? `<div style="font-size:12px;color:var(--muted);line-height:1.45">${escapeHtml(String(fb))}</div>` : ''}
+    </div>`;
+  }).join('');
+  if (!cards.trim()) return;
+
+  const sec = document.createElement('div');
+  sec.id = 'dimensions-section';
+  sec.className = 'section';
+  sec.setAttribute('data-free-lock', '1');
+  const g = dim.score_persuasion_global;
+  sec.innerHTML = `<h2 style="margin-bottom:4px">🧬 8 dimensions de persuasion${g != null ? ` <span style="font-size:13px;color:var(--muted);font-weight:600">· global ${Math.round(g)}/100</span>` : ''}</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px">${cards}</div>`;
+
+  const anchor = document.getElementById('verdict-hero') || document.getElementById('scores-grid')?.closest('.section');
+  if (anchor && anchor.parentNode === results) anchor.after(sec);
+  else results.appendChild(sec);
 }
 
 // 🧱 Vue verticale : aplatit tout slider existant + masque les sections vides.
