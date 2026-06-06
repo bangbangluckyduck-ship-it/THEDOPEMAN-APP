@@ -936,7 +936,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -946,6 +946,7 @@ function switchTab(tab) {
   if (tab === 'pricing') updatePricingCTA();
   if (tab === 'account') renderAccountPage();
   if (tab === 'creators') loadCreatorsTab();
+  if (tab === 'photoslide') initPhotoSlideTab();
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────
@@ -3122,6 +3123,156 @@ function renderSimilarProducts(d) {
       sec.remove();
     }
   })();
+}
+
+// ── 📸 PHOTO SLIDE COACH (Gold/Agency) ───────────────────────────────────────
+let _psImageB64 = null;   // image produit en base64 (sans préfixe data:)
+
+const PS_PREMIUM_TIERS = ['gold', 'agency', 'beta', 'admin'];
+
+function initPhotoSlideTab() {
+  const tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  const premium = PS_PREMIUM_TIERS.includes(tier) || window.__userInfo?.is_admin;
+  const gate = document.getElementById('ps-gate');
+  const form = document.getElementById('ps-form');
+  if (gate) gate.style.display = premium ? 'none' : 'block';
+  if (form) form.style.display = premium ? 'block' : 'none';
+  if (!premium) return;
+
+  // Branchement upload (une seule fois)
+  const drop = document.getElementById('ps-drop');
+  const file = document.getElementById('ps-file');
+  if (drop && !drop.dataset.bound) {
+    drop.dataset.bound = '1';
+    drop.addEventListener('click', () => file.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#D4AF37'; });
+    drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--border)'; });
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.style.borderColor = 'var(--border)';
+      if (e.dataTransfer.files[0]) _psHandleFile(e.dataTransfer.files[0]);
+    });
+    file.addEventListener('change', e => { if (e.target.files[0]) _psHandleFile(e.target.files[0]); });
+  }
+}
+
+function _psHandleFile(f) {
+  if (!/^image\/(png|jpe?g|webp)$/i.test(f.type)) { showToast('Format image non supporté.'); return; }
+  if (f.size > 10 * 1024 * 1024) { showToast('Image trop lourde (max 10 Mo).'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    _psImageB64 = String(dataUrl).split(',')[1] || null;
+    const prev = document.getElementById('ps-preview');
+    const empty = document.getElementById('ps-drop-empty');
+    if (prev) { prev.src = dataUrl; prev.style.display = 'block'; }
+    if (empty) empty.style.display = 'none';
+    const btn = document.getElementById('ps-generate');
+    if (btn) btn.disabled = false;
+  };
+  reader.readAsDataURL(f);
+}
+
+async function generatePhotoSlide() {
+  if (!_psImageB64) { showToast('Ajoute une image produit.'); return; }
+  const btn = document.getElementById('ps-generate');
+  const out = document.getElementById('ps-result');
+  const token = localStorage.getItem('tts_token');
+  btn.disabled = true; btn.textContent = '⏳ Génération en cours…';
+  out.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">⏳ L\'IA analyse ton produit…</div>';
+
+  const fd = new FormData();
+  fd.append('image', _psImageB64);
+  fd.append('product_name', document.getElementById('ps-name')?.value || '');
+  fd.append('description', document.getElementById('ps-desc')?.value || '');
+  fd.append('price', document.getElementById('ps-price')?.value || '');
+  fd.append('currency', document.getElementById('ps-currency')?.value || 'EUR');
+  fd.append('niche', document.getElementById('ps-niche')?.value || '');
+  fd.append('preferred_style', document.getElementById('ps-style')?.value || 'auto');
+
+  try {
+    const res = await fetch('/api/photo-slide/generate', {
+      method: 'POST',
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+      body: fd,
+    });
+    const data = await res.json();
+    if (!data.ok || !data.result) { out.innerHTML = `<div style="color:var(--err,#DC2626);padding:12px">${escapeHtml(data.error || 'Erreur de génération.')}</div>`; return; }
+    renderPhotoSlideResult(data.result);
+  } catch (e) {
+    out.innerHTML = '<div style="color:var(--err,#DC2626);padding:12px">Erreur réseau. Réessaie.</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ Régénérer';
+  }
+}
+
+function _psCopyBtn(text) {
+  const enc = encodeURIComponent(text || '');
+  return `<button onclick="navigator.clipboard.writeText(decodeURIComponent('${enc}')).then(()=>showToast('Copié ✓'))" style="font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer">📋 Copier</button>`;
+}
+
+function renderPhotoSlideResult(r) {
+  const out = document.getElementById('ps-result');
+  if (!out) return;
+  const st = r.type_slide || {};
+  const card = (inner) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">${inner}</div>`;
+
+  let html = '';
+  if (r._fallback) {
+    html += `<div style="font-size:11px;color:#d4a017;background:rgba(212,175,55,.1);border-radius:8px;padding:8px;margin-bottom:12px">⚠️ Exemple de démonstration (l'IA n'a pas pu analyser l'image — réessaie).</div>`;
+  }
+
+  // 1. Stratégie / type de slide
+  html += card(`<div style="font-size:12px;font-weight:700;color:#d4a017;text-transform:uppercase;letter-spacing:.5px">Type de slide recommandé</div>
+    <div style="font-size:16px;font-weight:700;margin:4px 0">${escapeHtml(st.label || st.style || '—')}</div>
+    <div style="font-size:13px;color:var(--muted)">${escapeHtml(st.justification || '')}</div>`);
+
+  // 2. Hook
+  html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">📌 Hook (1ʳᵉ slide) ${_psCopyBtn(r.hook)}</div>
+    <div style="font-size:15px;margin-top:6px">${escapeHtml(r.hook || '')}</div>`);
+
+  // 3. Titre du carrousel + variantes
+  let variantes = (r.titre_variantes || []).map(v => `<div style="font-size:13px;color:var(--muted);margin-top:4px">↳ ${escapeHtml(v)}</div>`).join('');
+  html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">🏷️ Titre du carrousel ${_psCopyBtn(r.titre_carrousel)}</div>
+    <div style="font-size:15px;font-weight:600;margin-top:6px">${escapeHtml(r.titre_carrousel || '')}</div>${variantes}`);
+
+  // 4. Slides (avec type de photo à prendre)
+  if (Array.isArray(r.slides) && r.slides.length) {
+    let slidesHtml = r.slides.map(s => {
+      const badge = { hook: '#2563EB', value: '#059669', cta: '#D4AF37' }[s.type] || '#6B7280';
+      return `<div style="border-left:3px solid ${badge};padding:8px 0 8px 12px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:${badge};text-transform:uppercase">Slide ${s.numero} · ${escapeHtml(s.type || '')}</div>
+        <div style="font-size:14px;font-weight:600;margin-top:3px">${escapeHtml(s.texte || '')}</div>
+        ${s.sous_texte ? `<div style="font-size:12px;color:var(--muted)">${escapeHtml(s.sous_texte)}</div>` : ''}
+        <div style="font-size:12px;color:var(--text);margin-top:6px">📷 <strong>Photo à prendre :</strong> ${escapeHtml(s.photo_a_prendre || '')}</div>
+        ${s.emotion ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">💗 ${escapeHtml(s.emotion)} · 📍 ${escapeHtml(s.position_texte || 'center')}</div>` : ''}
+      </div>`;
+    }).join('');
+    html += card(`<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">🎬 Plan slide par slide</div>${slidesHtml}`);
+  }
+
+  // 5. CTA
+  html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">🛒 CTA (dernière slide) ${_psCopyBtn(r.cta)}</div>
+    <div style="font-size:14px;margin-top:6px">${escapeHtml(r.cta || '')}</div>`);
+
+  // 6. Description optimisée
+  html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">📝 Description optimisée ${_psCopyBtn(r.description_optimisee)}</div>
+    <div style="font-size:13px;white-space:pre-wrap;margin-top:6px;color:var(--text)">${escapeHtml(r.description_optimisee || '')}</div>`);
+
+  // 7. Hashtags
+  if (Array.isArray(r.hashtags) && r.hashtags.length) {
+    const tags = r.hashtags.map(t => '#' + String(t).replace(/^#/, '')).join(' ');
+    html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">#️⃣ Hashtags ${_psCopyBtn(tags)}</div>
+      <div style="font-size:13px;color:var(--primary);margin-top:6px">${escapeHtml(tags)}</div>`);
+  }
+
+  // 8. Conseils saves
+  if (Array.isArray(r.conseils_saves) && r.conseils_saves.length) {
+    const tips = r.conseils_saves.map(t => `<li style="margin-bottom:4px">${escapeHtml(t)}</li>`).join('');
+    html += card(`<div style="font-size:12px;font-weight:700;color:var(--text)">💾 Maximiser les sauvegardes</div>
+      <ul style="font-size:13px;color:var(--muted);margin:6px 0 0;padding-left:18px">${tips}</ul>`);
+  }
+
+  out.innerHTML = html;
 }
 
 // ── 🔥 CRÉATEURS GAGNANTS (marché KeyAPI, Gold/Agency) ───────────────────────
