@@ -811,10 +811,11 @@ function updateSessionUI() {
   }
 }
 
-// Fetch user info from server
+// Fetch user info from server. Renvoie une Promise (résolue avec les infos plan)
+// pour que les vues qui dépendent du tier puissent l'attendre (ex: Photo Slide).
 function fetchUserInfo() {
-  if (!SESSION.email) return;
-  fetch('/api/user-info', {
+  if (!SESSION.email) return Promise.resolve(null);
+  const p = fetch('/api/user-info', {
     headers: {
       'Authorization': localStorage.getItem('tts_token') ? 'Bearer ' + localStorage.getItem('tts_token') : ''
     }
@@ -823,8 +824,11 @@ function fetchUserInfo() {
     .then(data => {
       window.__userInfo = data;
       updateTierBadge(data);
+      return data;
     })
-    .catch(() => {});
+    .catch(() => null);
+  window.__userInfoPromise = p;
+  return p;
 }
 
 function updateTierBadge(data) {
@@ -3130,7 +3134,12 @@ let _psImageB64 = null;   // image produit en base64 (sans préfixe data:)
 
 const PS_PREMIUM_TIERS = ['gold', 'agency', 'beta', 'admin'];
 
-function initPhotoSlideTab() {
+async function initPhotoSlideTab() {
+  // L'info plan est chargée en asynchrone → on l'attend avant de décider du gate,
+  // sinon un beta/admin verrait à tort « Débloquer Gold » au 1er affichage.
+  if (!window.__userInfo) {
+    try { await (window.__userInfoPromise || fetchUserInfo()); } catch (e) {}
+  }
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
   const premium = PS_PREMIUM_TIERS.includes(tier) || window.__userInfo?.is_admin;
   const gate = document.getElementById('ps-gate');
