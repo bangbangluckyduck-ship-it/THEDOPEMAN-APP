@@ -518,6 +518,44 @@ RETOUR JSON OBLIGATOIRE (STRUCTURE EXACTE) :
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# EXIGENCES DE QUALITÉ (Phase 2) — appliquées à tous les feedbacks/conseils.
+# N'ajoute AUCUNE clé JSON : muscle uniquement le CONTENU des champs existants.
+# Placé en fin de prompt (haute récence) pour maximiser l'effet.
+# ════════════════════════════════════════════════════════════════════════════
+QUALITY_DIRECTIVES = """
+
+════════════════════════════════════════════════════════════════════════════════
+EXIGENCES DE QUALITÉ — RESPECTE-LES POUR CHAQUE "feedback" / "commentaire" / "conseil"
+════════════════════════════════════════════════════════════════════════════════
+1. SPÉCIFIQUE À CETTE VIDÉO : interdiction formelle de conseils génériques applicables
+   à n'importe quelle vidéo ("améliore ton accroche", "ajoute un CTA"…). Chaque remarque
+   s'appuie sur un élément CONCRET réellement vu (vision) ou entendu (transcript).
+2. CITE LE TRANSCRIPT : pour juger hook / rétention / discours / conversion, cite la
+   phrase EXACTE entre guillemets « … » sur laquelle tu te bases. Si transcript absent,
+   dis-le explicitement et appuie-toi sur la description visuelle.
+3. ACTIONNABLE + EXEMPLE PRÊT À L'EMPLOI : chaque "points_ameliorer", "conseils_concrets"
+   et "ameliorations_prioritaires" dit QUOI changer, COMMENT, et donne un exemple RÉEL
+   reformulé prêt à dire face caméra (ex : réécris concrètement le hook en 1 phrase).
+4. ANCRE PRODUIT & PRIX : relie tes conseils au produit détecté et à son prix — l'angle
+   de vente et le potentiel viral dépendent directement du prix.
+5. JUSTIFIE LES SCORES : un score bas DOIT pointer un manque précis ; un score haut une
+   force précise. Pas de score "moyen par défaut" non argumenté.
+6. exemples_concrets / formulation / script : du texte RÉEL prêt à l'emploi, jamais des
+   descriptions abstraites ("fais un hook accrocheur" est INTERDIT).
+7. Reste probabiliste ("semble", "tend à") mais PRÉCIS et utile. Zéro remplissage.
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Modèle de synthèse — configurable via env (défaut inchangé : mistral-small).
+# Pour un gain de qualité, définir SYNTHESIS_MODEL=mistral-medium-latest (ou large)
+# sur Render — aucun redéploiement de code nécessaire.
+# ════════════════════════════════════════════════════════════════════════════
+def _synthesis_model() -> str:
+    return os.getenv("SYNTHESIS_MODEL", "mistral-small-latest")
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # PROMPT PREMIUM DYNAMIQUE — réservé aux plans Gold / Agency (+ beta / admin)
 # Concaténé au prompt de synthèse UNIQUEMENT pour ces tiers. Le contrôle du tier
 # est fait 100% côté serveur (token JWT / Supabase) ; jamais via le frontend.
@@ -666,6 +704,12 @@ def synthesize_analysis(
 
     parts.append(_HOOKS_CONTEXT)
 
+    # Phase 2 : exigences de qualité (spécificité, citations transcript, actionnable).
+    # Ancrage produit explicite pour des conseils contextualisés.
+    _prod_label = (product or "").strip() or (detected_product_name or "le produit analysé")
+    parts.append(f"\n🎯 Produit de référence pour tes conseils : « {_prod_label} ».")
+    parts.append(QUALITY_DIRECTIVES)
+
     # Bloc PREMIUM en TOUT DERNIER (recency) → le modèle lit l'instruction juste
     # avant de répondre, ce qui fiabilise l'ajout de la clé strategie_conversion_premium.
     if is_premium:
@@ -675,7 +719,7 @@ def synthesize_analysis(
 
     raw = _mistral_call(
         api_key,
-        "mistral-small-latest",   # text-only, ~3x plus rapide que pixtral
+        _synthesis_model(),   # text-only, configurable via env SYNTHESIS_MODEL
         full_prompt,
         timeout=70.0,
     )
