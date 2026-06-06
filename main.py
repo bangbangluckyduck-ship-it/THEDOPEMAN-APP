@@ -65,22 +65,31 @@ _ANON_IP_USAGE: dict[str, list[float]] = {}
 _ANON_WINDOW_SECONDS = 24 * 60 * 60   # 24h
 _ANON_MAX_REQUESTS = 2                 # 1 essai + 1 marge
 
-from starlette.middleware.base import BaseHTTPMiddleware
-class LimitUploadSize(BaseHTTPMiddleware):
+# ⚠️ Middleware ASGI PUR (et non BaseHTTPMiddleware) : BaseHTTPMiddleware bufferise
+# les réponses en streaming (il accumule tout le corps avant de l'envoyer), ce qui
+# casse le SSE (analyse vidéo + Photo Slide). En ASGI pur on ne touche jamais au
+# corps de la réponse → le streaming passe chunk par chunk.
+class LimitUploadSize:
     def __init__(self, app, max_upload_size: int):
-        super().__init__(app)
+        self.app = app
         self.max_upload_size = max_upload_size
 
-    async def dispatch(self, request: Request, call_next):
-        if request.method == 'POST':
-            if 'content-length' in request.headers:
-                content_length = int(request.headers['content-length'])
-                if content_length > self.max_upload_size:
-                    return JSONResponse(
-                        status_code=413,
-                        content={"detail": f"File too large. Max size: {self.max_upload_size/1024/1024:.0f}MB"}
-                    )
-        return await call_next(request)
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http" and scope.get("method") == "POST":
+            for k, v in scope.get("headers") or []:
+                if k == b"content-length":
+                    try:
+                        if int(v) > self.max_upload_size:
+                            resp = JSONResponse(
+                                status_code=413,
+                                content={"detail": f"File too large. Max size: {self.max_upload_size/1024/1024:.0f}MB"},
+                            )
+                            await resp(scope, receive, send)
+                            return
+                    except ValueError:
+                        pass
+                    break
+        await self.app(scope, receive, send)
 
 app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)
 app.middleware("http")(rate_limit_middleware)
@@ -1446,7 +1455,11 @@ async def photo_slide_generate(
             yield 'event: error\n'
             yield f'data: {json.dumps({"error": str(e)})}\n\n'
 
-    return StreamingResponse(stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
+    )
 
 
 if __name__ == "__main__":
