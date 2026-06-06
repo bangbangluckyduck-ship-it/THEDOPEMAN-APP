@@ -1497,6 +1497,37 @@ async def photo_slide_generate(
     )
 
 
+_IMG_PROXY_ALLOWED = ("tiktokcdn", "ibyteimg", "ttcdn", "byteimg", "muscdn",
+                      "tiktokcdn-us", "p16-", "p19-", "akamaized", "ttwstatic")
+
+
+@app.get("/api/img-proxy")
+async def img_proxy(url: str = Query(...)):
+    """Proxy d'images CDN TikTok (avatars créateurs, covers vidéos, images produits).
+    Contourne la protection hotlink/signature : on récupère l'image côté serveur
+    (sans Referer) puis on la re-sert. Whitelist stricte de domaines (anti-SSRF)."""
+    u = (url or "").strip()
+    if not u.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL invalide.")
+    if not any(tok in u for tok in _IMG_PROXY_ALLOWED):
+        raise HTTPException(status_code=400, detail="Domaine non autorisé.")
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            r = await client.get(u, headers={
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+                "Referer": "",
+            })
+    except Exception:
+        raise HTTPException(status_code=502, detail="Image inaccessible.")
+    if not r.is_success:
+        raise HTTPException(status_code=404, detail="Image introuvable.")
+    ct = r.headers.get("content-type", "image/jpeg")
+    if "image" not in ct:
+        ct = "image/jpeg"
+    return Response(content=r.content, media_type=ct,
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
