@@ -1397,7 +1397,8 @@ async def photo_slide_generate(
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")
+    if not premium:
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
     img = (image or "").strip()
