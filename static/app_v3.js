@@ -1901,6 +1901,9 @@ function showResults(d) {
   // 🔥 Reco marché auto : créateurs + produits qui cartonnent dans la catégorie
   // détectée (Gold/Agency complet, free/pro flouté). Placeholder synchrone puis
   // remplissage async (pour être inclus dans le slider).
+  // 👑 Top créateurs sur 3 pays aléatoires (créateurs gagnants par marché).
+  renderTopCreatorsMultiCountry(d);
+
   renderMarketForCategory(d);
 
   // 🛍️ Produits similaires en tendance (recherche temps-réel par mot-clé produit).
@@ -2365,6 +2368,7 @@ function resetAnalysis() {
   document.getElementById('premium-strategy-section')?.remove();
   document.getElementById('gold-upsell-section')?.remove();
   document.getElementById('winning-structures-section')?.remove();
+  document.getElementById('topcreators-multi-section')?.remove();
   document.getElementById('market-category-section')?.remove();
   document.getElementById('similar-products-section')?.remove();
   document.getElementById('freemium-unlock-cta')?.remove();
@@ -3116,6 +3120,81 @@ async function handleAuthSubmit(event) {
 // n'est exposée dans l'espace client pour ne laisser aucune surface d'attaque.
 
 // ── 🔥 RECO MARCHÉ AUTO (post-analyse) : créateurs + produits de la catégorie ──
+// ── 🌍 Pays marché (TikTok Shop) ─────────────────────────────────────────────
+const MARKET_COUNTRIES = [
+  { code: 'US', flag: '🇺🇸', name: 'États-Unis' },
+  { code: 'GB', flag: '🇬🇧', name: 'Royaume-Uni' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brésil' },
+  { code: 'DE', flag: '🇩🇪', name: 'Allemagne' },
+  { code: 'FR', flag: '🇫🇷', name: 'France' },
+  { code: 'ES', flag: '🇪🇸', name: 'Espagne' },
+  { code: 'IT', flag: '🇮🇹', name: 'Italie' },
+  { code: 'ID', flag: '🇮🇩', name: 'Indonésie' },
+  { code: 'MY', flag: '🇲🇾', name: 'Malaisie' },
+];
+function _userRegion() {
+  const lang = (document.documentElement.lang || navigator.language || 'fr').slice(0, 2).toLowerCase();
+  return ({ fr: 'FR', en: 'US', pt: 'BR', es: 'ES', it: 'IT', de: 'DE', id: 'ID', ms: 'MY' })[lang] || 'US';
+}
+function _orderedCountries() {
+  const ur = _userRegion();
+  const found = MARKET_COUNTRIES.find(c => c.code === ur);
+  const rest = MARKET_COUNTRIES.filter(c => c.code !== ur);
+  return found ? [found, ...rest] : MARKET_COUNTRIES.slice();
+}
+
+// 👑 Analyse : top 3 créateurs sur 3 pays aléatoires.
+function renderTopCreatorsMultiCountry(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('topcreators-multi-section')?.remove();
+
+  const pool = MARKET_COUNTRIES.slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const picks = pool.slice(0, 3);
+  let category = null;
+  try { category = detectProductCategory((d.detection && d.detection.produit) || ''); } catch (e) { category = null; }
+
+  const sec = document.createElement('section');
+  sec.id = 'topcreators-multi-section';
+  sec.className = 'section';
+  sec.setAttribute('data-free-lock', '1');
+  sec.innerHTML = `<h2>👑 Top créateurs dans le monde</h2>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0 10px">3 marchés au hasard — les créateurs qui vendent le plus en ce moment.</p>
+    <div id="tcm-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">⏳ Chargement…</div>`;
+  results.appendChild(sec);
+
+  (async () => {
+    const token = localStorage.getItem('tts_token');
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    const datas = await Promise.all(picks.map(c =>
+      fetch(`/api/market/creators?region=${c.code}&category=${encodeURIComponent(category || '')}`, { headers })
+        .then(r => r.json()).catch(() => null)));
+    let html = ''; let any = false;
+    datas.forEach((data, idx) => {
+      const c = picks[idx];
+      if (!data || !data.ok || !data.creators || !data.creators.length) return;
+      any = true;
+      const preview = data.preview;
+      const rows = data.creators.slice(0, 3).map((cr, i) => {
+        const locked = preview && i >= 1;
+        const blur = locked ? 'filter:blur(4px);pointer-events:none' : '';
+        const link = locked ? '#' : (cr.profile_url || '#');
+        return `<a href="${escapeHtml(link)}" ${locked ? '' : 'target="_blank" rel="noopener"'} style="display:flex;align-items:center;gap:8px;padding:5px 4px;text-decoration:none;color:inherit;${blur}">
+          ${cr.avatar ? `<img src="${escapeHtml(cr.avatar)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">` : '<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
+          <div style="min-width:0">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(cr.unique_id || '')}</div>
+            <div style="font-size:10px;color:var(--muted)">📦 ${_cfmt(cr.sales)} · 👥 ${_cfmt(cr.followers)}</div>
+          </div></a>`;
+      }).join('');
+      html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">${c.flag} ${escapeHtml(c.name)}</div>${rows}</div>`;
+    });
+    if (!any) { sec.remove(); return; }
+    document.getElementById('tcm-body').innerHTML = html;
+  })();
+}
+
 function renderMarketForCategory(d) {
   const results = document.getElementById('results-section');
   if (!results) return;
@@ -3148,28 +3227,13 @@ function renderMarketForCategory(d) {
         headers: token ? { 'Authorization': 'Bearer ' + token } : {}
       });
       const data = await res.json();
-      if (!data.ok || (!data.creators?.length && !data.products?.length)) {
+      // Les créateurs sont désormais affichés par le bloc « Top créateurs (3 pays) ».
+      // Ici on ne garde que les PRODUITS qui se vendent.
+      if (!data.ok || !data.products?.length) {
         sec.remove(); return;
       }
       const preview = data.preview;
       let html = '';
-
-      if (data.creators?.length) {
-        html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">👑 Créateurs qui vendent le plus</div>`;
-        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px">';
-        data.creators.forEach((c, i) => {
-          const locked = preview && i >= 1;
-          const blur = locked ? 'filter:blur(5px);pointer-events:none' : '';
-          const link = locked ? '#' : (c.profile_url || '#');
-          html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
-              ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin:0 auto 6px">` : ''}
-              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(c.unique_id||'')}</div>
-              <div style="font-size:10px;color:var(--muted);margin-top:3px">👥 ${_cfmt(c.followers)} · 📦 ${_cfmt(c.sales)}</div>
-            </div></a>`;
-        });
-        html += '</div>';
-      }
 
       if (data.products?.length) {
         html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">🛍️ Produits qui se vendent</div>`;
@@ -3536,28 +3600,39 @@ async function loadCreatorsTab() {
   grid.innerHTML = ''; upsell.style.display = 'none'; loading.style.display = 'block';
 
   const token = localStorage.getItem('tts_token');
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
   const cat = document.getElementById('creators-category')?.value || '';
+  // Pays de l'utilisateur en premier, puis les principaux marchés (top 5 par pays).
+  const countries = _orderedCountries().slice(0, 5);
   try {
-    const res = await fetch('/api/market/creators?category=' + encodeURIComponent(cat), {
-      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-    });
-    const data = await res.json();
+    const results = await Promise.all(countries.map(c =>
+      fetch(`/api/market/creators?region=${c.code}&category=${encodeURIComponent(cat)}`, { headers })
+        .then(r => r.json()).catch(() => null)));
     loading.style.display = 'none';
-    if (!data.ok || !data.creators || !data.creators.length) {
+    let html = ''; let any = false; let anyPreview = false;
+    results.forEach((data, idx) => {
+      const c = countries[idx];
+      if (!data || !data.ok || !data.creators || !data.creators.length) return;
+      any = true;
+      const preview = data.preview;
+      if (preview) anyPreview = true;
+      const cards = data.creators.slice(0, 5).map((cr, i) => renderCreatorCard(cr, preview && i >= 1)).join('');
+      html += `<div style="grid-column:1/-1;margin-top:8px">
+        <h3 style="font-size:14px;margin-bottom:10px">${c.flag} Top 5 — ${escapeHtml(c.name)}</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">${cards}</div>
+      </div>`;
+    });
+    if (!any) {
       grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">Aucune donnée marché pour le moment. Réessaie plus tard.</p>';
       return;
     }
-    const preview = data.preview;
-    data.creators.forEach((c, i) => {
-      const locked = preview && i >= 1;  // free/pro : 1ère visible, reste flouté
-      grid.insertAdjacentHTML('beforeend', renderCreatorCard(c, locked));
-    });
-    if (preview) {
+    grid.innerHTML = html;
+    if (anyPreview) {
       upsell.style.display = 'block';
       upsell.innerHTML = `
         <div class="gold-upsell"><div class="gold-upsell-inner">
           <div class="gold-upsell-icon">🔒</div>
-          <div class="gold-upsell-text"><strong>Passe au plan Gold</strong> pour voir tous les créateurs gagnants, leurs vidéos et leurs produits.</div>
+          <div class="gold-upsell-text"><strong>Passe au plan Gold</strong> pour voir tous les créateurs gagnants par pays, leurs vidéos et leurs produits.</div>
           <button class="gold-upsell-btn" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
         </div></div>`;
     }
