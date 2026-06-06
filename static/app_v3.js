@@ -3181,7 +3181,7 @@ function renderTopCreatorsMultiCountry(d) {
         const blur = locked ? 'filter:blur(4px);pointer-events:none' : '';
         const link = locked ? '#' : (cr.profile_url || '#');
         return `<a href="${escapeHtml(link)}" ${locked ? '' : 'target="_blank" rel="noopener"'} style="display:flex;align-items:center;gap:8px;padding:5px 4px;text-decoration:none;color:inherit;${blur}">
-          ${cr.avatar ? `<img src="${escapeHtml(_ttImg(cr.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">` : '<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
+          ${cr.avatar ? `<img src="${escapeHtml(_imgProxy(cr.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">` : '<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
           <div style="min-width:0">
             <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(cr.unique_id || '')}</div>
             <div style="font-size:10px;color:var(--muted)">📦 ${_cfmt(cr.sales)} · 👥 ${_cfmt(cr.followers)}</div>
@@ -3246,7 +3246,7 @@ function renderMarketForCategory(d) {
           const link = locked ? '#' : (p.url || '#');
           html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-              ${p.image ? `<img src="${escapeHtml(_ttImg(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
+              ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
               <div style="padding:8px">
                 <div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name||'Produit')}</div>
                 <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:3px">$${escapeHtml(String(p.price||'—'))}</div>
@@ -3293,12 +3293,16 @@ function renderSimilarProducts(d) {
   (async () => {
     const body = document.getElementById('similar-products-body');
     const token = localStorage.getItem('tts_token');
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    const fetchSearch = (region) => fetch('/api/market/products/search?region=' + region + '&keyword=' + encodeURIComponent(productName), { headers }).then(r => r.json()).catch(() => null);
     try {
-      const res = await fetch('/api/market/products/search?region=' + _userRegion() + '&keyword=' + encodeURIComponent(productName), {
-        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-      });
-      const data = await res.json();
-      if (!data.ok || !data.products || !data.products.length) { sec.remove(); return; }
+      // Région utilisateur d'abord ; si le catalogue local est vide (fréquent hors US),
+      // on retombe sur US pour avoir des produits similaires en inspiration.
+      let data = await fetchSearch(_userRegion());
+      if ((!data || !data.ok || !data.products || !data.products.length) && _userRegion() !== 'US') {
+        data = await fetchSearch('US');
+      }
+      if (!data || !data.ok || !data.products || !data.products.length) { sec.remove(); return; }
       const preview = data.preview;
       let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">';
       data.products.forEach((p, i) => {
@@ -3308,7 +3312,7 @@ function renderSimilarProducts(d) {
         const price = p.price ? `${escapeHtml(String(p.price))}` : '—';
         html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${p.image ? `<img src="${escapeHtml(_ttImg(p.image))}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
+            ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
             <div style="padding:8px">
               <div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name||'Produit')}</div>
               <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:3px">${price}</div>
@@ -3591,6 +3595,12 @@ function _ttImg(url) {
   if (!url) return url;
   return url.replace(/\.heic(\?|$)/i, '.jpeg$1');
 }
+// Proxy serveur pour contourner la protection hotlink/signature du CDN TikTok.
+// (avatars, covers, images produits) → renvoie une URL servie par notre backend.
+function _imgProxy(url) {
+  if (!url) return '';
+  return '/api/img-proxy?url=' + encodeURIComponent(_ttImg(url));
+}
 
 async function loadCreatorsTab() {
   const grid = document.getElementById('creators-grid');
@@ -3649,7 +3659,7 @@ function renderCreatorCard(c, locked) {
   const onclick = locked ? '' : `onclick="openCreatorDetail('${encodeURIComponent(c.unique_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname||'').replace(/'/g,''))}')"`;
   return `
     <div ${onclick} style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
-      ${c.avatar ? `<img src="${escapeHtml(_ttImg(c.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 8px;border:2px solid var(--primary)">` : '<div style="width:64px;height:64px;border-radius:50%;background:var(--border);margin:0 auto 8px"></div>'}
+      ${c.avatar ? `<img src="${escapeHtml(_imgProxy(c.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 8px;border:2px solid var(--primary)">` : '<div style="width:64px;height:64px;border-radius:50%;background:var(--border);margin:0 auto 8px"></div>'}
       <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || '')}</div>
       <div style="font-size:11px;color:var(--muted)">@${escapeHtml(c.unique_id || '')}</div>
       <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:6px">
@@ -3691,7 +3701,7 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
       vids.forEach(v => {
         html += `<a href="${escapeHtml(v.url || profileUrl)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${v.cover ? `<img src="${escapeHtml(_ttImg(v.cover))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111">` : ''}
+            ${v.cover ? `<img src="${escapeHtml(_imgProxy(v.cover))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111">` : ''}
             <div style="padding:8px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px">
               <span>👁 ${_cfmt(v.views)}</span><span>❤️ ${_cfmt(v.likes)}</span><span>💬 ${_cfmt(v.comments)}</span>
             </div>
@@ -3710,7 +3720,7 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
       prods.forEach(p => {
         html += `<a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${p.image ? `<img src="${escapeHtml(_ttImg(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+            ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
             <div style="padding:8px">
               <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
               <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
