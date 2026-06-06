@@ -1407,22 +1407,46 @@ async def photo_slide_generate(
     if not img:
         raise HTTPException(status_code=400, detail="Image produit manquante.")
 
-    loop = asyncio.get_event_loop()
-    try:
-        result = await asyncio.wait_for(
-            loop.run_in_executor(
-                None,
-                lambda: photo_slide.generate_photo_slide(
-                    img, product_name, price, currency, description, niche, preferred_style),
-            ),
-            timeout=90.0,
-        )
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="La génération a pris trop longtemps.")
-    except Exception as e:
-        print(f"/api/photo-slide/generate error: {e}")
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-    return {"ok": True, "result": result}
+    async def stream():
+        loop = asyncio.get_event_loop()
+        try:
+            # ── ÉTAPE 1 : stratégie (vision) ──
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83d\\udc41\\ufe0f Analyse de l\'image produit\\u2026", "stage": "strategy"}\n\n'
+            strategy = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: photo_slide.generate_strategy(
+                        img, product_name, price, currency, description, niche, preferred_style)),
+                timeout=70.0,
+            )
+            yield 'event: strategy\n'
+            yield f'data: {json.dumps(strategy)}\n\n'
+
+            # ── ÉTAPE 2 : contenu (texte) ──
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\u270d\\ufe0f R\\u00e9daction des slides\\u2026", "stage": "content"}\n\n'
+            content = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: photo_slide.generate_content(
+                        strategy, product_name, price, currency, description, niche)),
+                timeout=70.0,
+            )
+            yield 'event: content\n'
+            yield f'data: {json.dumps(content)}\n\n'
+
+            yield 'event: complete\n'
+            yield f'data: {json.dumps({**strategy, **content})}\n\n'
+        except asyncio.TimeoutError:
+            yield 'event: error\n'
+            yield 'data: {"error": "La g\\u00e9n\\u00e9ration a pris trop longtemps."}\n\n'
+        except Exception as e:
+            print(f"/api/photo-slide/generate error: {e}")
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

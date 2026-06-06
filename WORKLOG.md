@@ -188,6 +188,13 @@ hashtags, conseils saves. Boutons « Copier » partout.
   `generatePhotoSlide()` + `renderPhotoSlideResult()`. tier via `window.__userInfo`.
 - **Différé (phase 2)** : export PDF/image, historique (table `photo_slide_generations`), partage AGENCY,
   suggestions musique, quotas/mois. Stripe reste désactivé → upsell pointe vers pricing.
+- **Streaming SSE en 2 étapes (affichage au fur et à mesure)** :
+  `generate_strategy()` (pixtral, ~15-25s) → event `strategy` (type slide + hook + titre + niche) affiché
+  AVANT la suite ; puis `generate_content()` (mistral-small rapide) → event `content` (slides + photo à
+  prendre + CTA + description + hashtags + saves). Events : progress/strategy/content/complete/error.
+  Front : `generatePhotoSlide()` lit le flux (reader/TextDecoder), rendu progressif via `renderPhotoSlideResult(data, partial)`.
+- **Minuteur visuel** sous le loader (`⏱️ Xs · estimation ~20-40s`) + « ✍️ Rédaction des slides… » pendant l'étape 2.
+- Accès : GOLD/AGENCY/BETA/ADMIN (gate back honore tier OU `is_admin` ; front attend `window.__userInfoPromise`).
 
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
