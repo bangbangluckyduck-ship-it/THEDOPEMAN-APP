@@ -181,26 +181,79 @@ async def get_top_creators(category: Optional[str] = None, region: str = "US", l
     return [_clean_creator(r) for r in rows][:limit]
 
 
+def _clean_rank_product(p: dict) -> dict:
+    """Produit issu du classement officiel (Product Ranking Analytics) — vraies
+    ventes sur la période. Pas d'image fournie par ce endpoint."""
+    pid = p.get("product_id")
+    return {
+        "id": pid,
+        "name": (p.get("product_name") or "")[:120],
+        "image": None,
+        "price": p.get("spu_avg_price") or p.get("min_price") or 0,
+        "sales": p.get("total_sale_cnt") or 0,
+        "gmv": p.get("total_sale_gmv_amt") or 0,
+        "videos": p.get("total_video_cnt") or 0,
+        "creators_count": p.get("total_ifl_cnt") or 0,
+        "region": p.get("region"),
+        "url": f"https://www.tiktok.com/view/product/{pid}" if pid else None,
+    }
+
+
+async def get_top_products(category: Optional[str] = None, region: str = "US", limit: int = 8) -> list[dict]:
+    """VRAI top produits sur la période (classement officiel par ventes).
+    Endpoint « Product Ranking (Analytics) ». Params calqués sur le ranking influenceurs
+    (à reconfirmer au 1er test payant)."""
+    params = {
+        "date": _default_rank_date(),
+        "region": region or "US",
+        "rank_type": 3,            # mensuel (~30 jours, dernier mois complet)
+        "page_num": 1,
+        "page_size": min(max(limit, 1), 20),
+    }
+    cid = CATEGORY_ID_MAP.get((category or "").lower().strip())
+    if cid:
+        params["product_category_id"] = cid
+    data = await _get("/v1/tiktok/product/ranking/analytics", params)
+    rows = data if isinstance(data, list) else []
+    if not rows and cid:
+        params.pop("product_category_id", None)
+        data = await _get("/v1/tiktok/product/ranking/analytics", params)
+        rows = data if isinstance(data, list) else []
+    return [_clean_rank_product(r) for r in rows][:limit]
+
+
 async def get_category_overview(category: Optional[str], region: str = "US") -> dict:
-    """Vue catégorie : top créateurs + produits portés par les meilleurs d'entre eux."""
+    """Vue catégorie : top créateurs (mensuel) + VRAI top produits (classement 30j).
+    Fallback : si le classement produit échoue, on retombe sur les produits portés
+    par les meilleurs créateurs (avec images, mais ventes cumulées)."""
     creators = await get_top_creators(category, region, limit=6)
+
     products: list = []
-    seen: set = set()
-    for c in creators[:2]:  # produits des 2 meilleurs créateurs (données réelles validées)
-        uid, user_id = c.get("unique_id"), c.get("user_id")
-        if not (uid and user_id):
-            continue
-        try:
-            detail = await get_creator_detail(uid, user_id)
-            for p in detail.get("products", []):
-                pid = p.get("id")
-                if pid and pid not in seen:
-                    seen.add(pid)
-                    products.append(p)
-        except Exception as e:
-            print(f"category_overview product fetch error: {e}")
-    products.sort(key=lambda p: p.get("sales") or 0, reverse=True)
-    return {"creators": creators, "products": products[:8]}
+    try:
+        products = await get_top_products(category, region, limit=8)
+    except Exception as e:
+        print(f"category_overview top_products error: {e}")
+
+    if not products:
+        # Fallback (ancien comportement) : produits des 2 meilleurs créateurs.
+        seen: set = set()
+        for c in creators[:2]:
+            uid, user_id = c.get("unique_id"), c.get("user_id")
+            if not (uid and user_id):
+                continue
+            try:
+                detail = await get_creator_detail(uid, user_id)
+                for p in detail.get("products", []):
+                    pid = p.get("id")
+                    if pid and pid not in seen:
+                        seen.add(pid)
+                        products.append(p)
+            except Exception as e:
+                print(f"category_overview fallback product error: {e}")
+        products.sort(key=lambda p: p.get("sales") or 0, reverse=True)
+        products = products[:8]
+
+    return {"creators": creators, "products": products}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

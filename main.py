@@ -1499,20 +1499,28 @@ async def photo_slide_generate(
 
 _IMG_PROXY_ALLOWED = ("tiktokcdn", "ibyteimg", "ttcdn", "byteimg", "muscdn",
                       "tiktokcdn-us", "p16-", "p19-", "akamaized", "ttwstatic")
+_IMG_CACHE: "dict[str, tuple[bytes, str]]" = {}   # url -> (bytes, content_type)
+_IMG_CACHE_MAX = 400
 
 
 @app.get("/api/img-proxy")
 async def img_proxy(url: str = Query(...)):
     """Proxy d'images CDN TikTok (avatars créateurs, covers vidéos, images produits).
     Contourne la protection hotlink/signature : on récupère l'image côté serveur
-    (sans Referer) puis on la re-sert. Whitelist stricte de domaines (anti-SSRF)."""
+    (sans Referer) puis on la re-sert. Whitelist stricte (anti-SSRF) + cache mémoire
+    (évite de re-télécharger en rafale → moins de scintillement sous charge)."""
     u = (url or "").strip()
     if not u.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL invalide.")
     if not any(tok in u for tok in _IMG_PROXY_ALLOWED):
         raise HTTPException(status_code=400, detail="Domaine non autorisé.")
+
+    cached = _IMG_CACHE.get(u)
+    if cached is not None:
+        return Response(content=cached[0], media_type=cached[1],
+                        headers={"Cache-Control": "public, max-age=86400"})
     try:
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
             r = await client.get(u, headers={
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
                 "Referer": "",
@@ -1524,7 +1532,13 @@ async def img_proxy(url: str = Query(...)):
     ct = r.headers.get("content-type", "image/jpeg")
     if "image" not in ct:
         ct = "image/jpeg"
-    return Response(content=r.content, media_type=ct,
+    content = r.content
+    if len(content) <= 3_000_000:      # ne cache pas les images énormes
+        if len(_IMG_CACHE) >= _IMG_CACHE_MAX:
+            try: _IMG_CACHE.pop(next(iter(_IMG_CACHE)))
+            except Exception: _IMG_CACHE.clear()
+        _IMG_CACHE[u] = (content, ct)
+    return Response(content=content, media_type=ct,
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
