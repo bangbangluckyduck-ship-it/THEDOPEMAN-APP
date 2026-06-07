@@ -3251,13 +3251,13 @@ function renderMarketForCategory(d) {
   let category = null;
   try { category = detectProductCategory(productName); } catch (e) { category = null; }
 
-  // Pas de catégorie détectée → on ne bloque plus : on retombe sur le classement
-  // GLOBAL (le backend gère category vide en renvoyant le top mondial).
+  // Pas de catégorie détectée → on n'affiche PAS un top global (produits sans
+  // rapport avec la vidéo). La pertinence produit est assurée par « Produits
+  // similaires en tendance » (recherche par nom de produit).
+  if (!category) return;
   const catLabels = { beaute:'Beauté', fashion:'Mode', mode:'Mode', tech:'Tech & Gadgets', fitness:'Fitness', sante:'Santé', complement_sante:'Santé', electromenager:'Maison', maison:'Maison' };
-  const catLabel = category ? (catLabels[category] || category) : null;
-  const titleHtml = catLabel
-    ? `🔥 Ce qui cartonne en « ${escapeHtml(catLabel)} »`
-    : `🔥 Ce qui cartonne sur TikTok Shop`;
+  const catLabel = catLabels[category] || category;
+  const titleHtml = `🔥 Top produits en « ${escapeHtml(catLabel)} »`;
 
   const sec = document.createElement('section');
   sec.id = 'market-category-section';
