@@ -2410,11 +2410,7 @@ function updateUsageBadge(usage) {
   if (statusEl && usage.tier && usage.tier !== 'free') {
     statusEl.innerHTML = `<span style="color:var(--primary);font-weight:700">${label}</span>`;
   }
-  const upgradeBtn = document.getElementById('btn-auth');
-  if (upgradeBtn && usage.tier && usage.tier !== 'free') {
-    upgradeBtn.textContent = '⚙️ Mon abonnement';
-    upgradeBtn.onclick = openCustomerPortal;
-  }
+  // (Le bouton btn-auth est géré par updateSessionUI → menu burger ; on n'y touche plus ici.)
 }
 
 // ── ECHOTIK MARKET DATA ───────────────────────────────────────
