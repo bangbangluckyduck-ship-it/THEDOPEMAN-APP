@@ -112,9 +112,11 @@ def _clean_creator(r: dict) -> dict:
         "nickname": r.get("nick_name") or uid,
         "avatar": r.get("avatar"),
         "profile_url": f"https://www.tiktok.com/@{uid}" if uid else None,
+        # Followers = total (le champ période vaut 0). Ventes/GMV = PÉRIODE du
+        # classement (total_sale_cnt) et non le cumulé all-time (…_history_cnt).
         "followers": r.get("total_followers_history_cnt") or r.get("total_followers_cnt") or 0,
-        "sales": r.get("total_sale_history_cnt") or r.get("total_sale_cnt") or 0,
-        "gmv": r.get("total_sale_gmv_history_amt") or r.get("total_sale_gmv_amt") or 0,
+        "sales": r.get("total_sale_cnt") or r.get("total_sale_history_cnt") or 0,
+        "gmv": r.get("total_sale_gmv_amt") or r.get("total_sale_gmv_history_amt") or 0,
         "videos_count": r.get("total_post_video_history_cnt") or 0,
         "products_count": r.get("total_product_history_cnt") or 0,
         "category_id": r.get("most_category_id"),

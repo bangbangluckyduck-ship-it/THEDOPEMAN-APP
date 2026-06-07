@@ -1498,7 +1498,9 @@ async def photo_slide_generate(
 
 
 _IMG_PROXY_ALLOWED = ("tiktokcdn", "ibyteimg", "ttcdn", "byteimg", "muscdn",
-                      "tiktokcdn-us", "p16-", "p19-", "akamaized", "ttwstatic")
+                      "tiktokcdn-us", "p16-", "p19-", "akamaized", "ttwstatic",
+                      # Host propre de KeyAPI (avatars créateurs) — URLs stables :
+                      "echosell-images", "volces.com", "byteplus")
 _IMG_CACHE: "dict[str, tuple[bytes, str]]" = {}   # url -> (bytes, content_type)
 _IMG_CACHE_MAX = 400
 
