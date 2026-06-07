@@ -1635,6 +1635,38 @@ async def img_proxy(url: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+@app.get("/api/_admin/analyzed-products")
+async def admin_analyzed_products(request: Request, token: Optional[str] = Query(None), limit: int = Query(50)):
+    """Dump des dernières lignes de la mémoire produits (admin). Auth via header
+    Authorization OU ?token=<token_admin> (pratique pour ouvrir dans le navigateur)."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+    if not supabase_client:
+        return {"ok": False, "error": "Supabase indisponible"}
+    try:
+        r = (supabase_client.table("analyzed_products")
+             .select("product_key,product_id,product_name,categorie,region,price,last_sales,times_seen,last_seen")
+             .order("last_seen", desc=True).limit(min(max(limit, 1), 200)).execute())
+        rows = r.data or []
+        with_id = sum(1 for x in rows if x.get("product_id"))
+        return {"ok": True, "total": len(rows), "avec_product_id": with_id, "rows": rows}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
