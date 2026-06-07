@@ -29,6 +29,25 @@ from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
 import market_creators
 import photo_slide
+import product_store
+
+
+def _record_analyzed_product(result: dict, region: Optional[str] = None) -> None:
+    """Best-effort : enregistre le produit détecté dans la mémoire produits."""
+    try:
+        det = (result or {}).get("detection") or {}
+        produit = det.get("produit")
+        if not produit or str(produit).lower() in ("non détecté", "non detecte", ""):
+            return
+        product_store.record_product(
+            supabase_client,
+            name=produit,
+            category=det.get("categorie_marche"),
+            region=region,
+            price=det.get("prix_estime"),
+        )
+    except Exception:
+        pass
 
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -736,6 +755,8 @@ async def analyze_stream_sse(
 
             if user["valid"]: increment_usage(user["email"])
 
+            _record_analyzed_product(result)   # 🧠 mémoire produits (anonyme)
+
             result["transcript"] = transcript
             result["frames_analyzed"] = len(frames_list)
             result["usage"] = usage_info(user)
@@ -975,6 +996,8 @@ async def analyze_url(request: Request):
 
         if user["valid"]:
             increment_usage(user["email"])
+
+        _record_analyzed_product(result)   # 🧠 mémoire produits (anonyme)
 
         result["transcript"] = transcript
         result["frames_analyzed"] = len(frames_list)
