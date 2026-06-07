@@ -739,12 +739,14 @@ function showAuthMenu(e) {
     overflow: hidden;
   `;
 
+  const meEmail = (typeof SESSION !== 'undefined' && SESSION && SESSION.email) || '';
   menu.innerHTML = `
-    <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-      ⚙️ Mon abonnement
+    ${meEmail ? `<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(meEmail)}</div>` : ''}
+    <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      👤 Mon compte
     </button>
-    <button onclick="window.logout(); return false" style="width:100%;display:block;text-align:left;padding:12px 16px;color:var(--danger);background:transparent;border:none;font-size:13px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-      🚪 Déconnexion
+    <button onclick="window.logout(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--danger);background:transparent;border:none;font-size:14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      🚪 Se déconnecter
     </button>
   `;
 
@@ -788,7 +790,10 @@ function updateSessionUI() {
     if (overlay) overlay.style.display = 'none';
     if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
     if (btnAuth) {
-      btnAuth.textContent = '👤 Compte';
+      btnAuth.textContent = '☰';
+      btnAuth.title = 'Menu';
+      btnAuth.setAttribute('aria-label', 'Menu');
+      btnAuth.style.cssText = 'font-size:20px;line-height:1;padding:6px 14px;border-radius:10px';
       btnAuth.onclick = (e) => showAuthMenu(e);
     }
     // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
@@ -799,6 +804,8 @@ function updateSessionUI() {
     if (userEmailEl) userEmailEl.textContent = '';
     if (btnAuth) {
       btnAuth.textContent = t('btn_connect');
+      btnAuth.style.cssText = '';   // reset (pas de style burger en déconnecté)
+      btnAuth.removeAttribute('title');
       btnAuth.onclick = (e) => {
         e?.preventDefault?.();
         const modal = document.getElementById('auth-modal');
