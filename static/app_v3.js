@@ -402,6 +402,14 @@ let SESSION = {
 function initSessionState() {
   SESSION.email = localStorage.getItem('tts_email') || null;
   SESSION.name = localStorage.getItem('tts_name') || null;
+  // Fallback : si l'email n'est pas stocké mais qu'un token existe, on le décode
+  // (token = base64(email).signature) → la session est bien reconnue connectée.
+  if (!SESSION.email) {
+    const tok = localStorage.getItem('tts_token');
+    if (tok && tok.indexOf('.') > 0) {
+      try { SESSION.email = atob(tok.split('.')[0]); localStorage.setItem('tts_email', SESSION.email); } catch (e) {}
+    }
+  }
 }
 
 // Save session to localStorage and update UI
@@ -785,7 +793,8 @@ function updateSessionUI() {
   const userEmailEl = document.getElementById('user-email');
   const btnAuth = document.getElementById('btn-auth');
 
-  if (SESSION.email) {
+  // Connecté si on a un email OU un token (robuste si tts_email absent).
+  if (SESSION.email || localStorage.getItem('tts_token')) {
     // User is logged in
     if (overlay) overlay.style.display = 'none';
     if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
