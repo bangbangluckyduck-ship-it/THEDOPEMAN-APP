@@ -196,6 +196,29 @@ hashtags, conseils saves. Boutons « Copier » partout.
 - **Minuteur visuel** sous le loader (`⏱️ Xs · estimation ~20-40s`) + « ✍️ Rédaction des slides… » pendant l'étape 2.
 - Accès : GOLD/AGENCY/BETA/ADMIN (gate back honore tier OU `is_admin` ; front attend `window.__userInfoPromise`).
 
+## 🗓️ ROADMAP AVANT LE 23 JUIN 2026 (demandé par le PO 2026-06-07)
+Objectifs « go prod » à boucler avant le 23/06 :
+1. [ ] **Google Analytics côté admin** — intégrer GA (mesure trafic/usage) visible dans le back-office admin.
+2. [ ] **Emails fonctionnels** (3 types) :
+       - regénération mot de passe (existe partiellement via SendGrid `email_service.py` → à valider en prod)
+       - **mail de bienvenue** (à câbler à l'inscription)
+       - **mail de validation du plan** (à câbler à l'achat/upgrade)
+       ⚠️ Dépendance délivrabilité : clé `SENDGRID_API_KEY` prod + auth domaine (SPF/DKIM) + blocage Hostinger
+       MailChannels [PSFD] à lever. Sans ça, aucun mail ne part.
+3. [ ] **Modifier le mot de passe utilisateur manuellement** (admin → reset/définir le mdp d'un user).
+       Base existe (`admin reset-user-password`) → exposer proprement dans le back-office.
+4. [ ] **Stripe en PROD** : société créée → `CHECKOUT_ENABLED=true`, clés live, produits/prix, webhook secret,
+       customer portal. ⚠️ Aujourd'hui checkout DÉSACTIVÉ tant que la société n'existe pas.
+5. [ ] **Nouvelle fonctionnalité** (le PO doit la décrire) — à spécifier.
+
+### Points à NE PAS oublier (flagués par l'assistant)
+- [ ] **Webhook Stripe en double à réconcilier** (`main.py` + `stripe_routes.py`) — à régler avant prod paiement.
+- [ ] **Pages légales** à compléter si paiement live (CGV, politique de remboursement, mentions Stripe).
+- [ ] **Photo Slide** : le PO doit fournir ses **hooks/slides gagnants** → injecter dans les 2 ZONES ÉDITABLES de `photo_slide.py`.
+- [ ] **RGPD** : mémoire produits (`analyzed_products`) + `analyzed_insights` anonymisés → vérifier mention politique de confidentialité.
+- [ ] (Optionnel) Retirer les endpoints debug admin (`keyapi-selftest`, `analyzed-products`, `video-products` test) avant prod publique — GARDÉS pour l'instant (décision PO).
+- [ ] (Différé/PAUSE) TikTok Display API prod (démo + review + clés) — hors scope 23/06 sauf décision.
+
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
 - [ ] **Repartir de zéro sur les « données marché »** (remplaçant de KeyAPI) — direction à définir.
