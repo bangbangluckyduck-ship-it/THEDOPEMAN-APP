@@ -30,6 +30,7 @@ import tiktok_oauth
 import market_creators
 import photo_slide
 import product_store
+from urllib.parse import quote
 
 
 def _record_analyzed_product(result: dict, region: Optional[str] = None) -> None:
@@ -1429,6 +1430,28 @@ async def market_video_products(request: Request, video_id: str = Query(...),
         print(f"/api/market/video-products error: {e}")
         return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
     return {"ok": True, "video_id": video_id, "count": len(products), "products": products}
+
+
+@app.get("/api/market/popular")
+async def market_popular(request: Request, category: Optional[str] = Query(None)):
+    """Reco « populaire chez nos utilisateurs » : produits les plus récurrents dans
+    notre base d'analyses (signal maison). Premium. Se bonifie au fil du temps."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if not ((user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")):
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+    rows = product_store.get_popular(supabase_client, category=category, limit=8)
+    products = [{
+        "id": r.get("product_id"),
+        "name": r.get("product_name") or "Produit",
+        "categorie": r.get("categorie"),
+        "times_seen": r.get("times_seen") or 1,
+        "price": r.get("price"),
+        "url": (f"https://www.tiktok.com/view/product/{r.get('product_id')}" if r.get("product_id")
+                else f"https://www.tiktok.com/search?q={quote(r.get('product_name') or '')}"),
+    } for r in rows]
+    return {"ok": True, "products": products}
 
 
 @app.get("/api/market/category-creators")
