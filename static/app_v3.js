@@ -3181,7 +3181,7 @@ function renderTopCreatorsMultiCountry(d) {
         const blur = locked ? 'filter:blur(4px);pointer-events:none' : '';
         const link = locked ? '#' : (cr.profile_url || '#');
         return `<a href="${escapeHtml(link)}" ${locked ? '' : 'target="_blank" rel="noopener"'} style="display:flex;align-items:center;gap:8px;padding:5px 4px;text-decoration:none;color:inherit;${blur}">
-          ${cr.avatar ? `<img src="${escapeHtml(_imgProxy(cr.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">` : '<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
+          ${_avatarBadge(cr.unique_id, 34)}
           <div style="min-width:0">
             <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(cr.unique_id || '')}</div>
             <div style="font-size:10px;color:var(--muted)">📦 ${_cfmt(cr.sales)} · 👥 ${_cfmt(cr.followers)}</div>
@@ -3601,6 +3601,16 @@ function _imgProxy(url) {
   if (!url) return '';
   return '/api/img-proxy?url=' + encodeURIComponent(_ttImg(url));
 }
+// Avatars créateurs : le host KeyAPI (echosell) est un bucket PRIVÉ (403). Les URLs
+// ne sont pas affichables → on génère une pastille « initiale » colorée déterministe.
+function _avatarBadge(name, size) {
+  const s = String(name || '?').trim().replace(/^@/, '');
+  const init = (s[0] || '?').toUpperCase();
+  let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffffff;
+  const bg = `hsl(${h % 360} 52% 45%)`;
+  const fs = Math.round(size * 0.42);
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:800;color:#fff;background:${bg}">${escapeHtml(init)}</div>`;
+}
 
 async function loadCreatorsTab() {
   const grid = document.getElementById('creators-grid');
@@ -3659,7 +3669,7 @@ function renderCreatorCard(c, locked) {
   const onclick = locked ? '' : `onclick="openCreatorDetail('${encodeURIComponent(c.unique_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname||'').replace(/'/g,''))}')"`;
   return `
     <div ${onclick} style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
-      ${c.avatar ? `<img src="${escapeHtml(_imgProxy(c.avatar))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 8px;border:2px solid var(--primary)">` : '<div style="width:64px;height:64px;border-radius:50%;background:var(--border);margin:0 auto 8px"></div>'}
+      <div style="margin:0 auto 8px;width:64px">${_avatarBadge(c.nickname || c.unique_id, 64)}</div>
       <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || '')}</div>
       <div style="font-size:11px;color:var(--muted)">@${escapeHtml(c.unique_id || '')}</div>
       <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:6px">
