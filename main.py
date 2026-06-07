@@ -30,7 +30,11 @@ import tiktok_oauth
 import market_creators
 import photo_slide
 import product_store
+import credits as credits_mod
+import video_prompt
 from urllib.parse import quote
+
+_PROMPT_STUDIO_TIERS = {"pro", "gold", "agency", "beta", "admin"}
 
 
 def _record_analyzed_product(result: dict, region: Optional[str] = None) -> None:
@@ -1736,6 +1740,134 @@ async def admin_analyzed_products(request: Request, token: Optional[str] = Query
         return {"ok": True, "total": len(rows), "avec_product_id": with_id, "rows": rows}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 🎬 AI VIDEO PROMPT STUDIO + 💎 CRÉDITS
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/credits/balance")
+async def credits_balance(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    bal = credits_mod.get_balance(supabase_client, user["email"], user.get("tier", "free"))
+    return {"ok": True, **bal}
+
+
+@app.get("/api/credits/packs")
+async def credits_packs():
+    return {"ok": True, "packs": credits_mod.CREDIT_PACKS, "level_cost": credits_mod.LEVEL_COST}
+
+
+@app.post("/api/credits/purchase")
+async def credits_purchase(request: Request):
+    # Paiement Stripe DIFFÉRÉ (société non créée) → stub jusqu'à mise en prod.
+    raise HTTPException(status_code=503,
+                        detail="L'achat de crédits sera disponible très bientôt (paiement en cours d'activation).")
+
+
+@app.get("/api/video-prompt/history")
+async def video_prompt_history(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        r = (supabase_client.table("video_prompt_generations")
+             .select("id,created_at,prompt_level,credits_used,ai_platform,product_name,generated_prompt")
+             .eq("email", user["email"]).order("created_at", desc=True).limit(30).execute())
+        return {"ok": True, "items": r.data or []}
+    except Exception:
+        return {"ok": True, "items": []}
+
+
+@app.post("/api/video-prompt/generate")
+async def video_prompt_generate(
+    request: Request,
+    level: int = Form(...),
+    platform: str = Form("sora2"),
+    image: Optional[str] = Form(None),
+    product_name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    currency: str = Form("EUR"),
+    niche: Optional[str] = Form(None),
+    visual_style: Optional[str] = Form(None),
+    mood: Optional[str] = Form(None),
+    emotion_target: Optional[str] = Form(None),
+    color_tone: Optional[str] = Form(None),
+):
+    """Génère un prompt vidéo IA. PRO+ requis. Débite les crédits (abonnement→achats)."""
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    tier = (user.get("tier") or "free").lower()
+    if tier not in _PROMPT_STUDIO_TIERS and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Réservé aux plans Pro, Gold et Agency.")
+
+    try:
+        lvl = max(1, min(5, int(level)))
+    except Exception:
+        lvl = 1
+    cost = credits_mod.level_cost(lvl, platform)
+    email = user["email"]
+
+    # Vérif crédits AVANT (réponse claire pour le front si insuffisant)
+    bal = credits_mod.get_balance(supabase_client, email, tier)
+    if bal.get("total_available", 0) < cost:
+        return JSONResponse({"ok": False, "reason": "insufficient_credits",
+                             "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+
+    img = (image or "").strip()
+    if img.lower().startswith("data:") and "," in img:
+        img = img.split(",", 1)[1]
+
+    async def stream():
+        loop = asyncio.get_event_loop()
+        try:
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83c\\udfac G\\u00e9n\\u00e9ration du prompt vid\\u00e9o\\u2026"}\n\n'
+            task = loop.run_in_executor(None, lambda: video_prompt.generate_video_prompt(
+                img or None, lvl, platform, product_name, description, price, currency,
+                niche, visual_style, mood, emotion_target, color_tone))
+            waited = 0.0
+            result = None
+            while True:
+                done, _ = await asyncio.wait({task}, timeout=4.0)
+                if task in done:
+                    result = task.result()
+                    break
+                waited += 4.0
+                if waited >= 90.0:
+                    task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "La g\\u00e9n\\u00e9ration a pris trop longtemps."}\n\n'
+                    return
+                yield ': keepalive\n\n'
+
+            # Débit + historique (best-effort) APRÈS succès
+            credits_mod.debit(supabase_client, email, tier, cost)
+            try:
+                supabase_client.table("video_prompt_generations").insert({
+                    "email": email, "prompt_level": lvl, "credits_used": cost,
+                    "ai_platform": platform, "product_name": product_name, "niche": niche,
+                    "generated_prompt": result,
+                }).execute()
+            except Exception:
+                pass
+
+            new_bal = credits_mod.get_balance(supabase_client, email, tier)
+            payload = {"result": result, "credits_used": cost, "balance": new_bal}
+            yield 'event: complete\n'
+            yield f'data: {json.dumps(payload)}\n\n'
+        except Exception as e:
+            print(f"/api/video-prompt/generate error: {e}")
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 if __name__ == "__main__":
