@@ -460,7 +460,7 @@ async def get_video_products(video_id: str, region: Optional[str] = None) -> lis
     Params devinés (video_id + region) — à confirmer au 1er test."""
     if not video_id:
         return []
-    params: dict = {"video_id": str(video_id)}
+    params: dict = {"video_id": str(video_id), "page_num": 1, "page_size": 10}
     if region:
         params["region"] = region
     data = await _get("/v1/tiktok/video/products/analytics", params)
