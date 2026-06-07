@@ -440,6 +440,32 @@ async def get_category_creators(category: Optional[str], region: str = "US", lim
     return creators[:limit]
 
 
+def _clean_video_product(r: dict) -> dict:
+    return {
+        "product_id": r.get("product_id"),
+        "video_id": r.get("video_id"),
+        "region": r.get("region"),
+        "cover": r.get("reflow_cover"),
+        "desc": (r.get("video_desc") or "")[:200],
+        "views": r.get("total_views_cnt") or 0,
+        "sales": r.get("total_video_sale_cnt") or 0,
+        "url": f"https://www.tiktok.com/view/product/{r.get('product_id')}" if r.get("product_id") else None,
+    }
+
+
+async def get_video_products(video_id: str, region: Optional[str] = None) -> list[dict]:
+    """Produit(s) réellement taggé(s) dans une vidéo TikTok (Video Products Analytics).
+    Params devinés (video_id + region) — à confirmer au 1er test."""
+    if not video_id:
+        return []
+    params: dict = {"video_id": str(video_id)}
+    if region:
+        params["region"] = region
+    data = await _get("/v1/tiktok/video/products/analytics", params)
+    rows = data if isinstance(data, list) else []
+    return [_clean_video_product(r) for r in rows if r.get("product_id")]
+
+
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
     videos: list = []
     products: list = []

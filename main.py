@@ -999,6 +999,23 @@ async def analyze_url(request: Request):
 
         _record_analyzed_product(result)   # 🧠 mémoire produits (anonyme)
 
+        # 🎯 Flux URL : on récupère le VRAI product_id taggé dans la vidéo (Video
+        # Products) → mémoire produits précise + exposé au front. Best-effort.
+        try:
+            _nu, _vid = normalize_tiktok_url(url)
+            if _vid and _vid != "unknown":
+                _vps = await market_creators.get_video_products(_vid)
+                if _vps:
+                    _vp = _vps[0]
+                    _det = result.get("detection") or {}
+                    product_store.record_product(
+                        supabase_client, product_id=_vp.get("product_id"),
+                        name=_det.get("produit"), category=_det.get("categorie_marche"),
+                        region=_vp.get("region"), price=_det.get("prix_estime"), sales=_vp.get("sales"))
+                    result["video_product"] = _vp
+        except Exception as e:
+            print(f"video_products enrich error: {e}")
+
         result["transcript"] = transcript
         result["frames_analyzed"] = len(frames_list)
         result["usage"] = usage_info(user)
@@ -1384,6 +1401,23 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
             return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
         _market_cache_set(cache_key, detail, hours=12)
     return {"ok": True, **(detail or {})}
+
+
+@app.get("/api/market/video-products")
+async def market_video_products(request: Request, video_id: str = Query(...), region: Optional[str] = Query(None)):
+    """Produit(s) réellement taggé(s) dans une vidéo (Video Products Analytics).
+    Sert à valider les params + alimente la mémoire produits avec le vrai product_id."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    if not ((user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")):
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+    try:
+        products = await market_creators.get_video_products(video_id, region)
+    except Exception as e:
+        print(f"/api/market/video-products error: {e}")
+        return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
+    return {"ok": True, "products": products}
 
 
 @app.get("/api/market/category-creators")
