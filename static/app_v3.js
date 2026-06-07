@@ -788,7 +788,7 @@ function updateSessionUI() {
     if (overlay) overlay.style.display = 'none';
     if (userEmailEl) userEmailEl.textContent = SESSION.name || SESSION.email;
     if (btnAuth) {
-      btnAuth.textContent = '⚙️ Mon compte';
+      btnAuth.textContent = '👤 Compte';
       btnAuth.onclick = (e) => showAuthMenu(e);
     }
     // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
@@ -2713,6 +2713,23 @@ function renderAccountPage() {
         <div id="tiktok-insights" style="margin-top:14px"></div>
       </div>`;
 
+  // 💎 Crédits (AI Prompt Studio) — balance + achat
+  html += `
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">💎 Crédits AI Prompt Studio</div>
+          <div style="font-size:13px"><strong id="acc-credit-total">—</strong> dispo <span id="acc-credit-detail" style="font-size:11px;color:var(--muted)"></span></div>
+        </div>
+        <div id="acc-credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+      </div>`;
+
+  // 📋 Historique des analyses (déplacé ici depuis l'onglet)
+  html += `
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📋 Historique des analyses</div>
+        <div id="history-list"></div>
+      </div>`;
+
   // Buttons
   if (tier !== 'free' && tier !== 'admin') {
     html += `
@@ -2735,6 +2752,28 @@ function renderAccountPage() {
 
   container.innerHTML = html;
   loadTikTokShopStatus();
+  renderHistory();           // historique désormais dans le compte
+  renderAccountCredits();    // balance + packs crédits
+}
+
+// Crédits dans la page compte : balance + packs (achat stubé tant que Stripe off).
+async function renderAccountCredits() {
+  loadVpBalance();   // met aussi à jour acc-credit-total / acc-credit-detail
+  const token = localStorage.getItem('tts_token');
+  try {
+    const res = await fetch('/api/credits/packs', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    const data = await res.json();
+    const box = document.getElementById('acc-credits-packs');
+    if (!box || !data.packs) return;
+    box.innerHTML = Object.entries(data.packs).map(([k, p]) => `
+      <div style="background:var(--surface);border:1px solid ${p.best ? '#D4AF37' : 'var(--border)'};border-radius:10px;padding:12px;text-align:center">
+        ${p.best ? '<div style="font-size:10px;color:#D4AF37;font-weight:700">⭐ BEST</div>' : ''}
+        <div style="font-size:13px;font-weight:700">${escapeHtml(p.label)}</div>
+        <div style="font-size:12px;color:var(--muted)">${p.credits} crédits</div>
+        <div style="font-size:18px;font-weight:800;margin:6px 0;color:var(--primary)">${p.price}€</div>
+        <button class="btn btn-primary" style="width:100%;font-size:12px" onclick="buyCredits('${k}')">Acheter</button>
+      </div>`).join('');
+  } catch (e) {}
 }
 
 // ── 🛍️ Connexion boutique TikTok Shop (OAuth Partner API) ────────────
@@ -3801,7 +3840,7 @@ function applyVpBalance(bal) {
   const total = bal.total_available ?? '—';
   const sub = bal.subscription || {}, pur = bal.purchased || {};
   const detail = `(abo ${sub.remaining ?? 0}/${sub.total ?? 0}${pur.remaining ? ` + ${pur.remaining} achetés` : ''})`;
-  [['vp-credit-total', 'vp-credit-detail'], ['credits-total', 'credits-detail']].forEach(([t, d]) => {
+  [['vp-credit-total', 'vp-credit-detail'], ['credits-total', 'credits-detail'], ['acc-credit-total', 'acc-credit-detail']].forEach(([t, d]) => {
     const te = document.getElementById(t), de = document.getElementById(d);
     if (te) te.textContent = total;
     if (de) de.textContent = detail;
@@ -3844,7 +3883,7 @@ async function generateVideoPrompt() {
       out.innerHTML = `<div style="text-align:center;padding:18px;background:rgba(255,215,0,.10);border:1px dashed rgba(255,200,40,.6);border-radius:12px">
         <strong style="color:#d4a017">Crédits insuffisants</strong>
         <div style="font-size:13px;color:var(--muted);margin:6px 0 12px">Coût : ${j.cost} · Disponible : ${j.available}</div>
-        <button class="btn btn-primary" onclick="switchTab('credits')">Acheter des crédits 💳</button></div>`;
+        <button class="btn btn-primary" onclick="switchTab('account')">Acheter des crédits 💳</button></div>`;
       return;
     }
     if (!res.ok) { let m = 'Erreur.'; try { m = (await res.json()).detail || m; } catch (e) {} out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(m)}</div>`; return; }
