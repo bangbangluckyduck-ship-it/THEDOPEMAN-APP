@@ -1909,6 +1909,9 @@ function showResults(d) {
   // 🛍️ Produits similaires en tendance (recherche temps-réel par mot-clé produit).
   renderSimilarProducts(d);
 
+  // 🔥 Populaire chez nos utilisateurs (mémoire produits maison, se bonifie avec le temps).
+  renderPopularProducts(d);
+
   // 🏆 Carte verdict en tête : récap (verdict + 3 forces / 3 axes) juste après les
   // scores. Évite le doublon en masquant les sections verdict + forts/faibles.
   renderVerdictHero(d);
@@ -2371,6 +2374,7 @@ function resetAnalysis() {
   document.getElementById('topcreators-multi-section')?.remove();
   document.getElementById('market-category-section')?.remove();
   document.getElementById('similar-products-section')?.remove();
+  document.getElementById('popular-products-section')?.remove();
   document.getElementById('freemium-unlock-cta')?.remove();
   document.querySelectorAll('#results-section [data-free-lock]').forEach(el => el.classList.remove('freemium-locked'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3634,6 +3638,44 @@ function renderPhotoSlideResult(r, partial) {
   }
 
   out.innerHTML = html;
+}
+
+// 🔥 « Populaire chez nos utilisateurs » — reco maison basée sur la mémoire produits.
+// Ne s'affiche que s'il y a un vrai signal (≥ 3 produits récurrents dans la catégorie).
+function renderPopularProducts(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('popular-products-section')?.remove();
+  const category = getAnalysisCategory(d);
+
+  (async () => {
+    const token = localStorage.getItem('tts_token');
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    let data;
+    try {
+      const res = await fetch('/api/market/popular?category=' + encodeURIComponent(category || ''), { headers });
+      data = await res.json();
+    } catch (e) { return; }
+    if (!data || !data.ok || !data.products || data.products.length < 3) return;  // pas assez de signal
+
+    const sec = document.createElement('section');
+    sec.id = 'popular-products-section';
+    sec.className = 'section';
+    sec.setAttribute('data-free-lock', '1');
+    let html = `<h2>🔥 Populaire chez nos utilisateurs</h2>
+      <p style="font-size:12px;color:var(--muted);margin:4px 0 10px">Produits les plus analysés sur l'app${category ? ` en « ${escapeHtml(category)} »` : ''} — un signal qui s'affine avec le temps.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">`;
+    data.products.forEach(p => {
+      html += `<a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:600;line-height:1.3;max-height:3.9em;overflow:hidden">${escapeHtml((p.name || 'Produit').slice(0, 80))}</div>
+          <div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:6px">🔁 analysé ${_cfmt(p.times_seen)}×</div>
+        </div></a>`;
+    });
+    html += '</div>';
+    sec.innerHTML = html;
+    results.appendChild(sec);
+  })();
 }
 
 // ── 🔥 CRÉATEURS GAGNANTS (marché KeyAPI, Gold/Agency) ───────────────────────
