@@ -3702,7 +3702,7 @@ const VP_STYLE_GROUPS = [
   { key: 'emotion_target', label: 'Émotion', opts: ['Curiosité', 'Désir', 'Aspiration', 'Urgence', 'Validation', 'Frustration→Soulagement'] },
   { key: 'color_tone', label: 'Couleurs', opts: ['Or/Doré', 'Pastel doux', 'Couleurs vives', 'N&B dramatique', 'Naturel/Terreux'] },
 ];
-let _vpLevel = 4, _vpPlatform = 'sora2', _vpImageB64 = null, _vpStyle = {};
+let _vpLevel = 4, _vpPlatform = 'sora2', _vpImageB64 = null, _vpStyle = {}, _vpLast = null;
 
 function _vpCost() {
   const lvl = VP_LEVELS.find(l => l.n === _vpLevel);
@@ -3830,6 +3830,12 @@ async function generateVideoPrompt() {
   fd.append('price', _vpVal('vp-price')); fd.append('niche', _vpVal('vp-niche'));
   fd.append('visual_style', _vpStyle.visual_style || ''); fd.append('mood', _vpStyle.mood || '');
   fd.append('emotion_target', _vpStyle.emotion_target || ''); fd.append('color_tone', _vpStyle.color_tone || '');
+  // Unicité : on transmet ce qui vient d'être généré pour interdire la répétition.
+  if (_vpLast) {
+    const av = [_vpLast.post_production_text?.hook, _vpLast.main_prompt, (_vpLast.variants || []).map(v => v.name).join(', ')]
+      .filter(Boolean).join(' || ').slice(0, 700);
+    if (av) fd.append('avoid', av);
+  }
 
   try {
     const res = await fetch('/api/video-prompt/generate', { method: 'POST', headers: token ? { 'Authorization': 'Bearer ' + token } : {}, body: fd });
@@ -3875,6 +3881,7 @@ function _vpCopy(id, btn) {
 
 function renderVideoPromptResult(r) {
   const out = document.getElementById('vp-result'); if (!out || !r) return;
+  _vpLast = r;   // mémorise pour interdire la répétition à la régénération
   const t = r.technical_settings || {}, pp = r.post_production_text || {}, mu = r.music_suggestions || {}, comp = r.tiktok_shop_compliance || {};
   let html = `<div class="section" style="border-left:4px solid var(--primary)">
     <h3 style="margin:0 0 2px">🎬 Ton prompt vidéo</h3>
