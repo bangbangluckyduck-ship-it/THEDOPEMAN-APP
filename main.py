@@ -1795,6 +1795,7 @@ async def video_prompt_generate(
     mood: Optional[str] = Form(None),
     emotion_target: Optional[str] = Form(None),
     color_tone: Optional[str] = Form(None),
+    avoid: Optional[str] = Form(None),
 ):
     """Génère un prompt vidéo IA. PRO+ requis. Débite les crédits (abonnement→achats)."""
     if not os.getenv("MISTRAL_API_KEY"):
@@ -1830,7 +1831,7 @@ async def video_prompt_generate(
             yield 'data: {"message": "\\ud83c\\udfac G\\u00e9n\\u00e9ration du prompt vid\\u00e9o\\u2026"}\n\n'
             task = loop.run_in_executor(None, lambda: video_prompt.generate_video_prompt(
                 img or None, lvl, platform, product_name, description, price, currency,
-                niche, visual_style, mood, emotion_target, color_tone))
+                niche, visual_style, mood, emotion_target, color_tone, avoid))
             waited = 0.0
             result = None
             while True:

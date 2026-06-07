@@ -89,7 +89,7 @@ def _call_pixtral(content: list, timeout: float = 70.0) -> str:
         json={
             "model": "pixtral-12b-2409",
             "messages": [{"role": "user", "content": content}],
-            "temperature": 0.9,                 # diversité → unicité
+            "temperature": 1.0,                 # diversité maximale → unicité
             "random_seed": random.randint(1, 2_000_000_000),
         },
         timeout=timeout,
@@ -104,7 +104,7 @@ def generate_video_prompt(image_b64: Optional[str], level: int, platform: str,
                           price: Optional[str] = None, currency: str = "EUR",
                           niche: Optional[str] = None, visual_style: Optional[str] = None,
                           mood: Optional[str] = None, emotion_target: Optional[str] = None,
-                          color_tone: Optional[str] = None) -> dict:
+                          color_tone: Optional[str] = None, avoid: Optional[str] = None) -> dict:
     """Génère un plan de prompt vidéo IA. Fallback mock si l'IA échoue (_fallback)."""
     blocks: list = []
     if image_b64:
@@ -122,6 +122,11 @@ def generate_video_prompt(image_b64: Optional[str], level: int, platform: str,
 
     seed = random.randint(100000, 999999)
     blocks.append({"type": "text", "text": f"🎲 Seed de variation : {seed} — produis une déclinaison INÉDITE (jamais vue), détails tous différents."})
+    if avoid:
+        blocks.append({"type": "text", "text":
+            "🚫 DÉJÀ GÉNÉRÉ — INTERDICTION ABSOLUE de réutiliser ces formulations/idées. "
+            "Tu DOIS changer le hook, l'angle créatif, le décor et la mise en scène :\n"
+            + str(avoid)[:800]})
     blocks.append({"type": "text", "text": AI_VIDEO_PROMPT_SYSTEM})
 
     try:
