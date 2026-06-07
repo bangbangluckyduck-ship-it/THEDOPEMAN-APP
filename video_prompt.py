@@ -63,10 +63,26 @@ de recopier une formulation déjà classique : sois créatif et spécifique à C
 # Ex : Sora aime les descriptions de lumière ; Kling préfère les verbes de mouvement…
 # ⬆️⬆️⬆️ FIN ZONE ÉDITABLE 2 ⬆️⬆️⬆️
 
+# PLAN SÉQUENCE OBLIGATOIRE (timeline 3 secondes)
+Tu DOIS découper la vidéo en SÉQUENCES de 3 secondes. Pour CHAQUE segment :
+décris précisément la SCÈNE à filmer (décor, action, plan, mouvement de caméra) + le
+texte à afficher à l'écran. La timeline DOIT suivre le PROCESSUS DE VENTE dans cet ordre :
+  1. ACCROCHE (0-3s) — hook stop-scroll
+  2. PROBLÈME — la douleur / frustration du spectateur
+  3. SOLUTION — comment c'est résolu
+  4. PRODUIT — mise en valeur du produit (hero shot)
+  5. CTA — appel à l'action (panier jaune)
+Adapte le NOMBRE de segments à la durée du niveau (ex : 25s ≈ 8 segments de 3s ; un
+niveau 1-2 court peut condenser plusieurs phases). Chaque phase doit apparaître au moins une fois.
+
 # FORMAT DE RÉPONSE — JSON STRICT
 {
   "main_prompt": "Le prompt complet prêt à coller dans l'outil cible.",
   "negative_prompt": "Ce qu'il faut éviter (watermarks, distorsions, texte parasite…).",
+  "timeline": [
+    {"time": "0-3s", "phase": "Accroche", "scene": "<scène précise à filmer>", "camera": "<mouvement caméra>", "texte_ecran": "<texte overlay ou vide>"},
+    {"time": "3-6s", "phase": "Problème", "scene": "...", "camera": "...", "texte_ecran": "..."}
+  ],
   "technical_settings": {"resolution": "1080x1920", "frame_rate": "30fps", "duration": "<ex 25s>", "aspect_ratio": "9:16"},
   "post_production_text": {"hook": "<texte 0-3s>", "middle": "<texte central>", "cta": "<CTA panier jaune>"},
   "music_suggestions": {"type": "<style>", "tempo_bpm": "<ex 90-110>", "trending_examples": ["placeholder 1", "placeholder 2"]},
@@ -149,6 +165,13 @@ def _mock_result(level: int, platform: str, product_name: Optional[str]) -> dict
                         "minérale sombre, lumière dorée rasante, légère fumée. Caméra : slow push-in. "
                         f"Mise en valeur premium de « {product_name or 'le produit'} »."),
         "negative_prompt": "No watermark, no text overlay, no distortion, no extra fingers, no logo tiers.",
+        "timeline": [
+            {"time": "0-3s", "phase": "Accroche", "scene": "Plan serré, geste intrigant près du produit, lumière dorée.", "camera": "Snap zoom", "texte_ecran": "Le détail que personne ne remarque…"},
+            {"time": "3-6s", "phase": "Problème", "scene": "Personne frustrée, ambiance terne.", "camera": "Plan fixe", "texte_ecran": "Tu galères avec ça ?"},
+            {"time": "6-12s", "phase": "Solution", "scene": "Transition vers le produit, lumière qui s'éclaircit.", "camera": "Whip pan", "texte_ecran": "La solution simple."},
+            {"time": "12-20s", "phase": "Produit", "scene": "Hero shot produit qui tourne lentement, fond premium.", "camera": "Orbit lent", "texte_ecran": "Qualité premium."},
+            {"time": "20-25s", "phase": "CTA", "scene": "Produit + main qui pointe vers le bas (panier).", "camera": "Push-in", "texte_ecran": "Dispo dans le panier jaune 🛒"},
+        ],
         "technical_settings": {"resolution": "1080x1920", "frame_rate": "30fps", "duration": "25s", "aspect_ratio": "9:16"},
         "post_production_text": {"hook": "Le détail que personne ne remarque…", "middle": "Qualité premium, résultat visible.", "cta": "Dispo dans le panier jaune 🛒"},
         "music_suggestions": {"type": "Cinematic inspirant", "tempo_bpm": "90-110", "trending_examples": ["placeholder 1", "placeholder 2"]},

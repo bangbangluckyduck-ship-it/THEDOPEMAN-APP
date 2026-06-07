@@ -3932,6 +3932,27 @@ function renderVideoPromptResult(r) {
   const tech = [t.resolution, t.frame_rate, t.duration, t.aspect_ratio].filter(Boolean).join(' · ');
   if (tech) html += `<div style="margin-top:12px;font-size:12px;color:var(--muted)">⚙️ ${escapeHtml(tech)}</div>`;
 
+  // 🎬 Plan séquence (timeline 3s) suivant le tunnel de vente
+  if (Array.isArray(r.timeline) && r.timeline.length) {
+    const phaseColor = { 'Accroche': '#2563EB', 'Problème': '#DC2626', 'Probleme': '#DC2626', 'Solution': '#D97706', 'Produit': '#7C3AED', 'CTA': '#059669' };
+    html += `<div style="margin-top:16px;font-size:12px;font-weight:700">🎬 Plan séquence (Accroche → Problème → Solution → Produit → CTA)</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">`;
+    r.timeline.forEach(s => {
+      const col = phaseColor[s.phase] || 'var(--primary)';
+      html += `<div style="display:flex;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${col};border-radius:8px;padding:8px 10px">
+        <div style="flex-shrink:0;text-align:center;min-width:48px">
+          <div style="font-size:11px;font-weight:800">${escapeHtml(s.time || '')}</div>
+          <div style="font-size:9px;color:${col};font-weight:700;text-transform:uppercase">${escapeHtml(s.phase || '')}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;line-height:1.4">${escapeHtml(s.scene || '')}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.camera ? '🎥 ' + escapeHtml(s.camera) : ''}${s.texte_ecran ? ' · 💬 « ' + escapeHtml(s.texte_ecran) + ' »' : ''}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   if (pp.hook || pp.middle || pp.cta) {
     html += `<div style="margin-top:14px;font-size:12px;font-weight:700">✍️ Textes à ajouter (post-prod)</div>`;
     html += _vpBlock('Hook (0-3s)', pp.hook, false);
