@@ -1404,20 +1404,31 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
 
 
 @app.get("/api/market/video-products")
-async def market_video_products(request: Request, video_id: str = Query(...), region: Optional[str] = Query(None)):
+async def market_video_products(request: Request, video_id: str = Query(...),
+                                region: Optional[str] = Query(None), token: Optional[str] = Query(None)):
     """Produit(s) réellement taggé(s) dans une vidéo (Video Products Analytics).
-    Sert à valider les params + alimente la mémoire produits avec le vrai product_id."""
-    user = get_user_from_request(request)
-    if not user.get("valid"):
-        raise HTTPException(status_code=401, detail="Connexion requise.")
-    if not ((user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")):
+    Sert à valider les params. Auth via header OU ?token= (test navigateur)."""
+    ok = False
+    try:
+        u = get_user_from_request(request)
+        ok = bool(u.get("valid") and ((u.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or u.get("is_admin")))
+    except Exception:
+        ok = False
+    if not ok and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok = False
+    if not ok:
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
     try:
         products = await market_creators.get_video_products(video_id, region)
     except Exception as e:
         print(f"/api/market/video-products error: {e}")
         return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
-    return {"ok": True, "products": products}
+    return {"ok": True, "video_id": video_id, "count": len(products), "products": products}
 
 
 @app.get("/api/market/category-creators")
