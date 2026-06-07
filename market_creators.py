@@ -172,12 +172,12 @@ async def get_top_creators(category: Optional[str] = None, region: str = "US", l
     }
     cid = CATEGORY_ID_MAP.get((category or "").lower().strip())
     if cid:
-        params["product_category_id"] = cid
+        params["category_id"] = cid   # nom de param correct (doc) — était product_category_id
     data = await _get("/v1/tiktok/influencer/ranking/analytics", params)
     rows = data if isinstance(data, list) else []
     # Fallback : si le filtre catégorie ne renvoie rien, on retombe sur le global
     if not rows and cid:
-        params.pop("product_category_id", None)
+        params.pop("category_id", None)
         data = await _get("/v1/tiktok/influencer/ranking/analytics", params)
         rows = data if isinstance(data, list) else []
     return [_clean_creator(r) for r in rows][:limit]
@@ -208,17 +208,18 @@ async def get_top_products(category: Optional[str] = None, region: str = "US", l
     params = {
         "date": _default_rank_date(),
         "region": region or "US",
-        "rank_type": 3,            # mensuel (~30 jours, dernier mois complet)
+        "rank_type": 3,            # 3 = mensuel (~30 jours, dernier mois complet) — doc
+        "product_rank_field": 1,   # REQUIS : 1 = tri par ventes (total_sale_cnt)
         "page_num": 1,
-        "page_size": min(max(limit, 1), 20),
+        "page_size": min(max(limit, 1), 10),   # doc : page_size max = 10
     }
     cid = CATEGORY_ID_MAP.get((category or "").lower().strip())
     if cid:
-        params["product_category_id"] = cid
+        params["category_id"] = cid   # nom de param correct (doc)
     data = await _get("/v1/tiktok/product/ranking/analytics", params)
     rows = data if isinstance(data, list) else []
     if not rows and cid:
-        params.pop("product_category_id", None)
+        params.pop("category_id", None)
         data = await _get("/v1/tiktok/product/ranking/analytics", params)
         rows = data if isinstance(data, list) else []
     return [_clean_rank_product(r) for r in rows][:limit]
