@@ -3160,7 +3160,7 @@ function renderTopCreatorsMultiCountry(d) {
   sec.className = 'section';
   sec.setAttribute('data-free-lock', '1');
   sec.innerHTML = `<h2>👑 Top créateurs dans le monde</h2>
-    <p style="font-size:12px;color:var(--muted);margin:4px 0 10px">3 marchés au hasard — les créateurs qui vendent le plus en ce moment.</p>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0 10px">📅 30 derniers jours · 3 marchés au hasard — les créateurs qui vendent le plus.</p>
     <div id="tcm-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">⏳ Chargement…</div>`;
   results.appendChild(sec);
 
@@ -3238,7 +3238,7 @@ function renderMarketForCategory(d) {
       let html = '';
 
       if (data.products?.length) {
-        html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">🛍️ Produits qui se vendent</div>`;
+        html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin:4px 0 8px">🛍️ Top produits — 30 derniers jours</div>`;
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">';
         data.products.forEach((p, i) => {
           const locked = preview && i >= 1;
