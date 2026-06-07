@@ -218,6 +218,9 @@ Objectifs « go prod » à boucler avant le 23/06 :
 - [ ] **RGPD** : mémoire produits (`analyzed_products`) + `analyzed_insights` anonymisés → vérifier mention politique de confidentialité.
 - [ ] (Optionnel) Retirer les endpoints debug admin (`keyapi-selftest`, `analyzed-products`, `video-products` test) avant prod publique — GARDÉS pour l'instant (décision PO).
 - [ ] (Différé/PAUSE) TikTok Display API prod (démo + review + clés) — hors scope 23/06 sauf décision.
+- [ ] (PAUSE confirmée 2026-06-07) Bouton **audience** = onglet Mon compte → « 📊 Statistiques d'audience »
+      (démographie abonnés via provider Business). Code complet, jamais testé en réel (besoin app Business
+      approuvée + compte créateur connecté). Hors scope 23/06.
 
 ## 📋 Pistes / TODO
 - [ ] Tester le bouton **audience (business)** en réel → ajuster `TIKTOK_BIZ_FIELDS` si la démographie ne s'affiche pas.
