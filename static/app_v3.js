@@ -940,7 +940,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide', 'promptstudio', 'credits'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -951,6 +951,8 @@ function switchTab(tab) {
   if (tab === 'account') renderAccountPage();
   if (tab === 'creators') loadCreatorsTab();
   if (tab === 'photoslide') initPhotoSlideTab();
+  if (tab === 'promptstudio') initPromptStudioTab();
+  if (tab === 'credits') initCreditsTab();
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────
@@ -3676,6 +3678,261 @@ function renderPopularProducts(d) {
     sec.innerHTML = html;
     results.appendChild(sec);
   })();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🎬 AI VIDEO PROMPT STUDIO + 💳 CRÉDITS
+// ════════════════════════════════════════════════════════════════════════════
+const VP_PREMIUM = ['pro', 'gold', 'agency', 'beta', 'admin'];
+const VP_LEVELS = [
+  { n: 1, name: 'Simple', cost: 1, desc: '3-5s · B-roll, hook, transition' },
+  { n: 2, name: 'Intermédiaire', cost: 2, desc: '5-10s · démo, avant/après' },
+  { n: 3, name: 'Complexe', cost: 3, desc: '10-20s · mini-pub narrative' },
+  { n: 4, name: 'Vidéo TTS', cost: 5, desc: '15-30s · prête à publier ⭐', popular: true },
+  { n: 5, name: 'Multi-clips', cost: 10, desc: '30-60s · séquence 3-5 plans' },
+];
+const VP_PLATFORMS = [
+  { id: 'sora2', label: 'Sora 2' }, { id: 'veo3', label: 'Veo 3' }, { id: 'runway', label: 'Runway' },
+  { id: 'kling', label: 'Kling' }, { id: 'pika', label: 'Pika' }, { id: 'hailuo', label: 'Hailuo' },
+  { id: 'all', label: 'Toutes (+50%)' },
+];
+const VP_STYLE_GROUPS = [
+  { key: 'visual_style', label: 'Style', opts: ['Cinematic', 'Premium/Luxe', 'Minimaliste', 'Lifestyle', 'Naturel', 'Fun/Dynamique', 'Mystérieux'] },
+  { key: 'mood', label: 'Ambiance', opts: ['Premium', 'Énergique', 'Calme/Zen', 'Aspirationnel', 'Quotidien', 'Mystérieux'] },
+  { key: 'emotion_target', label: 'Émotion', opts: ['Curiosité', 'Désir', 'Aspiration', 'Urgence', 'Validation', 'Frustration→Soulagement'] },
+  { key: 'color_tone', label: 'Couleurs', opts: ['Or/Doré', 'Pastel doux', 'Couleurs vives', 'N&B dramatique', 'Naturel/Terreux'] },
+];
+let _vpLevel = 4, _vpPlatform = 'sora2', _vpImageB64 = null, _vpStyle = {};
+
+function _vpCost() {
+  const lvl = VP_LEVELS.find(l => l.n === _vpLevel);
+  let c = lvl ? lvl.cost : 1;
+  if (_vpPlatform === 'all') c = Math.round(c * 1.5);
+  return c;
+}
+function _vpVal(id) { return document.getElementById(id)?.value || ''; }
+
+async function initPromptStudioTab() {
+  if (!window.__userInfo) { try { await (window.__userInfoPromise || fetchUserInfo()); } catch (e) {} }
+  const tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  const premium = VP_PREMIUM.includes(tier) || window.__userInfo?.is_admin;
+  const gate = document.getElementById('vp-gate'), form = document.getElementById('vp-form');
+  if (gate) gate.style.display = premium ? 'none' : 'block';
+  if (form) form.style.display = premium ? 'block' : 'none';
+  if (!premium) return;
+
+  renderVpLevels(); renderVpPlatforms(); renderVpStyles(); updateVpCost();
+  loadVpBalance();
+
+  const drop = document.getElementById('vp-drop'), file = document.getElementById('vp-file');
+  if (drop && !drop.dataset.bound) {
+    drop.dataset.bound = '1';
+    drop.addEventListener('click', () => file.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#D4AF37'; });
+    drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--border)'; });
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.style.borderColor = 'var(--border)'; if (e.dataTransfer.files[0]) _vpHandleFile(e.dataTransfer.files[0]); });
+    file.addEventListener('change', e => { if (e.target.files[0]) _vpHandleFile(e.target.files[0]); });
+  }
+}
+
+function renderVpLevels() {
+  const box = document.getElementById('vp-levels'); if (!box) return;
+  box.innerHTML = VP_LEVELS.map(l => {
+    const sel = l.n === _vpLevel;
+    return `<div onclick="_vpPick('level',${l.n})" style="cursor:pointer;border:2px solid ${sel ? 'var(--primary)' : 'var(--border)'};background:${sel ? 'rgba(37,99,235,.06)' : 'var(--surface)'};border-radius:10px;padding:10px">
+      <div style="font-size:13px;font-weight:700">${escapeHtml(l.name)}${l.popular ? ' <span style="color:#D4AF37">⭐</span>' : ''}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${escapeHtml(l.desc)}</div>
+      <div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:4px">${l.cost} crédit${l.cost > 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('');
+}
+function renderVpPlatforms() {
+  const box = document.getElementById('vp-platforms'); if (!box) return;
+  box.innerHTML = VP_PLATFORMS.map(p => {
+    const sel = p.id === _vpPlatform;
+    return `<button type="button" onclick="_vpPick('platform','${p.id}')" style="cursor:pointer;border:1px solid ${sel ? 'var(--primary)' : 'var(--border)'};background:${sel ? 'var(--primary)' : 'var(--surface)'};color:${sel ? '#fff' : 'var(--text)'};border-radius:999px;padding:6px 12px;font-size:12px">${escapeHtml(p.label)}</button>`;
+  }).join('');
+}
+function renderVpStyles() {
+  const box = document.getElementById('vp-styles'); if (!box) return;
+  box.innerHTML = VP_STYLE_GROUPS.map(g => `
+    <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:5px">${escapeHtml(g.label)}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${g.opts.map(o => {
+      const sel = _vpStyle[g.key] === o;
+      return `<button type="button" onclick="_vpPickStyle('${g.key}','${escapeHtml(o).replace(/'/g, '')}')" style="cursor:pointer;border:1px solid ${sel ? 'var(--primary)' : 'var(--border)'};background:${sel ? 'var(--primary)' : 'var(--surface)'};color:${sel ? '#fff' : 'var(--text)'};border-radius:999px;padding:5px 10px;font-size:11px">${escapeHtml(o)}</button>`;
+    }).join('')}</div></div>`).join('');
+}
+function _vpPick(kind, val) {
+  if (kind === 'level') { _vpLevel = val; renderVpLevels(); }
+  else { _vpPlatform = val; renderVpPlatforms(); }
+  updateVpCost();
+}
+function _vpPickStyle(key, val) { _vpStyle[key] = (_vpStyle[key] === val ? '' : val); renderVpStyles(); }
+function updateVpCost() {
+  const b = document.getElementById('vp-cost-badge');
+  if (b) b.textContent = `(${_vpCost()} crédit${_vpCost() > 1 ? 's' : ''})`;
+}
+
+function _vpHandleFile(f) {
+  if (!/^image\/(png|jpe?g|webp)$/i.test(f.type)) { showToast('Format image non supporté.'); return; }
+  if (f.size > 10 * 1024 * 1024) { showToast('Image trop lourde (max 10 Mo).'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024; let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) { if (w >= h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+      let dataUrl;
+      try { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h); dataUrl = cv.toDataURL('image/jpeg', 0.85); }
+      catch (e) { dataUrl = reader.result; }
+      _vpImageB64 = String(dataUrl).split(',')[1] || null;
+      const prev = document.getElementById('vp-preview'), empty = document.getElementById('vp-drop-empty');
+      if (prev) { prev.src = dataUrl; prev.style.display = 'block'; }
+      if (empty) empty.style.display = 'none';
+    };
+    img.onerror = () => showToast('Image illisible.');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+function applyVpBalance(bal) {
+  if (!bal) return;
+  const total = bal.total_available ?? '—';
+  const sub = bal.subscription || {}, pur = bal.purchased || {};
+  const detail = `(abo ${sub.remaining ?? 0}/${sub.total ?? 0}${pur.remaining ? ` + ${pur.remaining} achetés` : ''})`;
+  [['vp-credit-total', 'vp-credit-detail'], ['credits-total', 'credits-detail']].forEach(([t, d]) => {
+    const te = document.getElementById(t), de = document.getElementById(d);
+    if (te) te.textContent = total;
+    if (de) de.textContent = detail;
+  });
+}
+async function loadVpBalance() {
+  const token = localStorage.getItem('tts_token');
+  try {
+    const res = await fetch('/api/credits/balance', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    const data = await res.json();
+    if (data.ok) applyVpBalance(data);
+  } catch (e) {}
+}
+
+async function generateVideoPrompt() {
+  const out = document.getElementById('vp-result'), btn = document.getElementById('vp-generate');
+  const token = localStorage.getItem('tts_token');
+  const oldHtml = btn.innerHTML;
+  btn.disabled = true; btn.textContent = '⏳ Génération…';
+  out.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">🎬 Génération du prompt vidéo…</div>';
+
+  const fd = new FormData();
+  fd.append('level', _vpLevel); fd.append('platform', _vpPlatform);
+  if (_vpImageB64) fd.append('image', _vpImageB64);
+  fd.append('product_name', _vpVal('vp-name')); fd.append('description', _vpVal('vp-desc'));
+  fd.append('price', _vpVal('vp-price')); fd.append('niche', _vpVal('vp-niche'));
+  fd.append('visual_style', _vpStyle.visual_style || ''); fd.append('mood', _vpStyle.mood || '');
+  fd.append('emotion_target', _vpStyle.emotion_target || ''); fd.append('color_tone', _vpStyle.color_tone || '');
+
+  try {
+    const res = await fetch('/api/video-prompt/generate', { method: 'POST', headers: token ? { 'Authorization': 'Bearer ' + token } : {}, body: fd });
+    if (res.status === 402) {
+      const j = await res.json();
+      out.innerHTML = `<div style="text-align:center;padding:18px;background:rgba(255,215,0,.10);border:1px dashed rgba(255,200,40,.6);border-radius:12px">
+        <strong style="color:#d4a017">Crédits insuffisants</strong>
+        <div style="font-size:13px;color:var(--muted);margin:6px 0 12px">Coût : ${j.cost} · Disponible : ${j.available}</div>
+        <button class="btn btn-primary" onclick="switchTab('credits')">Acheter des crédits 💳</button></div>`;
+      return;
+    }
+    if (!res.ok) { let m = 'Erreur.'; try { m = (await res.json()).detail || m; } catch (e) {} out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(m)}</div>`; return; }
+
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = '';
+    const handle = (ev, dstr) => {
+      let o; try { o = JSON.parse(dstr); } catch (e) { return; }
+      if (ev === 'complete') { renderVideoPromptResult(o.result); applyVpBalance(o.balance); }
+      else if (ev === 'error') { out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(o.error || 'Erreur')}</div>`; }
+    };
+    const proc = (block) => { let ev = 'message'; const dl = []; for (const raw of block.split('\n')) { const l = raw.replace(/\r$/, ''); if (l.startsWith('event:')) ev = l.slice(6).trim(); else if (l.startsWith('data:')) dl.push(l.slice(5).trim()); } if (dl.length) handle(ev, dl.join('\n')); };
+    while (true) { const { done, value } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true }); let i; while ((i = buf.indexOf('\n\n')) !== -1) { const b = buf.slice(0, i); buf = buf.slice(i + 2); if (b.trim()) proc(b); } }
+    if (buf.trim()) proc(buf);
+  } catch (e) { out.innerHTML = '<div style="color:#DC2626;padding:12px">Erreur réseau. Réessaie.</div>'; }
+  finally { btn.disabled = false; btn.innerHTML = oldHtml; updateVpCost(); }
+}
+
+let _vpCopyId = 0;
+function _vpBlock(title, text, mono) {
+  if (!text) return '';
+  const id = 'vpc-' + (++_vpCopyId);
+  return `<div style="margin-top:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="font-size:12px;font-weight:700;color:var(--text)">${escapeHtml(title)}</div>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_vpCopy('${id}',this)">Copier</button>
+    </div>
+    <div id="${id}" style="font-size:12px;line-height:1.5;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;white-space:pre-wrap;${mono ? 'font-family:ui-monospace,Menlo,monospace' : ''}">${escapeHtml(text)}</div>
+  </div>`;
+}
+function _vpCopy(id, btn) {
+  const el = document.getElementById(id); if (!el) return;
+  navigator.clipboard.writeText(el.textContent || '').then(() => { const o = btn.textContent; btn.textContent = '✓ Copié'; setTimeout(() => btn.textContent = o, 1200); }).catch(() => {});
+}
+
+function renderVideoPromptResult(r) {
+  const out = document.getElementById('vp-result'); if (!out || !r) return;
+  const t = r.technical_settings || {}, pp = r.post_production_text || {}, mu = r.music_suggestions || {}, comp = r.tiktok_shop_compliance || {};
+  let html = `<div class="section" style="border-left:4px solid var(--primary)">
+    <h3 style="margin:0 0 2px">🎬 Ton prompt vidéo</h3>
+    <div style="font-size:11px;color:var(--muted)">${escapeHtml((r.product_name || '') + '')} · ${escapeHtml((VP_PLATFORMS.find(p=>p.id===r.platform)?.label)||r.platform||'')} · niveau ${escapeHtml(String(r.level||''))}${r._fallback ? ' · <span style="color:#d4a017">exemple démo</span>' : ''}</div>`;
+
+  html += _vpBlock('📝 Prompt principal', r.main_prompt, true);
+  html += _vpBlock('🚫 Prompt négatif', r.negative_prompt, true);
+
+  const tech = [t.resolution, t.frame_rate, t.duration, t.aspect_ratio].filter(Boolean).join(' · ');
+  if (tech) html += `<div style="margin-top:12px;font-size:12px;color:var(--muted)">⚙️ ${escapeHtml(tech)}</div>`;
+
+  if (pp.hook || pp.middle || pp.cta) {
+    html += `<div style="margin-top:14px;font-size:12px;font-weight:700">✍️ Textes à ajouter (post-prod)</div>`;
+    html += _vpBlock('Hook (0-3s)', pp.hook, false);
+    html += _vpBlock('Texte central', pp.middle, false);
+    html += _vpBlock('CTA', pp.cta, false);
+  }
+  if (mu.type) html += `<div style="margin-top:12px;font-size:12px;color:var(--muted)">🎵 ${escapeHtml(mu.type)}${mu.tempo_bpm ? ' · ' + escapeHtml(mu.tempo_bpm) + ' BPM' : ''}</div>`;
+  if (Array.isArray(comp.checks) && comp.checks.length) {
+    html += `<div style="margin-top:12px;font-size:12px;font-weight:700">✅ Conformité TikTok Shop</div><ul style="font-size:12px;color:var(--muted);margin:4px 0;padding-left:18px">${comp.checks.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+  }
+  if (Array.isArray(r.export_steps) && r.export_steps.length) {
+    html += `<div style="margin-top:12px;font-size:12px;font-weight:700">📦 Assemblage</div><ul style="font-size:12px;color:var(--muted);margin:4px 0;padding-left:18px">${r.export_steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
+  }
+  if (Array.isArray(r.variants) && r.variants.length) {
+    html += `<div style="margin-top:14px;font-size:12px;font-weight:700">🔀 Variantes</div>`;
+    r.variants.forEach(v => { if (v && v.prompt && v.prompt !== '…') html += _vpBlock('▸ ' + (v.name || 'Variante'), v.prompt, true); });
+  }
+  if (Array.isArray(r.why_it_works) && r.why_it_works.length) {
+    html += `<div style="margin-top:12px;font-size:12px;font-weight:700">💡 Pourquoi ça marche</div><ul style="font-size:12px;color:var(--muted);margin:4px 0;padding-left:18px">${r.why_it_works.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
+  }
+  html += `<div style="margin-top:16px;text-align:center"><button class="btn btn-primary" onclick="generateVideoPrompt()" style="font-size:13px">🔄 Régénérer (nouvelle variante) ${escapeHtml('(' + _vpCost() + ' crédit' + (_vpCost() > 1 ? 's' : '') + ')')}</button></div>`;
+  html += `</div>`;
+  out.innerHTML = html;
+}
+
+// 💳 Onglet achat de crédits
+async function initCreditsTab() {
+  if (!window.__userInfo) { try { await (window.__userInfoPromise || fetchUserInfo()); } catch (e) {} }
+  loadVpBalance();
+  const token = localStorage.getItem('tts_token');
+  try {
+    const res = await fetch('/api/credits/packs', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    const data = await res.json();
+    const box = document.getElementById('credits-packs');
+    if (!box || !data.packs) return;
+    box.innerHTML = Object.entries(data.packs).map(([k, p]) => `
+      <div style="background:var(--surface);border:1px solid ${p.best ? '#D4AF37' : 'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+        ${p.best ? '<div style="font-size:11px;color:#D4AF37;font-weight:700">⭐ BEST VALUE</div>' : '<div style="height:15px"></div>'}
+        <div style="font-size:15px;font-weight:800;margin-top:2px">${escapeHtml(p.label)}</div>
+        <div style="font-size:13px;color:var(--muted)">${p.credits} crédits</div>
+        <div style="font-size:22px;font-weight:800;margin:8px 0;color:var(--primary)">${p.price}€</div>
+        <button class="btn btn-primary" style="width:100%;font-size:13px" onclick="buyCredits('${k}')">Acheter</button>
+      </div>`).join('');
+  } catch (e) {}
+}
+function buyCredits(pack) {
+  showToast("💳 L'achat de crédits sera disponible très bientôt (paiement en cours d'activation).");
 }
 
 // ── 🔥 CRÉATEURS GAGNANTS (marché KeyAPI, Gold/Agency) ───────────────────────
