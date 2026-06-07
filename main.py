@@ -1298,7 +1298,7 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
             print(f"/api/market/creators error: {e}")
             return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
         if creators:
-            _market_cache_set(cache_key, creators, hours=168)  # ranking mensuel → 7j
+            _market_cache_set(cache_key, creators, hours=24)  # 24h : URLs avatars TikTok signées expirent ~24h
 
     if not premium:
         return {"ok": True, "preview": True, "creators": (creators or [])[:2]}
@@ -1323,7 +1323,7 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
             print(f"/api/market/category error: {e}")
             return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
         if ov and (ov.get("creators") or ov.get("products")):
-            _market_cache_set(cache_key, ov, hours=168)  # vue catégorie → 7j
+            _market_cache_set(cache_key, ov, hours=24)  # 24h : contient avatars/images signés (expirent ~24h)
 
     ov = ov or {"creators": [], "products": []}
     if not premium:
@@ -1373,7 +1373,7 @@ async def market_products_search(request: Request, keyword: str = Query(...), re
             print(f"/api/market/products/search error: {e}")
             return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
         if products:
-            _market_cache_set(cache_key, products, hours=168)
+            _market_cache_set(cache_key, products, hours=24)  # images produits signées (expirent ~24h)
 
     products = products or []
     if not premium:
