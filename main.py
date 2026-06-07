@@ -1646,6 +1646,43 @@ async def img_proxy(url: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+@app.get("/api/_admin/keyapi-selftest")
+async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
+    """Auto-test KeyAPI Video Products sur la vidéo d'exemple de la doc (indexée à
+    coup sûr) → confirme que l'intégration marche, sans chercher de video_id."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    # Vidéo d'exemple de la doc KeyAPI (région ID) — indexée à coup sûr.
+    sample_video = "6994372454948900122"
+    out = {"sample_video_id": sample_video}
+    try:
+        prods = await market_creators.get_video_products(sample_video, region="ID")
+        out["ok"] = True
+        out["count"] = len(prods)
+        out["products"] = prods
+        out["verdict"] = ("✅ Video Products FONCTIONNE" if prods
+                          else "⚠️ 0 produit (params OK mais réponse vide)")
+    except Exception as e:
+        out["ok"] = False
+        out["error"] = str(e)
+        out["verdict"] = "❌ Erreur KeyAPI (voir error)"
+    return out
+
+
 @app.get("/api/_admin/analyzed-products")
 async def admin_analyzed_products(request: Request, token: Optional[str] = Query(None), limit: int = Query(50)):
     """Dump des dernières lignes de la mémoire produits (admin). Auth via header
