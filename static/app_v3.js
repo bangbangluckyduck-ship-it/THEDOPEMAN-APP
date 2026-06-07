@@ -3120,6 +3120,15 @@ async function handleAuthSubmit(event) {
 // n'est exposée dans l'espace client pour ne laisser aucune surface d'attaque.
 
 // ── 🔥 RECO MARCHÉ AUTO (post-analyse) : créateurs + produits de la catégorie ──
+// Catégorie marché : on privilégie celle classée par l'IA d'analyse
+// (detection.categorie_marche), sinon repli sur la détection par mots-clés.
+function getAnalysisCategory(d) {
+  const valid = ['beaute', 'mode', 'tech', 'fitness', 'sante', 'maison'];
+  const ai = String((d && d.detection && d.detection.categorie_marche) || '').toLowerCase().trim();
+  if (valid.includes(ai)) return ai;
+  try { return detectProductCategory((d && d.detection && d.detection.produit) || ''); } catch (e) { return null; }
+}
+
 // ── 🌍 Pays marché (TikTok Shop) ─────────────────────────────────────────────
 const MARKET_COUNTRIES = [
   { code: 'US', flag: '🇺🇸', name: 'États-Unis' },
@@ -3149,8 +3158,7 @@ function renderCategoryCreators(d) {
   if (!results) return;
   document.getElementById('topcreators-multi-section')?.remove();
 
-  let category = null;
-  try { category = detectProductCategory((d.detection && d.detection.produit) || ''); } catch (e) { category = null; }
+  const category = getAnalysisCategory(d);
   const catLabels = { beaute:'Beauté', fashion:'Mode', mode:'Mode', tech:'Tech & Gadgets', fitness:'Fitness', sante:'Santé', complement_sante:'Santé', electromenager:'Maison', maison:'Maison' };
   const catLabel = category ? (catLabels[category] || category) : null;
 
@@ -3247,9 +3255,7 @@ function renderMarketForCategory(d) {
   if (!results) return;
   document.getElementById('market-category-section')?.remove();
 
-  const productName = (d.detection && d.detection.produit) || '';
-  let category = null;
-  try { category = detectProductCategory(productName); } catch (e) { category = null; }
+  const category = getAnalysisCategory(d);
 
   // Pas de catégorie détectée → on n'affiche PAS un top global (produits sans
   // rapport avec la vidéo). La pertinence produit est assurée par « Produits
