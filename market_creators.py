@@ -84,7 +84,9 @@ async def _get(path: str, params: dict) -> Any:
     if resp.status_code == 402 or (isinstance(body, dict) and body.get("code") == 402) or "quota" in msg:
         _trip_cooldown()
         raise RuntimeError("KeyAPI quota épuisé")
-    resp.raise_for_status()
+    # Surface le message d'erreur RÉEL de KeyAPI (souvent : quel param manque)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"KeyAPI {resp.status_code}: {resp.text[:400]}")
     if isinstance(body, dict) and body.get("code") not in (0, None):
         raise RuntimeError(f"KeyAPI error: {body.get('message') or body}")
     return body.get("data") if isinstance(body, dict) else None
