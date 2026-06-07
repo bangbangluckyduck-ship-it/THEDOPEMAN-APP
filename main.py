@@ -1363,6 +1363,32 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
     return {"ok": True, **(detail or {})}
 
 
+@app.get("/api/market/category-creators")
+async def market_category_creators(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+    """Créateurs gagnants d'une catégorie (chaîne top produits → leurs créateurs).
+    Gold/Agency = complet ; free/pro = aperçu partiel. Cache 24h."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")
+
+    cache_key = f"catcr::{(category or 'all').lower()}::{region}"
+    creators = _market_cache_get(cache_key)
+    if creators is None:
+        try:
+            creators = await market_creators.get_category_creators(category, region, limit=8)
+        except Exception as e:
+            print(f"/api/market/category-creators error: {e}")
+            return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
+        if creators:
+            _market_cache_set(cache_key, creators, hours=24)
+
+    creators = creators or []
+    if not premium:
+        return {"ok": True, "preview": True, "creators": creators[:2]}
+    return {"ok": True, "preview": False, "creators": creators}
+
+
 @app.get("/api/market/products/search")
 async def market_products_search(request: Request, keyword: str = Query(...), region: str = Query("US")):
     """Produits tendance pour un mot-clé (reco « produits similaires en tendance »).

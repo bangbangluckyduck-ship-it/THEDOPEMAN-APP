@@ -1901,8 +1901,8 @@ function showResults(d) {
   // 🔥 Reco marché auto : créateurs + produits qui cartonnent dans la catégorie
   // détectée (Gold/Agency complet, free/pro flouté). Placeholder synchrone puis
   // remplissage async (pour être inclus dans le slider).
-  // 👑 Top créateurs sur 3 pays aléatoires (créateurs gagnants par marché).
-  renderTopCreatorsMultiCountry(d);
+  // 👑 Créateurs gagnants DE LA CATÉGORIE (chaîne top produits → leurs créateurs).
+  renderCategoryCreators(d);
 
   renderMarketForCategory(d);
 
@@ -3143,7 +3143,54 @@ function _orderedCountries() {
   return found ? [found, ...rest] : MARKET_COUNTRIES.slice();
 }
 
-// 👑 Analyse : top 3 créateurs sur 3 pays aléatoires.
+// 👑 Analyse : « Créateurs gagnants de la catégorie » (chaîne produits → créateurs).
+function renderCategoryCreators(d) {
+  const results = document.getElementById('results-section');
+  if (!results) return;
+  document.getElementById('topcreators-multi-section')?.remove();
+
+  let category = null;
+  try { category = detectProductCategory((d.detection && d.detection.produit) || ''); } catch (e) { category = null; }
+  const catLabels = { beaute:'Beauté', fashion:'Mode', mode:'Mode', tech:'Tech & Gadgets', fitness:'Fitness', sante:'Santé', complement_sante:'Santé', electromenager:'Maison', maison:'Maison' };
+  const catLabel = category ? (catLabels[category] || category) : null;
+
+  const sec = document.createElement('section');
+  sec.id = 'topcreators-multi-section';
+  sec.className = 'section';
+  sec.setAttribute('data-free-lock', '1');
+  sec.innerHTML = `<h2>👑 Créateurs gagnants${catLabel ? ` en « ${escapeHtml(catLabel)} »` : ''}</h2>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0 10px">📅 30 derniers jours — créateurs actifs sur les best-sellers de la catégorie.</p>
+    <div id="tcm-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">⏳ Chargement…</div>`;
+  results.appendChild(sec);
+
+  (async () => {
+    const token = localStorage.getItem('tts_token');
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    try {
+      const res = await fetch('/api/market/category-creators?region=' + _userRegion() + '&category=' + encodeURIComponent(category || ''), { headers });
+      const data = await res.json();
+      if (!data.ok || !data.creators || !data.creators.length) { sec.remove(); return; }
+      const preview = data.preview;
+      let html = '';
+      data.creators.forEach((c, i) => {
+        const locked = preview && i >= 1;
+        const blur = locked ? 'filter:blur(4px);pointer-events:none' : '';
+        const link = locked ? '#' : (c.profile_url || '#');
+        html += `<a href="${escapeHtml(link)}" ${locked ? '' : 'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center">
+            <div style="margin:0 auto 8px;width:54px">${_avatarBadge(c.nickname, 54)}</div>
+            <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml((c.nickname || '').slice(0, 22))}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">👥 ${_cfmt(c.followers)} · 👁 ${_cfmt(c.views)}</div>
+          </div></a>`;
+      });
+      document.getElementById('tcm-body').innerHTML = html;
+    } catch (e) {
+      sec.remove();
+    }
+  })();
+}
+
+// 👑 (legacy) top 3 créateurs sur 3 pays aléatoires — conservé, non appelé.
 function renderTopCreatorsMultiCountry(d) {
   const results = document.getElementById('results-section');
   if (!results) return;
@@ -3603,6 +3650,11 @@ function _imgProxy(url) {
 }
 // Avatars créateurs : le host KeyAPI (echosell) est un bucket PRIVÉ (403). Les URLs
 // ne sont pas affichables → on génère une pastille « initiale » colorée déterministe.
+function _shuffle(arr) {
+  const a = (arr || []).slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
 function _avatarBadge(name, size) {
   const s = String(name || '?').trim().replace(/^@/, '');
   const init = (s[0] || '?').toUpperCase();
@@ -3638,7 +3690,8 @@ async function loadCreatorsTab() {
       any = true;
       const preview = data.preview;
       if (preview) anyPreview = true;
-      const cards = data.creators.slice(0, 5).map((cr, i) => renderCreatorCard(cr, preview && i >= 1)).join('');
+      // Affichage aléatoire : on mélange le top du pays puis on en montre 5 (variété).
+      const cards = _shuffle(data.creators).slice(0, 5).map((cr, i) => renderCreatorCard(cr, preview && i >= 1)).join('');
       html += `<div style="grid-column:1/-1;margin-top:8px">
         <h3 style="font-size:14px;margin-bottom:10px">${c.flag} Top 5 — ${escapeHtml(c.name)}</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">${cards}</div>

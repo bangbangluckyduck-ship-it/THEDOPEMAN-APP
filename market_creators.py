@@ -16,8 +16,19 @@ import os
 import time
 from datetime import date, timedelta
 from typing import Any, Optional
+from urllib.parse import quote
 
 import httpx
+
+
+# Heuristique d'exclusion des comptes « shop / boutique » (on veut des créateurs).
+_SHOP_TOKENS = ("shop", "store", "official", "boutique", "mall", "outlet",
+                "™", "officiel", "flagship")
+
+
+def is_shop_account(nickname: Optional[str], unique_id: Optional[str]) -> bool:
+    blob = f"{nickname or ''} {unique_id or ''}".lower()
+    return any(tok in blob for tok in _SHOP_TOKENS)
 
 KEYAPI_BASE = "https://api.keyapi.ai"
 
@@ -180,7 +191,10 @@ async def get_top_creators(category: Optional[str] = None, region: str = "US", l
         params.pop("category_id", None)
         data = await _get("/v1/tiktok/influencer/ranking/analytics", params)
         rows = data if isinstance(data, list) else []
-    return [_clean_creator(r) for r in rows][:limit]
+    cleaned = [_clean_creator(r) for r in rows]
+    # Exclure les comptes shop/boutique (on veut des créateurs).
+    cleaned = [c for c in cleaned if not is_shop_account(c.get("nickname"), c.get("unique_id"))]
+    return cleaned[:limit]
 
 
 def _clean_rank_product(p: dict) -> dict:
@@ -356,6 +370,74 @@ async def get_product_detail(product_id: str, region: str = "US") -> Optional[di
         "seller": seller.get("name") or "",
         "url": f"https://www.tiktok.com/view/product/{pid}",
     }
+
+
+def _clean_pc_creator(r: dict) -> dict:
+    """Créateur issu de Product Creators (promoteurs d'un produit). PAS de unique_id
+    → lien = recherche TikTok sur le pseudo en repli. Avatar privé → initiales côté UI."""
+    uid = r.get("unique_id")           # souvent absent dans ce endpoint
+    nick = r.get("nick_name") or uid or ""
+    if uid:
+        profile = f"https://www.tiktok.com/@{uid}"
+    elif nick:
+        profile = f"https://www.tiktok.com/search/user?q={quote(nick)}"
+    else:
+        profile = None
+    return {
+        "unique_id": uid,
+        "user_id": r.get("user_id"),
+        "nickname": nick,
+        "avatar": r.get("avatar"),
+        "followers": r.get("total_followers_cnt") or 0,
+        "views": r.get("total_views_cnt") or 0,
+        "videos": r.get("total_post_video_cnt") or 0,
+        "sales": r.get("per_product_ifl_sale_cnt") or 0,
+        "category": r.get("category"),
+        "region": r.get("region"),
+        "profile_url": profile,
+    }
+
+
+async def get_product_creators(product_id: str, region: str = "US", limit: int = 10) -> list[dict]:
+    """Créateurs qui font la promo d'un produit (Product Creators Analytics)."""
+    if not product_id:
+        return []
+    params = {
+        "date": _default_rank_date(),
+        "region": region or "US",
+        "rank_type": 3,
+        "product_id": product_id,
+        "page_num": 1,
+        "page_size": min(max(limit, 1), 10),
+    }
+    data = await _get("/v1/tiktok/product/creators/analytics", params)
+    rows = data if isinstance(data, list) else []
+    return [_clean_pc_creator(r) for r in rows][:limit]
+
+
+async def get_category_creators(category: Optional[str], region: str = "US", limit: int = 8) -> list[dict]:
+    """« Créateurs gagnants de la catégorie » : top produits de la catégorie → leurs
+    créateurs, dédupliqués, triés par followers. Exclut les comptes shop."""
+    products = await get_top_products(category, region, limit=3)
+    creators: list = []
+    seen: set = set()
+    for p in products[:3]:
+        pid = p.get("id")
+        if not pid:
+            continue
+        try:
+            for c in await get_product_creators(pid, region, limit=10):
+                key = c.get("user_id") or c.get("unique_id")
+                if not key or key in seen:
+                    continue
+                if is_shop_account(c.get("nickname"), c.get("unique_id")):
+                    continue
+                seen.add(key)
+                creators.append(c)
+        except Exception as e:
+            print(f"get_category_creators product {pid} error: {e}")
+    creators.sort(key=lambda c: c.get("followers") or 0, reverse=True)
+    return creators[:limit]
 
 
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
