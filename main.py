@@ -1250,9 +1250,16 @@ async def tiktok_status(request: Request):
 _MARKET_PREMIUM_TIERS = {"gold", "agency", "beta", "admin"}
 
 
+# Version du cache marché : on l'incrémente pour invalider TOUTES les entrées d'un
+# coup quand la logique KeyAPI change (params, filtres…). v2 = filtre category_id +
+# product_rank_field + ventes période + avatars echosell.
+_MARKET_CACHE_VER = "v2"
+
+
 def _market_cache_get(key: str):
     if not supabase_client:
         return None
+    key = f"{_MARKET_CACHE_VER}:{key}"
     try:
         r = supabase_client.table("market_cache").select("payload,expires_at").eq("cache_key", key).execute()
         if r.data:
@@ -1271,6 +1278,7 @@ def _market_cache_get(key: str):
 def _market_cache_set(key: str, payload, hours: int = 24):
     if not supabase_client:
         return
+    key = f"{_MARKET_CACHE_VER}:{key}"
     try:
         supabase_client.table("market_cache").upsert({
             "cache_key": key,
