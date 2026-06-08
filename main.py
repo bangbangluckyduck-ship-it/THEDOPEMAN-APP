@@ -1681,6 +1681,47 @@ async def img_proxy(url: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+@app.get("/api/_admin/image-selftest")
+async def image_selftest(request: Request, token: Optional[str] = Query(None),
+                         provider: str = Query("flux")):
+    """Teste la génération d'image (AIML) → valide la clé + l'ID de modèle.
+    Auth admin via header OU ?token=."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    out = {"has_key": image_gen.has_image_key(), "provider": provider,
+           "model": image_gen.IMAGE_PROVIDERS.get(provider, {}).get("model")}
+    if not image_gen.has_image_key():
+        out["verdict"] = "❌ AIMLAPI_KEY absente"
+        return out
+    loop = asyncio.get_event_loop()
+    try:
+        imgs = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: image_gen.generate_slide_images(
+                "Sérum visage premium", "fond_blanc", provider, "beaute", ["Hook"])),
+            timeout=90.0)
+        first = imgs[0] if imgs else {}
+        out["result"] = first
+        out["verdict"] = "✅ Image générée" if first.get("url") else "⚠️ Pas d'URL (ID modèle à corriger ?)"
+    except Exception as e:
+        out["verdict"] = "❌ Erreur"
+        out["error"] = str(e)
+    return out
+
+
 @app.get("/api/_admin/keyapi-selftest")
 async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
     """Auto-test KeyAPI Video Products sur la vidéo d'exemple de la doc (indexée à
