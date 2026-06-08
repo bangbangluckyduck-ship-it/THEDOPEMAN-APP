@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Créer un Carrousel TikTok Shop — TTS Analyzer</title>
+<meta name="description" content="Génère un carrousel TikTok Shop optimisé en 60s. 1ère génération offerte, sans inscription.">
+<style>
+  :root{--bg:#F5F7FA;--surface:#fff;--surface2:#f1f4f8;--text:#1A1A1A;--muted:#6B7280;--border:#e3e8ef;
+        --primary:#2563EB;--gold:#D4AF37;--navy:#1F3A70;--success:#059669;--err:#DC2626;--radius:14px}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:760px;margin:0 auto;padding:18px}
+  header.top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}
+  header.top a{color:var(--primary);text-decoration:none;font-size:13px;font-weight:600}
+  .logo{font-weight:800;font-size:15px}
+  h1{font-size:24px;margin:8px 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .badge{display:inline-block;background:var(--gold);color:#1a1a1a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
+  textarea{resize:vertical}
+  .drop{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:var(--surface)}
+  .drop img{max-width:160px;max-height:160px;border-radius:10px;margin:0 auto;display:block}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .pill{cursor:pointer;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:13px}
+  .pill.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btn{display:inline-block;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn-primary{background:var(--primary);color:#fff;width:100%}
+  .btn-gold{background:var(--gold);color:#1a1a1a}
+  .btn-sec{background:var(--surface2);color:var(--text);font-size:12px;padding:6px 12px;border-radius:8px}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:600px){.modes{grid-template-columns:1fr}}
+  .mode{border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer}
+  .mode.on{border-color:var(--primary);background:rgba(37,99,235,.05)}
+  .mode h3{margin:0 0 6px;font-size:14px}
+  .mode .price{font-weight:800;color:var(--primary);margin-top:6px}
+  .res-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px;white-space:pre-wrap;font-size:13px}
+  .imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .imgs .slot{aspect-ratio:9/16;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:12px;color:var(--muted);text-align:center;padding:8px}
+  .imgs img{width:100%;height:100%;object-fit:cover}
+  .upsell{background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.4);border-radius:12px;padding:16px;margin-top:16px;text-align:center}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="logo">📸 TTS Analyzer</span>
+  <a href="/">← Accueil</a>
+</header>
+
+<div class="wrap">
+  <h1>Créer un Carrousel TikTok Shop <span class="badge">NEW</span></h1>
+  <div class="sub" id="cc-status">✨ 1ère génération offerte — sans inscription.</div>
+
+  <div class="card" id="cc-form">
+    <!-- Produit -->
+    <div class="drop" id="cc-drop">
+      <input type="file" id="cc-file" accept="image/png,image/jpeg,image/webp" style="display:none">
+      <div id="cc-drop-empty"><div style="font-size:28px">🖼️</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Image produit (glisser ou cliquer)</div></div>
+      <img id="cc-preview" style="display:none">
+    </div>
+    <label class="fld">Nom du produit *</label>
+    <input id="cc-name" maxlength="100" placeholder="Ex: Maca Noire Premium">
+    <label class="fld">Description courte</label>
+    <textarea id="cc-desc" rows="2" maxlength="300" placeholder="En quelques mots…"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="fld">Prix</label><input id="cc-price" placeholder="ex: 29€"></div>
+      <div><label class="fld">Niche</label>
+        <select id="cc-niche"><option value="">—</option><option>Cosmétique/Beauté</option><option>Santé/Bien-être</option><option>Mode/Vêtements</option><option>Maison/Déco</option><option>Tech/Gadgets</option><option>Fitness/Sport</option><option>Cuisine/Alimentation</option><option>Autre</option></select>
+      </div>
+    </div>
+    <label class="fld">Style (optionnel — l'IA recommande sinon)</label>
+    <div class="pills" id="cc-styles"></div>
+
+    <!-- Mode -->
+    <label class="fld" style="margin-top:14px">Mode</label>
+    <div class="modes" id="cc-modes">
+      <div class="mode on" data-mode="prompts">
+        <h3>📝 Prompts</h3>
+        <div style="font-size:12px;color:var(--muted)">Plan complet + textes + style. Tu crées les visuels.</div>
+        <div class="price">Gratuit</div>
+      </div>
+      <div class="mode" data-mode="images">
+        <h3>🎨 Images IA <span style="font-size:10px;color:var(--gold)">🔥</span></h3>
+        <div style="font-size:12px;color:var(--muted)">4 slides générées par IA + conseils photos 5-7.</div>
+        <div class="price" id="cc-img-price">dès 7,99€</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="cc-go" style="margin-top:16px" onclick="ccGenerate()">✨ Générer mon carrousel</button>
+  </div>
+
+  <div id="cc-result"></div>
+</div>
+
+<script>
+const CC = { mode:'prompts', style:'', img:null, providers:null };
+function ccCookie(){ let c=localStorage.getItem('cc_cookie'); if(!c){c='cc_'+Math.random().toString(36).slice(2)+Date.now(); localStorage.setItem('cc_cookie',c);} return c; }
+function token(){ return localStorage.getItem('tts_token'); }
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+const STYLES=[['fond_blanc','Fond Blanc'],['quad_photo','Quad Photo'],['ia_cartoon','IA/Cartoon']];
+document.getElementById('cc-styles').innerHTML = STYLES.map(([v,l])=>`<span class="pill" data-s="${v}" onclick="ccPickStyle('${v}')">${l}</span>`).join('');
+function ccPickStyle(v){ CC.style=(CC.style===v?'':v); document.querySelectorAll('#cc-styles .pill').forEach(p=>p.classList.toggle('on',p.dataset.s===CC.style)); }
+
+document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); });
+
+// upload + downscale
+const drop=document.getElementById('cc-drop'), file=document.getElementById('cc-file');
+drop.onclick=()=>file.click();
+drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='#D4AF37';};
+drop.ondragleave=()=>drop.style.borderColor='var(--border)';
+drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='var(--border)';if(e.dataTransfer.files[0])ccFile(e.dataTransfer.files[0]);};
+file.onchange=e=>{if(e.target.files[0])ccFile(e.target.files[0]);};
+function ccFile(f){
+  if(!/^image\/(png|jpe?g|webp)$/i.test(f.type)){alert('Format non supporté');return;}
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{
+    const M=1024;let{width:w,height:h}=im;if(w>M||h>M){if(w>=h){h=Math.round(h*M/w);w=M;}else{w=Math.round(w*M/h);h=M;}}
+    let url;try{const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);url=cv.toDataURL('image/jpeg',0.85);}catch(e){url=r.result;}
+    CC.img=String(url).split(',')[1]||null;
+    document.getElementById('cc-preview').src=url; document.getElementById('cc-preview').style.display='block'; document.getElementById('cc-drop-empty').style.display='none';
+  };im.src=r.result;};
+  r.readAsDataURL(f);
+}
+
+async function ccGenerate(){
+  const name=document.getElementById('cc-name').value.trim();
+  if(!name){alert('Indique le nom du produit');return;}
+  const out=document.getElementById('cc-result'), btn=document.getElementById('cc-go');
+  btn.disabled=true;btn.textContent='⏳ Génération…';
+  out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">📸 Génération du carrousel…</div>';
+  const fd=new FormData();
+  fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider','auto');
+  fd.append('product_name',name); fd.append('description',document.getElementById('cc-desc').value);
+  fd.append('price',document.getElementById('cc-price').value); fd.append('niche',document.getElementById('cc-niche').value);
+  if(CC.img) fd.append('image',CC.img);
+  fd.append('cookie_id',ccCookie());
+  const url = token() ? '/api/carousel/generate' : '/api/carousel/anon/generate';
+  const headers = token() ? {'Authorization':'Bearer '+token()} : {};
+  try{
+    const res=await fetch(url,{method:'POST',headers,body:fd});
+    if(res.status===402){ const j=await res.json(); out.innerHTML=ccPaywall(j); btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
+    if(!res.ok){ let m='Erreur.';try{m=(await res.json()).detail||m;}catch(e){} out.innerHTML=`<div class="card" style="color:var(--err)">${esc(m)}</div>`; btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
+    const reader=res.body.getReader(),dec=new TextDecoder();let buf='';
+    const handle=(ev,d)=>{let o;try{o=JSON.parse(d);}catch(e){return;} if(ev==='complete')ccRender(o); else if(ev==='error')out.innerHTML=`<div class="card" style="color:var(--err)">${esc(o.error||'Erreur')}</div>`; };
+    const proc=b=>{let ev='message';const dl=[];for(const raw of b.split('\n')){const l=raw.replace(/\r$/,'');if(l.startsWith('event:'))ev=l.slice(6).trim();else if(l.startsWith('data:'))dl.push(l.slice(5).trim());}if(dl.length)handle(ev,dl.join('\n'));};
+    while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf('\n\n'))!==-1){const b=buf.slice(0,i);buf=buf.slice(i+2);if(b.trim())proc(b);}}
+    if(buf.trim())proc(buf);
+  }catch(e){ out.innerHTML='<div class="card" style="color:var(--err)">Erreur réseau.</div>'; }
+  finally{ btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; }
+}
+
+function ccPaywall(j){
+  if(j.reason==='free_used'||j.reason==='free_quota'){
+    return `<div class="upsell"><strong>${esc(j.message||'Essai gratuit utilisé')}</strong>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-primary" style="width:auto" href="/app">Créer un compte gratuit</a>
+      <a class="btn btn-gold" href="/app#pricing">S'abonner Pro</a></div></div>`;
+  }
+  if(j.reason==='payment_required'){
+    return `<div class="upsell"><strong>🎨 Mode Images IA</strong>
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">${esc(j.message||'Achat requis')}</div>
+      <a class="btn btn-gold" href="/app#pricing">Découvrir les abonnements</a></div>`;
+  }
+  if(j.reason==='insufficient_credits'){
+    return `<div class="upsell"><strong>Crédits insuffisants</strong> (coût ${j.cost}, dispo ${j.available})
+      <div style="margin-top:8px"><a class="btn btn-gold" href="/app">Acheter des crédits</a></div></div>`;
+  }
+  return `<div class="card">${esc(j.message||'Action requise')}</div>`;
+}
+
+function ccCopyBlock(id,btn){const el=document.getElementById(id);navigator.clipboard.writeText(el.textContent||'').then(()=>{const o=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=o,1000);});}
+let _ccid=0;
+function block(title,text){if(!text)return'';const id='ccb'+(++_ccid);return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:13px">${esc(title)}</strong><button class="btn-sec" onclick="ccCopyBlock('${id}',this)">Copier</button></div><div class="res-block" id="${id}">${esc(text)}</div></div>`;}
+
+function ccRender(r){
+  const out=document.getElementById('cc-result');
+  const st=r.strategy||{};
+  let h=`<div class="card"><h3 style="margin:0">🎬 Ton carrousel</h3>
+    <div style="font-size:12px;color:var(--muted)">${esc(st.style_label||st.chosen_style||'')} · ${esc(st.detected_niche||'')}${r._fallback?' · <span style="color:#d4a017">exemple démo</span>':''}</div>`;
+  if(st.justification) h+=`<div style="font-size:12px;color:var(--muted);margin-top:4px">${esc(st.justification)}</div>`;
+
+  // Images (Mode B)
+  if(Array.isArray(r.ai_generated_images)){
+    h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">🎨 Slides générées (1-4)</div><div class="imgs">`;
+    r.ai_generated_images.forEach(im=>{ h+=`<div class="slot">${im.url?`<img src="${esc(im.url)}" loading="lazy">`:`⏳ ${esc(im.phase||'')}<br><span style="font-size:10px">${esc(im.note||'image en démo')}</span>`}</div>`; });
+    h+=`</div>`;
+    if(Array.isArray(r.next_slides_advice)){
+      h+=`<div style="margin-top:14px;font-weight:700;font-size:13px">📷 Photos à prendre (slides 5-7)</div>`;
+      r.next_slides_advice.forEach(s=>{ h+=`<div class="res-block"><strong>Slide ${s.slide_number} — ${esc(s.title)}</strong><br>${esc(s.photo_advice)}<br><span style="color:var(--muted)">${(s.technical_tips||[]).map(esc).join(' · ')}</span><br>💬 « ${esc(s.text_overlay)} »</div>`; });
+    }
+  }
+
+  h+=block('📌 Hook (slide 1)', r.hook);
+  h+=block('🏷️ Titre du carrousel', r.carousel_title);
+  h+=block('📝 Description optimisée', r.description);
+  if(Array.isArray(r.hashtags)&&r.hashtags.length) h+=block('# Hashtags', r.hashtags.map(x=>x[0]==='#'?x:'#'+x).join(' '));
+  if(Array.isArray(r.save_optimization_tips)&&r.save_optimization_tips.length) h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">💡 Pourquoi ça va cartonner</div><ul style="font-size:13px;color:var(--muted)">${r.save_optimization_tips.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
+  h+=`</div>`;
+
+  // Upsell post-génération
+  if(!token()){
+    h+=`<div class="upsell"><strong>💡 Tu as aimé ?</strong>
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">Crée un compte gratuit : 3 prompts/mois, historique sauvegardé, et plus.</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn-primary" style="width:auto" href="/app">Créer mon compte gratuit</a>
+        <a class="btn btn-gold" href="/app#pricing">S'abonner Pro 9,99€</a>
+      </div></div>`;
+  }
+  out.innerHTML=h;
+  out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// Statut + prix images
+(async()=>{
+  if(token()) document.getElementById('cc-status').textContent='Connecté — crédits selon ton plan.';
+  try{ const r=await fetch('/api/carousel/providers'); const d=await r.json(); CC.providers=d.providers; }catch(e){}
+})();
+</script>
+</body>
+</html>
