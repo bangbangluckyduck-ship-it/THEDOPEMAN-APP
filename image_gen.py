@@ -18,8 +18,8 @@ import httpx
 AIML_BASE = "https://api.aimlapi.com/v1"
 
 # ── Modèles AIML par BESOIN (IDs à confirmer/ajuster dans la doc AIML) ───────────
-# ⬇️ ZONE ÉDITABLE — mapping besoin → meilleur modèle (ajuste les IDs si besoin) ⬇️
-MODEL_BY_NEED = {
+# ⬇️ ZONE ÉDITABLE — mapping besoin → meilleur modèle (qualité PROD) ⬇️
+_PROD_MODEL_BY_NEED = {
     "text":     "ideogram/V_3",          # texte net dans l'image (Quad Photo, overlays)
     "realism":  "flux-pro/v1.1",         # photoréalisme produit (Fond Blanc, hero shot)
     "anime":    "flux/dev",              # anime / cartoon / stylisé (IA Cartoon)
@@ -27,6 +27,25 @@ MODEL_BY_NEED = {
     "premium":  "imagen-3",              # rendu premium / luxe
 }
 # ⬆️ FIN ZONE ÉDITABLE ⬆️
+
+# 💸 Mode TEST économique : tout sur FLUX schnell (~0,008 €/image) pour valider à
+# moindre coût. Bascule en qualité PROD avec env IMAGE_QUALITY=prod (sans redéploiement).
+_TEST_MODEL = "flux/schnell"
+_PROVIDER_NEED = {"flux": "realism", "ideogram": "text", "dalle3": "artistic", "imagen": "premium"}
+
+
+def _is_prod_quality() -> bool:
+    return os.getenv("IMAGE_QUALITY", "test").lower() == "prod"
+
+
+def need_model(need: str) -> str:
+    if not _is_prod_quality():
+        return _TEST_MODEL
+    return _PROD_MODEL_BY_NEED.get(need, _PROD_MODEL_BY_NEED["realism"])
+
+
+# Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
+MODEL_BY_NEED = {k: need_model(k) for k in _PROD_MODEL_BY_NEED}
 
 # Choix explicites proposés à l'utilisateur (label + coût crédits + prix one-time €).
 # "auto" = routage intelligent (recommandé).
@@ -75,10 +94,13 @@ def pick_need(style: Optional[str], niche: Optional[str], phase: Optional[str] =
 
 
 def model_for(provider: str, style: Optional[str], niche: Optional[str], phase: Optional[str] = None) -> str:
-    """Modèle AIML à utiliser : routage intelligent en mode auto, sinon le choix explicite."""
+    """Modèle AIML à utiliser : routage intelligent en mode auto, sinon le choix explicite.
+    En mode test (IMAGE_QUALITY != prod), tout est routé sur FLUX schnell (économie)."""
     if provider in (None, "", "auto"):
-        return MODEL_BY_NEED[pick_need(style, niche, phase)]
-    return IMAGE_PROVIDERS.get(provider, {}).get("model") or MODEL_BY_NEED["realism"]
+        need = pick_need(style, niche, phase)
+    else:
+        need = _PROVIDER_NEED.get(provider, "realism")
+    return need_model(need)
 
 
 def _aiml_generate(model: str, prompt: str, timeout: float = 90.0) -> Optional[str]:
