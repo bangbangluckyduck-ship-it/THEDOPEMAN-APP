@@ -1709,7 +1709,8 @@ async def image_selftest(request: Request, token: Optional[str] = Query(None),
         raise HTTPException(status_code=403, detail="Accès admin requis.")
 
     out = {"has_key": image_gen.has_image_key(), "provider": provider,
-           "model": image_gen.IMAGE_PROVIDERS.get(provider, {}).get("model")}
+           "quality": ("prod" if image_gen._is_prod_quality() else "test (FLUX schnell)"),
+           "model": image_gen.model_for(provider, "fond_blanc", "beaute")}
     if not image_gen.has_image_key():
         out["verdict"] = "❌ AIMLAPI_KEY absente"
         return out
