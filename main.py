@@ -32,7 +32,15 @@ import photo_slide
 import product_store
 import credits as credits_mod
 import video_prompt
+import image_gen
+import carousel
+import hashlib
 from urllib.parse import quote
+
+
+def _ip_hash(request: Request) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return hashlib.sha256(("tts:" + ip).encode()).hexdigest()[:32]
 
 _PROMPT_STUDIO_TIERS = {"pro", "gold", "agency", "beta", "admin"}
 
@@ -1869,6 +1877,193 @@ async def video_prompt_generate(
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 📸 CAROUSEL CREATOR (Photo Slide Coach v4) — homepage + anonyme + pay-as-you-go
+# ════════════════════════════════════════════════════════════════════════════
+def _sse_carousel(gen_callable):
+    """Wrapper SSE commun (keepalive pendant la génération)."""
+    async def stream():
+        loop = asyncio.get_event_loop()
+        try:
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83d\\udcf8 G\\u00e9n\\u00e9ration du carrousel\\u2026"}\n\n'
+            task = loop.run_in_executor(None, gen_callable)
+            waited = 0.0
+            result = None
+            while True:
+                done, _ = await asyncio.wait({task}, timeout=4.0)
+                if task in done:
+                    result = task.result()
+                    break
+                waited += 4.0
+                if waited >= 120.0:
+                    task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "La g\\u00e9n\\u00e9ration a pris trop longtemps."}\n\n'
+                    return
+                yield ': keepalive\n\n'
+            yield 'event: complete\n'
+            yield f'data: {json.dumps(result)}\n\n'
+        except Exception as e:
+            print(f"carousel sse error: {e}")
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/carousel/providers")
+async def carousel_providers():
+    """Liste des IA images (label, coûts, prix) pour le wizard."""
+    return {"ok": True, "providers": image_gen.IMAGE_PROVIDERS}
+
+
+@app.post("/api/carousel/anon/generate")
+async def carousel_anon_generate(
+    request: Request,
+    image: Optional[str] = Form(None),
+    mode: str = Form("prompts"),
+    product_name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    currency: str = Form("EUR"),
+    niche: Optional[str] = Form(None),
+    style: Optional[str] = Form(None),
+    cookie_id: Optional[str] = Form(None),
+):
+    """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
+    Mode B (images) = paiement requis (stub Stripe)."""
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if mode == "images":
+        return JSONResponse({"ok": False, "reason": "payment_required",
+                             "message": "Le mode Images IA nécessite un achat (bientôt disponible)."}, status_code=402)
+
+    ip = _ip_hash(request)
+    # 1 essai gratuit par IP+cookie
+    if supabase_client:
+        try:
+            q = supabase_client.table("anonymous_generations").select("id").eq("ip_hash", ip)
+            if cookie_id:
+                q = q.eq("cookie_id", cookie_id)
+            if (q.limit(1).execute().data or []):
+                return JSONResponse({"ok": False, "reason": "free_used",
+                                     "message": "Essai gratuit déjà utilisé. Crée un compte (3 gratuits/mois) ou abonne-toi."}, status_code=402)
+        except Exception:
+            pass
+
+    img = (image or "").strip()
+    if img.lower().startswith("data:") and "," in img:
+        img = img.split(",", 1)[1]
+
+    def _gen():
+        res = carousel.generate_carousel(img or None, "prompts", style, "auto",
+                                         product_name, description, price, currency, niche)
+        try:
+            supabase_client.table("anonymous_generations").insert({
+                "ip_hash": ip, "cookie_id": cookie_id, "generation_mode": "prompts",
+                "product_name": product_name, "generation_data": res,
+            }).execute()
+        except Exception:
+            pass
+        res["anonymous"] = True
+        return res
+
+    return _sse_carousel(_gen)
+
+
+@app.post("/api/carousel/generate")
+async def carousel_generate(
+    request: Request,
+    image: Optional[str] = Form(None),
+    mode: str = Form("prompts"),
+    provider: str = Form("auto"),
+    product_name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    currency: str = Form("EUR"),
+    niche: Optional[str] = Form(None),
+    style: Optional[str] = Form(None),
+):
+    """Utilisateur connecté. Mode A : gratuit 3/mois (FREE) sinon illimité. Mode B :
+    débite les crédits (coût selon l'IA)."""
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    email = user["email"]
+    tier = (user.get("tier") or "free").lower()
+    is_paid = tier in ("pro", "gold", "agency", "beta", "admin") or user.get("is_admin")
+
+    img = (image or "").strip()
+    if img.lower().startswith("data:") and "," in img:
+        img = img.split(",", 1)[1]
+
+    cost = 0
+    payment_method = "free"
+    if mode == "images":
+        cost = image_gen.provider_credits(provider)
+        bal = credits_mod.get_balance(supabase_client, email, tier)
+        if bal.get("total_available", 0) < cost:
+            return JSONResponse({"ok": False, "reason": "insufficient_credits",
+                                 "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+        payment_method = "credits"
+    else:
+        # Mode A : quota FREE = 3/mois
+        if not is_paid and supabase_client:
+            try:
+                from datetime import datetime as _dt, timezone as _tz
+                month_start = _dt.now(_tz.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+                cnt = supabase_client.table("photo_slide_generations").select("id", count="exact").eq("email", email).gte("created_at", month_start).execute()
+                used = cnt.count if cnt.count is not None else len(cnt.data or [])
+                if used >= 3:
+                    return JSONResponse({"ok": False, "reason": "free_quota",
+                                         "message": "3 prompts gratuits/mois atteints. Passe Pro pour l'illimité."}, status_code=402)
+            except Exception:
+                pass
+
+    def _gen():
+        res = carousel.generate_carousel(img or None, mode, style, provider,
+                                         product_name, description, price, currency, niche)
+        if cost > 0:
+            credits_mod.debit(supabase_client, email, tier, cost)
+        try:
+            supabase_client.table("photo_slide_generations").insert({
+                "email": email, "generation_mode": mode, "chosen_style": (res.get("strategy") or {}).get("chosen_style"),
+                "chosen_ai": provider if mode == "images" else None, "product_name": product_name,
+                "niche": niche, "generated_data": res, "credits_used": cost, "payment_method": payment_method,
+            }).execute()
+        except Exception:
+            pass
+        res["credits_used"] = cost
+        res["balance"] = credits_mod.get_balance(supabase_client, email, tier)
+        return res
+
+    return _sse_carousel(_gen)
+
+
+@app.get("/api/carousel/history")
+async def carousel_history(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        r = (supabase_client.table("photo_slide_generations")
+             .select("id,created_at,generation_mode,chosen_style,product_name,generated_data,credits_used")
+             .eq("email", user["email"]).order("created_at", desc=True).limit(30).execute())
+        return {"ok": True, "items": r.data or []}
+    except Exception:
+        return {"ok": True, "items": []}
+
+
+@app.post("/api/carousel/pay")
+async def carousel_pay(request: Request):
+    # Stripe différé (société non créée) → stub.
+    raise HTTPException(status_code=503,
+                        detail="Le paiement sera disponible très bientôt (activation en cours).")
 
 
 if __name__ == "__main__":
