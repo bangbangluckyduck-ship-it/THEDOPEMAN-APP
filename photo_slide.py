@@ -31,10 +31,14 @@ PHOTO_SLIDE_KNOWLEDGE = """Tu es un expert en stratégie de carrousels (« Photo
 Objectif d'un carrousel : maximiser le DWELL TIME (le swipe = signal algorithmique fort → « Pour Toi »),
 inciter aux SAVES (format liste/fiche pratique = reach), et CONVERTIR vers le panier TikTok Shop.
 
-# STRUCTURE UNIVERSELLE « HOOK → VALUE → CTA »
-- SLIDE 1 (HOOK) : image choc ou problème accrocheur, stop-scroll, tension psychologique.
-- SLIDES DU MILIEU (VALUE) : éducation, caractéristiques, réassurance/preuves, avant/après, bénéfices.
-- DERNIÈRE SLIDE (CTA) : appel à l'action vers le panier TikTok Shop, urgence + bénéfice clair.
+# PROCESS DE VENTE OBLIGATOIRE (ordre impératif des slides)
+ACCROCHE → PROBLÈME → SOLUTION → PRODUIT → CTA
+- SLIDE 1 (ACCROCHE) : hook stop-scroll qui SOULÈVE LE PROBLÈME. ⚠️ LE PRODUIT N'APPARAÎT JAMAIS sur la slide 1.
+- PROBLÈME : on enfonce la douleur / la frustration que vit le spectateur.
+- SOLUTION : on présente comment c'est résolu (le produit entre en scène).
+- PRODUIT : mise en valeur du produit (bénéfices, preuves, réassurance).
+- CTA (dernière) : appel à l'action vers le panier jaune TikTok Shop, urgence + bénéfice clair.
+Chaque étape du process doit apparaître dans le plan de slides, dans cet ordre.
 
 # LES 3 STYLES DE SLIDES
 ## « quad_photo » — 4 photos divisées (grille 2x2)
