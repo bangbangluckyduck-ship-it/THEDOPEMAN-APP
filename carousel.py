@@ -73,6 +73,7 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
         "music_suggestions": _music(),
         "save_optimization_tips": plan.get("conseils_saves") or [],
         "_fallback": plan.get("_fallback", False),
+        "_plan_error": plan.get("_plan_error"),
     }
 
     # 2) Mode B : images IA (slides 1-4) + conseils slides 5-7

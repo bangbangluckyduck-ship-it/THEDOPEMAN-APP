@@ -1730,7 +1730,8 @@ async def aiml_models(request: Request, token: Optional[str] = Query(None), filt
 
 @app.get("/api/_admin/image-selftest")
 async def image_selftest(request: Request, token: Optional[str] = Query(None),
-                         provider: str = Query("flux")):
+                         provider: str = Query("flux"), style: str = Query("fond_blanc"),
+                         phase: str = Query("Hook")):
     """Teste la génération d'image (AIML) → valide la clé + l'ID de modèle.
     Auth admin via header OU ?token=."""
     ok_admin = False
@@ -1749,9 +1750,10 @@ async def image_selftest(request: Request, token: Optional[str] = Query(None),
     if not ok_admin:
         raise HTTPException(status_code=403, detail="Accès admin requis.")
 
-    out = {"has_key": image_gen.has_image_key(), "provider": provider,
+    out = {"has_key": image_gen.has_image_key(), "provider": provider, "style": style, "phase": phase,
            "quality": ("prod" if image_gen._is_prod_quality() else "test (FLUX schnell)"),
-           "model": image_gen.model_for(provider, "fond_blanc", "beaute")}
+           "model": image_gen.model_for(provider, style, "beaute"),
+           "edit_model": image_gen.edit_model()}
     if not image_gen.has_image_key():
         out["verdict"] = "❌ AIMLAPI_KEY absente"
         return out
@@ -1759,14 +1761,15 @@ async def image_selftest(request: Request, token: Optional[str] = Query(None),
     try:
         imgs = await asyncio.wait_for(
             loop.run_in_executor(None, lambda: image_gen.generate_slide_images(
-                "Sérum visage premium", "fond_blanc", provider, "beaute", ["Hook"])),
+                "Sérum visage premium", style, provider, "beaute", [phase])),
             timeout=90.0)
         first = imgs[0] if imgs else {}
         out["result"] = first
-        out["verdict"] = "✅ Image générée" if first.get("url") else "⚠️ Pas d'URL (ID modèle à corriger ?)"
+        out["verdict"] = "✅ Image générée" if first.get("url") else "⚠️ Pas d'URL (voir aiml_last_error)"
     except Exception as e:
         out["verdict"] = "❌ Erreur"
         out["error"] = str(e)
+    out["aiml_last_error"] = image_gen.last_error()
     return out
 
 
