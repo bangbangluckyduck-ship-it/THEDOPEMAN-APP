@@ -106,31 +106,41 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
 
     if slide_idx == 1:
         # SLIDE 1 (Hook) : JUSTE la SITUATION du PROBLÈME, zéro produit, zéro texte.
+        # PAS dramatique (visages à bout). Subtil, contextuel, relatable.
         if style == "quad_photo":
-            return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. Each panel "
-                    f"illustrates a different problem, frustration or pain point related to {topic} "
-                    f"that a solution would fix. IMPORTANT: do NOT show any product. People/situations "
-                    f"only. Photoreal, relatable, emotional.{idea}")
+            return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. {sdesc}. Each panel shows "
+                    f"a RELATABLE SITUATION where someone experiences a problem related to {topic} that needs solving. "
+                    f"NOT dramatic faces, NOT distressed. Just natural, everyday situations showing the PROBLEM IN ACTION. "
+                    f"IMPORTANT: do NOT show any product. Photoreal, relatable, subtle, natural.{idea}")
         cartoon = "stylized cartoon/anime" if style == "ia_cartoon" else "photoreal, cinematic"
-        return (f"{_COMMON} A single strong HOOK image showing a relatable PROBLEM / frustration / pain "
-                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll, no text.{idea}")
+        return (f"{_COMMON} A RELATABLE SITUATION where someone experiences a problem related to {topic} that needs solving. "
+                f"Show the PROBLEM IN CONTEXT (not abstract, not dramatic faces). {sdesc}. "
+                f"IMPORTANT: do NOT show any product. {cartoon}, natural, relatable, stop-scroll, no text.{idea}")
 
     # SLIDES 2-4 : le PRODUIT fidèlement reproduit selon l'étape du PROCESS de vente.
     desc = f" ({description})" if description else ""
     ph = phase.lower()
 
     if "solution" in ph:
-        # SLIDE 2 (Solution) : Produit EN SITUATION (en action, résolvant le problème).
-        extra = f"The {prod} is actively being used, solving the problem. Person using it successfully. Realistic, relatable, reassuring."
+        # SLIDE 2 (Solution) : Produit EN SITUATION (EN UTILISATION, pas juste tenu). Fidèle + précis.
+        # Exemple lampe: tenue vers le visage/caméra pour éclairer. Exemple huile: appliquée sur la peau. Pas de collage.
+        extra = f"The {prod} is ACTIVELY BEING USED by a person — not just held, but IN ACTION solving the problem. " \
+                f"Show how it's REALLY USED (placement, application, interaction). Faithfully reproduce {prod} with all details. " \
+                f"Natural integration, no collage effect. {sdesc}. Realistic, relatable, reassuring."
     elif "cta" in ph:
         # SLIDE 4 (CTA) : Produit en action, vibe d'appel à l'action / panier.
-        extra = f"The {prod} ready to buy, in action, inviting. Hero shot, product prominent, CTA-ready mood. Inspiring, action-oriented."
+        extra = f"The {prod} in ACTION, ready-to-buy mood. Hero shot, product centered and prominent. {sdesc}. " \
+                f"Inspiring, action-oriented, CTA-ready. Faithfully reproduce {prod} with all brand details."
     else:
-        # SLIDE 3 (Produit) : Produit seul sur fond blanc, clean, product photography.
-        extra = f"Showcase {prod} alone, clean and premium. Product-centered, highlight key features/benefits visually."
+        # SLIDE 3 (Produit) : Produit seul, RESPECT le style. Clean, product photography.
+        extra = f"Showcase {prod} ALONE, clean and premium. Product-centered, highlight key features/benefits. " \
+                f"{sdesc}. Faithfully reproduce {prod} with all details (logos, text, colors, brand elements). " \
+                f"MUST respect the chosen style ({style or 'default'})."
 
-    # Directive clé pour la fidélité produit.
-    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea} Reproduce faithfully the uploaded product. No text on image.")
+    # Directives clés : fidélité produit + RESPECT STYLE + zéro texte.
+    style_enforcement = f"MANDATORY: Use the EXACT visual style requested: {sdesc}" if style and style != "auto" else ""
+    return (f"{_COMMON} {style_enforcement} Faithfully reproduce the product: {prod}{desc}. {extra}{idea} "
+            f"Reproduce faithfully the uploaded product with all details (colors, logos, text, finish). No collage effect. No text on image.")
 
 
 def provider_credits(provider: str) -> int:
