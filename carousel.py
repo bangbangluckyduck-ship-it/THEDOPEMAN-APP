@@ -85,5 +85,8 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
         result["next_slides_advice"] = _next_slides_advice(product_name, niche)
         result["images_mock"] = all(im.get("mock") for im in images) if images else True
         result["ai_used"] = provider
+        # Diagnostic : si une image a échoué, on remonte la dernière erreur AIML.
+        if any(im.get("mock") for im in (images or [])):
+            result["_image_error"] = image_gen.last_error()
 
     return result
