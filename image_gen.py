@@ -20,18 +20,26 @@ AIML_BASE = "https://api.aimlapi.com/v1"
 # ── Modèles AIML par BESOIN (IDs à confirmer/ajuster dans la doc AIML) ───────────
 # ⬇️ ZONE ÉDITABLE — mapping besoin → meilleur modèle (qualité PROD) ⬇️
 _PROD_MODEL_BY_NEED = {
-    "text":     "ideogram/V_3",          # texte net dans l'image (Quad Photo, overlays)
-    "realism":  "flux-pro/v1.1",         # photoréalisme produit (Fond Blanc, hero shot)
-    "anime":    "flux/dev",              # anime / cartoon / stylisé (IA Cartoon)
-    "artistic": "dall-e-3",              # créatif / artistique
-    "premium":  "imagen-3",              # rendu premium / luxe
+    "text":     "recraft-v3",                  # texte/design net (Quad Photo, overlays)
+    "realism":  "flux-pro/v1.1",               # photoréalisme produit (Fond Blanc, hero shot)
+    "anime":    "flux/dev",                    # anime / cartoon / stylisé (IA Cartoon)
+    "artistic": "dall-e-3",                    # créatif / artistique
+    "premium":  "imagen-4.0-generate-001",     # rendu premium / luxe
 }
 # ⬆️ FIN ZONE ÉDITABLE ⬆️
 
-# 💸 Mode TEST économique : tout sur FLUX schnell (~0,008 €/image) pour valider à
-# moindre coût. Bascule en qualité PROD avec env IMAGE_QUALITY=prod (sans redéploiement).
+# 💸 Mode TEST économique : txt2img « auto » sur FLUX schnell (~0,008 €/image).
+# Bascule qualité PROD via env IMAGE_QUALITY=prod (sans redéploiement).
 _TEST_MODEL = "flux/schnell"
-_PROVIDER_NEED = {"flux": "realism", "ideogram": "text", "dalle3": "artistic", "imagen": "premium"}
+
+# Choix EXPLICITE d'IA (utilise le vrai modèle, même en mode test, pour pouvoir comparer).
+PROVIDER_MODEL = {
+    "flux":       "flux-pro/v1.1",
+    "nanobanana": "google/gemini-2.5-flash-image",
+    "recraft":    "recraft-v3",
+    "dalle3":     "dall-e-3",
+    "imagen":     "imagen-4.0-generate-001",
+}
 
 
 def _is_prod_quality() -> bool:
@@ -48,7 +56,7 @@ def edit_model() -> str:
     """Modèle d'ÉDITION d'image (conserve le produit à partir de la photo uploadée).
     txt2img (schnell) ne peut pas reproduire le produit → on utilise un modèle img2img
     / subject-preserving (FLUX Kontext). Configurable via env IMAGE_EDIT_MODEL."""
-    return os.getenv("IMAGE_EDIT_MODEL", "flux-kontext/pro")
+    return os.getenv("IMAGE_EDIT_MODEL", "google/gemini-2.5-flash-image-edit")
 
 
 # Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
@@ -57,12 +65,13 @@ MODEL_BY_NEED = {k: need_model(k) for k in _PROD_MODEL_BY_NEED}
 # Choix explicites proposés à l'utilisateur (label + coût crédits + prix one-time €).
 # "auto" = routage intelligent (recommandé).
 IMAGE_PROVIDERS = {
-    "auto":     {"label": "Auto (meilleure IA selon l'image)", "credits": 8,  "price": 7.99, "recommended": True, "model": None},
-    "flux":     {"label": "FLUX (réalisme)",   "credits": 10, "price": 9.99,  "model": MODEL_BY_NEED["realism"]},
-    "ideogram": {"label": "Ideogram (texte)",  "credits": 12, "price": 11.99, "model": MODEL_BY_NEED["text"]},
-    "dalle3":   {"label": "DALL-E 3 (créatif)", "credits": 10, "price": 9.99, "model": MODEL_BY_NEED["artistic"]},
-    "imagen":   {"label": "Imagen (premium)",  "credits": 8,  "price": 7.99,  "model": MODEL_BY_NEED["premium"]},
-    "multi":    {"label": "Multi-IA (compare 3)", "credits": 30, "price": 24.99, "model": None},
+    "auto":       {"label": "Auto (meilleure IA)",   "credits": 8,  "price": 7.99, "recommended": True},
+    "nanobanana": {"label": "Nano Banana (fidèle)",  "credits": 8,  "price": 7.99},
+    "flux":       {"label": "FLUX (réalisme)",       "credits": 10, "price": 9.99},
+    "imagen":     {"label": "Imagen (premium)",      "credits": 8,  "price": 7.99},
+    "dalle3":     {"label": "DALL-E 3 (créatif)",    "credits": 10, "price": 9.99},
+    "recraft":    {"label": "Recraft (texte/design)", "credits": 10, "price": 9.99},
+    "multi":      {"label": "Multi-IA (compare 3)",  "credits": 30, "price": 24.99},
 }
 
 # ⬇️ ZONE ÉDITABLE — description des styles (rendu visuel) ⬇️
@@ -81,7 +90,8 @@ _COMMON = "Vertical 9:16 aspect ratio, TikTok Shop carousel slide, large empty a
 
 
 def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name: Optional[str],
-                  description: Optional[str], niche: Optional[str]) -> str:
+                  description: Optional[str], niche: Optional[str], user_idea: Optional[str] = None) -> str:
+    idea = f" Creative direction from user: {user_idea}." if user_idea else ""
     style = (style or "").lower()
     sdesc = STYLE_DESC.get(style, _DEFAULT_STYLE_DESC)
     prod = product_name or "the product"
@@ -93,10 +103,10 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
             return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. Each panel "
                     f"illustrates a different problem, frustration or pain point related to {topic} "
                     f"that a solution would fix. IMPORTANT: do NOT show any product. People/situations "
-                    f"only. Photoreal, relatable, emotional.")
+                    f"only. Photoreal, relatable, emotional.{idea}")
         cartoon = "stylized cartoon/anime" if style == "ia_cartoon" else "photoreal, cinematic"
         return (f"{_COMMON} A single strong HOOK image showing a relatable PROBLEM / frustration / pain "
-                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll.")
+                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll.{idea}")
 
     # SLIDES 2+ : le PRODUIT fidèlement reproduit dans le style choisi.
     desc = f" ({description})" if description else ""
@@ -104,7 +114,7 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
         extra = "Hero shot, product centered and prominent, inviting, call-to-action vibe."
     else:
         extra = "Product clearly visible and faithfully rendered, in context."
-    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}")
+    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea}")
 
 
 def provider_credits(provider: str) -> int:
@@ -137,10 +147,9 @@ def pick_need(style: Optional[str], niche: Optional[str], phase: Optional[str] =
 def model_for(provider: str, style: Optional[str], niche: Optional[str], phase: Optional[str] = None) -> str:
     """Modèle AIML à utiliser : routage intelligent en mode auto, sinon le choix explicite.
     En mode test (IMAGE_QUALITY != prod), tout est routé sur FLUX schnell (économie)."""
-    if provider in (None, "", "auto"):
-        need = pick_need(style, niche, phase)
-    else:
-        need = _PROVIDER_NEED.get(provider, "realism")
+    if provider and provider != "auto" and provider in PROVIDER_MODEL:
+        return PROVIDER_MODEL[provider]      # choix explicite → vrai modèle (même en test)
+    need = pick_need(style, niche, phase)
     return need_model(need)
 
 
@@ -202,7 +211,8 @@ def _mock_image(phase: str, idx: int, need: str) -> dict:
 
 def generate_slide_images(product_name: str, style: str, provider: str = "auto",
                           niche: Optional[str] = None, phases: Optional[list] = None,
-                          description: Optional[str] = None, product_image_b64: Optional[str] = None) -> list:
+                          description: Optional[str] = None, product_image_b64: Optional[str] = None,
+                          user_idea: Optional[str] = None) -> list:
     """Génère les 4 slides avec règles impératives :
        - slide 1 (Hook) : aucun produit → problème (+ Quad = grille 2x2).
        - slides 2+ : produit fidèle (référence img2img si dispo).
@@ -215,7 +225,7 @@ def generate_slide_images(product_name: str, style: str, provider: str = "auto",
     for i, phase in enumerate(phases, start=1):
         need = pick_need(style, niche, phase)
         model = model_for(provider, style, niche, phase)
-        prompt = _build_prompt(i, phase, style, product_name, description, niche)
+        prompt = _build_prompt(i, phase, style, product_name, description, niche, user_idea)
         if not has_image_key():
             images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue

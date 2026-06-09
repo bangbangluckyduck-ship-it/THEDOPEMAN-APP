@@ -70,6 +70,9 @@
         <select id="cc-niche"><option value="">—</option><option>Cosmétique/Beauté</option><option>Santé/Bien-être</option><option>Mode/Vêtements</option><option>Maison/Déco</option><option>Tech/Gadgets</option><option>Fitness/Sport</option><option>Cuisine/Alimentation</option><option>Autre</option></select>
       </div>
     </div>
+    <label class="fld">💡 Ton idée (optionnel) — l'IA optimise pour TikTok Shop</label>
+    <input id="cc-idea" maxlength="200" placeholder="Ex: ambiance matinale, avant/après, ton humoristique…">
+
     <label class="fld">Style (optionnel — l'IA recommande sinon)</label>
     <div class="pills" id="cc-styles"></div>
 
@@ -147,6 +150,7 @@ async function ccGenerate(){
   fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider',CC.provider||'auto');
   fd.append('product_name',name); fd.append('description',document.getElementById('cc-desc').value);
   fd.append('price',document.getElementById('cc-price').value); fd.append('niche',document.getElementById('cc-niche').value);
+  fd.append('user_idea',document.getElementById('cc-idea').value);
   if(CC.img) fd.append('image',CC.img);
   fd.append('cookie_id',ccCookie());
   const url = token() ? '/api/carousel/generate' : '/api/carousel/anon/generate';
