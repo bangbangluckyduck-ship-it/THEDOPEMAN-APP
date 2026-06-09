@@ -124,7 +124,8 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
         extra = "SOLUTION slide: present the product as the answer to the problem, reassuring."
     else:  # Produit
         extra = "PRODUCT slide: showcase the product, highlight its key benefit/feature."
-    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea}")
+    # Directive clé pour la fidélité produit (testé sur Gemini/ChatGPT — marche)
+    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea} Reproduce faithfully the uploaded product.")
 
 
 def provider_credits(provider: str) -> int:
