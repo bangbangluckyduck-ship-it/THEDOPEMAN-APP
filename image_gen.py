@@ -58,12 +58,46 @@ IMAGE_PROVIDERS = {
     "multi":    {"label": "Multi-IA (compare 3)", "credits": 30, "price": 24.99, "model": None},
 }
 
-# ⬇️ ZONE ÉDITABLE — prompt image (style des slides gagnants) ⬇️
-PHOTO_SLIDE_IMG_PROMPT = (
-    "Vertical 9:16 TikTok Shop carousel slide, {style}, premium e-commerce look, "
-    "clean composition, room for text overlay, high detail. Product: {product}. Phase: {phase}."
-)
+# ⬇️ ZONE ÉDITABLE — description des styles (rendu visuel) ⬇️
+STYLE_DESC = {
+    "fond_blanc": "clean minimalist studio shot on a pure white seamless background, soft shadows, premium e-commerce product photography, sharp focus",
+    "quad_photo": "clean bright product photography, high detail",
+    "ia_cartoon": "stylized 3D cartoon / anime illustration, vibrant colors, Pixar-like, expressive",
+}
+_DEFAULT_STYLE_DESC = "clean professional product photography, premium look"
 # ⬆️ FIN ZONE ÉDITABLE ⬆️
+
+# ── RÈGLES IMPÉRATIVES de génération (par slide) ────────────────────────────────
+# Slide 1 (Hook) : le PRODUIT N'APPARAÎT JAMAIS → visuel d'un PROBLÈME que le produit
+#   résout (+ Quad = grille 2x2 de 4 problèmes/douleurs). Slides 2+ : produit FIDÈLE.
+_COMMON = "Vertical 9:16 aspect ratio, TikTok Shop carousel slide, large empty area for bold text overlay, no watermark, no logo."
+
+
+def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name: Optional[str],
+                  description: Optional[str], niche: Optional[str]) -> str:
+    style = (style or "").lower()
+    sdesc = STYLE_DESC.get(style, _DEFAULT_STYLE_DESC)
+    prod = product_name or "the product"
+    topic = niche or "everyday life"
+
+    if slide_idx == 1:
+        # HOOK : aucun produit, on montre un PROBLÈME / une douleur.
+        if style == "quad_photo":
+            return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. Each panel "
+                    f"illustrates a different problem, frustration or pain point related to {topic} "
+                    f"that a solution would fix. IMPORTANT: do NOT show any product. People/situations "
+                    f"only. Photoreal, relatable, emotional.")
+        cartoon = "stylized cartoon/anime" if style == "ia_cartoon" else "photoreal, cinematic"
+        return (f"{_COMMON} A single strong HOOK image showing a relatable PROBLEM / frustration / pain "
+                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll.")
+
+    # SLIDES 2+ : le PRODUIT fidèlement reproduit dans le style choisi.
+    desc = f" ({description})" if description else ""
+    if phase.lower() == "cta":
+        extra = "Hero shot, product centered and prominent, inviting, call-to-action vibe."
+    else:
+        extra = "Product clearly visible and faithfully rendered, in context."
+    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}")
 
 
 def provider_credits(provider: str) -> int:
@@ -103,18 +137,20 @@ def model_for(provider: str, style: Optional[str], niche: Optional[str], phase: 
     return need_model(need)
 
 
-def _aiml_generate(model: str, prompt: str, timeout: float = 90.0) -> Optional[str]:
-    """Appel AIML API (compatible OpenAI images). Renvoie l'URL (ou None)."""
+def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
+                   timeout: float = 90.0) -> Optional[str]:
+    """Appel AIML API (compatible OpenAI images). image_ref = data URI produit (img2img,
+    pour fidélité). Si l'appel échoue avec la réf, retente en text-only."""
     key = os.getenv("AIMLAPI_KEY")
     if not key or not model:
         return None
-    try:
-        with httpx.Client(timeout=timeout) as c:
-            r = c.post(
-                f"{AIML_BASE}/images/generations",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": model, "prompt": prompt, "size": "1024x1792"},  # ~9:16
-            )
+
+    def _call(payload):
+        try:
+            with httpx.Client(timeout=timeout) as c:
+                r = c.post(f"{AIML_BASE}/images/generations",
+                           headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                           json=payload)
             if not r.is_success:
                 print(f"AIML {r.status_code}: {r.text[:200]}")
                 return None
@@ -126,9 +162,17 @@ def _aiml_generate(model: str, prompt: str, timeout: float = 90.0) -> Optional[s
                     return first.get("url") or first.get("image_url") or first.get("b64_json")
                 if isinstance(first, str):
                     return first
-    except Exception as e:
-        print(f"AIML generate error: {e}")
-    return None
+        except Exception as e:
+            print(f"AIML generate error: {e}")
+        return None
+
+    base = {"model": model, "prompt": prompt, "size": "1024x1792"}
+    if image_ref:
+        # Tentative img2img (référence produit) → fallback text-only si non supporté.
+        url = _call({**base, "image_url": image_ref})
+        if url:
+            return url
+    return _call(base)
 
 
 def _mock_image(phase: str, idx: int, need: str) -> dict:
@@ -137,17 +181,27 @@ def _mock_image(phase: str, idx: int, need: str) -> dict:
 
 
 def generate_slide_images(product_name: str, style: str, provider: str = "auto",
-                          niche: Optional[str] = None, phases: Optional[list] = None) -> list:
-    """Génère les 4 slides (Hook/Value/Value/CTA) avec routage intelligent. Mock si pas de clé."""
+                          niche: Optional[str] = None, phases: Optional[list] = None,
+                          description: Optional[str] = None, product_image_b64: Optional[str] = None) -> list:
+    """Génère les 4 slides avec règles impératives :
+       - slide 1 (Hook) : aucun produit → problème (+ Quad = grille 2x2).
+       - slides 2+ : produit fidèle (référence img2img si dispo).
+    Routage intelligent du modèle. Mock si pas de clé."""
     phases = phases or ["Hook", "Value", "Value", "CTA"]
+    image_ref = None
+    if product_image_b64:
+        image_ref = "data:image/jpeg;base64," + product_image_b64
     images = []
     for i, phase in enumerate(phases, start=1):
         need = pick_need(style, niche, phase)
         model = model_for(provider, style, niche, phase)
+        prompt = _build_prompt(i, phase, style, product_name, description, niche)
         if not has_image_key():
-            images.append(_mock_image(phase, i, need))
+            images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue
-        prompt = PHOTO_SLIDE_IMG_PROMPT.format(style=style or "clean studio", product=product_name or "the product", phase=phase)
-        url = _aiml_generate(model, prompt)
-        images.append({"url": url, "mock": url is None, "phase": phase, "slide": i, "model": model, "need": need})
+        # Slide 1 = pas de produit → on n'envoie PAS la référence. Slides 2+ → référence.
+        ref = image_ref if i >= 2 else None
+        url = _aiml_generate(model, prompt, image_ref=ref)
+        images.append({"url": url, "mock": url is None, "phase": phase, "slide": i,
+                       "model": model, "need": need, "no_product": i == 1})
     return images
