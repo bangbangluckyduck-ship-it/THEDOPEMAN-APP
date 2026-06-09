@@ -2020,6 +2020,7 @@ async def carousel_anon_generate(
     currency: str = Form("EUR"),
     niche: Optional[str] = Form(None),
     style: Optional[str] = Form(None),
+    user_idea: Optional[str] = Form(None),
     cookie_id: Optional[str] = Form(None),
 ):
     """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
@@ -2049,7 +2050,7 @@ async def carousel_anon_generate(
 
     def _gen():
         res = carousel.generate_carousel(img or None, "prompts", style, "auto",
-                                         product_name, description, price, currency, niche)
+                                         product_name, description, price, currency, niche, user_idea)
         try:
             supabase_client.table("anonymous_generations").insert({
                 "ip_hash": ip, "cookie_id": cookie_id, "generation_mode": "prompts",
@@ -2075,6 +2076,7 @@ async def carousel_generate(
     currency: str = Form("EUR"),
     niche: Optional[str] = Form(None),
     style: Optional[str] = Form(None),
+    user_idea: Optional[str] = Form(None),
 ):
     """Utilisateur connecté. Mode A : gratuit 3/mois (FREE) sinon illimité. Mode B :
     débite les crédits (coût selon l'IA)."""
@@ -2116,7 +2118,7 @@ async def carousel_generate(
 
     def _gen():
         res = carousel.generate_carousel(img or None, mode, style, provider,
-                                         product_name, description, price, currency, niche)
+                                         product_name, description, price, currency, niche, user_idea)
         if cost > 0:
             credits_mod.debit(supabase_client, email, tier, cost)
         try:
