@@ -61,9 +61,9 @@ def need_model(need: str) -> str:
 
 def edit_model() -> str:
     """Modèle d'IMAGE-TO-IMAGE (img2img) pour REPRODUIRE FIDÈLEMENT le produit uploadé.
-    Meilleur choix : flux/kontext-pro/image-to-image (photoréalisme + fidélité).
+    Meilleur choix : blackforestlabs/flux-2-pro-edit (FLUX.2 Pro Edit, meilleur 2026).
     Configurable via env IMAGE_EDIT_MODEL."""
-    return os.getenv("IMAGE_EDIT_MODEL", "flux/kontext-pro/image-to-image")
+    return os.getenv("IMAGE_EDIT_MODEL", "blackforestlabs/flux-2-pro-edit")
 
 
 # Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
@@ -199,11 +199,12 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
             print(f"AIML generate error: {e}")
         return None
 
-    # Payload MINIMAL : taille laissée au modèle (vertical 9:16 demandé dans le prompt).
+    # Payload MINIMAL : vertical 9:16 demandé dans le prompt.
     base = {"model": model, "prompt": prompt}
     if image_ref:
-        # Image-to-Image (img2img) : passe l'image source en base64 au champ standard "image".
-        payload = {**base, "image": image_ref}
+        # Image-to-Image (img2img) : passe l'image source (base64 ou URL) au champ "image_urls" (ARRAY).
+        # AIML accepte data:image/jpeg;base64,... ou URLs publiques.
+        payload = {**base, "image_urls": [image_ref], "image_size": "landscape_16_9"}
         url = _call(payload)
         if url:
             return url
