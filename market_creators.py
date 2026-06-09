@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from datetime import date, timedelta
 from typing import Any, Optional
@@ -372,6 +373,58 @@ async def get_product_detail(product_id: str, region: str = "US") -> Optional[di
         "seller": seller.get("name") or "",
         "url": f"https://www.tiktok.com/view/product/{pid}",
     }
+
+
+# ── Extraction product_id depuis une URL TikTok Shop + fiche officielle ──────────
+_PRODUCT_ID_RE = re.compile(r"/product/(\d{6,})")
+_LONG_DIGITS_RE = re.compile(r"(\d{12,})")
+
+
+def extract_product_id(url: str) -> Optional[str]:
+    """Extrait le product_id numérique d'une URL TikTok Shop.
+    Gère .../view/product/<id>, shop.tiktok.com/..., ou un long id numérique en repli."""
+    if not url:
+        return None
+    m = _PRODUCT_ID_RE.search(url)
+    if m:
+        return m.group(1)
+    m = _LONG_DIGITS_RE.search(url)
+    return m.group(1) if m else None
+
+
+async def _resolve_short_url(url: str) -> str:
+    """Suit les redirections des liens courts TikTok (vt/vm.tiktok.com) → URL finale."""
+    try:
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as c:
+            r = await c.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            return str(r.url)
+    except Exception:
+        return url
+
+
+async def get_product_detail_from_url(url: str, regions: Optional[list] = None) -> Optional[dict]:
+    """URL TikTok Shop → fiche produit OFFICIELLE (nom, image HD, prix, catégorie).
+    La région n'est pas dans l'URL → on essaie plusieurs régions (CAROUSEL_PRODUCT_REGIONS)."""
+    if not url:
+        return None
+    pid = extract_product_id(url)
+    if not pid:
+        # Lien court → suivre la redirection puis réessayer.
+        pid = extract_product_id(await _resolve_short_url(url))
+    if not pid:
+        return None
+    if regions is None:
+        regions = [r.strip().upper() for r in
+                   os.getenv("CAROUSEL_PRODUCT_REGIONS", "US,GB,FR").split(",") if r.strip()]
+    for region in regions:
+        try:
+            d = await get_product_detail(pid, region)
+        except Exception:
+            d = None
+        if d and d.get("name"):
+            d["_region"] = region
+            return d
+    return None
 
 
 def _clean_pc_creator(r: dict) -> dict:
