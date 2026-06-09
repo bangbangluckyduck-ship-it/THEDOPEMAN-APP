@@ -114,7 +114,7 @@ const STYLES=[['fond_blanc','Fond Blanc'],['quad_photo','Quad Photo'],['ia_carto
 document.getElementById('cc-styles').innerHTML = STYLES.map(([v,l])=>`<span class="pill" data-s="${v}" onclick="ccPickStyle('${v}')">${l}</span>`).join('');
 function ccPickStyle(v){ CC.style=(CC.style===v?'':v); document.querySelectorAll('#cc-styles .pill').forEach(p=>p.classList.toggle('on',p.dataset.s===CC.style)); }
 
-document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); document.getElementById('cc-ai').style.display = CC.mode==='images'?'block':'none'; renderAI(); });
+document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); /* cc-ai sélecteur masqué en dur — provider forcé à 'flux' */ renderAI(); });
 function renderAI(){
   const box=document.getElementById('cc-ai-pills'); if(!box||!CC.providers)return;
   box.innerHTML=Object.entries(CC.providers).map(([k,p])=>`<span class="pill ${k===CC.provider?'on':''}" data-p="${k}" onclick="ccPickAI('${k}')">${esc(p.label||k)}</span>`).join('');
