@@ -17,6 +17,13 @@ import httpx
 
 AIML_BASE = "https://api.aimlapi.com/v1"
 
+# Dernière erreur AIML rencontrée (pour diagnostic via /api/_admin/image-selftest).
+_LAST_ERROR: Optional[str] = None
+
+
+def last_error() -> Optional[str]:
+    return _LAST_ERROR
+
 # ── Modèles AIML par BESOIN (IDs à confirmer/ajuster dans la doc AIML) ───────────
 # ⬇️ ZONE ÉDITABLE — mapping besoin → meilleur modèle (qualité PROD) ⬇️
 _PROD_MODEL_BY_NEED = {
@@ -164,14 +171,18 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
     if not key or not model:
         return None
 
+    global _LAST_ERROR
+
     def _call(payload):
+        global _LAST_ERROR
         try:
             with httpx.Client(timeout=timeout) as c:
                 r = c.post(f"{AIML_BASE}/images/generations",
                            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                            json=payload)
             if not r.is_success:
-                print(f"AIML {r.status_code}: {r.text[:200]}")
+                _LAST_ERROR = f"{r.status_code} (model={payload.get('model')}): {r.text[:300]}"
+                print(f"AIML {_LAST_ERROR}")
                 return None
             data = r.json()
             items = data.get("data") or data.get("images") or []
@@ -181,16 +192,22 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
                     return first.get("url") or first.get("image_url") or first.get("b64_json")
                 if isinstance(first, str):
                     return first
+            _LAST_ERROR = f"réponse sans image (model={payload.get('model')}): {str(data)[:200]}"
         except Exception as e:
+            _LAST_ERROR = f"exception (model={payload.get('model')}): {e}"
             print(f"AIML generate error: {e}")
         return None
 
-    base = {"model": model, "prompt": prompt, "size": "1024x1792"}
+    # Payload MINIMAL (la taille varie selon les modèles AIML → on laisse le défaut
+    # pour éviter les refus). Vertical 9:16 demandé dans le prompt.
+    base = {"model": model, "prompt": prompt}
     if image_ref:
-        # Tentative img2img (référence produit) → fallback text-only si non supporté.
-        url = _call({**base, "image_url": image_ref})
-        if url:
-            return url
+        # Édition / img2img : on teste plusieurs noms de champ d'image selon le modèle.
+        for field in ("image_url", "image_urls", "image", "reference_image_url"):
+            payload = {**base, field: ([image_ref] if field == "image_urls" else image_ref)}
+            url = _call(payload)
+            if url:
+                return url
     return _call(base)
 
 

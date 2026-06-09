@@ -150,7 +150,7 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
         return data
     except Exception as e:
         print(f"photo_slide strategy error: {e}")
-        return _mock_strategy()
+        return _mock_strategy(product_name, str(e))
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -176,7 +176,7 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
         return _extract_json(raw)
     except Exception as e:
         print(f"photo_slide content error: {e}")
-        return _mock_content()
+        return _mock_content(product_name)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -194,41 +194,49 @@ def generate_photo_slide(image_b64: str, product_name: Optional[str] = None,
 # ════════════════════════════════════════════════════════════════════════════
 # Mocks (filets de sécurité si l'IA échoue — l'UI ne casse jamais)
 # ════════════════════════════════════════════════════════════════════════════
-def _mock_strategy() -> dict:
+def _mock_strategy(product_name: Optional[str] = None, err: Optional[str] = None) -> dict:
+    """Filet de sécurité GÉNÉRIQUE (jamais spécifique à un produit) si l'IA échoue.
+    On remonte l'erreur (_plan_error) pour le diagnostic au lieu d'inventer un faux titre."""
+    p = (product_name or "ce produit").strip()
     return {
         "_fallback": True,
+        "_plan_error": err,
         "type_slide": {"style": "fond_blanc", "label": "Fond Blanc (minimaliste premium)",
                        "justification": "Style épuré idéal pour lister des bénéfices et générer des saves."},
-        "hook": "3 signes que ta routine est foirée (et la solution)",
-        "titre_carrousel": "3 signes que ta routine cheveux est foirée (et la solution)",
-        "titre_variantes": ["Pourquoi tes cheveux cassent (personne ne te le dit)",
-                            "Le secret cosméto que tout le monde ignore"],
-        "detected_niche": "Cosmétique",
+        "hook": f"Le problème que {p} résout (et que personne ne te dit)",
+        "titre_carrousel": f"3 raisons d'essayer {p}",
+        "titre_variantes": [f"Pourquoi {p} fait le buzz", f"{p} : avant / après"],
+        "detected_niche": None,
     }
 
 
-def _mock_content() -> dict:
+def _mock_content(product_name: Optional[str] = None) -> dict:
+    p = (product_name or "ce produit").strip()
     return {
         "slides": [
-            {"numero": 1, "type": "hook", "texte": "3 signes que tes cheveux te lâchent",
-             "sous_texte": "(et personne ne t'a expliqué pourquoi)",
-             "photo_a_prendre": "Produit centré sur fond blanc impeccable, texte en haut, typo soignée.",
+            {"numero": 1, "type": "hook", "texte": "Tu galères encore avec ça ?",
+             "sous_texte": "(le problème que personne ne règle vraiment)",
+             "photo_a_prendre": "Visuel d'accroche qui illustre LE problème — sans montrer le produit.",
              "emotion": "Curiosité + tension", "position_texte": "top"},
-            {"numero": 2, "type": "value", "texte": "Signe #1 : casse à la racine",
-             "sous_texte": "Manque d'hydratation profonde",
-             "photo_a_prendre": "Gros plan produit, ingrédients clés mis en avant.",
+            {"numero": 2, "type": "value", "texte": "La vraie cause",
+             "sous_texte": "Ce que la plupart des gens ratent",
+             "photo_a_prendre": "Mise en situation du problème, ambiance authentique.",
              "emotion": "Reconnaissance du problème", "position_texte": "center"},
-            {"numero": 3, "type": "cta", "texte": "La solution ? Ce sérum.",
-             "sous_texte": "Lien dans le panier jaune 🛒",
-             "photo_a_prendre": "Produit en majesté + prix visible, ambiance premium.",
+            {"numero": 3, "type": "solution", "texte": f"La solution : {p}",
+             "sous_texte": "Simple, rapide, efficace",
+             "photo_a_prendre": f"{p} mis en valeur, fidèle au produit réel, fond propre.",
+             "emotion": "Soulagement", "position_texte": "center"},
+            {"numero": 4, "type": "cta", "texte": "Dispo dans le panier jaune 🛒",
+             "sous_texte": "Stock limité",
+             "photo_a_prendre": f"{p} bien présenté + prix visible, flèche vers le panier.",
              "emotion": "Action immédiate", "position_texte": "bottom"},
         ],
         "cta": "Disponible maintenant dans le panier jaune 🛒 — stock limité.",
-        "description_optimisee": ("Tu cherches LE produit qui change tout ?\n\n3 signes que ta routine doit "
-                                  "changer 👇\n✨ Casse à la racine\n✨ Cuir chevelu irrité\n✨ Cheveux ternes\n\n"
+        "description_optimisee": (f"Tu cherches LE produit qui change tout ?\n\nVoici pourquoi {p} fait le buzz 👇\n"
+                                  "✨ Règle un vrai problème\n✨ Résultat rapide\n✨ Simple à utiliser\n\n"
                                   "La solution dans le panier jaune 🛒"),
-        "hashtags": ["tiktokshop", "beautytips", "cheveux", "routinecheveux", "soincapillaire", "cosmetique"],
+        "hashtags": ["tiktokshop", "tiktokmademebuyit", "pourtoi", "fyp", "bonplan", "shopping"],
         "conseils_saves": ["Format liste = forte probabilité de sauvegarde.",
-                           "Style fond blanc = épuré, facile à relire.",
+                           "Slide 1 = problème (jamais le produit) pour maximiser le stop-scroll.",
                            "Numérotation claire incite à revenir au carrousel."],
     }
