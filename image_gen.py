@@ -108,12 +108,15 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
         return (f"{_COMMON} A single strong HOOK image showing a relatable PROBLEM / frustration / pain "
                 f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll.{idea}")
 
-    # SLIDES 2+ : le PRODUIT fidèlement reproduit dans le style choisi.
+    # SLIDES 2+ : le PRODUIT fidèlement reproduit, selon l'étape du PROCESS de vente.
     desc = f" ({description})" if description else ""
-    if phase.lower() == "cta":
-        extra = "Hero shot, product centered and prominent, inviting, call-to-action vibe."
-    else:
-        extra = "Product clearly visible and faithfully rendered, in context."
+    ph = phase.lower()
+    if "cta" in ph:
+        extra = "CTA slide: hero shot, product centered and prominent, inviting, points toward the cart."
+    elif "solution" in ph:
+        extra = "SOLUTION slide: present the product as the answer to the problem, reassuring."
+    else:  # Produit
+        extra = "PRODUCT slide: showcase the product, highlight its key benefit/feature."
     return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea}")
 
 
@@ -217,7 +220,8 @@ def generate_slide_images(product_name: str, style: str, provider: str = "auto",
        - slide 1 (Hook) : aucun produit → problème (+ Quad = grille 2x2).
        - slides 2+ : produit fidèle (référence img2img si dispo).
     Routage intelligent du modèle. Mock si pas de clé."""
-    phases = phases or ["Hook", "Value", "Value", "CTA"]
+    # 4 slides générées = process de vente : Accroche(sans produit) → Solution → Produit → CTA.
+    phases = phases or ["Accroche", "Solution", "Produit", "CTA"]
     image_ref = None
     if product_image_b64:
         image_ref = "data:image/jpeg;base64," + product_image_b64
