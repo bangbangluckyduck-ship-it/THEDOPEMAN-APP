@@ -1974,6 +1974,30 @@ async def video_prompt_generate(
 # ════════════════════════════════════════════════════════════════════════════
 # 📸 CAROUSEL CREATOR (Photo Slide Coach v4) — homepage + anonyme + pay-as-you-go
 # ════════════════════════════════════════════════════════════════════════════
+async def _enrich_from_product_url(product_url: Optional[str], product_name: Optional[str],
+                                   niche: Optional[str], price: Optional[str]):
+    """Lien TikTok Shop → fiche OFFICIELLE (KeyAPI) : nom, catégorie, prix, image HD.
+    Le nom officiel prime (identification fiable). Retourne
+    (product_name, niche, price, product_image_url). Best-effort : silencieux si échec."""
+    product_image_url = None
+    if not product_url:
+        return product_name, niche, price, product_image_url
+    try:
+        detail = await market_creators.get_product_detail_from_url(product_url)
+    except Exception:
+        detail = None
+    if detail:
+        if detail.get("name"):
+            product_name = detail["name"]                 # nom officiel = identification fiable
+        if not niche and detail.get("category"):
+            niche = detail["category"]
+        if not price and detail.get("price"):
+            price = f'{detail["price"]}{detail.get("currency") or ""}'
+        if detail.get("image"):
+            product_image_url = detail["image"]           # image HD officielle → img2img + pixtral
+    return product_name, niche, price, product_image_url
+
+
 def _sse_carousel(gen_callable):
     """Wrapper SSE commun (keepalive pendant la génération)."""
     async def stream():
@@ -2012,6 +2036,40 @@ async def carousel_providers():
     return {"ok": True, "providers": image_gen.IMAGE_PROVIDERS}
 
 
+@app.get("/api/_admin/product-detail-selftest")
+async def product_detail_selftest(request: Request, token: Optional[str] = Query(None),
+                                  url: str = Query(...)):
+    """Valide l'extraction product_id + KeyAPI detail_new_app depuis une vraie URL TikTok Shop.
+    Auth admin via header OU ?token=. Usage: ?url=https://www.tiktok.com/view/product/...&token=..."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    out = {"url": url, "product_id": market_creators.extract_product_id(url)}
+    try:
+        detail = await market_creators.get_product_detail_from_url(url)
+        out["detail"] = detail
+        out["verdict"] = ("✅ Fiche produit OK (nom + image officielle)" if detail and detail.get("image")
+                          else "⚠️ product_id trouvé mais pas de fiche (région/endpoint ?)" if out["product_id"]
+                          else "❌ Aucun product_id extrait de l'URL")
+    except Exception as e:
+        out["error"] = str(e)
+        out["verdict"] = "❌ Erreur KeyAPI"
+    return out
+
+
 @app.post("/api/carousel/anon/generate")
 async def carousel_anon_generate(
     request: Request,
@@ -2024,6 +2082,7 @@ async def carousel_anon_generate(
     niche: Optional[str] = Form(None),
     style: Optional[str] = Form(None),
     user_idea: Optional[str] = Form(None),
+    product_url: Optional[str] = Form(None),
     cookie_id: Optional[str] = Form(None),
 ):
     """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
@@ -2047,13 +2106,18 @@ async def carousel_anon_generate(
         except Exception:
             pass
 
+    # Enrichissement via lien produit TikTok Shop (KeyAPI) : identification fiable.
+    product_name, niche, price, product_image_url = await _enrich_from_product_url(
+        product_url, product_name, niche, price)
+
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
         img = img.split(",", 1)[1]
 
     def _gen():
         res = carousel.generate_carousel(img or None, "prompts", style, "flux",
-                                         product_name, description, price, currency, niche, user_idea)
+                                         product_name, description, price, currency, niche, user_idea,
+                                         product_image_url=product_image_url)
         try:
             supabase_client.table("anonymous_generations").insert({
                 "ip_hash": ip, "cookie_id": cookie_id, "generation_mode": "prompts",
@@ -2080,6 +2144,7 @@ async def carousel_generate(
     niche: Optional[str] = Form(None),
     style: Optional[str] = Form(None),
     user_idea: Optional[str] = Form(None),
+    product_url: Optional[str] = Form(None),
 ):
     """Utilisateur connecté. Mode A : gratuit 3/mois (FREE) sinon illimité. Mode B :
     débite les crédits (coût selon l'IA)."""
@@ -2095,6 +2160,10 @@ async def carousel_generate(
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
         img = img.split(",", 1)[1]
+
+    # Enrichissement via lien produit TikTok Shop (KeyAPI) : identification fiable + image officielle.
+    product_name, niche, price, product_image_url = await _enrich_from_product_url(
+        product_url, product_name, niche, price)
 
     cost = 0
     payment_method = "free"
@@ -2121,7 +2190,8 @@ async def carousel_generate(
 
     def _gen():
         res = carousel.generate_carousel(img or None, mode, style, "flux",
-                                         product_name, description, price, currency, niche, user_idea)
+                                         product_name, description, price, currency, niche, user_idea,
+                                         product_image_url=product_image_url)
         if cost > 0:
             credits_mod.debit(supabase_client, email, tier, cost)
         try:

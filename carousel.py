@@ -41,16 +41,19 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
                       style: Optional[str] = None, provider: str = "auto",
                       product_name: Optional[str] = None, description: Optional[str] = None,
                       price: Optional[str] = None, currency: str = "EUR",
-                      niche: Optional[str] = None, user_idea: Optional[str] = None) -> dict:
+                      niche: Optional[str] = None, user_idea: Optional[str] = None,
+                      product_image_url: Optional[str] = None) -> dict:
     """Génère le carrousel complet (Mode A ou B). user_idea = idée libre de l'utilisateur
-    (intégrée au plan/visuels) ; l'optimisation TikTok Shop reste notre valeur ajoutée."""
+    (intégrée au plan/visuels) ; l'optimisation TikTok Shop reste notre valeur ajoutée.
+    product_image_url = image OFFICIELLE TikTok Shop (KeyAPI) → identification + fidélité."""
     # 1) Plan stratégique + textes (réutilise Photo Slide / pixtral)
     desc_plan = description or ""
     if user_idea:
         desc_plan = (desc_plan + f" | Idée de l'utilisateur à intégrer : {user_idea}").strip(" |")
     plan = photo_slide.generate_photo_slide(
         image_b64, product_name, price, currency, desc_plan, niche,
-        preferred_style=style if style and style != "auto" else None)
+        preferred_style=style if style and style != "auto" else None,
+        image_url=product_image_url)
 
     ts = plan.get("type_slide") or {}
     chosen_style = ts.get("style") or "fond_blanc"
@@ -80,7 +83,8 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
     if mode == "images":
         images = image_gen.generate_slide_images(
             product_name or "", chosen_style, provider, niche,
-            description=description, product_image_b64=image_b64, user_idea=user_idea)
+            description=description, product_image_b64=image_b64, user_idea=user_idea,
+            product_image_url=product_image_url)
         result["ai_generated_images"] = images
         result["next_slides_advice"] = _next_slides_advice(product_name, niche)
         result["images_mock"] = all(im.get("mock") for im in images) if images else True

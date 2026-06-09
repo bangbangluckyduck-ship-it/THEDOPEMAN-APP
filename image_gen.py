@@ -59,10 +59,33 @@ def need_model(need: str) -> str:
     return _PROD_MODEL_BY_NEED.get(need, _PROD_MODEL_BY_NEED["realism"])
 
 
-def edit_model() -> str:
-    """Modèle d'IMAGE-TO-IMAGE (img2img) pour REPRODUIRE FIDÈLEMENT le produit uploadé.
-    Meilleur choix : blackforestlabs/flux-2-pro-edit (FLUX.2 Pro Edit, meilleur 2026).
-    Configurable via env IMAGE_EDIT_MODEL."""
+def _style_key(style: Optional[str]) -> str:
+    """Normalise le style choisi vers une des 3 familles : ia_cartoon / quad_photo / fond_blanc."""
+    s = (style or "").lower()
+    if any(k in s for k in ("cartoon", "anime", "illustration", "dessin")):
+        return "ia_cartoon"
+    if "quad" in s:
+        return "quad_photo"
+    return "fond_blanc"
+
+
+def txt2img_model(style: Optional[str] = None) -> str:
+    """Modèle TEXT-TO-IMAGE (slide 1, sans produit) ROUTÉ PAR STYLE.
+    - Cartoon/anime → Nano Banana (Gemini Flash Image) : fait du vrai cartoon.
+    - Sinon (fond blanc / quad) → FLUX photoréaliste.
+    FLUX refuse le cartoon → on route ailleurs pour le style cartoon."""
+    if _style_key(style) == "ia_cartoon":
+        return os.getenv("IMAGE_CARTOON_MODEL", "google/gemini-2.5-flash-image")
+    return os.getenv("IMAGE_REALISM_MODEL", "flux-pro/v1.1")
+
+
+def edit_model(style: Optional[str] = None) -> str:
+    """Modèle d'IMAGE-TO-IMAGE (img2img) ROUTÉ PAR STYLE — reproduit fidèlement le produit.
+    - Cartoon/anime → Nano Banana Edit (Gemini Flash Image Edit) : référence + style cartoon.
+    - Sinon (fond blanc / quad) → FLUX.2 Pro Edit (photoréalisme + fidélité, meilleur 2026).
+    Configurable via env IMAGE_CARTOON_EDIT_MODEL / IMAGE_EDIT_MODEL."""
+    if _style_key(style) == "ia_cartoon":
+        return os.getenv("IMAGE_CARTOON_EDIT_MODEL", "google/gemini-2.5-flash-image-edit")
     return os.getenv("IMAGE_EDIT_MODEL", "blackforestlabs/flux-2-pro-edit")
 
 
@@ -220,16 +243,21 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
             print(f"AIML generate error: {e}")
         return None
 
-    # Payload MINIMAL : vertical 9:16 demandé dans le prompt.
+    # Payload MINIMAL. image_size portrait_16_9 = VERTICAL 9:16 (TikTok), pas landscape.
     base = {"model": model, "prompt": prompt}
     if image_ref:
-        # Image-to-Image (img2img) : passe l'image source (base64 ou URL) au champ "image_urls" (ARRAY).
-        # AIML accepte data:image/jpeg;base64,... ou URLs publiques.
-        payload = {**base, "image_urls": [image_ref], "image_size": "landscape_16_9"}
-        url = _call(payload)
-        if url:
-            return url
-        # Fallback txt2img si img2img échoue (le modèle peut ne pas supporter img2img).
+        # Image-to-Image (img2img) : la source (base64 ou URL publique) selon le modèle :
+        #   - FLUX.2 edit / Gemini edit : champ "image_urls" (ARRAY) + image_size.
+        #   - FLUX dev/kontext image-to-image : champ "image_url" (STRING).
+        # On tente les deux formats confirmés (array d'abord, puis string).
+        for payload in (
+            {**base, "image_urls": [image_ref], "image_size": "portrait_16_9"},
+            {**base, "image_url": image_ref},
+        ):
+            url = _call(payload)
+            if url:
+                return url
+        # Fallback txt2img si img2img échoue totalement (modèle sans support img2img).
     return _call(base)
 
 
@@ -254,34 +282,37 @@ def _mock_image(phase: str, idx: int, need: str) -> dict:
 def generate_slide_images(product_name: str, style: str, provider: str = "auto",
                           niche: Optional[str] = None, phases: Optional[list] = None,
                           description: Optional[str] = None, product_image_b64: Optional[str] = None,
-                          user_idea: Optional[str] = None) -> list:
+                          user_idea: Optional[str] = None, product_image_url: Optional[str] = None) -> list:
     """Génère les 4 slides avec règles impératives :
        - slide 1 (Hook) : aucun produit → problème (+ Quad = grille 2x2).
-       - slides 2+ : produit fidèle (référence img2img si dispo).
-    Routage intelligent du modèle. Mock si pas de clé."""
+       - slides 2+ : produit fidèle (référence img2img).
+    MODÈLE ROUTÉ PAR STYLE : cartoon → Nano Banana, sinon → FLUX.
+    Référence produit : URL officielle KeyAPI prioritaire (meilleure fidélité), sinon photo uploadée."""
     # 4 slides générées = process de vente : Accroche(sans produit) → Solution → Produit → CTA.
     phases = phases or ["Accroche", "Solution", "Produit", "CTA"]
-    image_ref = None
-    if product_image_b64:
-        image_ref = "data:image/jpeg;base64," + product_image_b64
+    # Références img2img par ordre de priorité : URL officielle KeyAPI (HD) puis photo uploadée.
+    refs = [r for r in (product_image_url,
+                        ("data:image/jpeg;base64," + product_image_b64) if product_image_b64 else None) if r]
+    t2i = txt2img_model(style)     # slide 1 (sans produit) — routé par style
+    i2i = edit_model(style)        # slides 2-4 (avec produit) — routé par style
     images = []
     for i, phase in enumerate(phases, start=1):
         need = pick_need(style, niche, phase)
-        model = model_for(provider, style, niche, phase)
         prompt = _build_prompt(i, phase, style, product_name, description, niche, user_idea)
         if not has_image_key():
             images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue
-        # LOGIQUE D'IMAGE :
-        # Slide 1 (Hook) : JAMAIS l'image du produit → txt2img du PROBLÈME uniquement.
-        # Slides 2+ : image-to-image avec le produit uploadé → reproduit FIDÈLEMENT le produit.
-        if i >= 2 and image_ref:
-            # Image-to-image : passe l'image uploadée + prompt spécifique (Solution/Produit/CTA)
-            url = _aiml_generate(edit_model(), prompt, image_ref=image_ref)
-            model = edit_model()
+        # Slide 1 (Hook) : JAMAIS le produit → txt2img du PROBLÈME (modèle style).
+        # Slides 2-4 : image-to-image avec la référence produit → reproduit fidèlement.
+        if i >= 2 and refs:
+            url, model = None, i2i
+            for ref in refs:                       # URL officielle d'abord, puis photo uploadée
+                url = _aiml_generate(i2i, prompt, image_ref=ref)
+                if url:
+                    break
         else:
-            # Slide 1 OU pas d'image uploadée : txt2img normal (pas de référence image)
-            url = _aiml_generate(model, prompt, image_ref=None)
+            url = _aiml_generate(t2i, prompt, image_ref=None)
+            model = t2i
         images.append({"url": url, "mock": url is None, "phase": phase, "slide": i,
                        "model": model, "need": need, "no_product": i == 1})
     return images
