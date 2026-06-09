@@ -73,7 +73,9 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
 
     # 2) Mode B : images IA (slides 1-4) + conseils slides 5-7
     if mode == "images":
-        images = image_gen.generate_slide_images(product_name or "", chosen_style, provider, niche)
+        images = image_gen.generate_slide_images(
+            product_name or "", chosen_style, provider, niche,
+            description=description, product_image_b64=image_b64)
         result["ai_generated_images"] = images
         result["next_slides_advice"] = _next_slides_advice(product_name, niche)
         result["images_mock"] = all(im.get("mock") for im in images) if images else True
