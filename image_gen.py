@@ -44,6 +44,13 @@ def need_model(need: str) -> str:
     return _PROD_MODEL_BY_NEED.get(need, _PROD_MODEL_BY_NEED["realism"])
 
 
+def edit_model() -> str:
+    """Modèle d'ÉDITION d'image (conserve le produit à partir de la photo uploadée).
+    txt2img (schnell) ne peut pas reproduire le produit → on utilise un modèle img2img
+    / subject-preserving (FLUX Kontext). Configurable via env IMAGE_EDIT_MODEL."""
+    return os.getenv("IMAGE_EDIT_MODEL", "flux-kontext/pro")
+
+
 # Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
 MODEL_BY_NEED = {k: need_model(k) for k in _PROD_MODEL_BY_NEED}
 
@@ -199,9 +206,13 @@ def generate_slide_images(product_name: str, style: str, provider: str = "auto",
         if not has_image_key():
             images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue
-        # Slide 1 = pas de produit → on n'envoie PAS la référence. Slides 2+ → référence.
-        ref = image_ref if i >= 2 else None
-        url = _aiml_generate(model, prompt, image_ref=ref)
+        # Slide 1 = pas de produit (txt2img). Slides 2+ avec photo → modèle d'ÉDITION
+        # (conserve le produit). Sans photo → txt2img normal.
+        if i >= 2 and image_ref:
+            url = _aiml_generate(edit_model(), prompt, image_ref=image_ref)
+            model = edit_model()
+        else:
+            url = _aiml_generate(model, prompt, image_ref=None)
         images.append({"url": url, "mock": url is None, "phase": phase, "slide": i,
                        "model": model, "need": need, "no_product": i == 1})
     return images

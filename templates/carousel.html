@@ -88,6 +88,13 @@
       </div>
     </div>
 
+    <!-- Choix de l'IA (Mode Images) -->
+    <div id="cc-ai" style="display:none">
+      <label class="fld">IA de génération</label>
+      <div class="pills" id="cc-ai-pills"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">« Auto » choisit la meilleure IA selon le visuel. Le produit est repris depuis ta photo.</div>
+    </div>
+
     <button class="btn btn-primary" id="cc-go" style="margin-top:16px" onclick="ccGenerate()">✨ Générer mon carrousel</button>
   </div>
 
@@ -95,7 +102,7 @@
 </div>
 
 <script>
-const CC = { mode:'prompts', style:'', img:null, providers:null };
+const CC = { mode:'prompts', style:'', img:null, providers:null, provider:'auto' };
 function ccCookie(){ let c=localStorage.getItem('cc_cookie'); if(!c){c='cc_'+Math.random().toString(36).slice(2)+Date.now(); localStorage.setItem('cc_cookie',c);} return c; }
 function token(){ return localStorage.getItem('tts_token'); }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -104,7 +111,12 @@ const STYLES=[['fond_blanc','Fond Blanc'],['quad_photo','Quad Photo'],['ia_carto
 document.getElementById('cc-styles').innerHTML = STYLES.map(([v,l])=>`<span class="pill" data-s="${v}" onclick="ccPickStyle('${v}')">${l}</span>`).join('');
 function ccPickStyle(v){ CC.style=(CC.style===v?'':v); document.querySelectorAll('#cc-styles .pill').forEach(p=>p.classList.toggle('on',p.dataset.s===CC.style)); }
 
-document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); });
+document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); document.getElementById('cc-ai').style.display = CC.mode==='images'?'block':'none'; renderAI(); });
+function renderAI(){
+  const box=document.getElementById('cc-ai-pills'); if(!box||!CC.providers)return;
+  box.innerHTML=Object.entries(CC.providers).map(([k,p])=>`<span class="pill ${k===CC.provider?'on':''}" data-p="${k}" onclick="ccPickAI('${k}')">${esc(p.label||k)}</span>`).join('');
+}
+function ccPickAI(k){ CC.provider=k; renderAI(); }
 
 // upload + downscale
 const drop=document.getElementById('cc-drop'), file=document.getElementById('cc-file');
@@ -132,7 +144,7 @@ async function ccGenerate(){
   btn.disabled=true;btn.textContent='⏳ Génération…';
   out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">📸 Génération du carrousel…</div>';
   const fd=new FormData();
-  fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider','auto');
+  fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider',CC.provider||'auto');
   fd.append('product_name',name); fd.append('description',document.getElementById('cc-desc').value);
   fd.append('price',document.getElementById('cc-price').value); fd.append('niche',document.getElementById('cc-niche').value);
   if(CC.img) fd.append('image',CC.img);
@@ -216,7 +228,7 @@ function ccRender(r){
 // Statut + prix images
 (async()=>{
   if(token()) document.getElementById('cc-status').textContent='Connecté — crédits selon ton plan.';
-  try{ const r=await fetch('/api/carousel/providers'); const d=await r.json(); CC.providers=d.providers; }catch(e){}
+  try{ const r=await fetch('/api/carousel/providers'); const d=await r.json(); CC.providers=d.providers; renderAI(); }catch(e){}
 })();
 </script>
 </body>
