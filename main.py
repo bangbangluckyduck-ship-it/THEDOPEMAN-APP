@@ -2052,7 +2052,7 @@ async def carousel_anon_generate(
         img = img.split(",", 1)[1]
 
     def _gen():
-        res = carousel.generate_carousel(img or None, "prompts", style, "auto",
+        res = carousel.generate_carousel(img or None, "prompts", style, "flux",
                                          product_name, description, price, currency, niche, user_idea)
         try:
             supabase_client.table("anonymous_generations").insert({
@@ -2120,14 +2120,14 @@ async def carousel_generate(
                 pass
 
     def _gen():
-        res = carousel.generate_carousel(img or None, mode, style, provider,
+        res = carousel.generate_carousel(img or None, mode, style, "flux",
                                          product_name, description, price, currency, niche, user_idea)
         if cost > 0:
             credits_mod.debit(supabase_client, email, tier, cost)
         try:
             supabase_client.table("photo_slide_generations").insert({
                 "email": email, "generation_mode": mode, "chosen_style": (res.get("strategy") or {}).get("chosen_style"),
-                "chosen_ai": provider if mode == "images" else None, "product_name": product_name,
+                "chosen_ai": "flux" if mode == "images" else None, "product_name": product_name,
                 "niche": niche, "generated_data": res, "credits_used": cost, "payment_method": payment_method,
             }).execute()
         except Exception:

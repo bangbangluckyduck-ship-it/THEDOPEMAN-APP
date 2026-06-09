@@ -93,7 +93,7 @@ _DEFAULT_STYLE_DESC = "clean professional product photography, premium look"
 # ── RÈGLES IMPÉRATIVES de génération (par slide) ────────────────────────────────
 # Slide 1 (Hook) : le PRODUIT N'APPARAÎT JAMAIS → visuel d'un PROBLÈME que le produit
 #   résout (+ Quad = grille 2x2 de 4 problèmes/douleurs). Slides 2+ : produit FIDÈLE.
-_COMMON = "Vertical 9:16 aspect ratio, TikTok Shop carousel slide, large empty area for bold text overlay, no watermark, no logo."
+_COMMON = "Vertical 9:16 aspect ratio, TikTok Shop carousel slide, no watermark, no logo, NO TEXT, NO WORDS, NO LABELS on the image."
 
 
 def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name: Optional[str],
@@ -105,7 +105,7 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
     topic = niche or "everyday life"
 
     if slide_idx == 1:
-        # HOOK : aucun produit, on montre un PROBLÈME / une douleur.
+        # SLIDE 1 (Hook) : JUSTE la SITUATION du PROBLÈME, zéro produit, zéro texte.
         if style == "quad_photo":
             return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. Each panel "
                     f"illustrates a different problem, frustration or pain point related to {topic} "
@@ -113,19 +113,24 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
                     f"only. Photoreal, relatable, emotional.{idea}")
         cartoon = "stylized cartoon/anime" if style == "ia_cartoon" else "photoreal, cinematic"
         return (f"{_COMMON} A single strong HOOK image showing a relatable PROBLEM / frustration / pain "
-                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll.{idea}")
+                f"related to {topic}. IMPORTANT: do NOT show any product. {cartoon}, emotional, stop-scroll, no text.{idea}")
 
-    # SLIDES 2+ : le PRODUIT fidèlement reproduit, selon l'étape du PROCESS de vente.
+    # SLIDES 2-4 : le PRODUIT fidèlement reproduit selon l'étape du PROCESS de vente.
     desc = f" ({description})" if description else ""
     ph = phase.lower()
-    if "cta" in ph:
-        extra = "CTA slide: hero shot, product centered and prominent, inviting, points toward the cart."
-    elif "solution" in ph:
-        extra = "SOLUTION slide: present the product as the answer to the problem, reassuring."
-    else:  # Produit
-        extra = "PRODUCT slide: showcase the product, highlight its key benefit/feature."
-    # Directive clé pour la fidélité produit (testé sur Gemini/ChatGPT — marche)
-    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea} Reproduce faithfully the uploaded product.")
+
+    if "solution" in ph:
+        # SLIDE 2 (Solution) : Produit EN SITUATION (en action, résolvant le problème).
+        extra = f"The {prod} is actively being used, solving the problem. Person using it successfully. Realistic, relatable, reassuring."
+    elif "cta" in ph:
+        # SLIDE 4 (CTA) : Produit en action, vibe d'appel à l'action / panier.
+        extra = f"The {prod} ready to buy, in action, inviting. Hero shot, product prominent, CTA-ready mood. Inspiring, action-oriented."
+    else:
+        # SLIDE 3 (Produit) : Produit seul sur fond blanc, clean, product photography.
+        extra = f"Showcase {prod} alone, clean and premium. Product-centered, highlight key features/benefits visually."
+
+    # Directive clé pour la fidélité produit.
+    return (f"{_COMMON} Faithfully reproduce the product: {prod}{desc}. {sdesc}. {extra}{idea} Reproduce faithfully the uploaded product. No text on image.")
 
 
 def provider_credits(provider: str) -> int:
