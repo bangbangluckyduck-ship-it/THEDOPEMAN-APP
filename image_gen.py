@@ -83,9 +83,9 @@ IMAGE_PROVIDERS = {
 
 # ⬇️ ZONE ÉDITABLE — description des styles (rendu visuel) ⬇️
 STYLE_DESC = {
-    "fond_blanc": "clean minimalist studio shot on a pure white seamless background, soft shadows, premium e-commerce product photography, sharp focus",
-    "quad_photo": "clean bright product photography, high detail",
-    "ia_cartoon": "stylized 3D cartoon / anime illustration, vibrant colors, Pixar-like, expressive",
+    "fond_blanc": "PURE WHITE SEAMLESS BACKGROUND ONLY. Clean minimalist studio shot, soft professional lighting, premium e-commerce product photography, sharp focus. No other background.",
+    "quad_photo": "FOUR-PANEL 2x2 GRID COMPOSITION. Each panel: clean, bright, professional product photography with high detail. Separate scenes in each panel.",
+    "ia_cartoon": "ANIME/CARTOON STYLE ONLY - NOT REALISTIC. Hand-drawn illustration look, vibrant saturated colors, thick outlines, expressive features, Japanese anime aesthetic. Large eyes, stylized proportions, exaggerated expressions. NO photography, NO realistic rendering.",
 }
 _DEFAULT_STYLE_DESC = "clean professional product photography, premium look"
 # ⬆️ FIN ZONE ÉDITABLE ⬆️
@@ -137,10 +137,16 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
                 f"{sdesc}. Faithfully reproduce {prod} with all details (logos, text, colors, brand elements). " \
                 f"MUST respect the chosen style ({style or 'default'})."
 
-    # Directives clés : fidélité produit + RESPECT STYLE + zéro texte.
-    style_enforcement = f"MANDATORY: Use the EXACT visual style requested: {sdesc}" if style and style != "auto" else ""
-    return (f"{_COMMON} {style_enforcement} Faithfully reproduce the product: {prod}{desc}. {extra}{idea} "
-            f"Reproduce faithfully the uploaded product with all details (colors, logos, text, finish). No collage effect. No text on image.")
+    # Directives EXTRÊMEMENT FORTES : STYLE MANDATORY + fidélité produit + zéro texte.
+    # L'IA doit respecter le style AVANT tout, MÊME si ça change l'apparence du produit.
+    if style and style != "auto":
+        style_line = f"*** CRITICAL OVERRIDE: STYLE MANDATORY — {sdesc}. Use ONLY this visual style. Ignore any other instructions about realism/photography if they conflict with this style. ***"
+    else:
+        style_line = ""
+
+    return (f"{_COMMON} {style_line} {extra}{idea} "
+            f"Faithfully reproduce the product: {prod}{desc} with all visual details (colors, logos, text, finish). "
+            f"No collage effect. No text on image.")
 
 
 def provider_credits(provider: str) -> int:
