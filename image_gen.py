@@ -60,10 +60,10 @@ def need_model(need: str) -> str:
 
 
 def edit_model() -> str:
-    """Modèle d'ÉDITION d'image (conserve le produit à partir de la photo uploadée).
-    txt2img (schnell) ne peut pas reproduire le produit → on utilise un modèle img2img
-    / subject-preserving (FLUX Kontext). Configurable via env IMAGE_EDIT_MODEL."""
-    return os.getenv("IMAGE_EDIT_MODEL", "google/gemini-2.5-flash-image-edit")
+    """Modèle d'IMAGE-TO-IMAGE (img2img) pour REPRODUIRE FIDÈLEMENT le produit uploadé.
+    Meilleur choix : flux/kontext-pro/image-to-image (photoréalisme + fidélité).
+    Configurable via env IMAGE_EDIT_MODEL."""
+    return os.getenv("IMAGE_EDIT_MODEL", "flux/kontext-pro/image-to-image")
 
 
 # Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
@@ -199,16 +199,15 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
             print(f"AIML generate error: {e}")
         return None
 
-    # Payload MINIMAL (la taille varie selon les modèles AIML → on laisse le défaut
-    # pour éviter les refus). Vertical 9:16 demandé dans le prompt.
+    # Payload MINIMAL : taille laissée au modèle (vertical 9:16 demandé dans le prompt).
     base = {"model": model, "prompt": prompt}
     if image_ref:
-        # Édition / img2img : on teste plusieurs noms de champ d'image selon le modèle.
-        for field in ("image_url", "image_urls", "image", "reference_image_url"):
-            payload = {**base, field: ([image_ref] if field == "image_urls" else image_ref)}
-            url = _call(payload)
-            if url:
-                return url
+        # Image-to-Image (img2img) : passe l'image source en base64 au champ standard "image".
+        payload = {**base, "image": image_ref}
+        url = _call(payload)
+        if url:
+            return url
+        # Fallback txt2img si img2img échoue (le modèle peut ne pas supporter img2img).
     return _call(base)
 
 
@@ -251,12 +250,15 @@ def generate_slide_images(product_name: str, style: str, provider: str = "auto",
         if not has_image_key():
             images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue
-        # Slide 1 = pas de produit (txt2img). Slides 2+ avec photo → modèle d'ÉDITION
-        # (conserve le produit). Sans photo → txt2img normal.
+        # LOGIQUE D'IMAGE :
+        # Slide 1 (Hook) : JAMAIS l'image du produit → txt2img du PROBLÈME uniquement.
+        # Slides 2+ : image-to-image avec le produit uploadé → reproduit FIDÈLEMENT le produit.
         if i >= 2 and image_ref:
+            # Image-to-image : passe l'image uploadée + prompt spécifique (Solution/Produit/CTA)
             url = _aiml_generate(edit_model(), prompt, image_ref=image_ref)
             model = edit_model()
         else:
+            # Slide 1 OU pas d'image uploadée : txt2img normal (pas de référence image)
             url = _aiml_generate(model, prompt, image_ref=None)
         images.append({"url": url, "mock": url is None, "phase": phase, "slide": i,
                        "model": model, "need": need, "no_product": i == 1})
