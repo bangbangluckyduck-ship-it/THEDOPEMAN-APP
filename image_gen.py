@@ -182,6 +182,19 @@ def _aiml_generate(model: str, prompt: str, image_ref: Optional[str] = None,
     return _call(base)
 
 
+def list_models() -> dict:
+    """Liste les modèles dispo de la clé AIML (pour récupérer les IDs exacts)."""
+    key = os.getenv("AIMLAPI_KEY")
+    if not key:
+        return {"error": "AIMLAPI_KEY absente"}
+    try:
+        with httpx.Client(timeout=20.0) as c:
+            r = c.get(f"{AIML_BASE}/models", headers={"Authorization": f"Bearer {key}"})
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _mock_image(phase: str, idx: int, need: str) -> dict:
     return {"url": None, "mock": True, "phase": phase, "slide": idx, "need": need,
             "note": "Aperçu démo — pose AIMLAPI_KEY sur Render pour générer en réel."}

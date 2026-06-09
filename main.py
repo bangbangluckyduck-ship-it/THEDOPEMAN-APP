@@ -1687,6 +1687,47 @@ async def img_proxy(url: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+@app.get("/api/_admin/aiml-models")
+async def aiml_models(request: Request, token: Optional[str] = Query(None), filter: str = Query("")):
+    """Liste les IDs de modèles dispo de la clé AIML (pour configurer les bons modèles).
+    ?filter= pour ne garder que les IDs contenant un mot-clé (ex: flux, kontext, imagen…)."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    raw = image_gen.list_models()
+    # Extrait les IDs (formats AIML possibles : {data:[{id}]} ou liste)
+    rows = raw.get("data") if isinstance(raw, dict) else raw
+    ids = []
+    for m in (rows or []):
+        mid = m.get("id") if isinstance(m, dict) else (m if isinstance(m, str) else None)
+        if not mid:
+            continue
+        # garde les modèles d'image probables
+        low = str(mid).lower()
+        if any(k in low for k in ("image", "flux", "dall", "imagen", "kontext", "seed", "recraft",
+                                   "stable", "sd", "gemini", "kling", "reve", "qwen", "wan", "topaz")):
+            ids.append(mid)
+    f = (filter or "").lower().strip()
+    if f:
+        ids = [i for i in ids if f in str(i).lower()]
+    return {"ok": True, "count": len(ids), "image_models": sorted(ids),
+            "current_edit_model": image_gen.edit_model(),
+            "note": "Repère l'ID FLUX Kontext / Google image-edit / SeedEdit pour la fidélité produit."}
+
+
 @app.get("/api/_admin/image-selftest")
 async def image_selftest(request: Request, token: Optional[str] = Query(None),
                          provider: str = Query("flux")):
