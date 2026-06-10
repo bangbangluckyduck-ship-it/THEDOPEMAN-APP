@@ -20,6 +20,7 @@ from typing import Optional
 import httpx
 
 from analyzer import _extract_json
+import ai_providers
 
 PLATFORM_LABELS = {
     "sora2": "Sora 2 (OpenAI)", "veo3": "Veo 3 (Google)", "runway": "Runway Gen-4",
@@ -96,23 +97,13 @@ Fournis 3 variants minimum, chacun réellement différent (angles distincts).
 
 
 def _call_pixtral(content: list, timeout: float = 70.0) -> str:
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise RuntimeError("MISTRAL_API_KEY manquant")
-    resp = httpx.post(
-        "https://api.mistral.ai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": "pixtral-12b-2409",
-            "messages": [{"role": "user", "content": content}],
-            "temperature": 1.0,                 # diversité maximale → unicité
-            "random_seed": random.randint(1, 2_000_000_000),
-        },
-        timeout=timeout,
-    )
-    if not resp.is_success:
-        raise RuntimeError(f"Mistral error {resp.status_code}: {resp.text[:200]}")
-    return resp.json()["choices"][0]["message"]["content"]
+    """Tier VISION (Gemini 3.5 Flash si dispo, sinon Mistral pixtral). Température
+    élevée + seed pour la diversité (unicité des prompts vidéo)."""
+    if not ai_providers.any_ai_key():
+        raise RuntimeError("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
+    return ai_providers.vision_complete(
+        content, timeout=timeout, temperature=1.0,
+        seed=random.randint(1, 2_000_000_000))
 
 
 def generate_video_prompt(image_b64: Optional[str], level: int, platform: str,

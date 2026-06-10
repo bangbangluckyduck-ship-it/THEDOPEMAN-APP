@@ -34,6 +34,7 @@ import credits as credits_mod
 import video_prompt
 import image_gen
 import carousel
+import ai_providers
 import hashlib
 from urllib.parse import quote
 
@@ -662,7 +663,7 @@ async def analyze_stream_sse(
     product: Optional[str] = Form(None),
     price: Optional[str] = Form(None),
 ):
-    if not os.getenv("MISTRAL_API_KEY"): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if not ai_providers.any_ai_key(): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
     ua = request.headers.get("User-Agent", "").lower()
     if any(w in ua for w in ["scrapy", "spider", "crawler"]):
@@ -854,7 +855,7 @@ async def analyze_stream_sse(
 
 @app.get("/api/analyze/stream")
 async def analyze_stream(request: Request, video_url: str = Query(...), product: Optional[str] = Query(None)):
-    if not os.getenv("MISTRAL_API_KEY"): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if not ai_providers.any_ai_key(): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     user = get_user_from_request(request)
     check_quota(user)
     try: normalized_url, video_id = normalize_tiktok_url(video_url)
@@ -950,7 +951,7 @@ async def analyze_url(request: Request):
     Réservé aux plans Pro / Gold / Agency (et beta/admin).
     Télécharge via yt-dlp → extrait 6 frames (OpenCV) + audio → pipeline Mistral.
     """
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
     # ── SÉCURITÉ : tier requis ──
@@ -1113,7 +1114,7 @@ async def analyze_batch_patterns(request: Request):
     gagnants/perdants récurrents du créateur. Réservé Gold / Agency (analyse en masse).
     Body : {"analyses": [ {...}, ... ], "performances": [ {...}|null, ... ] }
     """
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
     user = get_user_from_request(request)
@@ -1587,7 +1588,7 @@ async def photo_slide_generate(
     preferred_style: Optional[str] = Form(None),  # auto | quad_photo | fond_blanc | ia_cartoon
 ):
     """📸 Photo Slide Coach — plan de carrousel TikTok Shop. Réservé Gold/Agency."""
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     user = get_user_from_request(request)
     if not user.get("valid"):
@@ -1800,8 +1801,72 @@ async def image_selftest(request: Request, token: Optional[str] = Query(None),
     return out
 
 
+@app.get("/api/_admin/ai-selftest")
+async def ai_selftest(request: Request, token: Optional[str] = Query(None)):
+    """Valide la couche IA (Mistral/Gemini/Claude) : quelles clés sont posées, quel
+    fournisseur est résolu par tier, et un vrai aller-retour TEXTE. Auth admin (header ou ?token=)."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    out = {
+        "keys": {
+            "mistral": bool(os.getenv("MISTRAL_API_KEY")),
+            "gemini": bool(os.getenv("GEMINI_API_KEY")),
+            "anthropic": bool(os.getenv("ANTHROPIC_API_KEY")),
+        },
+        "resolved": {"vision": ai_providers._resolve("vision"), "text": ai_providers._resolve("text")},
+        "models": {"vision_gemini": ai_providers.GEMINI_VISION_MODEL, "text_claude": ai_providers.CLAUDE_TEXT_MODEL},
+    }
+    loop = asyncio.get_event_loop()
+    try:
+        txt = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: ai_providers.text_complete(
+                "Réponds en UN seul mot : OK", timeout=30.0, max_tokens=20)),
+            timeout=40.0)
+        out["text_roundtrip"] = (txt or "").strip()[:80]
+        out["text_provider_used"] = ai_providers.last_providers().get("text")
+        out["verdict"] = "✅ Couche IA opérationnelle"
+    except Exception as e:
+        out["error"] = str(e)
+        out["verdict"] = "❌ Échec aller-retour texte"
+    return out
+
+
 @app.get("/api/_admin/keyapi-selftest")
 async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
+    """Auto-test KeyAPI Video Products sur la vidéo d'exemple de la doc (indexée à
+    coup sûr) → confirme que l'intégration marche, sans chercher de video_id."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    # Vidéo d'exemple de la doc KeyAPI (région ID) — indexée à coup sûr.
+    sample_video = "6994372454948900122"
     """Auto-test KeyAPI Video Products sur la vidéo d'exemple de la doc (indexée à
     coup sûr) → confirme que l'intégration marche, sans chercher de video_id."""
     ok_admin = False
@@ -1927,7 +1992,7 @@ async def video_prompt_generate(
     user_region: Optional[str] = Form(None),
 ):
     """Génère un prompt vidéo IA. PRO+ requis. Débite les crédits (abonnement→achats)."""
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     if not ((image or "").strip() and (product_name or "").strip() and (description or "").strip()):
         raise HTTPException(status_code=422, detail="Image, nom et description du produit sont obligatoires.")
@@ -2135,7 +2200,7 @@ async def carousel_anon_generate(
 ):
     """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
     Mode B (images) = paiement requis (stub Stripe)."""
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
         raise HTTPException(status_code=422, detail="Nom, description et prix du produit sont obligatoires.")
@@ -2200,7 +2265,7 @@ async def carousel_generate(
 ):
     """Utilisateur connecté. Mode A : gratuit 3/mois (FREE) sinon illimité. Mode B :
     débite les crédits (coût selon l'IA)."""
-    if not os.getenv("MISTRAL_API_KEY"):
+    if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
         raise HTTPException(status_code=422, detail="Nom, description et prix du produit sont obligatoires.")

@@ -22,7 +22,8 @@ import os
 import random
 from typing import Optional
 
-from analyzer import _mistral_call, _extract_json
+from analyzer import _extract_json
+import ai_providers
 
 
 def _variation_block(avoid: Optional[str] = None) -> str:
@@ -193,9 +194,8 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
                       description: Optional[str] = None, niche: Optional[str] = None,
                       preferred_style: Optional[str] = None, image_url: Optional[str] = None,
                       avoid: Optional[str] = None) -> dict:
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise RuntimeError("MISTRAL_API_KEY manquant")
+    if not ai_providers.any_ai_key():
+        raise RuntimeError("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
     # Image officielle (URL KeyAPI) prioritaire pour l'identification, sinon photo uploadée
     # (base64), sinon AUCUNE image → stratégie texte-only à partir de nom/description/prix
     # (sans ce cas, on envoyait « base64,None » → pixtral plantait → mock générique).
@@ -215,7 +215,7 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
     blocks.append({"type": "text", "text": _variation_block(avoid)})
     blocks.append({"type": "text", "text": _STRATEGY_OUTPUT})
     try:
-        raw = _mistral_call(api_key, "pixtral-12b-2409", blocks, timeout=60.0)
+        raw = ai_providers.vision_complete(blocks, timeout=60.0)
         data = _extract_json(raw)
         data["_fallback"] = False
         return data
@@ -231,9 +231,8 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
                      price: Optional[str] = None, currency: str = "EUR",
                      description: Optional[str] = None, niche: Optional[str] = None,
                      avoid: Optional[str] = None) -> dict:
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise RuntimeError("MISTRAL_API_KEY manquant")
+    if not ai_providers.any_ai_key():
+        raise RuntimeError("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
     st = strategy.get("type_slide") or {}
     task = _CONTENT_OUTPUT.format(
         style=st.get("style", "auto"), label=st.get("label", ""),
@@ -245,7 +244,7 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
               + _variation_block(avoid) + "\n\n"
               + task)
     try:
-        raw = _mistral_call(api_key, "mistral-small-latest", prompt, timeout=45.0)
+        raw = ai_providers.text_complete(prompt, timeout=45.0)
         return _extract_json(raw)
     except Exception as e:
         print(f"photo_slide content error: {e}")

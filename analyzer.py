@@ -7,6 +7,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 
+import ai_providers
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # MOMENTUM SAISONNIER — Calcul déterministe du timing stratégique
@@ -444,9 +446,8 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
     Vision pass : Mistral Pixtral analyse SEULEMENT les frames.
     Prompt minimal → réponse JSON courte → 10-15s au lieu de 60-90s.
     """
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise Exception("MISTRAL_API_KEY missing")
+    if not ai_providers.any_ai_key():
+        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
 
     content = []
     for i, frame in enumerate(frames_b64):
@@ -464,7 +465,7 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
 
     content.append({"type": "text", "text": VISION_PROMPT})
 
-    raw = _mistral_call(api_key, "pixtral-12b-2409", content, timeout=45.0)
+    raw = ai_providers.vision_complete(content, timeout=45.0)
     try:
         return _extract_json(raw)
     except Exception:
@@ -626,9 +627,8 @@ def synthesize_analysis(
     Gold / Agency (+ beta / admin), on concatène le bloc PREMIUM qui génère la
     section "👑 Stratégie de Conversion (Premium)" (persona + script de vente).
     """
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise Exception("MISTRAL_API_KEY missing")
+    if not ai_providers.any_ai_key():
+        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
 
     # base_prompt : instructions d'analyse standard (tous les plans)
     base_prompt = SYNTHESIS_PROMPT
@@ -717,13 +717,12 @@ def synthesize_analysis(
 
     full_prompt = "\n".join(parts)
 
-    raw = _mistral_call(
-        api_key,
-        _synthesis_model(),   # text-only, configurable via env SYNTHESIS_MODEL
+    # Rédaction = tier TEXTE (Claude Sonnet 4.6 si dispo, sinon Mistral). Marge de
+    # timeout généreuse (configurable SYNTHESIS_TIMEOUT) pour éviter "read timed out".
+    raw = ai_providers.text_complete(
         full_prompt,
-        # medium/large sont plus lents que small → marge généreuse pour éviter
-        # "read operation timed out". Configurable via SYNTHESIS_TIMEOUT.
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
+        max_tokens=4096,
     )
     try:
         parsed = _extract_json(raw)
@@ -1045,9 +1044,8 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
     Croise N analyses d'un même créateur → patterns gagnants + patterns perdants.
     `performances` : liste optionnelle alignée sur `analyses` (stats réelles futures).
     """
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise Exception("MISTRAL_API_KEY missing")
+    if not ai_providers.any_ai_key():
+        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
 
     summaries = []
     for i, a in enumerate(analyses):
@@ -1061,7 +1059,7 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
     )
     prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
 
-    raw = _mistral_call(api_key, "mistral-small-latest", prompt, timeout=60.0)
+    raw = ai_providers.text_complete(prompt, timeout=60.0)
     try:
         result = _extract_json(raw)
     except Exception:
