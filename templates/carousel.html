@@ -65,12 +65,12 @@
       <div id="cc-drop-empty"><div style="font-size:28px">🖼️</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Image produit (optionnel — en complément du lien)</div></div>
       <img id="cc-preview" style="display:none">
     </div>
-    <label class="fld">Nom du produit <span style="color:var(--muted)">(optionnel — repris du lien)</span></label>
-    <input id="cc-name" maxlength="100" placeholder="Ex: Maca Noire Premium">
-    <label class="fld">Description courte</label>
-    <textarea id="cc-desc" rows="2" maxlength="300" placeholder="En quelques mots…"></textarea>
+    <label class="fld">Nom du produit <span style="color:var(--err)">*</span></label>
+    <input id="cc-name" maxlength="100" placeholder="Ex: Lampe selfie LED à clip">
+    <label class="fld">Description courte <span style="color:var(--err)">*</span></label>
+    <textarea id="cc-desc" rows="2" maxlength="300" placeholder="Ce que fait le produit, pour qui, son bénéfice principal…"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label class="fld">Prix</label><input id="cc-price" placeholder="ex: 29€"></div>
+      <div><label class="fld">Prix <span style="color:var(--err)">*</span></label><input id="cc-price" placeholder="ex: 29€"></div>
       <div><label class="fld">Niche</label>
         <select id="cc-niche"><option value="">—</option><option>Cosmétique/Beauté</option><option>Santé/Bien-être</option><option>Mode/Vêtements</option><option>Maison/Déco</option><option>Tech/Gadgets</option><option>Fitness/Sport</option><option>Cuisine/Alimentation</option><option>Autre</option></select>
       </div>
@@ -170,6 +170,11 @@ async function ccGenerate(){
   if(!url0){alert('⭐ Le lien du produit TikTok Shop est obligatoire');document.getElementById('cc-url').focus();return;}
   if(!/tiktok\.com|tiktokshop|vt\.tiktok|vm\.tiktok/i.test(url0)){alert('Colle un lien TikTok Shop valide (ex: https://www.tiktok.com/view/product/...)');document.getElementById('cc-url').focus();return;}
   const name=document.getElementById('cc-name').value.trim();
+  if(!name){alert('⭐ Le nom du produit est obligatoire');document.getElementById('cc-name').focus();return;}
+  const desc0=document.getElementById('cc-desc').value.trim();
+  if(!desc0){alert('⭐ La description courte est obligatoire — elle guide l\'IA pour des slides précises');document.getElementById('cc-desc').focus();return;}
+  const price0=document.getElementById('cc-price').value.trim();
+  if(!price0){alert('⭐ Le prix est obligatoire');document.getElementById('cc-price').focus();return;}
   const out=document.getElementById('cc-result'), btn=document.getElementById('cc-go');
   btn.disabled=true;btn.textContent='⏳ Génération…';
   out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">📸 Génération du carrousel…</div>';
