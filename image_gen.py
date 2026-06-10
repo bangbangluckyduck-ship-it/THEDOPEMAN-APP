@@ -119,26 +119,42 @@ _DEFAULT_STYLE_DESC = "clean professional product photography, premium look"
 _COMMON = "Vertical 9:16 aspect ratio, TikTok Shop carousel slide, no watermark, no logo, NO TEXT, NO WORDS, NO LABELS on the image."
 
 
+# Règles visuelles slide 1 : matérialiser LE problème précis (biais psychologique → swipe).
+_SLIDE1_VISUAL_RULES = (
+    "SLIDE 1 SCENE RULES: Show the SCENE of the exact problem, never the product (no packaging, "
+    "no blurred silhouette, no category hint — the product does not exist yet). "
+    "FORBIDDEN: dramatic close-up faces, head in hands, grimaces, despairing eye contact, generic "
+    "sad-person stock poses. If a person appears: from behind, in profile, or cropped by the frame "
+    "(hands, neck, shoulders, legs only). MANDATORY: one verifiable material detail that proves the "
+    "pain (a visible mark, a timestamp on a screen, an accumulation of failed attempts, a contrast "
+    "full-vs-empty or day-1-vs-now). Show evidence and consequences, not emotion. Documentary "
+    "realism: real lighting, lived-in everyday settings the viewer recognizes as their own desk, "
+    "kitchen or bathroom. Freeze a gesture mid-action or show the symptom persisting despite the "
+    "obvious fix visible in frame — the image must leave a question open. One scene, one pain.")
+
+
 def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name: Optional[str],
-                  description: Optional[str], niche: Optional[str], user_idea: Optional[str] = None) -> str:
+                  description: Optional[str], niche: Optional[str], user_idea: Optional[str] = None,
+                  problem: Optional[str] = None, slide1_visual: Optional[str] = None) -> str:
     idea = f" Creative direction from user: {user_idea}." if user_idea else ""
     style = (style or "").lower()
     sdesc = STYLE_DESC.get(style, _DEFAULT_STYLE_DESC)
     prod = product_name or "the product"
-    topic = niche or "everyday life"
+    topic = problem or niche or "everyday life"
 
     if slide_idx == 1:
-        # SLIDE 1 (Hook) : JUSTE la SITUATION du PROBLÈME, zéro produit, zéro texte.
-        # PAS dramatique (visages à bout). Subtil, contextuel, relatable.
+        # SLIDE 1 (Hook) : la scène PRÉCISE définie par le plan (pixtral) qui matérialise
+        # LE problème que le produit résout — c'est elle qui déclenche le swipe.
+        scene = (f"EXACT SCENE TO DEPICT: {slide1_visual}." if slide1_visual
+                 else f"A relatable everyday scene showing this specific problem happening: {topic}.")
         if style == "quad_photo":
-            return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. {sdesc}. Each panel shows "
-                    f"a RELATABLE SITUATION where someone experiences a problem related to {topic} that needs solving. "
-                    f"NOT dramatic faces, NOT distressed. Just natural, everyday situations showing the PROBLEM IN ACTION. "
-                    f"IMPORTANT: do NOT show any product. Photoreal, relatable, subtle, natural.{idea}")
+            return (f"{_COMMON} Composition: a 2x2 grid of four distinct panels. {sdesc}. "
+                    f"The four panels show four different concrete facets of this specific problem: {topic}. "
+                    f"{scene} {_SLIDE1_VISUAL_RULES} "
+                    f"IMPORTANT: do NOT show any product. Photoreal, relatable.{idea}")
         cartoon = "stylized cartoon/anime" if style == "ia_cartoon" else "photoreal, cinematic"
-        return (f"{_COMMON} A RELATABLE SITUATION where someone experiences a problem related to {topic} that needs solving. "
-                f"Show the PROBLEM IN CONTEXT (not abstract, not dramatic faces). {sdesc}. "
-                f"IMPORTANT: do NOT show any product. {cartoon}, natural, relatable, stop-scroll, no text.{idea}")
+        return (f"{_COMMON} {scene} {_SLIDE1_VISUAL_RULES} "
+                f"{sdesc}. IMPORTANT: do NOT show any product. {cartoon}, stop-scroll, no text.{idea}")
 
     # SLIDES 2-4 : le PRODUIT fidèlement reproduit selon l'étape du PROCESS de vente.
     desc = f" ({description})" if description else ""
@@ -147,7 +163,8 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
     if "solution" in ph:
         # SLIDE 2 (Solution) : Produit EN SITUATION (EN UTILISATION, pas juste tenu). Fidèle + précis.
         # Exemple lampe: tenue vers le visage/caméra pour éclairer. Exemple huile: appliquée sur la peau. Pas de collage.
-        extra = f"The {prod} is ACTIVELY BEING USED by a person — not just held, but IN ACTION solving the problem. " \
+        solved = f" solving this exact problem: {problem}. The GOOD RESULT is visible in the scene (mirror image of slide 1, but fixed)" if problem else " solving the problem"
+        extra = f"The {prod} is ACTIVELY BEING USED by a person — not just held, but IN ACTION{solved}. " \
                 f"Show how it's REALLY USED (placement, application, interaction). Faithfully reproduce {prod} with all details. " \
                 f"Natural integration, no collage effect. {sdesc}. Realistic, relatable, reassuring."
     elif "cta" in ph:
@@ -282,7 +299,8 @@ def _mock_image(phase: str, idx: int, need: str) -> dict:
 def generate_slide_images(product_name: str, style: str, provider: str = "auto",
                           niche: Optional[str] = None, phases: Optional[list] = None,
                           description: Optional[str] = None, product_image_b64: Optional[str] = None,
-                          user_idea: Optional[str] = None, product_image_url: Optional[str] = None) -> list:
+                          user_idea: Optional[str] = None, product_image_url: Optional[str] = None,
+                          problem: Optional[str] = None, slide1_visual: Optional[str] = None) -> list:
     """Génère les 4 slides avec règles impératives :
        - slide 1 (Hook) : aucun produit → problème (+ Quad = grille 2x2).
        - slides 2+ : produit fidèle (référence img2img).
@@ -298,7 +316,8 @@ def generate_slide_images(product_name: str, style: str, provider: str = "auto",
     images = []
     for i, phase in enumerate(phases, start=1):
         need = pick_need(style, niche, phase)
-        prompt = _build_prompt(i, phase, style, product_name, description, niche, user_idea)
+        prompt = _build_prompt(i, phase, style, product_name, description, niche, user_idea,
+                               problem=problem, slide1_visual=slide1_visual)
         if not has_image_key():
             images.append({**_mock_image(phase, i, need), "prompt": prompt})
             continue

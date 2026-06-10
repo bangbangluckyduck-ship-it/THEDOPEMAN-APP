@@ -73,11 +73,46 @@ compléments, lifestyle. 2-4 slides.
 - FRANÇAIS PUR. Concret et actionnable.
 
 # ⬇️⬇️⬇️ ZONE ÉDITABLE 1 — HOOKS GAGNANTS (à enrichir par le product owner) ⬇️⬇️⬇️
-# Ajoute ici des patterns de hooks qui convertissent (par niche), formules, exemples réels.
-# Exemples de départ :
-# - « Les N signes que … (et personne ne te l'a dit) »
-# - « Pourquoi ton/ta … [problème] (et la solution) »
-# - « Arrête de … si tu veux … »
+## RÈGLES HOOK (impératives)
+1. INTERDIT « ce produit », « cet objet », « cette astuce », « ça ». Le hook nomme LA douleur exacte : « tes selfies jaunes à 23h », pas « tes photos sont moches ». TEST DE TRANSPLANTATION : si le hook colle tel quel à un autre produit, il est rejeté.
+2. UN marqueur concret minimum par hook : heure (« à 16h »), durée (« en 8 secondes »), chiffre précis et impair (« 487 € », jamais « des centaines »), lieu ou geste vécu (« remettre ton jean sur ta peau encore humide »).
+3. 12 mots MAX, lisible en 1,5 s. Tutoiement obligatoire. Pas de subordonnée. UNE douleur, UNE cible, UNE situation. Le mot le plus chargé (douleur, chiffre, interdit) en première ou dernière position.
+4. BOUCLE OUVERTE obligatoire : seule la slide 2 peut la fermer. Test : « peut-on connaître la suite sans swiper ? » Si oui, réécrire.
+5. INTERDIT le vocabulaire creux : « game changer », « révolutionnaire », « incroyable », « tu ne devineras jamais », « le secret que personne ne connaît », « hack ». Chaque adjectif doit être remplaçable par une preuve (chiffre, durée, comparaison), sinon supprimé.
+6. Lecture de pensée : décrire un moment vécu précis (geste + heure + lieu) que le viewer reconnaît instantanément — « tu rallumes la lumière 3 fois avant chaque story » plutôt que « tes photos sont moches ».
+7. Texte et image slide 1 : même scène, informations DIFFÉRENTES. Image = symptôme visible ; texte = promesse d'explication. La redondance mot à mot divise l'impact par deux.
+8. Slide 1 : produit JAMAIS visible (ni flou, ni silhouette, ni packaging — il n'existe pas avant la slide PRODUIT). Jamais de visage dramatique, grimace ou mains sur la tête. La douleur est prouvée par un détail MATÉRIEL vérifiable dans le cadre.
+9. UN seul biais dominant par hook, choisi AVANT d'écrire. Curiosité + peur + FOMO empilés = bruit.
+
+## BIBLIOTHÈQUE DE BIAIS (formules + scène visuelle slide 1)
+### 1. Curiosity gap
+Formules : « La vraie raison de [symptôme précis + moment], ce n'est pas [coupable évident] » · « Personne ne te dit pourquoi [douleur] revient [fréquence/moment] » · « [Symptôme précis] ? Ce n'est pas [cause supposée]. »
+Ex : « Ta peau tiraille à 16h ? Ce n'est pas ta crème. »
+Visuel slide 1 : montrer l'INDICE, jamais la réponse — macro sur un avant-bras où une griffure laisse une trace blanche persistante, trois flacons de crème flous derrière : le symptôme contredit la cause supposée.
+### 2. Contre-intuition (le coupable insoupçonné)
+Formules : « Ce n'est pas toi le problème, c'est ton/ta [objet banal insoupçonné] » · « Arrête de [geste que tout le monde croit bon] : c'est ça qui [aggrave la douleur] » · « Plus tu [action logique], plus [résultat inverse précis] »
+Ex : « Te tenir droit aggrave ton mal de dos. Vraiment. »
+Visuel slide 1 : le geste « correct » qui ÉCHOUE — personne de dos assise très droite sur une chaise ergonomique, post-it « tiens-toi droit ! », une main glissée sur les lombaires.
+### 3. Aversion à la perte
+Formules : « Tu perds [chiffre précis] par [période] à cause de [habitude banale] » · « Chaque [geste quotidien] te vole [résultat précis] » · « Combien de [chose de valeur] tu as déjà gâchées à cause de [cause précise] ? »
+Ex : « Tu perds 4h par mois à pleurer sur tes oignons »
+Visuel slide 1 : rendre la perte COMPTABLE dans le cadre — 7 bouteilles d'eau entamées alignées derrière un laptop, ticket de caisse entouré au stylo.
+### 4. Identification (« c'est moi »)
+Formules : « POV : il est [heure précise] et tu [situation exacte] » · « Toi aussi tu [micro-geste un peu honteux] à chaque fois que [situation] ? » · « Si tu [détail vérifiable maintenant], lis ça »
+Ex : « POV : il est 16h et tu n'as bu qu'un café depuis ce matin »
+Visuel slide 1 : précision documentaire (« c'est MA table ») — gourde pleine intacte près du clavier, 3 tasses vides empilées, horloge d'écran à 16:42, mains sur clavier, zéro visage.
+### 5. Preuve sociale + FOMO
+Formules : « Pourquoi les [groupe précis] ont tous arrêté de [comportement courant] » · « [Nombre précis impair] [cible] ont compris ça avant toi » · « Pendant que tu [habitude pénible], les autres [résultat déjà obtenu] »
+Ex : « 12 400 créatrices ont arrêté de supprimer leurs selfies ce mois-ci »
+Visuel slide 1 : la demande sociale qui s'accumule, sans produit — convo de groupe avec 4 messages « mais c'est quoi ta lumière sur tes photos ?? », réactions emoji.
+### 6. Autorité / secret d'initié
+Formules : « Un(e) [métier crédible] m'a montré pourquoi [douleur précise] » · « [Métier] depuis [N] ans : voici ce que je vois chez 9 [cible] sur 10 » · « Ce que les [profession] font avant [résultat envié] et ne montrent jamais »
+Ex : « Une kiné m'a montré pourquoi mon mal de nuque revient chaque dimanche »
+Visuel slide 1 : autorité sans visage — mains d'un praticien en tunique sur les omoplates d'un patient de dos, poster anatomique entouré au marqueur rouge.
+### 7. Récit interrompu (Zeigarnik)
+Formules : « Il y a [durée], je [situation basse datée]. Puis j'ai compris un truc. » · « J'ai [action chiffrée] pendant [durée] avant de comprendre mon erreur » · « Jour 1 vs jour [N] : ce qui s'est passé entre les deux tient en une image »
+Ex : « Il y a 3 mois, je cachais mes jambes même à 30 degrés »
+Visuel slide 1 : figer le point bas ou le geste interrompu — jambes en jogging épais sur une serviette de plage en plein soleil, short plié jamais enfilé à côté.
 # ⬆️⬆️⬆️ FIN ZONE ÉDITABLE 1 ⬆️⬆️⬆️
 
 # ⬇️⬇️⬇️ ZONE ÉDITABLE 2 — IDÉES DE SLIDES / ANGLES GAGNANTS (à enrichir) ⬇️⬇️⬇️
@@ -86,15 +121,27 @@ compléments, lifestyle. 2-4 slides.
 """
 
 _STRATEGY_OUTPUT = """# TA TÂCHE (ÉTAPE 1/2 — STRATÉGIE)
-Analyse l'image + les infos et renvoie UNIQUEMENT ce JSON (rien d'autre) :
+Analyse l'image + les infos. D'ABORD identifie précisément le produit, puis LE problème
+n°1 (douleur/désir concret et spécifique) qu'il résout pour son acheteur type.
+
+⚠️ QUALITÉ HOOK — INTERDICTIONS ABSOLUES :
+- Jamais « ce produit / cet objet / cette solution » dans un hook : nomme la douleur ou le résultat PRÉCIS.
+- Jamais de formule creuse (« le problème que X résout », « découvre... », « tu vas adorer »).
+- Le hook doit utiliser UN biais psychologique précis (curiosity gap, contre-intuition,
+  identification « si tu... », chiffre précis, aversion à la perte) et donner envie de swiper.
+
+Renvoie UNIQUEMENT ce JSON (rien d'autre) :
 {
   "type_slide": {
     "style": "quad_photo | fond_blanc | ia_cartoon",
     "label": "Nom lisible du style en français",
     "justification": "1-2 phrases : pourquoi ce style pour CE produit."
   },
-  "hook": "Texte du hook de la 1ʳᵉ slide (court, percutant).",
-  "titre_carrousel": "Titre principal du carrousel.",
+  "probleme_principal": "LE problème/désir n°1, concret et spécifique, que ce produit résout (ex: « selfies sombres et granuleux le soir », pas « mauvaise qualité photo »).",
+  "biais_psychologique": "Le biais utilisé par le hook (curiosity_gap | contre_intuition | identification | chiffre | aversion_perte).",
+  "hook": "Texte du hook slide 1 — court, percutant, SPÉCIFIQUE au problème ci-dessus.",
+  "slide1_visuel": "Scène visuelle PRÉCISE de la slide 1 qui matérialise ce problème SANS montrer le produit : qui, fait quoi, où, quel détail rend le problème VISIBLE à l'image (ex: « jeune femme qui se filme au téléphone dans une chambre sombre le soir, son visage à l'écran du téléphone est sombre et granuleux, déception visible »). INTERDIT : visage dramatique générique, personne qui se tient la tête.",
+  "titre_carrousel": "Titre principal du carrousel (spécifique, même exigence que le hook).",
   "titre_variantes": ["variante 1", "variante 2"],
   "detected_niche": "Niche détectée."
 }
@@ -225,9 +272,12 @@ def _mock_strategy(product_name: Optional[str] = None, err: Optional[str] = None
         "_plan_error": err,
         "type_slide": {"style": "fond_blanc", "label": "Fond Blanc (minimaliste premium)",
                        "justification": "Style épuré idéal pour lister des bénéfices et générer des saves."},
-        "hook": f"Le problème que {p} résout (et que personne ne te dit)",
-        "titre_carrousel": f"3 raisons d'essayer {p}",
-        "titre_variantes": [f"Pourquoi {p} fait le buzz", f"{p} : avant / après"],
+        "probleme_principal": None,
+        "biais_psychologique": "curiosity_gap",
+        "hook": f"Personne ne t'a dit pourquoi ton {p} ne suffit pas (slide 3 = déclic)",
+        "slide1_visuel": None,
+        "titre_carrousel": f"Ce que 90% des gens ratent avant d'acheter un {p}",
+        "titre_variantes": [f"{p} : l'erreur que tout le monde fait", f"Avant d'acheter un {p}, regarde ça"],
         "detected_niche": None,
     }
 

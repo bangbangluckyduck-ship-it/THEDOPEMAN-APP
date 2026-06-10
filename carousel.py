@@ -69,6 +69,8 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
             "style_label": ts.get("label"),
             "justification": ts.get("justification"),
             "detected_niche": plan.get("detected_niche") or niche,
+            "probleme_principal": plan.get("probleme_principal"),
+            "biais_psychologique": plan.get("biais_psychologique"),
         },
         "hook": plan.get("hook"),
         "carousel_title": plan.get("titre_carrousel"),
@@ -88,7 +90,9 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
         images = image_gen.generate_slide_images(
             product_name or "", chosen_style, provider, niche,
             description=description, product_image_b64=image_b64, user_idea=user_idea,
-            product_image_url=product_image_url)
+            product_image_url=product_image_url,
+            problem=plan.get("probleme_principal"),
+            slide1_visual=plan.get("slide1_visuel"))
         result["ai_generated_images"] = images
         result["next_slides_advice"] = _next_slides_advice(product_name, niche)
         result["images_mock"] = all(im.get("mock") for im in images) if images else True
