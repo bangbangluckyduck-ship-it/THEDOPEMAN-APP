@@ -1923,10 +1923,14 @@ async def video_prompt_generate(
     emotion_target: Optional[str] = Form(None),
     color_tone: Optional[str] = Form(None),
     avoid: Optional[str] = Form(None),
+    product_url: Optional[str] = Form(None),
+    user_region: Optional[str] = Form(None),
 ):
     """Génère un prompt vidéo IA. PRO+ requis. Débite les crédits (abonnement→achats)."""
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if not ((image or "").strip() and (product_name or "").strip() and (description or "").strip()):
+        raise HTTPException(status_code=422, detail="Image, nom et description du produit sont obligatoires.")
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
@@ -1951,6 +1955,11 @@ async def video_prompt_generate(
     if img.lower().startswith("data:") and "," in img:
         img = img.split(",", 1)[1]
 
+    # Enrichissement via lien produit TikTok Shop (KeyAPI) : nom officiel, catégorie,
+    # prix + image HD officielle (2ᵉ référence visuelle pour pixtral).
+    product_name, niche, price, product_image_url = await _enrich_from_product_url(
+        product_url, product_name, niche, price, user_region)
+
     async def stream():
         loop = asyncio.get_event_loop()
         try:
@@ -1958,7 +1967,8 @@ async def video_prompt_generate(
             yield 'data: {"message": "\\ud83c\\udfac G\\u00e9n\\u00e9ration du prompt vid\\u00e9o\\u2026"}\n\n'
             task = loop.run_in_executor(None, lambda: video_prompt.generate_video_prompt(
                 img or None, lvl, platform, product_name, description, price, currency,
-                niche, visual_style, mood, emotion_target, color_tone, avoid))
+                niche, visual_style, mood, emotion_target, color_tone, avoid,
+                image_url=product_image_url))
             waited = 0.0
             result = None
             while True:

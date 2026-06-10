@@ -3867,9 +3867,33 @@ async function loadVpBalance() {
   } catch (e) {}
 }
 
+function _vpRegion() {
+  // Pays de l'utilisateur (fuseau horaire > langue) → région TikTok Shop à essayer en 1er.
+  try {
+    const TZ = {'Europe/Paris':'FR','Europe/Brussels':'BE','Europe/Luxembourg':'LU','Europe/Zurich':'CH',
+      'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Rome':'IT','Europe/Berlin':'DE',
+      'Europe/Amsterdam':'NL','Europe/Lisbon':'PT','America/New_York':'US','America/Los_Angeles':'US',
+      'America/Chicago':'US','America/Toronto':'CA','Asia/Bangkok':'TH','Asia/Ho_Chi_Minh':'VN',
+      'Asia/Singapore':'SG','Asia/Kuala_Lumpur':'MY','Asia/Jakarta':'ID','Asia/Manila':'PH'};
+    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || '';
+    if (TZ[tz]) return TZ[tz];
+    for (const l of (navigator.languages || [navigator.language || ''])) {
+      const m = /[-_]([A-Za-z]{2})$/.exec(l || ''); if (m) return m[1].toUpperCase();
+    }
+    return {fr:'FR',en:'GB',de:'DE',es:'ES',it:'IT',nl:'NL',pt:'PT'}[(navigator.language||'').slice(0,2).toLowerCase()] || '';
+  } catch (e) { return ''; }
+}
+
 async function generateVideoPrompt() {
   const out = document.getElementById('vp-result'), btn = document.getElementById('vp-generate');
   const token = localStorage.getItem('tts_token');
+  // Champs obligatoires : lien TikTok Shop, image, nom, description.
+  const vpUrl = _vpVal('vp-url');
+  if (!vpUrl) { alert('⭐ Le lien du produit TikTok Shop est obligatoire'); document.getElementById('vp-url')?.focus(); return; }
+  if (!/tiktok\.com|tiktokshop|vt\.tiktok|vm\.tiktok/i.test(vpUrl)) { alert('Colle un lien TikTok Shop valide (ex: https://www.tiktok.com/view/product/...)'); document.getElementById('vp-url')?.focus(); return; }
+  if (!_vpImageB64) { alert('⭐ L\'image du produit est obligatoire'); document.getElementById('vp-drop')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if (!_vpVal('vp-name')) { alert('⭐ Le nom du produit est obligatoire'); document.getElementById('vp-name')?.focus(); return; }
+  if (!_vpVal('vp-desc')) { alert('⭐ La description courte est obligatoire — elle guide l\'IA pour un prompt précis'); document.getElementById('vp-desc')?.focus(); return; }
   const oldHtml = btn.innerHTML;
   btn.disabled = true; btn.textContent = '⏳ Génération…';
   out.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">🎬 Génération du prompt vidéo…</div>';
@@ -3877,6 +3901,7 @@ async function generateVideoPrompt() {
   const fd = new FormData();
   fd.append('level', _vpLevel); fd.append('platform', _vpPlatform);
   if (_vpImageB64) fd.append('image', _vpImageB64);
+  fd.append('product_url', vpUrl); fd.append('user_region', _vpRegion());
   fd.append('product_name', _vpVal('vp-name')); fd.append('description', _vpVal('vp-desc'));
   fd.append('price', _vpVal('vp-price')); fd.append('niche', _vpVal('vp-niche'));
   fd.append('visual_style', _vpStyle.visual_style || ''); fd.append('mood', _vpStyle.mood || '');
