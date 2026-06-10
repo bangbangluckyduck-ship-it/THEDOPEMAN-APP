@@ -123,7 +123,34 @@ class LimitUploadSize:
                     break
         await self.app(scope, receive, send)
 
+class CanonicalHostRedirect:
+    """Redirige (308) toute requête arrivant par l'URL technique Render (*.onrender.com)
+    vers le domaine officiel → AUCUNE URL Render n'est jamais visible, quel que soit le
+    lien cliqué. /health exclu (sonde interne Render). ASGI pur (pas de buffering SSE)."""
+    def __init__(self, app, canonical_host: str):
+        self.app = app
+        self.canonical_host = (canonical_host or "").strip().lower().rstrip("/")
+
+    async def __call__(self, scope, receive, send):
+        if self.canonical_host and scope.get("type") == "http":
+            host = ""
+            for k, v in scope.get("headers") or []:
+                if k == b"host":
+                    host = v.decode("latin-1").split(":")[0].lower()
+                    break
+            path = scope.get("path") or "/"
+            if host.endswith(".onrender.com") and path != "/health":
+                qs = (scope.get("query_string") or b"").decode("latin-1")
+                url = f"https://{self.canonical_host}{path}" + (f"?{qs}" if qs else "")
+                resp = RedirectResponse(url, status_code=308)
+                await resp(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
 app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)
+app.add_middleware(CanonicalHostRedirect,
+                   canonical_host=os.getenv("CANONICAL_HOST", "tiktokshop-analyzer.com"))
 app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)
