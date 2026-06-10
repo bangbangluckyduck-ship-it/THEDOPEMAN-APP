@@ -2217,8 +2217,12 @@ async def carousel_anon_generate(
     avoid: Optional[str] = Form(None),
     cookie_id: Optional[str] = Form(None),
 ):
-    """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
-    Mode B (images) = paiement requis (stub Stripe)."""
+    """DÉPRÉCIÉ : le carrousel exige désormais un compte. (L'analyse vidéo, elle,
+    reste testable en anonyme.) On renvoie 401 pour fermer toute génération anonyme."""
+    return JSONResponse({"ok": False, "reason": "account_required",
+                         "message": "Crée un compte gratuit pour générer un carrousel (3/mois inclus)."},
+                        status_code=401)
+    # --- ancien parcours anonyme désactivé ci-dessous ---
     if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
     if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
