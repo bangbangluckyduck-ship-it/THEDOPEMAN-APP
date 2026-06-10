@@ -1975,15 +1975,24 @@ async def video_prompt_generate(
 # 📸 CAROUSEL CREATOR (Photo Slide Coach v4) — homepage + anonyme + pay-as-you-go
 # ════════════════════════════════════════════════════════════════════════════
 async def _enrich_from_product_url(product_url: Optional[str], product_name: Optional[str],
-                                   niche: Optional[str], price: Optional[str]):
+                                   niche: Optional[str], price: Optional[str],
+                                   user_region: Optional[str] = None):
     """Lien TikTok Shop → fiche OFFICIELLE (KeyAPI) : nom, catégorie, prix, image HD.
-    Le nom officiel prime (identification fiable). Retourne
+    Le nom officiel prime (identification fiable). user_region = pays détecté côté
+    navigateur → essayé EN PREMIER (le pays n'est pas dans l'URL). Retourne
     (product_name, niche, price, product_image_url). Best-effort : silencieux si échec."""
     product_image_url = None
     if not product_url:
         return product_name, niche, price, product_image_url
+    # Région utilisateur d'abord, puis liste de repli (CAROUSEL_PRODUCT_REGIONS).
+    regions = None
+    if user_region:
+        defaults = [r.strip().upper() for r in
+                    os.getenv("CAROUSEL_PRODUCT_REGIONS", "US,GB,FR").split(",") if r.strip()]
+        ur = user_region.strip().upper()[:2]
+        regions = [ur] + [r for r in defaults if r != ur]
     try:
-        detail = await market_creators.get_product_detail_from_url(product_url)
+        detail = await market_creators.get_product_detail_from_url(product_url, regions=regions)
     except Exception:
         detail = None
     if detail:
@@ -2083,6 +2092,7 @@ async def carousel_anon_generate(
     style: Optional[str] = Form(None),
     user_idea: Optional[str] = Form(None),
     product_url: Optional[str] = Form(None),
+    user_region: Optional[str] = Form(None),
     cookie_id: Optional[str] = Form(None),
 ):
     """Visiteur anonyme : Mode A (prompts) = 1 génération gratuite par IP+cookie.
@@ -2108,7 +2118,7 @@ async def carousel_anon_generate(
 
     # Enrichissement via lien produit TikTok Shop (KeyAPI) : identification fiable.
     product_name, niche, price, product_image_url = await _enrich_from_product_url(
-        product_url, product_name, niche, price)
+        product_url, product_name, niche, price, user_region)
 
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
@@ -2145,6 +2155,7 @@ async def carousel_generate(
     style: Optional[str] = Form(None),
     user_idea: Optional[str] = Form(None),
     product_url: Optional[str] = Form(None),
+    user_region: Optional[str] = Form(None),
 ):
     """Utilisateur connecté. Mode A : gratuit 3/mois (FREE) sinon illimité. Mode B :
     débite les crédits (coût selon l'IA)."""
@@ -2163,7 +2174,7 @@ async def carousel_generate(
 
     # Enrichissement via lien produit TikTok Shop (KeyAPI) : identification fiable + image officielle.
     product_name, niche, price, product_image_url = await _enrich_from_product_url(
-        product_url, product_name, niche, price)
+        product_url, product_name, niche, price, user_region)
 
     cost = 0
     payment_method = "free"
