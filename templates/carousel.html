@@ -112,6 +112,22 @@
 <script>
 const CC = { mode:'prompts', style:'', img:null, providers:null, provider:'auto' };
 function ccCookie(){ let c=localStorage.getItem('cc_cookie'); if(!c){c='cc_'+Math.random().toString(36).slice(2)+Date.now(); localStorage.setItem('cc_cookie',c);} return c; }
+// Détecte le PAYS de l'utilisateur (fuseau horaire > langue) → région TikTok Shop à essayer en 1er.
+function ccRegion(){
+  try{
+    const TZ={'Europe/Paris':'FR','Europe/Brussels':'BE','Europe/Luxembourg':'LU','Europe/Zurich':'CH',
+      'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Rome':'IT','Europe/Berlin':'DE',
+      'Europe/Amsterdam':'NL','Europe/Lisbon':'PT','America/New_York':'US','America/Los_Angeles':'US',
+      'America/Chicago':'US','America/Toronto':'CA','Asia/Bangkok':'TH','Asia/Ho_Chi_Minh':'VN',
+      'Asia/Singapore':'SG','Asia/Kuala_Lumpur':'MY','Asia/Jakarta':'ID','Asia/Manila':'PH'};
+    const tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';
+    if(TZ[tz]) return TZ[tz];
+    for(const l of (navigator.languages||[navigator.language||''])){
+      const m=/[-_]([A-Za-z]{2})$/.exec(l||''); if(m) return m[1].toUpperCase();
+    }
+    return {fr:'FR',en:'GB',de:'DE',es:'ES',it:'IT',nl:'NL',pt:'PT'}[(navigator.language||'').slice(0,2).toLowerCase()]||'';
+  }catch(e){return '';}
+}
 function token(){ return localStorage.getItem('tts_token'); }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
@@ -159,6 +175,7 @@ async function ccGenerate(){
   fd.append('price',document.getElementById('cc-price').value); fd.append('niche',document.getElementById('cc-niche').value);
   fd.append('user_idea',document.getElementById('cc-idea').value);
   fd.append('product_url',url0);
+  fd.append('user_region',ccRegion());
   if(CC.img) fd.append('image',CC.img);
   fd.append('cookie_id',ccCookie());
   const url = token() ? '/api/carousel/generate' : '/api/carousel/anon/generate';
