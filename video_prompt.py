@@ -120,12 +120,17 @@ def generate_video_prompt(image_b64: Optional[str], level: int, platform: str,
                           price: Optional[str] = None, currency: str = "EUR",
                           niche: Optional[str] = None, visual_style: Optional[str] = None,
                           mood: Optional[str] = None, emotion_target: Optional[str] = None,
-                          color_tone: Optional[str] = None, avoid: Optional[str] = None) -> dict:
-    """Génère un plan de prompt vidéo IA. Fallback mock si l'IA échoue (_fallback)."""
+                          color_tone: Optional[str] = None, avoid: Optional[str] = None,
+                          image_url: Optional[str] = None) -> dict:
+    """Génère un plan de prompt vidéo IA. Fallback mock si l'IA échoue (_fallback).
+    image_url = image OFFICIELLE TikTok Shop (KeyAPI) en référence visuelle complémentaire."""
     blocks: list = []
     if image_b64:
         blocks.append({"type": "text", "text": "Image du produit à mettre en scène :"})
         blocks.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}})
+    if image_url:
+        blocks.append({"type": "text", "text": "Image OFFICIELLE TikTok Shop du même produit (référence fiable pour l'identification) :"})
+        blocks.append({"type": "image_url", "image_url": {"url": image_url}})
 
     infos = [f"- Niveau demandé : {level}", f"- Plateforme cible : {PLATFORM_LABELS.get(platform, platform)}"]
     if product_name: infos.append(f"- Produit : {product_name}")
