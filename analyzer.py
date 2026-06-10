@@ -519,6 +519,22 @@ RETOUR JSON OBLIGATOIRE (STRUCTURE EXACTE) :
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════
+# CADRE DES 5 NIVEAUX DE CONSCIENCE (Eugene Schwartz) — appliqué SILENCIEUSEMENT.
+# Partagé par l'analyse vidéo, le carrousel et le Prompt Studio (importé ailleurs).
+# ════════════════════════════════════════════════════════════════════════════
+AWARENESS_FRAMEWORK = """
+# CADRE STRATÉGIQUE (À APPLIQUER SILENCIEUSEMENT — NE JAMAIS LE NOMMER NI L'EXPLIQUER)
+Identifie le niveau de conscience de l'audience visée et adapte l'angle/ton en conséquence :
+1. Inconscient — ne sait pas qu'il a un problème → accroche divertissante, situation du quotidien.
+2. Conscient du problème — ressent la douleur → insiste sur la douleur précise, identification.
+3. Conscient de la solution — cherche des solutions → présente le mécanisme / la catégorie de réponse.
+4. Conscient du produit — compare, hésite → preuve, différenciation, réassurance.
+5. Le plus conscient — prêt à acheter → CTA direct, urgence, offre claire.
+RÈGLE ABSOLUE : utilise ce cadre pour des angles plus percutants, mais NE MENTIONNE JAMAIS
+ce vocabulaire (« niveau de conscience », « Schwartz », « étape ») dans le contenu rendu à l'utilisateur.
+"""
+
 # EXIGENCES DE QUALITÉ (Phase 2) — appliquées à tous les feedbacks/conseils.
 # N'ajoute AUCUNE clé JSON : muscle uniquement le CONTENU des champs existants.
 # Placé en fin de prompt (haute récence) pour maximiser l'effet.
@@ -709,6 +725,7 @@ def synthesize_analysis(
     _prod_label = (product or "").strip() or (detected_product_name or "le produit analysé")
     parts.append(f"\n🎯 Produit de référence pour tes conseils : « {_prod_label} ».")
     parts.append(QUALITY_DIRECTIVES)
+    parts.append(AWARENESS_FRAMEWORK)
 
     # Bloc PREMIUM en TOUT DERNIER (recency) → le modèle lit l'instruction juste
     # avant de répondre, ce qui fiabilise l'ajout de la clé strategie_conversion_premium.

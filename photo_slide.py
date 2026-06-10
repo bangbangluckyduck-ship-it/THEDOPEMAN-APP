@@ -22,7 +22,7 @@ import os
 import random
 from typing import Optional
 
-from analyzer import _extract_json
+from analyzer import _extract_json, AWARENESS_FRAMEWORK
 import ai_providers
 
 
@@ -212,6 +212,7 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
     if preferred_style and preferred_style != "auto":
         blocks.append({"type": "text", "text": f"⚠️ L'utilisateur IMPOSE le style « {preferred_style} »."})
     blocks.append({"type": "text", "text": PHOTO_SLIDE_KNOWLEDGE})
+    blocks.append({"type": "text", "text": AWARENESS_FRAMEWORK})
     blocks.append({"type": "text", "text": _variation_block(avoid)})
     blocks.append({"type": "text", "text": _STRATEGY_OUTPUT})
     try:
@@ -239,7 +240,7 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
         hook=strategy.get("hook", ""), titre=strategy.get("titre_carrousel", ""),
         niche=strategy.get("detected_niche") or niche or "non précisée",
     )
-    prompt = (PHOTO_SLIDE_KNOWLEDGE + "\n\n"
+    prompt = (PHOTO_SLIDE_KNOWLEDGE + "\n\n" + AWARENESS_FRAMEWORK + "\n\n"
               + _product_infos(product_name, price, currency, description, niche) + "\n\n"
               + _variation_block(avoid) + "\n\n"
               + task)

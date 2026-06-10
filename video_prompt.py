@@ -19,7 +19,7 @@ from typing import Optional
 
 import httpx
 
-from analyzer import _extract_json
+from analyzer import _extract_json, AWARENESS_FRAMEWORK
 import ai_providers
 
 PLATFORM_LABELS = {
@@ -139,6 +139,7 @@ def generate_video_prompt(image_b64: Optional[str], level: int, platform: str,
             "🚫 DÉJÀ GÉNÉRÉ — INTERDICTION ABSOLUE de réutiliser ces formulations/idées. "
             "Tu DOIS changer le hook, l'angle créatif, le décor et la mise en scène :\n"
             + str(avoid)[:800]})
+    blocks.append({"type": "text", "text": AWARENESS_FRAMEWORK})
     blocks.append({"type": "text", "text": AI_VIDEO_PROMPT_SYSTEM})
 
     try:
