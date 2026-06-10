@@ -1831,6 +1831,7 @@ async def ai_selftest(request: Request, token: Optional[str] = Query(None)):
         "models": {"vision_gemini": ai_providers.GEMINI_VISION_MODEL, "text_claude": ai_providers.CLAUDE_TEXT_MODEL},
     }
     loop = asyncio.get_event_loop()
+    # 1) Tier TEXTE (Claude si dispo)
     try:
         txt = await asyncio.wait_for(
             loop.run_in_executor(None, lambda: ai_providers.text_complete(
@@ -1838,10 +1839,28 @@ async def ai_selftest(request: Request, token: Optional[str] = Query(None)):
             timeout=40.0)
         out["text_roundtrip"] = (txt or "").strip()[:80]
         out["text_provider_used"] = ai_providers.last_providers().get("text")
-        out["verdict"] = "✅ Couche IA opérationnelle"
     except Exception as e:
-        out["error"] = str(e)
-        out["verdict"] = "❌ Échec aller-retour texte"
+        out["text_error"] = str(e)
+    # 2) Tier VISION (Gemini si dispo) sur une mini-image 1x1 (valide la chaîne image)
+    _TINY_PNG = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAE"
+                 "hQGAhKmMIQAAAABJRU5ErkJggg==")
+    try:
+        blocks = [
+            {"type": "text", "text": "Réponds en UN mot la couleur dominante de cette image."},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64," + _TINY_PNG}},
+        ]
+        v = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: ai_providers.vision_complete(blocks, timeout=30.0)),
+            timeout=40.0)
+        out["vision_roundtrip"] = (v or "").strip()[:80]
+        out["vision_provider_used"] = ai_providers.last_providers().get("vision")
+    except Exception as e:
+        out["vision_error"] = str(e)
+    ok_t = bool(out.get("text_roundtrip")) and "text_error" not in out
+    ok_v = bool(out.get("vision_roundtrip")) and "vision_error" not in out
+    out["verdict"] = ("✅ Couche IA opérationnelle (texte + vision)" if ok_t and ok_v
+                      else "⚠️ Partiel — voir text_error / vision_error" if (ok_t or ok_v)
+                      else "❌ Échec des deux tiers")
     return out
 
 
