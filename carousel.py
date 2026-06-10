@@ -42,10 +42,11 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
                       product_name: Optional[str] = None, description: Optional[str] = None,
                       price: Optional[str] = None, currency: str = "EUR",
                       niche: Optional[str] = None, user_idea: Optional[str] = None,
-                      product_image_url: Optional[str] = None) -> dict:
+                      product_image_url: Optional[str] = None, avoid: Optional[str] = None) -> dict:
     """Génère le carrousel complet (Mode A ou B). user_idea = idée libre de l'utilisateur
     (intégrée au plan/visuels) ; l'optimisation TikTok Shop reste notre valeur ajoutée.
-    product_image_url = image OFFICIELLE TikTok Shop (KeyAPI) → identification + fidélité."""
+    product_image_url = image OFFICIELLE TikTok Shop (KeyAPI) → identification + fidélité.
+    avoid = hooks/titres/descriptions déjà générés → jamais réutilisés (créativité forcée)."""
     # 1) Plan stratégique + textes (réutilise Photo Slide / pixtral)
     desc_plan = description or ""
     if user_idea:
@@ -53,10 +54,13 @@ def generate_carousel(image_b64: Optional[str], mode: str = "prompts",
     plan = photo_slide.generate_photo_slide(
         image_b64, product_name, price, currency, desc_plan, niche,
         preferred_style=style if style and style != "auto" else None,
-        image_url=product_image_url)
+        image_url=product_image_url, avoid=avoid)
 
     ts = plan.get("type_slide") or {}
-    chosen_style = ts.get("style") or "fond_blanc"
+    # Le CHOIX EXPLICITE de l'utilisateur PRIME (sinon pixtral pouvait renvoyer fond_blanc
+    # et écraser un choix « cartoon »). Sinon, recommandation de pixtral.
+    user_style = style if (style and style != "auto") else None
+    chosen_style = user_style or ts.get("style") or "fond_blanc"
     result = {
         "mode": mode,
         "strategy": {
