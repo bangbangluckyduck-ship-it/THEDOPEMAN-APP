@@ -19,9 +19,23 @@ L'utilisateur voit donc la stratégie + le hook AVANT que tout soit fini.
 from __future__ import annotations
 
 import os
+import random
 from typing import Optional
 
 from analyzer import _mistral_call, _extract_json
+
+
+def _variation_block(avoid: Optional[str] = None) -> str:
+    """🎲 Force la CRÉATIVITÉ : seed de variation + interdiction de réutiliser ce qui a déjà
+    été généré (hook / titre / description). Même principe que le Prompt Studio vidéo."""
+    seed = random.randint(100000, 999999)
+    txt = (f"\n\n🎲 Seed de variation : {seed} — produis une déclinaison INÉDITE : "
+           "hook, titre, angle créatif et description TOUS différents d'une génération à l'autre. "
+           "Bannis les formules clichées et déjà-vues. Sois réellement original.")
+    if avoid:
+        txt += ("\n🚫 DÉJÀ GÉNÉRÉ POUR CE PRODUIT — INTERDICTION ABSOLUE de réutiliser ou paraphraser "
+                "ces hooks / titres / descriptions. Change radicalement d'angle :\n" + str(avoid)[:1000])
+    return txt
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -130,7 +144,8 @@ def _product_infos(product_name, price, currency, description, niche) -> str:
 def generate_strategy(image_b64: str, product_name: Optional[str] = None,
                       price: Optional[str] = None, currency: str = "EUR",
                       description: Optional[str] = None, niche: Optional[str] = None,
-                      preferred_style: Optional[str] = None, image_url: Optional[str] = None) -> dict:
+                      preferred_style: Optional[str] = None, image_url: Optional[str] = None,
+                      avoid: Optional[str] = None) -> dict:
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError("MISTRAL_API_KEY manquant")
@@ -144,6 +159,7 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
     if preferred_style and preferred_style != "auto":
         blocks.append({"type": "text", "text": f"⚠️ L'utilisateur IMPOSE le style « {preferred_style} »."})
     blocks.append({"type": "text", "text": PHOTO_SLIDE_KNOWLEDGE})
+    blocks.append({"type": "text", "text": _variation_block(avoid)})
     blocks.append({"type": "text", "text": _STRATEGY_OUTPUT})
     try:
         raw = _mistral_call(api_key, "pixtral-12b-2409", blocks, timeout=60.0)
@@ -160,7 +176,8 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
 # ════════════════════════════════════════════════════════════════════════════
 def generate_content(strategy: dict, product_name: Optional[str] = None,
                      price: Optional[str] = None, currency: str = "EUR",
-                     description: Optional[str] = None, niche: Optional[str] = None) -> dict:
+                     description: Optional[str] = None, niche: Optional[str] = None,
+                     avoid: Optional[str] = None) -> dict:
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError("MISTRAL_API_KEY manquant")
@@ -172,6 +189,7 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
     )
     prompt = (PHOTO_SLIDE_KNOWLEDGE + "\n\n"
               + _product_infos(product_name, price, currency, description, niche) + "\n\n"
+              + _variation_block(avoid) + "\n\n"
               + task)
     try:
         raw = _mistral_call(api_key, "mistral-small-latest", prompt, timeout=45.0)
@@ -187,10 +205,11 @@ def generate_content(strategy: dict, product_name: Optional[str] = None,
 def generate_photo_slide(image_b64: str, product_name: Optional[str] = None,
                          price: Optional[str] = None, currency: str = "EUR",
                          description: Optional[str] = None, niche: Optional[str] = None,
-                         preferred_style: Optional[str] = None, image_url: Optional[str] = None) -> dict:
+                         preferred_style: Optional[str] = None, image_url: Optional[str] = None,
+                         avoid: Optional[str] = None) -> dict:
     strat = generate_strategy(image_b64, product_name, price, currency, description, niche,
-                              preferred_style, image_url=image_url)
-    content = generate_content(strat, product_name, price, currency, description, niche)
+                              preferred_style, image_url=image_url, avoid=avoid)
+    content = generate_content(strat, product_name, price, currency, description, niche, avoid=avoid)
     return {**strat, **content}
 
 

@@ -128,6 +128,10 @@ function ccRegion(){
     return {fr:'FR',en:'GB',de:'DE',es:'ES',it:'IT',nl:'NL',pt:'PT'}[(navigator.language||'').slice(0,2).toLowerCase()]||'';
   }catch(e){return '';}
 }
+// Mémoire anti-répétition (par produit) : hooks/titres/descriptions déjà générés → créativité forcée.
+function _ccAvoidKey(u){ return 'cc_avoid_'+(u||'').replace(/[^a-z0-9]/gi,'').slice(-44); }
+function ccGetAvoid(u){ try{ const a=JSON.parse(localStorage.getItem(_ccAvoidKey(u))||'[]'); return a.length?JSON.stringify(a):''; }catch(e){return '';} }
+function ccRemember(u,o){ try{ const k=_ccAvoidKey(u); const a=JSON.parse(localStorage.getItem(k)||'[]'); a.push({hook:(o.hook||'').slice(0,120), titre:(o.carousel_title||'').slice(0,120), desc:(o.description||'').slice(0,140)}); localStorage.setItem(k,JSON.stringify(a.slice(-8))); }catch(e){} }
 function token(){ return localStorage.getItem('tts_token'); }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
@@ -176,6 +180,7 @@ async function ccGenerate(){
   fd.append('user_idea',document.getElementById('cc-idea').value);
   fd.append('product_url',url0);
   fd.append('user_region',ccRegion());
+  const av=ccGetAvoid(url0); if(av) fd.append('avoid',av);   // jamais 2x le même hook/titre/description
   if(CC.img) fd.append('image',CC.img);
   fd.append('cookie_id',ccCookie());
   const url = token() ? '/api/carousel/generate' : '/api/carousel/anon/generate';
@@ -185,7 +190,7 @@ async function ccGenerate(){
     if(res.status===402){ const j=await res.json(); out.innerHTML=ccPaywall(j); btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
     if(!res.ok){ let m='Erreur.';try{m=(await res.json()).detail||m;}catch(e){} out.innerHTML=`<div class="card" style="color:var(--err)">${esc(m)}</div>`; btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
     const reader=res.body.getReader(),dec=new TextDecoder();let buf='';
-    const handle=(ev,d)=>{let o;try{o=JSON.parse(d);}catch(e){return;} if(ev==='complete')ccRender(o); else if(ev==='error')out.innerHTML=`<div class="card" style="color:var(--err)">${esc(o.error||'Erreur')}</div>`; };
+    const handle=(ev,d)=>{let o;try{o=JSON.parse(d);}catch(e){return;} if(ev==='complete'){ccRender(o); ccRemember(url0,o);} else if(ev==='error')out.innerHTML=`<div class="card" style="color:var(--err)">${esc(o.error||'Erreur')}</div>`; };
     const proc=b=>{let ev='message';const dl=[];for(const raw of b.split('\n')){const l=raw.replace(/\r$/,'');if(l.startsWith('event:'))ev=l.slice(6).trim();else if(l.startsWith('data:'))dl.push(l.slice(5).trim());}if(dl.length)handle(ev,dl.join('\n'));};
     while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf('\n\n'))!==-1){const b=buf.slice(0,i);buf=buf.slice(i+2);if(b.trim())proc(b);}}
     if(buf.trim())proc(buf);
