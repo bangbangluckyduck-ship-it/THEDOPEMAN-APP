@@ -196,13 +196,19 @@ def generate_strategy(image_b64: str, product_name: Optional[str] = None,
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError("MISTRAL_API_KEY manquant")
-    # Image officielle (URL KeyAPI) prioritaire pour l'identification, sinon photo uploadée (base64).
-    img_src = image_url if image_url else f"data:image/jpeg;base64,{image_b64}"
-    blocks = [
-        {"type": "text", "text": "Voici l'image du produit à analyser :"},
-        {"type": "image_url", "image_url": {"url": img_src}},
-        {"type": "text", "text": _product_infos(product_name, price, currency, description, niche)},
-    ]
+    # Image officielle (URL KeyAPI) prioritaire pour l'identification, sinon photo uploadée
+    # (base64), sinon AUCUNE image → stratégie texte-only à partir de nom/description/prix
+    # (sans ce cas, on envoyait « base64,None » → pixtral plantait → mock générique).
+    img_src = image_url or (f"data:image/jpeg;base64,{image_b64}" if image_b64 else None)
+    blocks = []
+    if img_src:
+        blocks.append({"type": "text", "text": "Voici l'image du produit à analyser :"})
+        blocks.append({"type": "image_url", "image_url": {"url": img_src}})
+    else:
+        blocks.append({"type": "text", "text": "Pas d'image disponible : base-toi UNIQUEMENT sur les "
+                       "informations produit ci-dessous (nom, description, prix, niche) pour identifier "
+                       "précisément le produit et son problème n°1."})
+    blocks.append({"type": "text", "text": _product_infos(product_name, price, currency, description, niche)})
     if preferred_style and preferred_style != "auto":
         blocks.append({"type": "text", "text": f"⚠️ L'utilisateur IMPOSE le style « {preferred_style} »."})
     blocks.append({"type": "text", "text": PHOTO_SLIDE_KNOWLEDGE})

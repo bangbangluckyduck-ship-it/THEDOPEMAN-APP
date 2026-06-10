@@ -2127,6 +2127,8 @@ async def carousel_anon_generate(
     Mode B (images) = paiement requis (stub Stripe)."""
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
+        raise HTTPException(status_code=422, detail="Nom, description et prix du produit sont obligatoires.")
     if mode == "images":
         return JSONResponse({"ok": False, "reason": "payment_required",
                              "message": "Le mode Images IA nécessite un achat (bientôt disponible)."}, status_code=402)
@@ -2190,6 +2192,8 @@ async def carousel_generate(
     débite les crédits (coût selon l'IA)."""
     if not os.getenv("MISTRAL_API_KEY"):
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
+    if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
+        raise HTTPException(status_code=422, detail="Nom, description et prix du produit sont obligatoires.")
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
