@@ -228,10 +228,11 @@ function block(title,text){if(!text)return'';const id='ccb'+(++_ccid);return `<d
 
 function ccRender(r){
   const out=document.getElementById('cc-result');
+  CC.last=r;
   const st=r.strategy||{};
   let h='';
   if(r._fallback) h+=`<div class="card" style="border-color:#e8a417;background:rgba(232,164,23,.07)"><strong>⚠️ Génération dégradée</strong><div style="font-size:12px;color:var(--muted);margin-top:4px">Notre IA d'analyse était momentanément indisponible — ce résultat est un plan générique de secours, PAS la qualité normale. Relance la génération dans quelques instants.</div></div>`;
-  h+=`<div class="card"><h3 style="margin:0">🎬 Ton carrousel</h3>
+  h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">🎬 Ton carrousel</h3><button class="btn-sec" onclick="ccExportPDF()">📄 Télécharger le PDF</button></div>
     <div style="font-size:12px;color:var(--muted)">${esc(st.style_label||st.chosen_style||'')} · ${esc(st.detected_niche||'')}</div>`;
   if(st.justification) h+=`<div style="font-size:12px;color:var(--muted);margin-top:4px">${esc(st.justification)}</div>`;
 

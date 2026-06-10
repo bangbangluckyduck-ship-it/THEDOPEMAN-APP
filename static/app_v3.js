@@ -3972,18 +3972,39 @@ function renderVideoPromptResult(r) {
   // 🎬 Plan séquence (timeline 3s) suivant le tunnel de vente
   if (Array.isArray(r.timeline) && r.timeline.length) {
     const phaseColor = { 'Accroche': '#2563EB', 'Problème': '#DC2626', 'Probleme': '#DC2626', 'Solution': '#D97706', 'Produit': '#7C3AED', 'CTA': '#059669' };
-    html += `<div style="margin-top:16px;font-size:12px;font-weight:700">🎬 Plan séquence (Accroche → Problème → Solution → Produit → CTA)</div>
+    const fullPlanId = 'vptl-all-' + (++_vpCopyId);
+    const fullPlan = r.timeline.map(s => [
+      `${s.time || ''} — ${s.phase || ''}`.trim(),
+      s.scene || '',
+      s.camera ? 'Caméra : ' + s.camera : '',
+      s.texte_ecran ? 'Texte à l\'écran : « ' + s.texte_ecran + ' »' : ''
+    ].filter(Boolean).join('\n')).join('\n\n');
+    html += `<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-size:12px;font-weight:700">🎬 Plan séquence (Accroche → Problème → Solution → Produit → CTA)</div>
+        <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px;flex-shrink:0" onclick="_vpCopy('${fullPlanId}',this)">Copier tout</button>
+      </div>
+      <div id="${fullPlanId}" style="display:none">${escapeHtml(fullPlan)}</div>
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">`;
-    r.timeline.forEach(s => {
+    r.timeline.forEach((s, idx) => {
       const col = phaseColor[s.phase] || 'var(--primary)';
+      const sid = 'vptl-' + (++_vpCopyId);
+      const copyText = [
+        s.scene || '',
+        s.camera ? 'Caméra : ' + s.camera : '',
+        s.texte_ecran ? 'Texte à l\'écran : « ' + s.texte_ecran + ' »' : ''
+      ].filter(Boolean).join('\n');
       html += `<div style="display:flex;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${col};border-radius:8px;padding:8px 10px">
         <div style="flex-shrink:0;text-align:center;min-width:48px">
           <div style="font-size:11px;font-weight:800">${escapeHtml(s.time || '')}</div>
           <div style="font-size:9px;color:${col};font-weight:700;text-transform:uppercase">${escapeHtml(s.phase || '')}</div>
         </div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;line-height:1.4">${escapeHtml(s.scene || '')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="font-size:12px;line-height:1.4">${escapeHtml(s.scene || '')}</div>
+            <button class="btn btn-secondary" style="font-size:10px;padding:2px 7px;flex-shrink:0" onclick="_vpCopy('${sid}',this)">Copier</button>
+          </div>
           <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.camera ? '🎥 ' + escapeHtml(s.camera) : ''}${s.texte_ecran ? ' · 💬 « ' + escapeHtml(s.texte_ecran) + ' »' : ''}</div>
+          <div id="${sid}" style="display:none">${escapeHtml(copyText)}</div>
         </div>
       </div>`;
     });
