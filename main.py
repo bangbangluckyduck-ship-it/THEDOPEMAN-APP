@@ -738,6 +738,13 @@ async def analyze_stream_sse(
             yield 'event: progress\n'
             yield 'data: {"message": "🎤 Transcription audio + 👁️ Analyse visuelle en cours...", "stage": "parallel_running"}\n\n'
 
+            # Keepalive pendant vision+transcription (sinon silence jusqu'à 60s →
+            # le proxy Render coupe la connexion SSE → "network error" côté client).
+            while True:
+                _d, _pending = await asyncio.wait({transcript_task, visual_task}, timeout=4.0)
+                if not _pending:
+                    break
+                yield ': keepalive\n\n'
             transcript, visual_result = await asyncio.gather(transcript_task, visual_task, return_exceptions=True)
 
             if isinstance(transcript, Exception): transcript = None
@@ -851,7 +858,8 @@ async def analyze_stream_sse(
                 try: os.unlink(audio_path)
                 except OSError: pass
 
-    return StreamingResponse(stream_analysis(), media_type="text/event-stream")
+    return StreamingResponse(stream_analysis(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 @app.get("/api/analyze/stream")
 async def analyze_stream(request: Request, video_url: str = Query(...), product: Optional[str] = Query(None)):
