@@ -983,6 +983,9 @@ async def analyze_url(request: Request):
     performance = body.get("performance") if isinstance(body.get("performance"), dict) else None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+    # Nom produit + prix OBLIGATOIRES pour l'analyse par lien (fiabilise prix/conversion).
+    if not product or not price:
+        raise HTTPException(status_code=422, detail="Le nom du produit et le prix sont obligatoires pour l'analyse par lien.")
 
     loop = asyncio.get_event_loop()
     tmpdir = tempfile.mkdtemp(prefix="ttsurl_")
