@@ -1002,6 +1002,8 @@ document.getElementById('analyze-btn').addEventListener('click', analyzeVideo);
 // Analyse par liens TikTok (Pro / Gold / Agency)
 const _urlsBtn = document.getElementById('analyze-urls-btn');
 if (_urlsBtn) _urlsBtn.addEventListener('click', analyzeUrls);
+const _urlSingleBtn = document.getElementById('analyze-url-single-btn');
+if (_urlSingleBtn) _urlSingleBtn.addEventListener('click', analyzeSingleUrl);
 
 // ── FRAME EXTRACTION ──────────────────────────────────────────
 async function extractFrames(file, numFrames = 6) {
@@ -1241,6 +1243,92 @@ async function analyzeVideo() {
 // ════════════════════════════════════════════════════════════════════════════
 // ANALYSE PAR LIENS TIKTOK — Pro = 1 lien, Gold/Agency = batch séquentiel
 // ════════════════════════════════════════════════════════════════════════════
+// Analyse 1 lien TikTok en SSE (affichage dynamique : download → vision → synthèse).
+async function analyzeSingleUrl() {
+  const input = document.getElementById('tiktok-url-single');
+  const url = input ? input.value.trim() : '';
+  if (!url) { showError('Colle un lien TikTok.'); input && input.focus(); return; }
+  if (!/tiktok\.com|vt\.tiktok|vm\.tiktok/i.test(url)) { showError('Lien TikTok invalide.'); input && input.focus(); return; }
+
+  const tier  = window.__userInfo?.tier || 'free';
+  const token = localStorage.getItem('tts_token');
+  if (!token || tier === 'free') {
+    switchTab('pricing');
+    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement !");
+    return;
+  }
+
+  // Nom produit + prix obligatoires (fiabilise l'analyse prix/conversion).
+  const productInput = document.getElementById('product-input');
+  const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
+  const priceInput = document.getElementById('price-input');
+  const price = (priceInput && priceInput.value.trim()) ? priceInput.value.trim() : null;
+  if (!product) { showError('⭐ Indique le nom/description du produit (obligatoire pour le lien).'); productInput && productInput.focus(); return; }
+  if (!price)   { showError('⭐ Indique le prix du produit (obligatoire pour le lien).'); priceInput && priceInput.focus(); return; }
+
+  document.getElementById('error-box').style.display      = 'none';
+  document.getElementById('upload-section').style.display  = 'none';
+  document.getElementById('loading-section').style.display = 'block';
+  setLoadingText('🔗 Analyse du lien…');
+
+  try {
+    const res = await fetch('/analyze-url/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ url, product, price }),
+    });
+    if (!res.ok) {
+      let m = 'Erreur serveur';
+      try { m = (await res.json()).detail || m; } catch (_) {}
+      if (res.status === 403) switchTab('pricing');
+      throw new Error(m);
+    }
+
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '', completeData = null;
+    const handle = (ev, dstr) => {
+      let o; try { o = JSON.parse(dstr); } catch (_) { return; }
+      if (ev === 'progress') setLoadingText(o.message || '🔄 En cours…');
+      else if (ev === 'partial') renderAnalysisPreview(o);
+      else if (ev === 'complete') { completeData = o; setLoadingText('✅ Analyse terminée!'); }
+      else if (ev === 'error') throw new Error(o.error || 'Erreur analyse');
+    };
+    const proc = (block) => {
+      let ev = 'message'; const dl = [];
+      for (const raw of block.split('\n')) {
+        const l = raw.replace(/\r$/, ''); if (!l) continue;
+        if (l.startsWith('event:')) ev = l.slice(6).trim();
+        else if (l.startsWith('data:')) dl.push(l.slice(5).trim());
+      }
+      if (dl.length) handle(ev, dl.join('\n'));
+    };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf('\n\n')) !== -1) { const b = buf.slice(0, i); buf = buf.slice(i + 2); if (b.trim()) proc(b); }
+    }
+    if (buf.trim()) proc(buf);
+    if (!completeData) throw new Error('Pas de données reçues');
+
+    currentData = completeData; currentFilename = url;
+    if (completeData.usage?.used !== undefined) {
+      localStorage.setItem(USAGE_KEY, completeData.usage.used);
+      window.__usage = completeData.usage; updateUsageCounter(); updateUsageBadge(completeData.usage);
+    }
+    saveToHistory(completeData, url);
+    showResults(completeData);
+    if (completeData.donnees_marche && (tier === 'gold' || tier === 'agency' || tier === 'beta')) {
+      renderMarketSection(completeData.donnees_marche);
+      const ms = document.getElementById('market-section'); if (ms) ms.style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('loading-section').style.display = 'none';
+    document.getElementById('upload-section').style.display  = 'block';
+    showError(e.name === 'AbortError' ? t('err_timeout') : '❌ ' + e.message);
+  }
+}
+
 async function analyzeUrls() {
   const ta = document.getElementById('tiktok-urls');
   if (!ta) return;

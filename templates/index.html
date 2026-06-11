@@ -1335,13 +1335,29 @@
         🚀 Analyser avec l'IA
       </button>
 
-      <!-- Analyse par lien TikTok (Pro : 1 lien • Gold/Agency : analyse en masse) -->
+      <!-- ── Analyse 1 lien TikTok (Pro et +) — affichage dynamique ── -->
       <div style="display:flex;align-items:center;gap:10px;margin:20px 0 14px;color:var(--muted);font-size:12px">
-        <span style="flex:1;height:1px;background:var(--border)"></span>OU<span style="flex:1;height:1px;background:var(--border)"></span>
+        <span style="flex:1;height:1px;background:var(--border)"></span>OU PAR LIEN<span style="flex:1;height:1px;background:var(--border)"></span>
       </div>
-      <div id="url-analysis-block" style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div id="url-single-block" style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
         <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
-          🔗 Collez vos liens TikTok ici <span style="color:var(--muted);font-weight:400">(un par ligne)</span>
+          🔗 Analyser 1 lien TikTok <span style="color:var(--muted);font-weight:400">(Pro et +)</span>
+        </label>
+        <input
+          type="url" id="tiktok-url-single" inputmode="url"
+          placeholder="https://www.tiktok.com/@compte/video/123..."
+          style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
+        >
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">⭐ Nom du produit + prix (ci-dessus) <b>obligatoires</b> pour l'analyse par lien.</p>
+        <button class="btn btn-primary btn-block" id="analyze-url-single-btn" style="margin-top:10px">
+          🔗 Analyser ce lien
+        </button>
+      </div>
+
+      <!-- ── Espace multi-liens — Gold / Agency ── -->
+      <div id="url-multi-block" style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:8px;border:1px solid rgba(212,175,55,.5)">
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
+          🔗🔗 Analyse multi-liens <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:1px 7px;border-radius:999px;font-weight:700">GOLD / AGENCY</span>
         </label>
         <textarea
           id="tiktok-urls"
@@ -1349,9 +1365,9 @@
           placeholder="https://www.tiktok.com/@compte/video/123...&#10;https://www.tiktok.com/@compte/video/456..."
           style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit;resize:vertical"
         ></textarea>
-        <p style="font-size:12px;color:var(--muted);margin-top:6px">⚡ Pro : 1 lien à la fois • Gold / Agency : analyse de plusieurs vidéos en masse</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">⚡ Plusieurs vidéos d'un coup → <b>patterns gagnants & ralentissants</b> (méta-synthèse).</p>
         <button class="btn btn-primary btn-block" id="analyze-urls-btn" style="margin-top:10px">
-          🔗 Analyser les liens
+          🔗 Analyser en masse
         </button>
       </div>
     </section>
