@@ -736,10 +736,12 @@ def synthesize_analysis(
 
     # Rédaction = tier TEXTE (Claude Sonnet 4.6 si dispo, sinon Mistral). Marge de
     # timeout généreuse (configurable SYNTHESIS_TIMEOUT) pour éviter "read timed out".
+    # max_tokens généreux : l'analyse complète (8 dimensions + reco + conseils + premium)
+    # dépasse souvent 4096 → sinon le JSON est tronqué et le parsing échoue (texte vide).
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
-        max_tokens=4096,
+        max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")),
     )
     try:
         parsed = _extract_json(raw)
