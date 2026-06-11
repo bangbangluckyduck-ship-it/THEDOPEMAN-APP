@@ -1112,6 +1112,212 @@ async def analyze_url(request: Request):
             pass
 
 
+@app.post("/analyze-url/stream")
+async def analyze_url_stream(request: Request):
+    """Analyse 1 lien TikTok en SSE (affichage dynamique : download → vision → synthèse).
+    PRO+. Nom produit + prix obligatoires. Additif : ne touche pas /analyze-url (batch)."""
+    if not ai_providers.any_ai_key():
+        raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
+    user = get_user_from_request(request)
+    tier = user.get("tier", "free")
+    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+        raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
+    check_quota(user)
+    body = await request.json()
+    url = (body.get("url") or "").strip()
+    product = (body.get("product") or "").strip() or None
+    price = (body.get("price") or "").strip() or None
+    if not url or not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+    if not product or not price:
+        raise HTTPException(status_code=422, detail="Le nom du produit et le prix sont obligatoires pour l'analyse par lien.")
+
+    loop = asyncio.get_event_loop()
+
+    async def stream():
+        tmpdir = tempfile.mkdtemp(prefix="ttsurls_")
+        video_path = None
+        semaphore_acquired = False
+        try:
+            yield 'event: start\n'
+            yield 'data: {"message": "Analyse du lien en cours\\u2026"}\n\n'
+
+            # 1. Téléchargement (keepalive pendant l'attente)
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\u2b07\\ufe0f T\\u00e9l\\u00e9chargement de la vid\\u00e9o\\u2026", "stage": "download"}\n\n'
+
+            def _download() -> str:
+                import yt_dlp
+                ydl_opts = {
+                    "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
+                    "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
+                    "quiet": True, "no_warnings": True, "noplaylist": True,
+                    "max_filesize": 80 * 1024 * 1024,
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    return ydl.prepare_filename(info)
+
+            dl_task = loop.run_in_executor(None, _download)
+            _w = 0.0
+            while True:
+                _d, _pending = await asyncio.wait({dl_task}, timeout=4.0)
+                if not _pending:
+                    break
+                _w += 4.0
+                if _w >= 60:
+                    dl_task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "Le t\\u00e9l\\u00e9chargement a pris trop longtemps."}\n\n'
+                    return
+                yield ': keepalive\n\n'
+            try:
+                video_path = dl_task.result()
+            except Exception as e:
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"error": f"Impossible de récupérer cette vidéo : {str(e)[:160]}"})}\n\n'
+                return
+            if not video_path or not os.path.exists(video_path):
+                yield 'event: error\n'
+                yield 'data: {"error": "Vid\\u00e9o introuvable apr\\u00e8s t\\u00e9l\\u00e9chargement."}\n\n'
+                return
+
+            await ANALYSIS_SEMAPHORE.acquire()
+            semaphore_acquired = True
+
+            # 2. Frames + transcription (parallèle + keepalive)
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83c\\udf9e\\ufe0f Extraction images + transcription\\u2026", "stage": "frames"}\n\n'
+            frames_task = loop.run_in_executor(None, _extract_frames_opencv, video_path, 6)
+
+            async def _do_tr():
+                try:
+                    return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=40.0)
+                except asyncio.TimeoutError:
+                    return None
+            tr_task = asyncio.create_task(_do_tr())
+            while True:
+                _d, _pending = await asyncio.wait({frames_task, tr_task}, timeout=4.0)
+                if not _pending:
+                    break
+                yield ': keepalive\n\n'
+            try:
+                frames_list = frames_task.result()
+            except Exception:
+                frames_list = None
+            transcript = tr_task.result() if (tr_task.done() and not tr_task.cancelled()) else None
+            if not frames_list:
+                yield 'event: error\n'
+                yield 'data: {"error": "Impossible d\'extraire les images de la vid\\u00e9o."}\n\n'
+                return
+
+            analysis_start = time.time()
+
+            # 3. Vision (keepalive) + aperçu progressif
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83d\\udc41\\ufe0f Analyse visuelle\\u2026", "stage": "vision"}\n\n'
+            vis_task = loop.run_in_executor(None, analyze_visual, frames_list, product, price)
+            while True:
+                _d, _pending = await asyncio.wait({vis_task}, timeout=4.0)
+                if not _pending:
+                    break
+                yield ': keepalive\n\n'
+            try:
+                visual_result = vis_task.result()
+            except Exception as e:
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"error": f"Analyse visuelle : {str(e)[:160]}"})}\n\n'
+                return
+            detected_product = str(visual_result.get("produit") or "")[:60] if isinstance(visual_result, dict) else ""
+            if isinstance(visual_result, dict):
+                partial_payload = {
+                    "produit": detected_product,
+                    "description_visuelle": str(visual_result.get("description_visuelle") or "")[:400],
+                    "qualite_visuelle_score": visual_result.get("qualite_visuelle_score"),
+                    "format_visuel_score": visual_result.get("format_visuel_score"),
+                    "hook_visuel_score": visual_result.get("hook_visuel_score"),
+                }
+                yield 'event: partial\n'
+                yield f'data: {json.dumps(partial_payload)}\n\n'
+
+            # 4. Synthèse (keepalive)
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale (scoring + conseils)\\u2026", "stage": "synthesis"}\n\n'
+            synth_task = loop.run_in_executor(
+                None, synthesize_analysis, visual_result, transcript, None, product, tier, price)
+            _w = 0.0
+            result = None
+            while True:
+                _d, _pending = await asyncio.wait({synth_task}, timeout=4.0)
+                if synth_task in _d:
+                    try:
+                        result = synth_task.result()
+                    except Exception as e:
+                        yield 'event: error\n'
+                        yield f'data: {json.dumps({"error": f"Synthèse : {str(e)[:200]}"})}\n\n'
+                        return
+                    break
+                _w += 4.0
+                if _w >= 140:
+                    synth_task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "La synth\\u00e8se a pris trop longtemps."}\n\n'
+                    return
+                yield ': keepalive\n\n'
+
+            dur = int((time.time() - analysis_start) * 1000)
+            if user["valid"]:
+                increment_usage(user["email"])
+            _record_analyzed_product(result)
+            try:
+                _nu, _vid = normalize_tiktok_url(url)
+                if _vid and _vid != "unknown":
+                    _vps = await market_creators.get_video_products(_vid)
+                    if _vps:
+                        result["video_products"] = _vps
+            except Exception:
+                pass
+            result["transcript"] = transcript
+            result["frames_analyzed"] = len(frames_list)
+            result["usage"] = usage_info(user)
+            result["analysis_duration_ms"] = dur
+            try:
+                await save_to_cache(normalize_tiktok_url(url)[0], result, dur, product_id=product)
+            except Exception:
+                pass
+            try:
+                save_insight(result, product=product, price=price)
+            except Exception:
+                pass
+            try:
+                winning = build_winning_payload(result, tier, product=product, price=price)
+                if winning:
+                    result["structures_gagnantes"] = winning
+            except Exception:
+                pass
+            yield 'event: complete\n'
+            yield f'data: {json.dumps(result)}\n\n'
+        except Exception as e:
+            yield 'event: error\n'
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+        finally:
+            if semaphore_acquired:
+                ANALYSIS_SEMAPHORE.release()
+            try:
+                import shutil
+                shutil.rmtree(tmpdir, ignore_errors=True)
+            except Exception:
+                pass
+            try:
+                import gc
+                gc.collect()
+            except Exception:
+                pass
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # MÉTA-SYNTHÈSE MULTI-VIDÉOS — patterns gagnants / perdants (Gold / Agency)
 # ════════════════════════════════════════════════════════════════════════════
