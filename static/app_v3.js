@@ -1257,7 +1257,7 @@ async function analyzeUrls() {
   // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Passez au plan Pro (19,90€) pour analyser des liens TikTok directement sans rien télécharger !");
+    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement sans rien télécharger !");
     return;
   }
 
