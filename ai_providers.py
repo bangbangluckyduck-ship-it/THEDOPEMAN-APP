@@ -114,7 +114,7 @@ def _gemini_vision(content: Any, timeout: float, temperature: Optional[float] = 
 
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
 def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
-                 temperature: Optional[float] = None) -> str:
+                 temperature: Optional[float] = None, model: Optional[str] = None) -> str:
     import anthropic
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=timeout)
     cblocks = []
@@ -133,7 +133,7 @@ def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
                 cblocks.append({"type": "image", "source": {"type": "url", "url": url}})
     if not cblocks:
         cblocks = [{"type": "text", "text": ""}]
-    kwargs: dict = {"model": CLAUDE_TEXT_MODEL, "max_tokens": max_tokens,
+    kwargs: dict = {"model": model or CLAUDE_TEXT_MODEL, "max_tokens": max_tokens,
                     "messages": [{"role": "user", "content": cblocks}]}
     if temperature is not None:
         kwargs["temperature"] = temperature
@@ -172,12 +172,12 @@ def vision_complete(content: Any, timeout: float = 60.0,
 
 
 def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 8192,
-                  temperature: Optional[float] = None) -> str:
-    """Rédaction d'analyses / plans (texte, image éventuelle).
-    Claude Sonnet 4.6 si dispo, sinon Mistral small. Fallback auto sur erreur."""
+                  temperature: Optional[float] = None, model: Optional[str] = None) -> str:
+    """Rédaction d'analyses / plans (texte, image éventuelle). Claude si dispo, sinon
+    Mistral small. `model` force un modèle Claude précis (ex. Haiku pour la vitesse)."""
     if _resolve("text") == "claude":
         try:
-            out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature)
+            out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature, model=model)
             if out and out.strip():
                 _LAST["text"] = "claude:" + CLAUDE_TEXT_MODEL
                 return out

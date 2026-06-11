@@ -736,12 +736,14 @@ def synthesize_analysis(
 
     # Rédaction = tier TEXTE (Claude Sonnet 4.6 si dispo, sinon Mistral). Marge de
     # timeout généreuse (configurable SYNTHESIS_TIMEOUT) pour éviter "read timed out".
-    # max_tokens généreux : l'analyse complète (8 dimensions + reco + conseils + premium)
-    # dépasse souvent 4096 → sinon le JSON est tronqué et le parsing échoue (texte vide).
+    # max_tokens généreux (sinon JSON tronqué → texte vide). Modèle de synthèse RAPIDE
+    # par défaut (Haiku) : Sonnet est trop lent pour ce gros JSON synchrone (timeout).
+    # Override : SYNTHESIS_CLAUDE_MODEL (ex. claude-sonnet-4-6 si tu acceptes + de latence).
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
         max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")),
+        model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
     )
     try:
         parsed = _extract_json(raw)
@@ -1078,7 +1080,8 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
     )
     prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
 
-    raw = ai_providers.text_complete(prompt, timeout=60.0)
+    raw = ai_providers.text_complete(prompt, timeout=60.0,
+                                     model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"))
     try:
         result = _extract_json(raw)
     except Exception:
