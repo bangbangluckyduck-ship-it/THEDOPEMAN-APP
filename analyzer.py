@@ -779,6 +779,14 @@ def _post_process(
     # Prix saisi manuellement par l'utilisateur → fait autorité sur la détection IA.
     if manual_price and str(manual_price).strip():
         parsed.setdefault("detection", {})["prix_estime"] = str(manual_price).strip()
+    else:
+        # Fallback : si la synthèse n'a pas de prix chiffré mais que la VISION a lu un
+        # prix à l'écran (prix_visible), on le récupère (sinon il était perdu en route).
+        det = parsed.setdefault("detection", {})
+        if not re.search(r"\d", str(det.get("prix_estime") or "")):
+            vp = str((visual_result or {}).get("prix_visible") or "")
+            if re.search(r"\d", vp) and "non" not in vp.lower():
+                det["prix_estime"] = vp.strip()
     # Extraire structure_vente au top level
     if "structure_vente" in parsed:
         sv = parsed["structure_vente"]
