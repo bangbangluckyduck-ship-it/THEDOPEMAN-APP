@@ -1268,15 +1268,19 @@ async function analyzeUrls() {
     return;
   }
 
-  // ── UI : passe en mode chargement ──
-  document.getElementById('error-box').style.display      = 'none';
-  document.getElementById('upload-section').style.display  = 'none';
-  document.getElementById('loading-section').style.display = 'block';
-
+  // ── OBLIGATOIRE pour l'analyse par lien : nom produit + prix (fiabilise l'analyse
+  //    prix/conversion sans dépendre de la détection à l'écran) ──
   const productInput = document.getElementById('product-input');
   const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
   const priceInput = document.getElementById('price-input');
   const price = (priceInput && priceInput.value.trim()) ? priceInput.value.trim() : null;
+  if (!product) { showError('⭐ Indique le nom/description du produit (obligatoire pour l\'analyse par lien).'); productInput && productInput.focus(); return; }
+  if (!price)   { showError('⭐ Indique le prix du produit (obligatoire pour l\'analyse par lien).'); priceInput && priceInput.focus(); return; }
+
+  // ── UI : passe en mode chargement ──
+  document.getElementById('error-box').style.display      = 'none';
+  document.getElementById('upload-section').style.display  = 'none';
+  document.getElementById('loading-section').style.display = 'block';
 
   const total = urls.length;
   let lastData = null;
