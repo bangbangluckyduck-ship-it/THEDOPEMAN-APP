@@ -171,7 +171,7 @@ def vision_complete(content: Any, timeout: float = 60.0,
     return out
 
 
-def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 4096,
+def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 8192,
                   temperature: Optional[float] = None) -> str:
     """Rédaction d'analyses / plans (texte, image éventuelle).
     Claude Sonnet 4.6 si dispo, sinon Mistral small. Fallback auto sur erreur."""
