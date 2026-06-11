@@ -1348,7 +1348,17 @@
           placeholder="https://www.tiktok.com/@compte/video/123..."
           style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
         >
-        <p style="font-size:12px;color:var(--muted);margin-top:6px">⭐ Nom du produit + prix (ci-dessus) <b>obligatoires</b> pour l'analyse par lien.</p>
+        <input
+          type="text" id="single-product"
+          placeholder="📦 Nom / description du produit *"
+          style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
+        >
+        <input
+          type="text" inputmode="decimal" id="single-price"
+          placeholder="💶 Prix de vente (ex: 29,90 €) *"
+          style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit"
+        >
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">⭐ Nom du produit + prix <b>obligatoires</b> pour fiabiliser l'analyse prix/conversion.</p>
         <button class="btn btn-primary btn-block" id="analyze-url-single-btn" style="margin-top:10px">
           🔗 Analyser ce lien
         </button>
@@ -1359,15 +1369,16 @@
         <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
           🔗🔗 Analyse multi-liens <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:1px 7px;border-radius:999px;font-weight:700">GOLD / AGENCY</span>
         </label>
+        <p style="font-size:12px;color:var(--muted);margin:-2px 0 10px">Analyse plusieurs de tes vidéos d'un coup pour découvrir ce que tu fais <b>de bien — ou de mal — de façon répétée</b> : tes schémas gagnants à reproduire et tes erreurs récurrentes à corriger.</p>
         <textarea
           id="tiktok-urls"
           rows="3"
           placeholder="https://www.tiktok.com/@compte/video/123...&#10;https://www.tiktok.com/@compte/video/456..."
           style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit;resize:vertical"
         ></textarea>
-        <p style="font-size:12px;color:var(--muted);margin-top:6px">⚡ Plusieurs vidéos d'un coup → <b>patterns gagnants & ralentissants</b> (méta-synthèse).</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">Un lien par ligne.</p>
         <button class="btn btn-primary btn-block" id="analyze-urls-btn" style="margin-top:10px">
-          🔗 Analyser en masse
+          🔗 Analyser mes vidéos
         </button>
       </div>
     </section>

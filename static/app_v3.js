@@ -1258,10 +1258,10 @@ async function analyzeSingleUrl() {
     return;
   }
 
-  // Nom produit + prix obligatoires (fiabilise l'analyse prix/conversion).
-  const productInput = document.getElementById('product-input');
+  // Champs DÉDIÉS au bloc « 1 lien » (nom produit + prix obligatoires).
+  const productInput = document.getElementById('single-product');
   const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
-  const priceInput = document.getElementById('price-input');
+  const priceInput = document.getElementById('single-price');
   const price = (priceInput && priceInput.value.trim()) ? priceInput.value.trim() : null;
   if (!product) { showError('⭐ Indique le nom/description du produit (obligatoire pour le lien).'); productInput && productInput.focus(); return; }
   if (!price)   { showError('⭐ Indique le prix du produit (obligatoire pour le lien).'); priceInput && priceInput.focus(); return; }
@@ -1356,14 +1356,12 @@ async function analyzeUrls() {
     return;
   }
 
-  // ── OBLIGATOIRE pour l'analyse par lien : nom produit + prix (fiabilise l'analyse
-  //    prix/conversion sans dépendre de la détection à l'écran) ──
+  // Multi-liens = analyse de PATTERNS sur plusieurs vidéos → produit/prix NON requis
+  // (souvent des vidéos/produits différents). On les transmet seulement s'ils sont saisis.
   const productInput = document.getElementById('product-input');
   const product = (productInput && productInput.value.trim()) ? productInput.value.trim() : null;
   const priceInput = document.getElementById('price-input');
   const price = (priceInput && priceInput.value.trim()) ? priceInput.value.trim() : null;
-  if (!product) { showError('⭐ Indique le nom/description du produit (obligatoire pour l\'analyse par lien).'); productInput && productInput.focus(); return; }
-  if (!price)   { showError('⭐ Indique le prix du produit (obligatoire pour l\'analyse par lien).'); priceInput && priceInput.focus(); return; }
 
   // ── UI : passe en mode chargement ──
   document.getElementById('error-box').style.display      = 'none';
