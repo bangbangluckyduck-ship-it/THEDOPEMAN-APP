@@ -502,7 +502,9 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
 
     content.append({"type": "text", "text": VISION_PROMPT})
 
-    raw = ai_providers.vision_complete(content, timeout=45.0)
+    # Analyse = Mistral pixtral par défaut (rapide + stable). Flippable: ANALYSIS_VISION_PROVIDER=gemini
+    raw = ai_providers.vision_complete(content, timeout=45.0,
+                                       provider=os.getenv("ANALYSIS_VISION_PROVIDER", "mistral"))
     try:
         return _extract_json(raw)
     except Exception:
@@ -771,28 +773,29 @@ def synthesize_analysis(
 
     full_prompt = "\n".join(parts)
 
-    # Rédaction = tier TEXTE (Claude Sonnet 4.6 si dispo, sinon Mistral). Marge de
-    # timeout généreuse (configurable SYNTHESIS_TIMEOUT) pour éviter "read timed out".
-    # max_tokens généreux (sinon JSON tronqué → texte vide). Modèle de synthèse RAPIDE
-    # par défaut (Haiku) : Sonnet est trop lent pour ce gros JSON synchrone (timeout).
-    # Override : SYNTHESIS_CLAUDE_MODEL (ex. claude-sonnet-4-6 si tu acceptes + de latence).
+    # Synthèse = Mistral small par défaut : RAPIDE + JSON fiable sur ce gros schéma
+    # (Claude était lent/instable ici). Flippable : ANALYSIS_TEXT_PROVIDER=claude (+ SYNTHESIS_CLAUDE_MODEL).
+    _atp = os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral")
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
         max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")),
+        provider=_atp,
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
     )
     try:
         parsed = _extract_json(raw)
     except Exception:
-        # Filet : si le 1er fournisseur (Haiku) a mal formé/tronqué le JSON, on retente
-        # FORCÉ sur Mistral (JSON plus prévisible sur ce gros schéma). Garantit l'affichage.
-        try:
-            raw2 = ai_providers.text_complete(
-                full_prompt, timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
-                max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral")
-            parsed = _extract_json(raw2)
-        except Exception:
+        # Filet (utile seulement si on a flippé sur Claude) : retente forcé sur Mistral.
+        if _atp != "mistral":
+            try:
+                raw2 = ai_providers.text_complete(
+                    full_prompt, timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
+                    max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral")
+                parsed = _extract_json(raw2)
+            except Exception:
+                return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
+        else:
             return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
 
     # Injecte le momentum déterministe dans le résultat final (source de vérité,
@@ -1134,7 +1137,7 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
     prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
 
     raw = ai_providers.text_complete(prompt, timeout=60.0,
-                                     model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"))
+                                     provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral"))
     try:
         result = _extract_json(raw)
     except Exception:
