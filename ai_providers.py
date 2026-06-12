@@ -154,10 +154,13 @@ def _resolve(tier: str) -> str:
 
 # ── API publique ─────────────────────────────────────────────────────────────
 def vision_complete(content: Any, timeout: float = 60.0,
-                    temperature: Optional[float] = None, seed: Optional[int] = None) -> str:
+                    temperature: Optional[float] = None, seed: Optional[int] = None,
+                    provider: Optional[str] = None) -> str:
     """Analyse multimodale (frames vidéo / image produit + texte).
-    Gemini 3.5 Flash si dispo, sinon Mistral pixtral. Fallback auto sur erreur."""
-    if _resolve("vision") == "gemini":
+    Gemini 3.5 Flash si dispo, sinon Mistral pixtral. Fallback auto sur erreur.
+    `provider` force un fournisseur ('mistral' / 'gemini')."""
+    chosen = provider if provider in ("mistral", "gemini") else _resolve("vision")
+    if chosen == "gemini":
         try:
             out = _gemini_vision(content, timeout, temperature=temperature)
             if out and out.strip():
