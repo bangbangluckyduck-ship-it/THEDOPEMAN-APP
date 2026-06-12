@@ -1443,14 +1443,22 @@ async function analyzeUrls() {
   // ── Bilan ──
   document.getElementById('loading-section').style.display = 'none';
   if (lastData) {
-    showResults(lastData);
-    if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
-      renderMarketSection(lastData.donnees_marche);
-      document.getElementById('market-section').style.display = 'block';
-    }
-    if (total > 1) {
-      const note = failed.length ? ` (${failed.length} échec${failed.length > 1 ? 's' : ''} : vidéo${failed.length > 1 ? 's' : ''} ${failed.join(', ')})` : '';
-      showToast(`✅ ${okCount}/${total} vidéos analysées${note}. Voici le dernier rapport.`);
+    const _canPatterns = results.length >= 2 && ['gold', 'agency', 'beta', 'admin'].includes(tier);
+    const _note = failed.length ? ` (${failed.length} échec${failed.length > 1 ? 's' : ''} : vidéo${failed.length > 1 ? 's' : ''} ${failed.join(', ')})` : '';
+    if (total === 1 || !_canPatterns) {
+      // Analyse simple (ou pas assez de vidéos réussies pour des patterns) → rapport complet.
+      showResults(lastData);
+      if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
+        renderMarketSection(lastData.donnees_marche);
+        document.getElementById('market-section').style.display = 'block';
+      }
+      if (total > 1) showToast(`✅ ${okCount}/${total} vidéos analysées${_note}. (Les patterns nécessitent ≥ 2 vidéos réussies.)`);
+    } else {
+      // MULTI-liens → on n'affiche QUE les patterns personnels (pas l'analyse de chaque vidéo).
+      document.getElementById('results-section').style.display = 'none';
+      document.getElementById('market-section') && (document.getElementById('market-section').style.display = 'none');
+      document.getElementById('upload-section').style.display = 'none';
+      showToast(`✅ ${okCount}/${total} vidéos analysées${_note}.`);
     }
 
     // ── Méta-synthèse cross-vidéos : détection des patterns gagnants/perdants ──

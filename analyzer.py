@@ -1060,10 +1060,12 @@ def analyze_video(
 # ════════════════════════════════════════════════════════════════════════════
 BATCH_PATTERNS_PROMPT = """Tu es un coach expert TikTok Shop. On te donne l'analyse de PLUSIEURS vidéos d'UN MÊME créateur (au format JSON compact : scores des 8 dimensions, hook, produit, forces/faiblesses, et éventuellement des stats réelles de ventes/vues).
 
+⚠️ IMPORTANT : ces vidéos portent le plus souvent sur des PRODUITS DIFFÉRENTS. Tu n'analyses PAS un produit — tu analyses la PATTE du créateur : ses TECHNIQUES de création récurrentes, indépendamment du produit (style de hook, rythme/montage, structure narrative, ton, gestion du CTA, façon de montrer le produit, etc.). Ne tire aucune conclusion du fait que les produits varient ; concentre-toi sur les HABITUDES qui reviennent.
+
 Ta mission : faire émerger les PATTERNS RÉCURRENTS de ce créateur, pas analyser chaque vidéo isolément.
 
 RÈGLES DE RAISONNEMENT :
-- Un "pattern" = un trait qui REVIENT sur plusieurs vidéos (≥2). Ignore ce qui n'apparaît qu'une fois.
+- Un "pattern" = une TECHNIQUE/un trait de création qui REVIENT sur plusieurs vidéos (≥2), quel que soit le produit. Ignore ce qui n'apparaît qu'une fois.
 - PATTERNS GAGNANTS = récurrences associées à des scores élevés (et, si dispo, à de vraies ventes). À reproduire.
 - PATTERNS PERDANTS = récurrences associées à des scores faibles / signaux faibles pour l'algo TikTok Shop (hook mou, pas de CTA, rétention basse, conversion shop faible…). À corriger en priorité.
 - Si `stats_reelles_disponibles` est true, PRIORISE la corrélation avec les ventes réelles plutôt que les scores.
