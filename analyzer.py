@@ -502,9 +502,10 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
 
     content.append({"type": "text", "text": VISION_PROMPT})
 
-    # Analyse = Mistral pixtral par défaut (rapide + stable). Flippable: ANALYSIS_VISION_PROVIDER=gemini
+    # Vision de l'analyse = Gemini 3.5 Flash (rapide + meilleure « vue ») par défaut.
+    # Flippable : ANALYSIS_VISION_PROVIDER=mistral si besoin.
     raw = ai_providers.vision_complete(content, timeout=45.0,
-                                       provider=os.getenv("ANALYSIS_VISION_PROVIDER", "mistral"))
+                                       provider=os.getenv("ANALYSIS_VISION_PROVIDER", "gemini"))
     try:
         return _extract_json(raw)
     except Exception:
