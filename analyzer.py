@@ -435,10 +435,47 @@ def _mistral_call(api_key: str, model: str, content_or_messages, timeout: float 
 
 
 def _extract_json(raw: str) -> dict:
-    match = re.search(r"\{[\s\S]*\}", raw)
-    if not match:
+    """Extraction JSON robuste : retire les fences ```json, tente le bloc {…} glouton,
+    puis (si invalide) un scan d'accolades équilibrées (gère préambule/postambule/troncature)."""
+    if not raw:
+        raise ValueError("Empty response")
+    txt = raw.strip()
+    # Retire les fences markdown éventuelles
+    if "```" in txt:
+        txt = re.sub(r"```(?:json)?", "", txt)
+    start = txt.find("{")
+    if start == -1:
         raise ValueError("No JSON in response")
-    return json.loads(match.group())
+    # 1) Glouton (du 1er { au dernier })
+    end = txt.rfind("}")
+    if end > start:
+        try:
+            return json.loads(txt[start:end + 1])
+        except Exception:
+            pass
+    # 2) Scan à accolades équilibrées (respecte les chaînes/échappements)
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(txt)):
+        c = txt[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+        else:
+            if c == '"':
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    return json.loads(txt[start:i + 1])
+    raise ValueError("No balanced JSON object")
 
 
 def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: Optional[str] = None) -> dict:
@@ -748,7 +785,15 @@ def synthesize_analysis(
     try:
         parsed = _extract_json(raw)
     except Exception:
-        return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
+        # Filet : si le 1er fournisseur (Haiku) a mal formé/tronqué le JSON, on retente
+        # FORCÉ sur Mistral (JSON plus prévisible sur ce gros schéma). Garantit l'affichage.
+        try:
+            raw2 = ai_providers.text_complete(
+                full_prompt, timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
+                max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral")
+            parsed = _extract_json(raw2)
+        except Exception:
+            return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
 
     # Injecte le momentum déterministe dans le résultat final (source de vérité,
     # même si l'IA l'a reformulé ou ignoré dans son JSON).

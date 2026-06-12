@@ -172,10 +172,13 @@ def vision_complete(content: Any, timeout: float = 60.0,
 
 
 def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 8192,
-                  temperature: Optional[float] = None, model: Optional[str] = None) -> str:
+                  temperature: Optional[float] = None, model: Optional[str] = None,
+                  provider: Optional[str] = None) -> str:
     """Rédaction d'analyses / plans (texte, image éventuelle). Claude si dispo, sinon
-    Mistral small. `model` force un modèle Claude précis (ex. Haiku pour la vitesse)."""
-    if _resolve("text") == "claude":
+    Mistral small. `model` force un modèle Claude précis (ex. Haiku pour la vitesse).
+    `provider` force un fournisseur ('mistral' / 'claude') — utile en secours."""
+    chosen = provider if provider in ("mistral", "claude") else _resolve("text")
+    if chosen == "claude":
         try:
             out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature, model=model)
             if out and out.strip():
