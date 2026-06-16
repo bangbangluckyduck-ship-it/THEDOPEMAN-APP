@@ -48,6 +48,15 @@ SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", SMTP_USERNAME)
 # Le service est « actif » uniquement si un mot de passe SMTP est fourni.
 SMTP_ENABLED = bool(SMTP_PASSWORD)
 
+# ── Resend (transport PRIORITAIRE si RESEND_API_KEY est posée sur Render) ──
+# ⚠️ `from` doit être sur un domaine VÉRIFIÉ dans Resend, sinon l'envoi échoue.
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", f"{SMTP_FROM_NAME} <noreply@tiktokshop-analyzer.com>")
+RESEND_ENABLED = bool(RESEND_API_KEY)
+
+# Le service email est actif si AU MOINS un transport est configuré (Resend OU SMTP).
+SERVICE_ENABLED = RESEND_ENABLED or SMTP_ENABLED
+
 APP_URL = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com")
 
 
@@ -147,17 +156,40 @@ def _password_changed_body() -> str:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# ENVOI SMTP NATIF (synchrone) — cœur du service
+# ENVOI (synchrone) — Resend prioritaire, sinon SMTP Hostinger. Cœur du service.
 # ════════════════════════════════════════════════════════════════════════════
+def _send_via_resend(to_email: str, subject: str, html_content: str) -> bool:
+    """Envoi via l'API HTTP Resend. Ne lève jamais d'exception."""
+    try:
+        import httpx
+        r = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={"from": EMAIL_FROM, "to": [to_email], "subject": subject, "html": html_content},
+            timeout=15.0,
+        )
+        if r.is_success:
+            logger.info("[email] ✅ Resend → %s (sujet: %s)", to_email, subject)
+            return True
+        logger.error("[email] ❌ Resend %s → %s : %s", r.status_code, to_email, r.text[:300])
+        return False
+    except Exception as e:
+        logger.error("[email] ❌ Resend erreur → %s : %s", to_email, str(e))
+        return False
+
+
 def send_transactional_email(to_email: str, subject: str, html_content: str) -> bool:
     """
-    Envoie un email transactionnel HTML via le SMTP Hostinger (SSL/465).
-    Retourne True si l'envoi réussit, False sinon. Ne lève jamais d'exception :
-    une panne d'email ne doit jamais faire planter l'application appelante.
+    Envoie un email transactionnel HTML. Transport : Resend (si RESEND_API_KEY),
+    sinon SMTP Hostinger (SSL/465). Ne lève jamais d'exception : une panne d'email
+    ne doit jamais faire planter l'application appelante.
     """
+    if RESEND_ENABLED:
+        return _send_via_resend(to_email, subject, html_content)
+
     if not SMTP_ENABLED:
         logger.warning(
-            "[email] SMTP désactivé (SMTP_PASSWORD absent) — email NON envoyé à %s (sujet: %s)",
+            "[email] aucun transport configuré (ni Resend ni SMTP) — email NON envoyé à %s (sujet: %s)",
             to_email, subject,
         )
         return False
@@ -197,7 +229,7 @@ class EmailService:
     """Service d'emails transactionnels (Hostinger SMTP), interface async-safe."""
 
     def __init__(self):
-        self.enabled = SMTP_ENABLED
+        self.enabled = SERVICE_ENABLED
 
     async def _send(self, to_email: str, subject: str, html_content: str) -> bool:
         """Exécute l'envoi SMTP (bloquant) dans un thread, avec timeout."""
