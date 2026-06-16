@@ -155,6 +155,42 @@ def _password_changed_body() -> str:
     )
 
 
+def _upsell_body(kind: str, unsubscribe_url: str) -> str:
+    """Email promotionnel free → payant. kind: 'quota' (limite atteinte) | 'j3' (relance J+3)."""
+    if kind == "quota":
+        intro = (
+            "<p>Bonjour,</p>"
+            "<p>Tu viens d'utiliser tes <strong>3 analyses gratuites du mois</strong> 🎉 "
+            "— bon signe, l'outil te sert vraiment !</p>"
+            "<p>Pour continuer <strong>sans attendre le mois prochain</strong> et débloquer tout le reste :</p>"
+        )
+    else:  # j3
+        intro = (
+            "<p>Bonjour,</p>"
+            "<p>Tu as créé ton compte il y a quelques jours 👋 Prêt à passer à la vitesse supérieure ?</p>"
+            "<p>Avec un plan payant, tu débloques :</p>"
+        )
+    benefits = (
+        "<ul style=\"padding-left:18px;line-height:1.8;\">"
+        "<li>📈 <strong>Beaucoup plus d'analyses</strong> par mois (jusqu'à l'illimité)</li>"
+        "<li>🔗 <strong>Analyse par lien TikTok</strong> — sans rien télécharger</li>"
+        "<li>🤖 <strong>Coach IA</strong> + scripts personnalisés</li>"
+        "<li>📸 <strong>Photo Slide Coach</strong> &amp; 🎬 <strong>AI Prompt Studio</strong></li>"
+        "<li>📊 Données marché : produits &amp; créateurs gagnants</li>"
+        "</ul>"
+        "<p style=\"background:#f4f5f7;padding:14px;border-radius:10px;\">🔥 <strong>Offre de lancement</strong> : "
+        "PRO à <strong>9,99€</strong> (au lieu de 12,99€) · GOLD à <strong>79,99€</strong> — "
+        "et des <strong>accès à vie</strong> pour les 50 premiers.</p>"
+    )
+    cta = _button("Voir les offres", APP_URL + "/#pricing")
+    foot = (
+        f'<p style="font-size:12px;color:#9a9ab0;margin-top:22px;">Tu reçois cet email car tu as un compte '
+        f'TikTok Shop Analyzer. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Se désinscrire des emails '
+        f'promotionnels</a>.</p>'
+    )
+    return intro + benefits + cta + foot
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # ENVOI (synchrone) — Resend prioritaire, sinon SMTP Hostinger. Cœur du service.
 # ════════════════════════════════════════════════════════════════════════════
@@ -280,6 +316,15 @@ class EmailService:
             email,
             "Votre mot de passe a été modifié — TikTok Shop Analyzer",
             _wrap("Mot de passe modifié", _password_changed_body()),
+        )
+
+    async def send_upsell_email(self, email: str, unsubscribe_url: str, kind: str = "quota") -> bool:
+        """Email promotionnel free → payant (avec lien de désinscription RGPD)."""
+        subject = ("Tu as atteint ta limite gratuite 🚀" if kind == "quota"
+                   else "Débloque tout le potentiel de TTS Analyzer 🚀")
+        return await self._send(
+            email, subject,
+            _wrap("Passe à la vitesse supérieure 🚀", _upsell_body(kind, unsubscribe_url)),
         )
 
 

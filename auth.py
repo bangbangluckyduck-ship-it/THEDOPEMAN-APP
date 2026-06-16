@@ -173,6 +173,15 @@ def verify_access_token(token: str) -> Optional[str]:
         pass
     return None
 
+
+def make_unsubscribe_token(email: str) -> str:
+    """Signature HMAC pour le lien de désinscription marketing (anti-falsification)."""
+    return hmac.new(SECRET_KEY, ("unsub:" + (email or "").lower()).encode(), hashlib.sha256).hexdigest()
+
+
+def verify_unsubscribe_token(email: str, token: str) -> bool:
+    return hmac.compare_digest(token or "", make_unsubscribe_token(email))
+
 def get_user_from_request(request: Request) -> dict:
     """
     Extrait et valide l'utilisateur depuis le header Authorization.

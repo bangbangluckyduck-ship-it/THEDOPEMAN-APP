@@ -319,6 +319,102 @@ async def contact(): return HTMLResponse(_CONTACT_HTML)
 @app.get("/about", response_class=HTMLResponse)
 async def about(): return HTMLResponse(_ABOUT_HTML)
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# EMAILS D'INCITATION FREE → PAYANT (déclencheur quota + relance J+3) + désinscription
+# ════════════════════════════════════════════════════════════════════════════
+async def _maybe_upsell_free_quota(user: dict) -> None:
+    """Free qui vient d'atteindre sa limite mensuelle → email d'upsell (1×/mois, opt-out
+    respecté). Best-effort : ne casse jamais l'analyse."""
+    try:
+        if not supabase_client or not user.get("valid"):
+            return
+        if (user.get("tier") or "free").lower() != "free":
+            return
+        email = user["email"]
+        from auth import supabase_get_monthly_count, make_unsubscribe_token, TIER_CONFIG
+        limit = (TIER_CONFIG.get("free") or {}).get("monthly") or 3
+        if supabase_get_monthly_count(email) < limit:
+            return  # pas encore à la limite
+        month = date.today().strftime("%Y-%m")
+        row = supabase_client.table("users").select(
+            "marketing_opt_out,upsell_quota_email_month").eq("email", email).limit(1).execute()
+        u = (row.data or [{}])[0] if getattr(row, "data", None) else {}
+        if u.get("marketing_opt_out") or u.get("upsell_quota_email_month") == month:
+            return  # désinscrit, ou déjà relancé ce mois-ci
+        from email_service import email_service
+        from urllib.parse import quote as _q
+        unsub = f"{tiktok_oauth.APP_PUBLIC_URL}/unsubscribe?e={_q(email)}&s={make_unsubscribe_token(email)}"
+        if await email_service.send_upsell_email(email, unsub, kind="quota"):
+            supabase_client.table("users").update(
+                {"upsell_quota_email_month": month}).eq("email", email).execute()
+    except Exception as e:
+        print(f"[upsell] quota KO: {e}")
+
+
+@app.get("/unsubscribe", response_class=HTMLResponse)
+async def unsubscribe(e: str = Query(...), s: str = Query(...)):
+    """Désinscription des emails promotionnels (lien signé dans les emails). RGPD."""
+    from auth import verify_unsubscribe_token
+    email = (e or "").strip().lower()
+    ok = bool(email) and verify_unsubscribe_token(email, s)
+    if ok and supabase_client:
+        try:
+            supabase_client.table("users").update({"marketing_opt_out": True}).eq("email", email).execute()
+        except Exception as ex:
+            print(f"[unsubscribe] KO: {ex}")
+            ok = False
+    msg = ("Tu es bien désinscrit des emails promotionnels. Tu continueras à recevoir les emails "
+           "essentiels (sécurité, mot de passe)." if ok else
+           "Lien de désinscription invalide ou expiré. Écris-nous si besoin.")
+    return HTMLResponse(
+        f"<!DOCTYPE html><html lang='fr'><head><meta charset='utf-8'>"
+        f"<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        f"<title>Désinscription</title></head>"
+        f"<body style='font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f5f7;margin:0;padding:40px 16px;'>"
+        f"<div style='max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)'>"
+        f"<div style='font-size:40px'>{'✅' if ok else '⚠️'}</div>"
+        f"<p style='font-size:15px;color:#1a1a2e;line-height:1.6'>{msg}</p>"
+        f"<a href='{tiktok_oauth.APP_PUBLIC_URL}' style='color:#6c5ce7;text-decoration:none;font-weight:600'>← Retour au site</a>"
+        f"</div></body></html>")
+
+
+@app.get("/api/_cron/upsell-j3")
+async def cron_upsell_j3(key: str = Query("")):
+    """Tâche planifiée (cron quotidien) : relance les Free inscrits il y a ~3 jours.
+    Protégé par CRON_SECRET. À appeler 1×/jour (Render Cron ou cron externe)."""
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if not cron_secret or key != cron_secret:
+        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+    if not supabase_client:
+        return {"ok": False, "reason": "supabase indisponible"}
+    from datetime import timedelta as _td
+    from auth import make_unsubscribe_token
+    from email_service import email_service
+    from urllib.parse import quote as _q
+    now = datetime.now(timezone.utc)
+    lo = (now - _td(days=4)).isoformat()
+    hi = (now - _td(days=3)).isoformat()
+    sent = 0
+    skipped = 0
+    try:
+        rows = (supabase_client.table("users")
+                .select("email,tier,marketing_opt_out,upsell_j3_sent,created_at")
+                .eq("tier", "free").gte("created_at", lo).lte("created_at", hi)
+                .limit(200).execute())
+        for u in (rows.data or []):
+            email = (u.get("email") or "").strip().lower()
+            if not email or u.get("marketing_opt_out") or u.get("upsell_j3_sent"):
+                skipped += 1
+                continue
+            unsub = f"{tiktok_oauth.APP_PUBLIC_URL}/unsubscribe?e={_q(email)}&s={make_unsubscribe_token(email)}"
+            if await email_service.send_upsell_email(email, unsub, kind="j3"):
+                supabase_client.table("users").update({"upsell_j3_sent": True}).eq("email", email).execute()
+                sent += 1
+    except Exception as ex:
+        return {"ok": False, "error": str(ex), "sent": sent}
+    return {"ok": True, "sent": sent, "skipped": skipped}
+
 @app.get("/analytics", response_class=HTMLResponse)
 async def analytics(request: Request):
     try:
@@ -845,6 +941,9 @@ async def analyze_stream_sse(
 
             yield 'event: complete\n'
             yield f'data: {json.dumps(result)}\n\n'
+
+            # Résultat déjà envoyé → on tente l'email d'upsell APRÈS (ne retarde pas l'affichage).
+            await _maybe_upsell_free_quota(user)
 
         except asyncio.TimeoutError:
             yield 'event: error\n'
