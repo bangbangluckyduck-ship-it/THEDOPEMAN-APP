@@ -2079,6 +2079,51 @@ async def ai_selftest(request: Request, token: Optional[str] = Query(None)):
     return out
 
 
+@app.get("/api/_admin/email-selftest")
+async def email_selftest(request: Request, token: Optional[str] = Query(None), to: Optional[str] = Query(None)):
+    """Envoie un email de test (transport Resend si configuré, sinon SMTP) pour valider
+    la config. Auth admin via header OU ?token=. Usage : ?to=ton@email.com&token=..."""
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            em = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(em and ADMIN_EMAIL and em.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+
+    import email_service as _es
+    dest = (to or "").strip()
+    if not dest:
+        try:
+            from auth import ADMIN_EMAIL
+            dest = ADMIN_EMAIL or ""
+        except Exception:
+            dest = ""
+    out = {
+        "transport": "resend" if _es.RESEND_ENABLED else ("smtp" if _es.SMTP_ENABLED else "aucun"),
+        "from": _es.EMAIL_FROM, "to": dest,
+    }
+    if not dest:
+        out["verdict"] = "⚠️ Précise ?to=ton@email.com"
+        return out
+    try:
+        ok = await _es.email_service.send_welcome_email(dest)
+        out["sent"] = ok
+        out["verdict"] = "✅ Envoyé (vérifie boîte + spam)" if ok else "❌ Échec (voir logs Render)"
+    except Exception as e:
+        out["error"] = str(e)
+        out["verdict"] = "❌ Erreur"
+    return out
+
+
 @app.get("/api/_admin/keyapi-selftest")
 async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
     """Auto-test KeyAPI Video Products sur la vidéo d'exemple de la doc (indexée à
