@@ -209,11 +209,32 @@ async function loadUsers() {
           </div>
           <div class="actions">
             <button class="btn btn-block" onclick="changeUserTier('${safeEmail}', '${esc(u.tier)}')">⚙️ Changer le plan</button>
+            <button class="btn btn-block" onclick="resetUserPassword('${safeEmail}')">🔑 Réinitialiser le MDP</button>
           </div>
         </div>`;
     }).join('');
   } catch (e) {
     list.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
+  }
+}
+
+/* ── RÉINITIALISATION MOT DE PASSE (admin) ────────────────────────────── */
+async function resetUserPassword(email) {
+  if (!confirm(`Réinitialiser le mot de passe de ${email} ?\n\nUn mot de passe temporaire sera généré, appliqué immédiatement, et envoyé par email à l'utilisateur.`)) return;
+  try {
+    const res = await fetch('/admin/reset-user-password', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ email, reset_type: 'temporary_password' }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (d.detail || 'Erreur')); return; }
+    if (d.temp_password) {
+      alert(`✅ Email envoyé à ${email}.\n\nMot de passe temporaire : ${d.temp_password}\n\n(Tu peux le communiquer directement à l'utilisateur si besoin.)`);
+    }
+    showToast('✅ ' + (d.message || 'Mot de passe réinitialisé'));
+  } catch (e) {
+    showToast('❌ Erreur réseau');
   }
 }
 

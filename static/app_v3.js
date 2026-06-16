@@ -547,26 +547,10 @@ async function submitForgotPassword(event) {
   event.preventDefault();
 
   const emailInput = document.getElementById('forgot-email-input');
-  const passwordInput = document.getElementById('forgot-password-input');
-  const confirmInput = document.getElementById('forgot-password-confirm');
-
   const email = (emailInput?.value || '').trim().toLowerCase();
-  const password = (passwordInput?.value || '').trim();
-  const confirm = (confirmInput?.value || '').trim();
 
-  // Validation
-  if (!email || !password || !confirm) {
-    showToast('❌ Veuillez remplir tous les champs');
-    return;
-  }
-
-  if (password !== confirm) {
-    showToast('❌ Les mots de passe ne correspondent pas');
-    return;
-  }
-
-  if (password.length < 6) {
-    showToast('❌ Min 6 caractères');
+  if (!email || !email.includes('@')) {
+    showToast('❌ Entre une adresse email valide');
     return;
   }
 
@@ -574,24 +558,16 @@ async function submitForgotPassword(event) {
     const response = await fetch('/api/forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email })
     });
-
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = await response.json();
-      showToast('❌ ' + (error.detail || 'Erreur'));
+      showToast('❌ ' + (data.detail || 'Erreur'));
       return;
     }
-
-    // Success
-    showToast('✅ Email de réinitialisation envoyé!\n\nVérifie ta boîte mail pour ton mot de passe temporaire.');
+    showToast('✅ Si un compte existe, un lien de réinitialisation vient d\'être envoyé (vérifie ta boîte + spam).');
     closeForgotPasswordModal();
-
-    // Clear form
-    emailInput.value = '';
-    passwordInput.value = '';
-    confirmInput.value = '';
-
+    if (emailInput) emailInput.value = '';
   } catch (err) {
     showToast('❌ Erreur: ' + err.message);
   }

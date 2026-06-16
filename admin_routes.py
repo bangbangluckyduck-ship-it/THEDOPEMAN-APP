@@ -140,16 +140,15 @@ async def reset_user_password(body: ResetPasswordBody, request: Request):
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
 
         if reset_type == "magic_link":
-            # Generate magic link
-            reset_token = generate_reset_token()
-            token_hash = hash_token(reset_token)
-
-            success, _, _ = create_password_reset_token(email, "magic_link")
+            # Token de reset RÉEL (celui renvoyé) → lien vers la page /reset-password.
+            success, token_plaintext, _ = create_password_reset_token(email, "magic_link")
             if not success:
                 raise HTTPException(status_code=500, detail="Erreur création token")
 
-            # Send email with magic link
-            reset_link = f"https://tts-analyzer.fr/reset-password?token={reset_token}&email={email}"
+            import os
+            from urllib.parse import quote as _q
+            app_url = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com").rstrip("/")
+            reset_link = f"{app_url}/reset-password?token={token_plaintext}&email={_q(email)}"
             email_sent = await email_service.send_magic_link_email(email, reset_link)
 
             if not email_sent:
@@ -159,7 +158,7 @@ async def reset_user_password(body: ResetPasswordBody, request: Request):
                 "ok": True,
                 "email": email,
                 "method": "magic_link",
-                "message": "Lien magique envoyé par email à l'utilisateur"
+                "message": "Lien de réinitialisation envoyé par email à l'utilisateur"
             }
 
         else:  # temporary_password
@@ -167,9 +166,8 @@ async def reset_user_password(body: ResetPasswordBody, request: Request):
             temp_password = generate_temporary_password()
             password_hash = bcrypt.hashpw(temp_password.encode(), bcrypt.gensalt()).decode()
 
-            success, _, _ = create_password_reset_token(email, "temporary_password", password_hash)
-            if not success:
-                raise HTTPException(status_code=500, detail="Erreur création token")
+            # Admin = autorité → on APPLIQUE directement le MDP temporaire (utilisable de suite).
+            supabase.table("users").update({"password": password_hash}).eq("email", email).execute()
 
             # Send email with temporary password
             email_sent = await email_service.send_temporary_password_email(email, temp_password)

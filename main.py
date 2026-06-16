@@ -657,46 +657,44 @@ async def login(request: Request):
 
 @app.post("/api/forgot-password")
 async def forgot_password(request: Request):
-    import bcrypt
+    """Demande de réinitialisation : envoie un LIEN magique sécurisé par email.
+    Le mot de passe n'est PAS modifié ici — il le sera sur /reset-password (preuve
+    de possession de la boîte mail), via /api/change-password. Anti-énumération : même
+    réponse que le compte existe ou non."""
     from supabase_client import supabase
-    from password_reset import generate_temporary_password, hash_token, create_password_reset_token, check_rate_limit
+    from password_reset import create_password_reset_token, check_rate_limit
     from email_service import email_service
+    from urllib.parse import quote as _q
 
     try:
         body = await request.json()
         email = body.get("email", "").lower().strip()
-        new_password = body.get("password", "").strip()
-
-        if not email or "@" not in email: raise HTTPException(status_code=400, detail="Email invalide")
-        if not new_password or len(new_password) < 6: raise HTTPException(status_code=400, detail="Mot de passe min 6 caractères")
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Email invalide")
 
         ip = request.client.host if request.client else "unknown"
         if not check_rate_limit(email, max_attempts=5, window_hours=1):
             security_logger.password_reset_requested(email, ip)
-            raise HTTPException(status_code=429, detail="Trop de tentatives.")
+            raise HTTPException(status_code=429, detail="Trop de tentatives. Réessaie dans 1 heure.")
 
-        if not supabase: raise HTTPException(status_code=500, detail="BD non disponible")
+        exists = False
+        if supabase:
+            try:
+                exists = bool(supabase.table("users").select("id").eq("email", email).execute().data)
+            except Exception:
+                exists = False
 
-        try:
-            user_exists = supabase.table("users").select("id").eq("email", email).execute()
-        except Exception:
-            raise HTTPException(status_code=500, detail="Erreur BD")
-
-        if not user_exists.data:
+        if exists:
+            success, token_plaintext, _ = create_password_reset_token(email, "magic_link")
+            if success:
+                link = f"{tiktok_oauth.APP_PUBLIC_URL}/reset-password?token={token_plaintext}&email={_q(email)}"
+                await email_service.send_magic_link_email(email, link)
+                security_logger.password_reset_requested(email, ip, success=True)
+        else:
             security_logger.password_reset_requested(email, ip, success=False)
-            return {"ok": True, "message": "Email envoyé si le compte existe"}
 
-        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
-        success, token_plaintext, token_hash = create_password_reset_token(email, "temporary_password", password_hash)
-
-        if not success: raise HTTPException(status_code=500, detail="Erreur création token")
-        email_sent = await email_service.send_temporary_password_email(email, new_password)
-        if not email_sent:
-            security_logger.password_reset_requested(email, ip, success=False)
-            raise HTTPException(status_code=500, detail="Erreur envoi email")
-
-        security_logger.password_reset_requested(email, ip, success=True)
-        return {"ok": True, "message": "Email de réinitialisation envoyé"}
+        # Réponse volontairement identique (anti-énumération de comptes)
+        return {"ok": True, "message": "Si un compte existe pour cet email, un lien de réinitialisation vient d'être envoyé (valable 24h)."}
 
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
@@ -734,6 +732,46 @@ async def change_password(request: Request):
             raise HTTPException(status_code=500, detail="Erreur mise à jour")
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page():
+    """Page de définition du nouveau mot de passe (atteinte via le lien magique de l'email).
+    Lit token+email depuis l'URL et poste sur /api/change-password (qui applique le MDP)."""
+    html = """<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Réinitialiser le mot de passe</title>
+<style>*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f5f7;margin:0;padding:40px 16px;color:#1a1a2e}
+.card{max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+h1{font-size:20px;margin:0 0 6px}p{font-size:14px;color:#3a3a4a}input{width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:8px;font-size:15px;margin-top:10px}
+button{width:100%;padding:13px;border:none;border-radius:10px;background:#6c5ce7;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
+.msg{margin-top:14px;font-size:14px;text-align:center}.ok{color:#0a7c3c}.err{color:#c0392b}</style></head>
+<body><div class="card">
+<h1>🔐 Nouveau mot de passe</h1>
+<p>Choisis un nouveau mot de passe pour ton compte.</p>
+<form id="f" onsubmit="return go(event)">
+  <input type="password" id="p1" placeholder="Nouveau mot de passe (min. 6)" required minlength="6">
+  <input type="password" id="p2" placeholder="Confirmer le mot de passe" required minlength="6">
+  <button type="submit">Réinitialiser</button>
+</form>
+<div id="m" class="msg"></div>
+</div>
+<script>
+const qs=new URLSearchParams(location.search);const token=qs.get('token')||'';const email=(qs.get('email')||'').toLowerCase();
+const m=document.getElementById('m');
+if(!token||!email){m.className='msg err';m.textContent='Lien invalide ou incomplet.';document.getElementById('f').style.display='none';}
+async function go(e){e.preventDefault();
+  const p1=document.getElementById('p1').value,p2=document.getElementById('p2').value;
+  if(p1!==p2){m.className='msg err';m.textContent='Les mots de passe ne correspondent pas.';return false;}
+  m.className='msg';m.textContent='⏳ En cours…';
+  try{const r=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({reset_token:token,new_password:p1,email})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){m.className='msg ok';m.innerHTML='✅ Mot de passe modifié ! <a href="/app">Se connecter →</a>';document.getElementById('f').style.display='none';}
+    else{m.className='msg err';m.textContent='❌ '+(d.detail||'Lien expiré ou invalide. Refais une demande.');}
+  }catch(_){m.className='msg err';m.textContent='❌ Erreur réseau.';}
+  return false;}
+</script></body></html>"""
+    return HTMLResponse(html)
+
 
 _SCRAPER_URL = os.getenv("TTS_SCRAPER_URL", "").rstrip("/")
 
