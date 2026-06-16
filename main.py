@@ -237,29 +237,6 @@ def _inject_tiktok_verification(html: str) -> str:
 _HOMEPAGE_HTML = _inject_tiktok_verification(_HOMEPAGE_HTML)
 
 
-# ── Google Analytics 4 (gtag.js) ─────────────────────────────────────────────
-# S'active UNIQUEMENT si GA_MEASUREMENT_ID est défini sur Render (G-XXXXXXXXXX).
-# Sans la variable → aucun tracking injecté (no-op).
-GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
-
-
-def _inject_ga(html: str) -> str:
-    if not GA_MEASUREMENT_ID:
-        return html
-    gid = GA_MEASUREMENT_ID
-    snippet = (
-        f'<script async src="https://www.googletagmanager.com/gtag/js?id={gid}"></script>'
-        f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}'
-        f"gtag('js',new Date());gtag('config','{gid}');</script>"
-    )
-    return html.replace("</head>", snippet + "\n</head>", 1)
-
-
-_HOMEPAGE_HTML = _inject_ga(_HOMEPAGE_HTML)
-_APP_HTML = _inject_ga(_APP_HTML)
-_CAROUSEL_PAGE_HTML = _inject_ga(_CAROUSEL_PAGE_HTML)
-
-
 async def verify_turnstile(token: str, remote_ip: str = "") -> bool:
     """Vérifie un token Turnstile auprès de Cloudflare.
 
