@@ -714,14 +714,35 @@ async function initDynamicPricing() {
     proEl.innerHTML = `${old}${intPart}<span style="font-size:18px">,${decPart} €</span>`;
   }
 
-  // 2) Cartes non encore ouvertes → "🔜 bientôt + 🔔 me notifier"
+  // 2) « Tu économises X €/mois » (valeur réelle − prix actuel)
+  const REAL = { pro: 120, gold: 350, agency: 800 };
+  ['pro', 'gold', 'agency'].forEach(plan => {
+    const s = document.getElementById('pc-save-' + plan);
+    if (!s) return;
+    if (plans[plan] && prices[plan]) s.textContent = `→ tu économises ~${Math.round(REAL[plan] - prices[plan].current)} €/mois`;
+    else s.style.display = 'none';
+  });
+
+  // 3) Cartes non encore ouvertes → "🔜 bientôt + 🔔 me notifier"
   ['pro', 'gold', 'agency'].forEach(plan => {
     const card = document.querySelector(`.pricing-card[data-plan="${plan}"]`);
     if (!card || plans[plan]) return;
     _makeComingSoon(card, plan, dates[plan]);
   });
 
-  // 3) LTD masquée jusqu'au 15 oct → bannière de capture d'email à la place
+  // 4) Carte vedette : PRO jusqu'au 16 sept, puis GOLD (seulement si ouverte)
+  let featured = plans.gold ? 'gold' : 'pro';
+  if (!plans[featured]) featured = null;
+  if (featured) {
+    const fc = document.querySelector(`.pricing-card[data-plan="${featured}"]`);
+    if (fc) {
+      fc.classList.add('pricing-card-gold');
+      const fb = fc.querySelector('.pc-badge');
+      if (fb) { fb.textContent = '⭐ POPULAIRE · 🔥 LANCEMENT'; fb.className = 'pc-badge pc-badge-gold'; }
+    }
+  }
+
+  // 5) LTD masquée jusqu'au 15 oct → bannière de capture d'email à la place
   const ltd = document.getElementById('ltd-section');
   if (ltd && !plans.ltd) _ltdComingSoon(ltd, dates.ltd);
 }
@@ -730,7 +751,7 @@ function _makeComingSoon(card, plan, dateStr) {
   card.classList.add('pc-soon');
   const badge = card.querySelector('.pc-badge');
   if (badge) badge.textContent = '🔜 BIENTÔT';
-  card.querySelectorAll('.pc-price, .pc-period').forEach(n => n.style.display = 'none');
+  card.querySelectorAll('.pc-price, .pc-period, .pc-value, .pc-save').forEach(n => n.style.display = 'none');
   const info = document.createElement('div');
   info.className = 'pc-soon-date';
   info.innerHTML = `🔜 Disponible le<br><strong>${dateStr}</strong>`;
