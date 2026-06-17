@@ -1915,6 +1915,7 @@ function showLockedCoachingSection(firstCoachingLine) {
 // ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
   console.log('[DEBUG] showResults called with data:', d);
+  window._lastAnalysis = d;   // pour le partage du score (Feature 4)
   document.getElementById('loading-section').style.display  = 'none';
   document.getElementById('results-section').style.display  = 'block';
 
@@ -3131,6 +3132,106 @@ function renderProgressionChart() {
        <span>${pts.length} analyses · moyenne <strong style="color:var(--text)">${avg}/100</strong></span>
        <span style="font-weight:600;color:${trend >= 0 ? '#16A34A' : '#DC2626'}">${trendTxt}</span>
      </div>`;
+}
+
+/* ── FEATURE 4 — Partage du score en story TikTok (9:16) ─────────────────── */
+function _scoreCardCanvas(score, productName) {
+  const W = 1080, H = 1920;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+
+  // Fond dégradé brand
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1F3A70'); g.addColorStop(1, '#0C1730');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+
+  c.textAlign = 'center';
+
+  // Marque
+  c.fillStyle = '#FFFFFF';
+  c.font = '700 56px -apple-system, Segoe UI, sans-serif';
+  c.fillText('TTS Analyzer', W / 2, 220);
+  c.fillStyle = 'rgba(255,255,255,.6)';
+  c.font = '400 32px -apple-system, Segoe UI, sans-serif';
+  c.fillText('Analyse TikTok Shop par l\'IA', W / 2, 280);
+
+  // Anneau de score
+  const cx = W / 2, cy = 820, r = 300;
+  const col = score >= 75 ? '#22C55E' : score >= 50 ? '#D4AF37' : '#EF4444';
+  c.lineWidth = 46;
+  c.strokeStyle = 'rgba(255,255,255,.12)';
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
+  c.strokeStyle = col;
+  c.lineCap = 'round';
+  c.beginPath();
+  c.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * (Math.max(0, Math.min(100, score)) / 100)));
+  c.stroke();
+
+  // Score chiffre
+  c.fillStyle = '#FFFFFF';
+  c.font = '800 260px -apple-system, Segoe UI, sans-serif';
+  c.fillText(String(score), cx, cy + 70);
+  c.fillStyle = 'rgba(255,255,255,.55)';
+  c.font = '600 64px -apple-system, Segoe UI, sans-serif';
+  c.fillText('/ 100', cx, cy + 200);
+
+  // Label
+  c.fillStyle = col;
+  c.font = '700 44px -apple-system, Segoe UI, sans-serif';
+  c.fillText('SCORE DE PERSUASION', cx, 480);
+
+  // Produit (optionnel)
+  if (productName) {
+    c.fillStyle = 'rgba(255,255,255,.9)';
+    c.font = '600 42px -apple-system, Segoe UI, sans-serif';
+    let p = String(productName);
+    if (p.length > 34) p = p.slice(0, 33) + '…';
+    c.fillText('📦 ' + p, cx, 1280);
+  }
+
+  // CTA / site
+  c.fillStyle = 'rgba(255,255,255,.95)';
+  c.font = '700 46px -apple-system, Segoe UI, sans-serif';
+  c.fillText('Analyse ta vidéo gratuitement', cx, 1640);
+  c.fillStyle = '#D4AF37';
+  c.font = '700 50px -apple-system, Segoe UI, sans-serif';
+  c.fillText('tiktokshop-analyzer.com', cx, 1720);
+
+  return cv;
+}
+
+async function shareScoreCard(mode) {
+  const d = window._lastAnalysis;
+  const score = d && typeof d.score_global === 'number' ? d.score_global : parseInt(document.getElementById('score-global')?.textContent) || 0;
+  if (!score) { showToast('Lance une analyse d\'abord.'); return; }
+  const product = (d && d.detection && d.detection.produit) ? d.detection.produit : null;
+  const cv = _scoreCardCanvas(score, product);
+
+  const blob = await new Promise(res => cv.toBlob(res, 'image/png', 0.92));
+  if (!blob) { showToast('Génération impossible.'); return; }
+  const file = new File([blob], 'mon-score-tts.png', { type: 'image/png' });
+
+  if (mode === 'share' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'Mon score TTS Analyzer',
+        text: `Mon score de persuasion : ${score}/100 — analysé sur tiktokshop-analyzer.com`,
+      });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;   // l'utilisateur a annulé
+    }
+  }
+  // Fallback universel : téléchargement
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mon-score-tts.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  if (mode === 'share') showToast('Visuel téléchargé — partage-le en story TikTok 📲');
+  else showToast('Visuel téléchargé ✓');
 }
 
 function _chartSVG(vals) {
