@@ -2892,11 +2892,11 @@ function saveToHistory(data, filename) {
   maybeAskTestimonial(entries.length);
 }
 
-/* Relance avis : après 3 analyses, on invite (1 seule fois) à laisser un avis.
+/* Relance avis : après 5 analyses, on invite (1 seule fois) à laisser un avis.
    Envoi email géré côté serveur (anti-doublon par compte). */
 function maybeAskTestimonial(count) {
   try {
-    if (count < 3) return;
+    if (count < 5) return;
     if (localStorage.getItem('tts_testimonial_asked')) return;
     if (typeof SESSION === 'undefined' || !SESSION.email) return;  // besoin d'un compte pour l'email
     localStorage.setItem('tts_testimonial_asked', '1');
