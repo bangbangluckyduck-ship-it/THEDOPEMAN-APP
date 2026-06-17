@@ -133,6 +133,119 @@ function showView(view) {
   if (navBtn) navBtn.classList.add('active');
   if (view === 'stats') loadStats();
   if (view === 'users') loadUsers();
+  if (view === 'hooks') initHooksView();
+}
+
+/* ── FEATURE 1 — Banque de Hooks (admin CRUD) ─────────────────────────── */
+const HOOK_CATS = [
+  ['sante', 'Santé / Bien-être'], ['beaute', 'Beauté / Cosmétique'], ['mode', 'Mode / Vêtements'],
+  ['tech', 'Tech / Gadgets'], ['fitness', 'Fitness / Sport'], ['maison', 'Maison / Déco'],
+  ['mobilier', 'Mobilier'], ['food', 'Food / Cuisine'], ['autre', 'Autre'],
+];
+let _hooksInit = false;
+
+function initHooksView() {
+  if (!_hooksInit) {
+    const catSel = document.getElementById('hook-categorie');
+    if (catSel) catSel.innerHTML = HOOK_CATS.map(c => `<option value="${c[0]}">${c[1]}</option>`).join('');
+    const filt = document.getElementById('hook-filter');
+    if (filt) filt.innerHTML = '<option value="">Toutes les catégories</option>' + HOOK_CATS.map(c => `<option value="${c[0]}">${c[1]}</option>`).join('');
+    onHookAccesChange();
+    _hooksInit = true;
+  }
+  loadHooks();
+}
+
+function onHookAccesChange() {
+  const v = document.getElementById('hook-acces').value;
+  document.getElementById('hook-planmin-wrap').style.display = v === 'plan_minimum' ? 'block' : 'none';
+  document.getElementById('hook-plans-wrap').style.display = v === 'plans_specifiques' ? 'block' : 'none';
+}
+
+function resetHookForm() {
+  document.getElementById('hook-id').value = '';
+  document.getElementById('hook-texte').value = '';
+  document.getElementById('hook-video').value = '';
+  document.getElementById('hook-acces').value = 'plan_minimum';
+  document.getElementById('hook-planmin').value = 'pro';
+  document.querySelectorAll('.hook-plan-cb').forEach(cb => cb.checked = false);
+  document.getElementById('hook-save-btn').textContent = '➕ Ajouter le hook';
+  onHookAccesChange();
+}
+
+async function loadHooks() {
+  const list = document.getElementById('hooks-admin-list');
+  if (!list) return;
+  list.innerHTML = '<div class="empty">Chargement…</div>';
+  const cat = document.getElementById('hook-filter')?.value || '';
+  try {
+    const res = await fetch('/admin/hooks' + (cat ? '?category=' + encodeURIComponent(cat) : ''), { headers: authHeaders() });
+    if (!res.ok) { if (res.status === 403) { showLogin(); return; } list.innerHTML = '<div class="empty">❌ Erreur</div>'; return; }
+    const data = await res.json();
+    const hooks = data.hooks || [];
+    if (!hooks.length) { list.innerHTML = '<div class="empty">Aucun hook.</div>'; return; }
+    const catLabel = k => (HOOK_CATS.find(c => c[0] === k) || [k, k])[1];
+    const accLabel = h => h.type_acces === 'tous' ? 'Tous (payants)' :
+      h.type_acces === 'plan_minimum' ? ('À partir de ' + (h.plan_min || 'pro').toUpperCase()) :
+        ('Plans: ' + (h.plans_autorises || []).join(', ').toUpperCase());
+    list.innerHTML = hooks.map(h => `
+      <div class="user-card">
+        <div style="font-size:11px;font-weight:700;color:#7C3AED">${esc(catLabel(h.categorie))} · ${esc(accLabel(h))}${h.url_video ? ' · 🎬' : ''}</div>
+        <div style="font-size:14px;margin:6px 0">${esc(h.texte)}</div>
+        <div class="actions">
+          <button class="btn btn-block" onclick='editHook(${JSON.stringify(h).replace(/'/g, "&#39;")})'>✏️ Éditer</button>
+          <button class="btn btn-block" onclick="deleteHook(${h.id})">🗑️ Supprimer</button>
+        </div>
+      </div>`).join('');
+  } catch (e) { list.innerHTML = '<div class="empty">❌ Erreur réseau</div>'; }
+}
+
+function editHook(h) {
+  document.getElementById('hook-id').value = h.id;
+  document.getElementById('hook-texte').value = h.texte || '';
+  document.getElementById('hook-categorie').value = h.categorie || 'autre';
+  document.getElementById('hook-video').value = h.url_video || '';
+  document.getElementById('hook-acces').value = h.type_acces || 'plan_minimum';
+  document.getElementById('hook-planmin').value = h.plan_min || 'pro';
+  const allowed = h.plans_autorises || [];
+  document.querySelectorAll('.hook-plan-cb').forEach(cb => cb.checked = allowed.includes(cb.value));
+  document.getElementById('hook-save-btn').textContent = '💾 Enregistrer les modifications';
+  onHookAccesChange();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveHook() {
+  const id = document.getElementById('hook-id').value;
+  const texte = document.getElementById('hook-texte').value.trim();
+  if (!texte) { showToast('Texte obligatoire'); return; }
+  const body = {
+    texte,
+    categorie: document.getElementById('hook-categorie').value,
+    url_video: document.getElementById('hook-video').value.trim() || null,
+    type_acces: document.getElementById('hook-acces').value,
+    plan_min: document.getElementById('hook-planmin').value,
+    plans_autorises: Array.from(document.querySelectorAll('.hook-plan-cb')).filter(cb => cb.checked).map(cb => cb.value),
+  };
+  try {
+    const res = await fetch('/admin/hooks' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); showToast('❌ ' + (d.detail || 'Erreur')); return; }
+    showToast(id ? '✅ Hook modifié' : '✅ Hook ajouté');
+    resetHookForm();
+    loadHooks();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function deleteHook(id) {
+  if (!confirm('Supprimer ce hook ?')) return;
+  try {
+    const res = await fetch('/admin/hooks/' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!res.ok) { showToast('❌ Erreur'); return; }
+    showToast('✅ Supprimé'); loadHooks();
+  } catch (e) { showToast('❌ Erreur réseau'); }
 }
 
 /* ── VUE STATISTIQUES ─────────────────────────────────────────────────── */
