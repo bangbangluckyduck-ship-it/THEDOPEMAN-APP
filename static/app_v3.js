@@ -3050,6 +3050,13 @@ function renderAccountPage() {
         <div id="acc-credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
       </div>`;
 
+  // 📈 Graphe de progression (Feature 3) — payant uniquement
+  html += `
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📈 Ma progression</div>
+        <div id="progression-chart"></div>
+      </div>`;
+
   // 📋 Historique des analyses (déplacé ici depuis l'onglet)
   html += `
       <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
@@ -3079,8 +3086,73 @@ function renderAccountPage() {
 
   container.innerHTML = html;
   loadTikTokShopStatus();
+  renderProgressionChart();  // graphe de progression (payant)
   renderHistory();           // historique désormais dans le compte
   renderAccountCredits();    // balance + packs crédits
+}
+
+/* ── FEATURE 3 — Graphe de progression (client-side, depuis localStorage) ── */
+function renderProgressionChart() {
+  const box = document.getElementById('progression-chart');
+  if (!box) return;
+  const tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  const isPaid = ['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier) || window.__userInfo?.is_admin;
+
+  // Données : derniers scores, du plus ancien au plus récent (max 15)
+  const pts = getHistory()
+    .filter(e => typeof e.score_global === 'number')
+    .slice(0, 15).reverse()
+    .map(e => ({ v: e.score_global, d: e.date }));
+
+  if (!isPaid) {
+    // Aperçu flou + incitation upgrade (pas un message d'erreur sec)
+    box.innerHTML =
+      `<div style="position:relative">
+         <div style="filter:blur(5px);pointer-events:none">${_chartSVG([62, 55, 68, 71, 65, 78, 74, 83])}</div>
+         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.45)">
+           <div style="font-size:22px">🔒</div>
+           <div style="font-size:13px;font-weight:700">Suis ta progression dans le temps</div>
+           <button class="btn btn-primary" style="font-size:12px;padding:7px 14px" onclick="switchTab('pricing')">Débloquer avec PRO 👑</button>
+         </div>
+       </div>`;
+    return;
+  }
+  if (pts.length < 2) {
+    box.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:18px">Analyse au moins 2 vidéos pour visualiser ta progression 📊</div>`;
+    return;
+  }
+  const vals = pts.map(p => p.v);
+  const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  const last = vals[vals.length - 1], first = vals[0];
+  const trend = last - first;
+  const trendTxt = trend > 0 ? `📈 +${trend} pts depuis le début` : trend < 0 ? `📉 ${trend} pts` : '➡️ stable';
+  box.innerHTML = _chartSVG(vals) +
+    `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:8px">
+       <span>${pts.length} analyses · moyenne <strong style="color:var(--text)">${avg}/100</strong></span>
+       <span style="font-weight:600;color:${trend >= 0 ? '#16A34A' : '#DC2626'}">${trendTxt}</span>
+     </div>`;
+}
+
+function _chartSVG(vals) {
+  const W = 320, H = 150, pad = 24;
+  const n = vals.length;
+  const max = 100, min = 0;
+  const x = i => pad + (n === 1 ? 0 : (i * (W - 2 * pad) / (n - 1)));
+  const y = v => H - pad - ((v - min) / (max - min)) * (H - 2 * pad);
+  const avg = vals.reduce((a, b) => a + b, 0) / n;
+  const linePts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${pad},${H - pad} ${linePts} ${x(n - 1).toFixed(1)},${H - pad}`;
+  const dots = vals.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="#2563EB"/>`).join('');
+  const grid = [0, 25, 50, 75, 100].map(g =>
+    `<line x1="${pad}" y1="${y(g).toFixed(1)}" x2="${W - pad}" y2="${y(g).toFixed(1)}" stroke="#E5E7EB" stroke-width="1"/>` +
+    `<text x="2" y="${(y(g) + 3).toFixed(1)}" font-size="9" fill="#9CA3AF">${g}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+    ${grid}
+    <line x1="${pad}" y1="${y(avg).toFixed(1)}" x2="${W - pad}" y2="${y(avg).toFixed(1)}" stroke="#D4AF37" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polygon points="${area}" fill="rgba(37,99,235,.08)"/>
+    <polyline points="${linePts}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
 }
 
 // Crédits dans la page compte : balance + packs (achat stubé tant que Stripe off).
