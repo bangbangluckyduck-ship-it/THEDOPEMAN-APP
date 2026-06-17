@@ -134,6 +134,7 @@ function showView(view) {
   if (view === 'stats') loadStats();
   if (view === 'users') loadUsers();
   if (view === 'hooks') initHooksView();
+  if (view === 'temoignages') loadTemoignages();
 }
 
 /* ── FEATURE 1 — Banque de Hooks (admin CRUD) ─────────────────────────── */
@@ -245,6 +246,109 @@ async function deleteHook(id) {
     const res = await fetch('/admin/hooks/' + id, { method: 'DELETE', headers: authHeaders() });
     if (!res.ok) { showToast('❌ Erreur'); return; }
     showToast('✅ Supprimé'); loadHooks();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+/* ── FEATURE 2 — Témoignages (admin) ──────────────────────────────────── */
+function resetTemoignageForm() {
+  ['tm-id', 'tm-nom', 'tm-tiktok', 'tm-texte', 'tm-metrique', 'tm-photo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tm-statut').value = 'en_attente';
+  document.getElementById('tm-avant').checked = false;
+  document.getElementById('tm-save-btn').textContent = '➕ Ajouter';
+}
+
+async function loadTemoignages() {
+  const list = document.getElementById('temoignages-admin-list');
+  if (!list) return;
+  list.innerHTML = '<div class="empty">Chargement…</div>';
+  try {
+    const res = await fetch('/admin/temoignages', { headers: authHeaders() });
+    if (!res.ok) { if (res.status === 403) { showLogin(); return; } list.innerHTML = '<div class="empty">❌ Erreur</div>'; return; }
+    const data = await res.json();
+    const rows = data.temoignages || [];
+    if (!rows.length) { list.innerHTML = '<div class="empty">Aucun témoignage.</div>'; return; }
+    const badge = s => s === 'publie' ? '🟢 Publié' : s === 'masque' ? '⚫ Masqué' : '🟡 En attente';
+    list.innerHTML = rows.map(t => `
+      <div class="user-card">
+        <div style="font-size:11px;font-weight:700;color:var(--muted)">${badge(t.statut)}${t.mis_en_avant ? ' · ⭐ À la une' : ''}${t.note ? ' · ' + t.note + '/5' : ''}</div>
+        <div style="font-weight:700;margin:4px 0">${esc(t.nom)}${t.lien_tiktok ? ' · <a href="' + esc(t.lien_tiktok) + '" target="_blank" style="color:var(--accent)">TikTok</a>' : ''}</div>
+        <div style="font-size:14px;margin-bottom:6px">${esc(t.texte)}</div>
+        ${t.metrique ? '<div style="font-size:12px;color:#16A34A">📈 ' + esc(t.metrique) + '</div>' : ''}
+        <div class="actions">
+          ${t.statut !== 'publie' ? `<button class="btn btn-block" onclick="quickPublish(${t.id}, true)">✅ Publier</button>` : `<button class="btn btn-block" onclick="quickPublish(${t.id}, false)">🚫 Masquer</button>`}
+          <button class="btn btn-block" onclick='editTemoignage(${JSON.stringify(t).replace(/'/g, "&#39;")})'>✏️ Éditer</button>
+          <button class="btn btn-block" onclick="deleteTemoignage(${t.id})">🗑️</button>
+        </div>
+      </div>`).join('');
+  } catch (e) { list.innerHTML = '<div class="empty">❌ Erreur réseau</div>'; }
+}
+
+function _tmBody() {
+  return {
+    nom: document.getElementById('tm-nom').value.trim(),
+    texte: document.getElementById('tm-texte').value.trim(),
+    lien_tiktok: document.getElementById('tm-tiktok').value.trim() || null,
+    photo_url: document.getElementById('tm-photo').value.trim() || null,
+    metrique: document.getElementById('tm-metrique').value.trim() || null,
+    statut: document.getElementById('tm-statut').value,
+    mis_en_avant: document.getElementById('tm-avant').checked,
+  };
+}
+
+function editTemoignage(t) {
+  document.getElementById('tm-id').value = t.id;
+  document.getElementById('tm-nom').value = t.nom || '';
+  document.getElementById('tm-tiktok').value = t.lien_tiktok || '';
+  document.getElementById('tm-texte').value = t.texte || '';
+  document.getElementById('tm-metrique').value = t.metrique || '';
+  document.getElementById('tm-photo').value = t.photo_url || '';
+  document.getElementById('tm-statut').value = t.statut || 'en_attente';
+  document.getElementById('tm-avant').checked = !!t.mis_en_avant;
+  document.getElementById('tm-save-btn').textContent = '💾 Enregistrer';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function saveTemoignage() {
+  const id = document.getElementById('tm-id').value;
+  const body = _tmBody();
+  if (!body.nom || body.texte.length < 10) { showToast('Nom + témoignage (≥10) requis'); return; }
+  try {
+    const res = await fetch('/admin/temoignages' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); showToast('❌ ' + (d.detail || 'Erreur')); return; }
+    showToast(id ? '✅ Modifié' : '✅ Ajouté'); resetTemoignageForm(); loadTemoignages();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function quickPublish(id, publish) {
+  // récupère la ligne courante pour ne pas écraser les champs
+  try {
+    const res = await fetch('/admin/temoignages', { headers: authHeaders() });
+    const data = await res.json();
+    const t = (data.temoignages || []).find(x => x.id === id);
+    if (!t) return;
+    t.statut = publish ? 'publie' : 'masque';
+    const r2 = await fetch('/admin/temoignages/' + id, {
+      method: 'PUT', headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        nom: t.nom, texte: t.texte, lien_tiktok: t.lien_tiktok, photo_url: t.photo_url,
+        metrique: t.metrique, note: t.note, statut: t.statut, mis_en_avant: t.mis_en_avant,
+      }),
+    });
+    if (!r2.ok) { showToast('❌ Erreur'); return; }
+    showToast(publish ? '✅ Publié' : '🚫 Masqué'); loadTemoignages();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function deleteTemoignage(id) {
+  if (!confirm('Supprimer ce témoignage ?')) return;
+  try {
+    const res = await fetch('/admin/temoignages/' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!res.ok) { showToast('❌ Erreur'); return; }
+    showToast('✅ Supprimé'); loadTemoignages();
   } catch (e) { showToast('❌ Erreur réseau'); }
 }
 

@@ -368,6 +368,41 @@
         </div>
         <div id="hooks-admin-list"><div class="empty">Chargement…</div></div>
       </section>
+
+      <section id="view-temoignages" class="view">
+        <h1 class="view-title">⭐ Témoignages</h1>
+        <p class="view-sub">Valide, publie ou masque les avis. Mets en avant ceux à afficher en page d'accueil.</p>
+
+        <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px;margin-bottom:18px">
+          <input type="hidden" id="tm-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><label style="font-size:12px;font-weight:700">Nom / pseudo *</label>
+              <input id="tm-nom" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px"></div>
+            <div><label style="font-size:12px;font-weight:700">Lien TikTok</label>
+              <input id="tm-tiktok" type="url" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px"></div>
+          </div>
+          <label style="font-size:12px;font-weight:700;margin-top:12px;display:block">Témoignage *</label>
+          <textarea id="tm-texte" rows="3" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px;resize:vertical"></textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+            <div><label style="font-size:12px;font-weight:700">Métrique</label>
+              <input id="tm-metrique" placeholder="+12% complétion" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px"></div>
+            <div><label style="font-size:12px;font-weight:700">Photo (URL)</label>
+              <input id="tm-photo" type="url" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px"></div>
+            <div><label style="font-size:12px;font-weight:700">Statut</label>
+              <select id="tm-statut" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin-top:4px">
+                <option value="en_attente">En attente</option><option value="publie">Publié</option><option value="masque">Masqué</option>
+              </select></div>
+          </div>
+          <label style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="tm-avant"> Mettre en avant (page d'accueil)</label>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="btn btn-primary" id="tm-save-btn" onclick="saveTemoignage()">➕ Ajouter</button>
+            <button class="btn btn-ghost" onclick="resetTemoignageForm()">Annuler</button>
+          </div>
+        </div>
+
+        <div class="toolbar"><button class="btn btn-ghost" onclick="loadTemoignages()">🔄 Rafraîchir</button></div>
+        <div id="temoignages-admin-list"><div class="empty">Chargement…</div></div>
+      </section>
     </main>
 
     <!-- ── NAVIGATION BAS ── -->
@@ -380,6 +415,9 @@
       </button>
       <button class="nav-item" data-view="hooks" onclick="showView('hooks')">
         <span class="ic">💡</span>Hooks
+      </button>
+      <button class="nav-item" data-view="temoignages" onclick="showView('temoignages')">
+        <span class="ic">⭐</span>Avis
       </button>
     </nav>
   </div>

@@ -262,3 +262,70 @@ async def admin_delete_hook(hook_id: int, request: Request):
         raise HTTPException(status_code=500, detail="BD non disponible")
     supabase.table("hooks").delete().eq("id", hook_id).execute()
     return {"ok": True, "id": hook_id}
+
+
+# ════════════════════════════════════════════════════════════════════
+# FEATURE 2 — Témoignages : CRUD admin (validation/publication)
+# ════════════════════════════════════════════════════════════════════
+class TemoignageBody(BaseModel):
+    nom: str
+    texte: str
+    lien_tiktok: Optional[str] = None
+    photo_url: Optional[str] = None
+    metrique: Optional[str] = None
+    note: Optional[int] = None
+    statut: str = "en_attente"          # en_attente | publie | masque
+    mis_en_avant: bool = False
+
+
+@router.get("/temoignages")
+async def admin_list_temoignages(request: Request, statut: Optional[str] = None):
+    _require_admin(request)
+    from supabase_client import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    q = supabase.table("temoignages").select("*").order("date_soumission", desc=True)
+    if statut:
+        q = q.eq("statut", statut)
+    return {"ok": True, "temoignages": q.execute().data or []}
+
+
+@router.post("/temoignages")
+async def admin_create_temoignage(body: TemoignageBody, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    from datetime import datetime, timezone
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    rec = body.model_dump()
+    if rec.get("statut") == "publie":
+        rec["date_publication"] = datetime.now(timezone.utc).isoformat()
+    res = supabase.table("temoignages").insert(rec).execute()
+    return {"ok": True, "temoignage": (res.data or [None])[0]}
+
+
+@router.put("/temoignages/{tid}")
+async def admin_update_temoignage(tid: int, body: TemoignageBody, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    from datetime import datetime, timezone
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    rec = body.model_dump()
+    # date_publication posée au passage en "publie" si pas déjà fixée
+    if rec.get("statut") == "publie":
+        existing = supabase.table("temoignages").select("date_publication").eq("id", tid).execute()
+        if not (existing.data and existing.data[0].get("date_publication")):
+            rec["date_publication"] = datetime.now(timezone.utc).isoformat()
+    supabase.table("temoignages").update(rec).eq("id", tid).execute()
+    return {"ok": True, "id": tid}
+
+
+@router.delete("/temoignages/{tid}")
+async def admin_delete_temoignage(tid: int, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    supabase.table("temoignages").delete().eq("id", tid).execute()
+    return {"ok": True, "id": tid}
