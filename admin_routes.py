@@ -113,7 +113,7 @@ class ResetPasswordBody(BaseModel):
 async def reset_user_password(body: ResetPasswordBody, request: Request):
     """Admin reset user password with 2 options."""
     import bcrypt
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from password_reset import (
         generate_reset_token,
         generate_temporary_password,
@@ -219,7 +219,7 @@ def _hook_record(body: HookBody) -> dict:
 @router.get("/hooks")
 async def admin_list_hooks(request: Request, category: Optional[str] = None):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
     q = supabase.table("hooks").select("*").order("created_at", desc=True)
@@ -232,7 +232,7 @@ async def admin_list_hooks(request: Request, category: Optional[str] = None):
 @router.post("/hooks")
 async def admin_create_hook(body: HookBody, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
     if not body.texte.strip():
@@ -248,7 +248,7 @@ async def admin_create_hook(body: HookBody, request: Request):
 @router.put("/hooks/{hook_id}")
 async def admin_update_hook(hook_id: int, body: HookBody, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from datetime import datetime, timezone
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
@@ -261,7 +261,7 @@ async def admin_update_hook(hook_id: int, body: HookBody, request: Request):
 @router.delete("/hooks/{hook_id}")
 async def admin_delete_hook(hook_id: int, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
     supabase.table("hooks").delete().eq("id", hook_id).execute()
@@ -285,7 +285,7 @@ class TemoignageBody(BaseModel):
 @router.get("/temoignages")
 async def admin_list_temoignages(request: Request, statut: Optional[str] = None):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
     q = supabase.table("temoignages").select("*").order("date_soumission", desc=True)
@@ -297,7 +297,7 @@ async def admin_list_temoignages(request: Request, statut: Optional[str] = None)
 @router.post("/temoignages")
 async def admin_create_temoignage(body: TemoignageBody, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from datetime import datetime, timezone
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
@@ -315,7 +315,7 @@ async def admin_create_temoignage(body: TemoignageBody, request: Request):
 @router.put("/temoignages/{tid}")
 async def admin_update_temoignage(tid: int, body: TemoignageBody, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from datetime import datetime, timezone
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
@@ -332,7 +332,7 @@ async def admin_update_temoignage(tid: int, body: TemoignageBody, request: Reque
 @router.delete("/temoignages/{tid}")
 async def admin_delete_temoignage(tid: int, request: Request):
     _require_admin(request)
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     if not supabase:
         raise HTTPException(status_code=500, detail="BD non disponible")
     supabase.table("temoignages").delete().eq("id", tid).execute()
