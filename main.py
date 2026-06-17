@@ -2784,8 +2784,11 @@ async def carousel_generate(
 
     cost = 0
     payment_method = "free"
+    # L'image est toujours générée en flux → on facture le coût réel de flux
+    # (cohérence : pas de décalage entre prix affiché et IA utilisée).
+    gen_provider = "flux"
     if mode == "images":
-        cost = image_gen.provider_credits(provider)
+        cost = image_gen.provider_credits(gen_provider)
         bal = credits_mod.get_balance(supabase_client, email, tier)
         if bal.get("total_available", 0) < cost:
             return JSONResponse({"ok": False, "reason": "insufficient_credits",
@@ -2806,7 +2809,7 @@ async def carousel_generate(
                 pass
 
     def _gen():
-        res = carousel.generate_carousel(img or None, mode, style, "flux",
+        res = carousel.generate_carousel(img or None, mode, style, gen_provider,
                                          product_name, description, price, currency, niche, user_idea,
                                          product_image_url=product_image_url, avoid=avoid)
         if cost > 0:

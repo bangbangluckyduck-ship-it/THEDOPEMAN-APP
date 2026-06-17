@@ -14,12 +14,13 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-# Crédits d'abonnement inclus par plan (par mois).
+# Crédits d'abonnement inclus par plan (par mois). POT UNIQUE partagé entre
+# AI Prompt Studio ET Photo Slide (1 carrousel image ≈ 8-10 crédits).
 PLAN_CREDITS = {
     "free": 0,
-    "pro": 10,
-    "gold": 50,
-    "agency": 200,
+    "pro": 30,      # ~3-4 carrousels OU ~30 prompts / mois
+    "gold": 150,    # ~15-18 carrousels
+    "agency": 600,  # ~60-75 carrousels (5 comptes)
     "beta": 200,
     "admin": 99999,
 }

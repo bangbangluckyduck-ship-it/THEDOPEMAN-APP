@@ -96,7 +96,7 @@
       Object.keys(packs).forEach(function(key){
         var p=packs[key];
         var ppc=(p.price/p.credits); ppc=ppc.toFixed(2).replace('.',',');
-        var carrousels=Math.max(1, Math.round(p.credits/8));
+        var carrousels=Math.max(1, Math.round(p.credits/10));
         var el=document.createElement('div'); el.className='pack'+(p.best?' best':'');
         el.innerHTML=(p.best?'<span class="tag">⭐ Best value</span>':'')+
           '<div class="ico">📦</div>'+
