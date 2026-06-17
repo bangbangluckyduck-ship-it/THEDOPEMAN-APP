@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Comparatif détaillé des plans TTS Analyzer : FREE, PRO, GOLD, AGENCY.">
+  <title>Comparer les plans — TTS Analyzer</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --primary:#D4AF37; --navy:#1F3A70; --accent:#2563EB; --bg:#F5F7FA; --surface:#FFFFFF; --surface2:#EEF1F6; --text:#1A1A1A; --muted:#6B7280; --border:#E5E7EB; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+    header { position:sticky; top:0; z-index:50; background:rgba(255,255,255,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-size:17px; font-weight:800; color:var(--text); text-decoration:none; } .logo span{ color:var(--primary); }
+    .nav-links a { color:var(--text); text-decoration:none; font-size:14px; font-weight:600; margin-left:18px; } .nav-links a:hover{ color:var(--accent); }
+    main { max-width:1000px; margin:0 auto; padding:36px 16px 80px; }
+    h1 { text-align:center; font-size:30px; font-weight:800; margin-bottom:8px; }
+    .sub { text-align:center; color:var(--muted); margin-bottom:28px; font-size:14px; }
+    .wrap { overflow-x:auto; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+    table { width:100%; border-collapse:collapse; min-width:680px; }
+    thead th { position:sticky; top:0; background:var(--surface); padding:14px 12px; text-align:center; border-bottom:2px solid var(--border); vertical-align:top; }
+    thead th.feat { background:rgba(212,175,55,.08); }
+    th h3 { font-size:15px; } th .price { font-size:18px; font-weight:800; margin-top:4px; } th .price span{ font-size:11px; font-weight:600; color:var(--muted); }
+    th .soon { font-size:12px; color:#92400E; font-weight:700; margin-top:4px; }
+    .tag { display:inline-block; font-size:10px; font-weight:800; background:var(--primary); color:#1a1a1a; padding:1px 7px; border-radius:999px; margin-bottom:4px; }
+    td { padding:11px 12px; border-bottom:1px solid var(--border); font-size:13px; text-align:center; }
+    td.name { text-align:left; font-weight:600; color:var(--text); }
+    td.feat { background:rgba(212,175,55,.04); }
+    tr.section td { background:var(--surface2); font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); text-align:left; }
+    .yes { color:#16A34A; font-weight:800; } .no { color:#D1D5DB; }
+    td.disabled { opacity:.45; }
+    tfoot td { padding:16px 12px; text-align:center; }
+    .btn { display:inline-block; padding:10px 16px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer; text-decoration:none; }
+    .btn-primary{ background:var(--accent); color:#fff; } .btn-soft{ background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; } .toast.show{ opacity:1; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HR4QQJ52DT');
+  </script>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">TikTok Shop <span>Analyzer</span></a>
+    <nav class="nav-links">
+      <a href="/pricing">Tarifs</a>
+      <a href="/credits">Crédits</a>
+      <a href="/app">Ouvrir l'app →</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Compare nos plans en détail</h1>
+    <p class="sub">Trouve celui qui te correspond le mieux</p>
+
+    <div class="wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th style="text-align:left">Fonctionnalité</th>
+            <th><h3>FREE</h3><div class="price">0 €</div></th>
+            <th class="feat"><span class="tag">⭐ Populaire</span><h3>PRO</h3><div class="price" id="h-pro">9,99 €<span>/mois</span></div></th>
+            <th><h3>GOLD</h3><div class="price" id="h-gold">—</div></th>
+            <th><h3>AGENCY</h3><div class="price" id="h-agency">—</div></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td><a class="btn btn-soft" href="/app">Commencer</a></td>
+            <td class="feat"><button class="btn btn-primary" data-cta="pro">Choisir PRO</button></td>
+            <td><button class="btn btn-soft" data-cta="gold">Choisir GOLD</button></td>
+            <td><button class="btn btn-soft" data-cta="agency">Choisir AGENCY</button></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3000); }
+    function fmtEur(n){ var d=Math.round(n*100)%100!==0; return (d?n.toFixed(2).replace('.',','):String(Math.round(n)))+' €'; }
+    function notifyMe(plan){ var e=(prompt('Ton email pour être prévenu·e 🔔')||'').trim(); if(!e||e.indexOf('@')<1) return;
+      fetch('/api/notify-me',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,plan:plan})})
+        .then(function(r){return r.json().catch(function(){return{};});}).then(function(d){toast(d.message||'On te préviendra 🔔');}); }
+
+    var SECTIONS=[
+      {t:'📊 Analyse vidéo', rows:[
+        {n:'Analyses / mois', free:'3', pro:'300', gold:'1000', agency:'1000 × 5'},
+        {n:'Score détaillé /100', free:true, pro:true, gold:true, agency:true},
+        {n:'8 dimensions d\'analyse', free:true, pro:true, gold:true, agency:true},
+        {n:'Analyse par lien TikTok', free:false, pro:true, gold:true, agency:true},
+        {n:'Analyse multi-liens (patterns)', free:false, pro:false, gold:true, agency:true},
+        {n:'Coach IA & script perso', free:false, pro:false, gold:true, agency:true},
+      ]},
+      {t:'📸 Photo Slide Coach', rows:[
+        {n:'Mode A (prompts)', free:'3/mois', pro:'Illimité', gold:'Illimité', agency:'Illimité'},
+        {n:'Mode B (images IA)', free:false, pro:'10 crédits', gold:'50 crédits', agency:'200 crédits'},
+        {n:'Conseils slides 5-7', free:false, pro:true, gold:true, agency:true},
+        {n:'Choix du style', free:'Auto', pro:'Auto + manuel', gold:'Auto + manuel', agency:'Auto + manuel'},
+      ]},
+      {t:'🎬 AI Prompt Studio', rows:[
+        {n:'Génération de prompts vidéo', free:false, pro:true, gold:true, agency:true},
+        {n:'Crédits inclus / mois', free:'0', pro:'10', gold:'50', agency:'200'},
+      ]},
+      {t:'🎁 Premium & support', rows:[
+        {n:'Données marché (tendances)', free:false, pro:false, gold:true, agency:true},
+        {n:'Multi-utilisateurs', free:'1', pro:'1', gold:'1', agency:'5'},
+        {n:'Support', free:'FAQ', pro:'Email', gold:'Prioritaire', agency:'VIP 24/7'},
+      ]},
+    ];
+    function cell(v){ if(v===true) return '<span class="yes">✓</span>'; if(v===false) return '<span class="no">✗</span>'; return v; }
+    var tb=document.getElementById('tbody');
+    SECTIONS.forEach(function(s){
+      var hr=document.createElement('tr'); hr.className='section'; hr.innerHTML='<td colspan="5">'+s.t+'</td>'; tb.appendChild(hr);
+      s.rows.forEach(function(r){
+        var tr=document.createElement('tr');
+        tr.innerHTML='<td class="name">'+r.n+'</td><td>'+cell(r.free)+'</td><td class="feat">'+cell(r.pro)+'</td>'+
+          '<td class="c-gold">'+cell(r.gold)+'</td><td class="c-agency">'+cell(r.agency)+'</td>';
+        tb.appendChild(tr);
+      });
+    });
+
+    Promise.all([
+      fetch('/api/plans/available').then(function(r){return r.json();}),
+      fetch('/api/plans/prices').then(function(r){return r.json();})
+    ]).then(function(res){
+      var plans=res[0].plans, dates=res[0].dates, prices=res[1].prices;
+      if(prices&&prices.pro) document.getElementById('h-pro').innerHTML=fmtEur(prices.pro.current)+'<span>/mois</span>';
+      function head(id,plan){
+        var el=document.getElementById(id);
+        if(plans[plan]) el.innerHTML=fmtEur(prices[plan].current)+'<span>/mois</span>';
+        else { el.outerHTML='<div class="soon">🔜 '+dates[plan]+'</div>';
+          document.querySelectorAll('.c-'+plan).forEach(function(td){td.classList.add('disabled');}); }
+      }
+      head('h-gold','gold'); head('h-agency','agency');
+      document.querySelectorAll('[data-cta]').forEach(function(b){
+        var plan=b.getAttribute('data-cta');
+        if(!plans[plan]){ b.textContent='🔔 Me notifier'; b.onclick=function(){notifyMe(plan);}; }
+        else { b.onclick=function(){ toast("🚀 L'ouverture des abonnements arrive très bientôt — crée ton compte gratuit en attendant."); }; }
+      });
+    }).catch(function(){});
+  </script>
+</body>
+</html>
