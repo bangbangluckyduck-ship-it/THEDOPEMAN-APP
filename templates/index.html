@@ -1334,10 +1334,17 @@
     <button class="tab"        id="tab-creators" onclick="switchTab('creators')">🔥 Créateurs Gagnants</button>
     <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">📸 Photo Slide</button>
     <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
+    <button class="tab"        id="tab-pricing" onclick="switchTab('pricing')">💎 Tarifs</button>
   </div>
 
   <!-- ── ONGLET ANALYSER ── -->
   <div id="tab-analyze-content">
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 14px;font-size:12.5px;color:var(--muted)">
+      <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>1.</strong> Colle un lien ou importe ta vidéo</span>
+      <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>2.</strong> L'IA décrypte la méthode</span>
+      <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>3.</strong> Tu copies ce qui marche</span>
+    </div>
 
     <section id="upload-section" class="section">
       <h2 data-i18n="upload_title">📹 Analyse ta vidéo TikTok Shop</h2>
@@ -1741,9 +1748,9 @@
           <li>✅ <strong>300 analyses / mois</strong></li>
           <li>✅ Analyse upload <strong>+ lien TikTok</strong></li>
           <li>✅ Scoring complet</li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> · <strong>10 crédits / mois</strong></li>
-          <li>🔒 Coach IA & script personnalisé</li>
-          <li>🔒 Photo Slide Coach · Analyse multi-liens</li>
+          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 <strong>Photo Slide Coach</strong></li>
+          <li>✅ <strong>30 crédits / mois</strong> (~3-4 carrousels ou 30 prompts)</li>
+          <li>🔒 Coach IA & script perso · multi-liens (GOLD)</li>
         </ul>
         <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">Choisir PRO →</button>
       </div>
@@ -1763,7 +1770,7 @@
           <li>✅ <strong>1000 analyses / mois</strong></li>
           <li>✅ <strong>Coaching IA + script personnalisé</strong> par produit</li>
           <li>✅ Produits tendances, meilleurs créateurs & vidéos recommandées</li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 <strong>Photo Slide Coach</strong> · <strong>50 crédits / mois</strong></li>
+          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 <strong>Photo Slide Coach</strong> · <strong>150 crédits / mois</strong></li>
           <li>✅ <strong>Analyse multi-liens</strong> : patterns gagnants & ralentissants</li>
         </ul>
         <button class="btn pc-btn pc-btn-gold" onclick="startCheckout('gold')">Choisir GOLD ⭐</button>
@@ -1784,7 +1791,7 @@
           <li>✅ Toutes les fonctionnalités Gold</li>
           <li>✅ 1000 analyses / mois × 5</li>
           <li>✅ <strong>Coaching IA + scripts personnalisés</strong></li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 Photo Slide · <strong>200 crédits / mois</strong></li>
+          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 Photo Slide · <strong>600 crédits / mois</strong></li>
           <li>✅ <strong>Données marché</strong> (tendances, créateurs gagnants)</li>
         </ul>
         <button class="btn pc-btn pc-btn-navy" onclick="startCheckout('agency')">Choisir AGENCY →</button>
@@ -1826,7 +1833,7 @@
     </div>
 
     <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px">
-      💎 Crédits AI Prompt Studio renouvelés chaque mois (non reportés). <strong>Crédits supplémentaires achetables</strong> (packs dès 9€, validité 1 mois) depuis ton Compte.
+      💎 Crédits IA = un pot unique partagé entre <strong>AI Prompt Studio</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelés chaque mois (non reportés). <strong>Crédits supplémentaires achetables</strong> (packs dès 9€, validité 1 mois) depuis ton Compte.
     </p>
 
     <!-- FAQ mini -->
@@ -1858,65 +1865,23 @@
   <!-- ── ONGLET PHOTO SLIDE COACH (GOLD/AGENCY) ── -->
   <div id="tab-photoslide-content" style="display:none">
     <div class="section">
-      <h2>📸 Photo Slide Coach <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:2px 8px;border-radius:999px;font-weight:700;vertical-align:middle">PREMIUM</span></h2>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Génère un plan de carrousel TikTok Shop optimisé à partir d'une image produit.</p>
+      <h2>📸 Photo Slide Coach</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Génère un carrousel TikTok Shop optimisé à partir d'une simple image produit : plan stratégique + textes (gratuit, 3/mois) ou <strong>4 slides créées par IA</strong> + conseils photos 5-7 (avec tes crédits).</p>
 
-      <!-- Accès au Carousel Creator complet (prompts + IMAGES IA) -->
-      <a href="/carousel" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;margin-bottom:18px">
-        <div style="background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(37,99,235,.10));border:1px solid rgba(212,175,55,.45);border-radius:12px;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <div>
-            <div style="font-size:14px;font-weight:800">🎨 Nouveau : génère aussi les IMAGES IA <span style="font-size:10px;background:#D4AF37;color:#1a1a1a;padding:1px 7px;border-radius:999px">NEW</span></div>
-            <div style="font-size:12px;color:var(--muted);margin-top:3px">4 slides créées par IA + conseils photos 5-7 + plan complet. Routage auto vers la meilleure IA.</div>
-          </div>
-          <span class="btn btn-primary" style="font-size:13px;white-space:nowrap">Ouvrir le créateur →</span>
+      <a href="/carousel" style="display:block;text-decoration:none;color:inherit">
+        <div style="background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(37,99,235,.10));border:1px solid rgba(212,175,55,.45);border-radius:16px;padding:22px;text-align:center">
+          <div style="font-size:34px">🎨</div>
+          <div style="font-size:17px;font-weight:800;margin:6px 0 4px">Ouvre le créateur de carrousels</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Prompts stratégiques + génération d'images IA · routage auto vers la meilleure IA · export</div>
+          <span class="btn btn-primary" style="font-size:15px;padding:12px 28px">✨ Commencer →</span>
         </div>
       </a>
 
-      <!-- Gate non-premium -->
-      <div id="ps-gate" style="display:none;text-align:center;padding:24px;background:rgba(212,175,55,.08);border:1px dashed rgba(212,175,55,.6);border-radius:12px">
-        <div style="font-size:15px;font-weight:700;color:#d4a017">Fonctionnalité Gold &amp; Agency</div>
-        <p style="font-size:13px;color:var(--muted);margin:8px 0 12px">Passe au plan Gold pour générer tes carrousels en 30 secondes.</p>
-        <button class="btn btn-primary" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
-      </div>
-
-      <!-- Formulaire -->
-      <div id="ps-form">
-        <div id="ps-drop" style="border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:var(--surface)">
-          <input type="file" id="ps-file" accept="image/png,image/jpeg,image/webp" style="display:none">
-          <div id="ps-drop-empty">
-            <div style="font-size:30px">🖼️</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:6px">Glisse ton image produit ici ou <strong>clique pour choisir</strong></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">JPG / PNG / WEBP — carré ou 4:5 recommandé</div>
-          </div>
-          <img id="ps-preview" style="display:none;max-width:200px;max-height:200px;border-radius:10px;margin:0 auto">
-        </div>
-
-        <div style="margin-top:14px;display:grid;gap:10px">
-          <input id="ps-name" type="text" maxlength="100" placeholder="Nature / nom du produit (ex: Sérum anti-âge)" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-          <textarea id="ps-desc" maxlength="300" rows="3" placeholder="Description courte du produit…" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;resize:vertical"></textarea>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <input id="ps-price" type="text" placeholder="Prix" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-            <select id="ps-currency" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-              <option value="EUR">€ EUR</option><option value="USD">$ USD</option><option value="GBP">£ GBP</option>
-            </select>
-          </div>
-          <select id="ps-niche" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-            <option value="">Niche (auto-détectée si vide)</option>
-            <option>Cosmétique/Beauté</option><option>Santé/Bien-être</option><option>Mode/Vêtements</option>
-            <option>Maison/Déco</option><option>Tech/Gadgets</option><option>Fitness/Sport</option>
-            <option>Cuisine/Alimentation</option><option>Autre</option>
-          </select>
-          <select id="ps-style" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px">
-            <option value="auto">Style : Auto (l'IA décide)</option>
-            <option value="quad_photo">Quad Photo (4 visuels)</option>
-            <option value="fond_blanc">Fond Blanc (minimaliste)</option>
-            <option value="ia_cartoon">IA/Cartoon (avant/après)</option>
-          </select>
-          <button id="ps-generate" class="btn btn-primary" onclick="generatePhotoSlide()" disabled style="font-size:15px">✨ Générer mon Photo Slide</button>
-        </div>
-      </div>
-
-      <div id="ps-result" style="margin-top:18px"></div>
+      <ul style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px;font-size:13.5px;color:var(--text)">
+        <li>✅ <strong>Mode A — Prompts</strong> : plan complet (titre, accroche, hashtags, musique). Gratuit 3/mois, illimité dès PRO.</li>
+        <li>✅ <strong>Mode B — Images IA</strong> : 4 slides générées + conseils pour tes photos 5-7. Coûte des crédits (~8-10 / carrousel).</li>
+        <li>✅ Identification fiable du produit via le lien TikTok Shop officiel.</li>
+      </ul>
     </div>
   </div>
 
