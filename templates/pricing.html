@@ -50,6 +50,7 @@
     .btn-soft { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
     .btn-ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
     .value { font-size:12px; color:var(--accent); font-weight:700; margin-bottom:2px; }
+    .save { font-size:12px; color:#16A34A; font-weight:800; margin-bottom:8px; min-height:0; }
     .ltd { max-width:820px; margin:8px auto 0; background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08)); border:1px solid rgba(212,175,55,.5); border-radius:16px; padding:22px; text-align:center; }
     .compare-link { text-align:center; margin:26px 0; }
     .compare-link a { color:var(--accent); font-weight:700; text-decoration:none; font-size:15px; }
@@ -99,9 +100,10 @@
       </div>
 
       <!-- PRO -->
-      <div class="card feat" data-plan="pro">
+      <div class="card" data-plan="pro">
         <span class="badge blue">PRO · 🔥 Lancement</span>
         <div class="value">💎 Valeur réelle ~120 €/mois</div>
+        <div class="save" id="pro-save"></div>
         <div class="price" id="pro-price"><span class="old">12,99 €</span>9<small>,99 €</small></div>
         <div class="period">/ mois</div>
         <div class="tagline">Pour les créateurs sérieux</div>
@@ -117,8 +119,9 @@
 
       <!-- GOLD -->
       <div class="card" data-plan="gold">
-        <span class="badge gold">⭐ Populaire · 🔥 Lancement</span>
+        <span class="badge gold">GOLD · 🔥 Lancement</span>
         <div class="value">💎 Valeur réelle ~350 €/mois</div>
+        <div class="save" id="gold-save"></div>
         <div class="price" id="gold-price"><span class="old">99 €</span>79,99 €</div>
         <div class="period">/ mois</div>
         <div class="tagline">Pour les créateurs avancés</div>
@@ -136,6 +139,7 @@
       <div class="card navy" data-plan="agency">
         <span class="badge" style="background:rgba(255,255,255,.15);color:#fff">Agency</span>
         <div class="value" style="color:#FFD966">💎 Valeur réelle ~800 €/mois</div>
+        <div class="save" id="agency-save" style="color:#FFD966"></div>
         <div class="price" id="agency-price" style="color:#fff"><span class="old" style="color:rgba(255,255,255,.6)">299 €</span>249 €</div>
         <div class="period" style="color:rgba(255,255,255,.6)">/ mois · 5 comptes Gold</div>
         <div class="tagline" style="color:rgba(255,255,255,.8)">Pour les agences et pros</div>
@@ -181,7 +185,7 @@
     function makeSoon(card,plan,dateStr){
       card.querySelector('.badge').textContent='🔜 Bientôt';
       card.querySelector('.badge').className='badge soon';
-      card.querySelectorAll('.price,.period,.value').forEach(function(n){n.style.display='none';});
+      card.querySelectorAll('.price,.period,.value,.save').forEach(function(n){n.style.display='none';});
       var info=document.createElement('div'); info.className='soon-date';
       info.innerHTML='🔜 Disponible le<br><strong>'+dateStr+'</strong>';
       var ul=card.querySelector('ul'); card.insertBefore(info,ul);
@@ -197,6 +201,21 @@
       if(pe&&prices.pro){ var p=prices.pro.current.toFixed(2).split('.');
         var old=prices.pro.promo?'<span class="old">'+fmtEur(prices.pro.original)+'</span>':'';
         pe.innerHTML=old+p[0]+'<small>,'+p[1]+' €</small>'; }
+      // « Tu économises X €/mois » (valeur réelle − prix actuel)
+      var REAL={pro:120,gold:350,agency:800};
+      ['pro','gold','agency'].forEach(function(plan){
+        var s=document.getElementById(plan+'-save');
+        if(!s) return;
+        if(plans[plan]&&prices[plan]) s.textContent='→ tu économises ~'+Math.round(REAL[plan]-prices[plan].current)+' €/mois';
+        else s.style.display='none';
+      });
+      // Carte vedette : PRO jusqu'au 16 sept, puis GOLD (seulement si le plan est ouvert)
+      var featured = plans.gold ? 'gold' : 'pro';
+      if(!plans[featured]) featured=null;
+      if(featured){
+        var fc=document.querySelector('.card[data-plan="'+featured+'"]');
+        if(fc){ fc.classList.add('feat'); var fb=fc.querySelector('.badge'); if(fb){ fb.textContent='⭐ Le plus populaire'; fb.className='badge gold'; } }
+      }
       ['pro','gold','agency'].forEach(function(plan){
         var c=document.querySelector('.card[data-plan="'+plan+'"]');
         if(c&&!plans[plan]) makeSoon(c,plan,dates[plan]);

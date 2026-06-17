@@ -1122,29 +1122,33 @@
       <!-- PRO -->
       <div class="pricing-card popular" data-plan="pro">
         <span class="pricing-badge">⭐ POPULAIRE · 🔥 LANCEMENT</span>
+        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~120 €/mois</div>
+        <div class="hp-save" id="hp-save-pro" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
         <div class="price" id="hp-pro-price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">12,99€</span>9<span style="font-size:20px">,99€</span></div>
         <div class="period">/ mois</div>
         <ul class="features-list">
-          <li>20 analyses/mois</li>
-          <li>Score complet 8D</li>
-          <li>Plan de reproduction</li>
-          <li>Support email</li>
-          <li class="disabled">Coach IA</li>
+          <li><strong>300 analyses / mois</strong></li>
+          <li>Analyse upload <strong>+ lien TikTok</strong></li>
+          <li>🎬 <strong>AI Prompt Studio</strong> · 10 crédits</li>
+          <li>Scoring complet 8 dimensions</li>
+          <li class="disabled">Coach IA & multi-liens (GOLD)</li>
         </ul>
         <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Choisir PRO</button>
       </div>
 
       <!-- GOLD -->
       <div class="pricing-card" data-plan="gold">
-        <span class="pricing-badge">GOLD ⭐ · 🔥 LANCEMENT</span>
+        <span class="pricing-badge">GOLD · 🔥 LANCEMENT</span>
+        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~350 €/mois</div>
+        <div class="hp-save" id="hp-save-gold" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
         <div class="price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">99€</span>79,99€</div>
         <div class="period">/ mois</div>
         <ul class="features-list">
-          <li>Analyses illimitées (25/j)</li>
-          <li>Coach IA complet</li>
-          <li>Historique illimité</li>
-          <li>Support prioritaire</li>
-          <li>Export PDF</li>
+          <li><strong>Tout le plan PRO</strong></li>
+          <li><strong>1000 analyses / mois</strong></li>
+          <li><strong>Coach IA + script personnalisé</strong></li>
+          <li>📸 Photo Slide · 50 crédits/mois</li>
+          <li><strong>Analyse multi-liens</strong> (patterns)</li>
         </ul>
         <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Passer GOLD</button>
       </div>
@@ -1152,17 +1156,24 @@
       <!-- AGENCY -->
       <div class="pricing-card" data-plan="agency">
         <span class="pricing-badge">AGENCY</span>
+        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~800 €/mois</div>
+        <div class="hp-save" id="hp-save-agency" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
         <div class="price">249€</div>
         <div class="period">/ mois</div>
         <ul class="features-list">
-          <li>5 créateurs inclus</li>
-          <li>Tout GOLD × 5</li>
-          <li>Coach IA Premium</li>
-          <li>Données marché</li>
-          <li>Support 24/7</li>
+          <li><strong>5 comptes Gold inclus</strong></li>
+          <li>Toutes les fonctionnalités Gold</li>
+          <li>1000 analyses / mois × 5</li>
+          <li>📸 Photo Slide · <strong>200 crédits/mois</strong></li>
+          <li><strong>Données marché</strong> · Support VIP</li>
         </ul>
         <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Contacter</button>
       </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:18px;color:var(--muted);font-size:12.5px;margin-top:22px">
+      <span>🛡️ Sans engagement</span>
+      <span>💳 Paiement sécurisé (Stripe)</span>
+      <span>⚡ Activation immédiate · annulation en 1 clic</span>
     </div>
   </div>
 </section>
@@ -2048,8 +2059,8 @@
     card.style.opacity = '.92';
     var badge = card.querySelector('.pricing-badge');
     if (badge) badge.textContent = '🔜 BIENTÔT';
-    var price = card.querySelector('.price'); if (price) price.style.display = 'none';
-    var period = card.querySelector('.period'); if (period) period.style.display = 'none';
+    card.querySelectorAll('.price,.period,.hp-value,.hp-save').forEach(function (n) { n.style.display = 'none'; });
+    card.classList.remove('popular');
     var info = document.createElement('div');
     info.style.cssText = 'text-align:center;font-size:13px;color:var(--muted);background:rgba(0,0,0,.04);border:1px dashed var(--border);border-radius:12px;padding:12px;margin:8px 0 14px';
     info.innerHTML = '🔜 Disponible le<br><strong style="color:var(--text);font-size:16px">' + dateStr + '</strong>';
@@ -2072,9 +2083,29 @@
         ? '<span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">' + fmtEur(prices.pro.original) + '</span>' : '';
       proEl.innerHTML = old + parts[0] + '<span style="font-size:20px">,' + parts[1] + '€</span>';
     }
+    // « Tu économises X €/mois » (valeur réelle − prix actuel)
+    var REAL = { pro: 120, gold: 350, agency: 800 };
+    ['pro', 'gold', 'agency'].forEach(function (plan) {
+      var s = document.getElementById('hp-save-' + plan);
+      if (!s) return;
+      if (plans[plan] && prices[plan]) s.textContent = '→ tu économises ~' + Math.round(REAL[plan] - prices[plan].current) + ' €/mois';
+      else s.style.display = 'none';
+    });
     ['pro', 'gold', 'agency'].forEach(function (plan) {
       var card = document.querySelector('.pricing-card[data-plan="' + plan + '"]');
       if (card && !plans[plan]) makeSoon(card, plan, dates[plan]);
+    });
+    // Carte vedette : PRO jusqu'au 16 sept, puis GOLD (seulement si ouverte)
+    var featured = plans.gold ? 'gold' : 'pro';
+    if (!plans[featured]) featured = null;
+    ['pro', 'gold', 'agency'].forEach(function (plan) {
+      var card = document.querySelector('.pricing-card[data-plan="' + plan + '"]');
+      if (!card) return;
+      if (plan === featured) {
+        card.classList.add('popular');
+        var b = card.querySelector('.pricing-badge');
+        if (b) b.textContent = '⭐ POPULAIRE · 🔥 LANCEMENT';
+      } else { card.classList.remove('popular'); }
     });
   }).catch(function () { /* garde l'affichage statique si l'API échoue */ });
 })();
