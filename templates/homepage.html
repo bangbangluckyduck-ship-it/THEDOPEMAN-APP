@@ -1117,6 +1117,40 @@
 </section>
 
 <!-- ════════════════════ PRICING ════════════════════ -->
+<!-- ════════════════════ TÉMOIGNAGES ════════════════════ -->
+<section id="temoignages-section" style="display:none;padding:60px 20px;background:var(--surface,#fff)">
+  <div style="max-width:1100px;margin:0 auto">
+    <h2 class="section-title" style="text-align:center">Ils utilisent TTS Analyzer</h2>
+    <p class="section-subtitle" style="text-align:center;margin-bottom:32px">Les retours de créateurs comme toi</p>
+    <div id="temoignages-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px"></div>
+    <div style="text-align:center;margin-top:28px">
+      <a href="/temoignages" style="color:var(--accent);font-weight:700;text-decoration:none">Voir tous les témoignages →</a>
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function stars(n){ n=parseInt(n)||0; return n? '★'.repeat(n)+'☆'.repeat(5-n):''; }
+  fetch('/api/temoignages?limit=4').then(function(r){return r.json();}).then(function(d){
+    var items=(d&&d.items)||[]; if(!items.length) return;
+    var sec=document.getElementById('temoignages-section'); var g=document.getElementById('temoignages-grid');
+    g.innerHTML=items.map(function(t){
+      var initial=(t.nom||'?').trim().charAt(0).toUpperCase();
+      var av=t.photo_url?('<img src="'+esc(t.photo_url)+'" style="width:100%;height:100%;object-fit:cover">'):esc(initial);
+      var tk=t.lien_tiktok?('<a href="'+esc(t.lien_tiktok)+'" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;margin-top:10px;display:inline-block">🎵 Profil TikTok</a>'):'';
+      var mt=t.metrique?('<div style="margin-top:10px;font-size:12px;font-weight:700;color:#16A34A;background:rgba(22,163,74,.08);border-radius:8px;padding:5px 9px;display:inline-block">📈 '+esc(t.metrique)+'</div>'):'';
+      var st=t.note?('<div style="color:var(--primary,#D4AF37);font-size:13px">'+stars(t.note)+'</div>'):'';
+      return '<div style="background:var(--bg,#F5F7FA);border:1px solid var(--border,#e5e7eb);border-radius:16px;padding:20px;display:flex;flex-direction:column">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent);overflow:hidden">'+av+'</div>'+
+        '<div><div style="font-weight:700;font-size:14px">'+esc(t.nom)+'</div>'+st+'</div></div>'+
+        '<div style="font-size:14px;flex:1">'+esc(t.texte)+'</div>'+mt+tk+'</div>';
+    }).join('');
+    sec.style.display='block';
+  }).catch(function(){});
+})();
+</script>
+
 <section class="pricing" id="pricing">
   <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
     <h2 class="section-title">Tarifs simples</h2>

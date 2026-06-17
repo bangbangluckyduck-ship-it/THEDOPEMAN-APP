@@ -2888,6 +2888,23 @@ function saveToHistory(data, filename) {
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
   updateHistoryBadge();
+  maybeAskTestimonial(entries.length);
+}
+
+/* Relance avis : après 3 analyses, on invite (1 seule fois) à laisser un avis.
+   Envoi email géré côté serveur (anti-doublon par compte). */
+function maybeAskTestimonial(count) {
+  try {
+    if (count < 3) return;
+    if (localStorage.getItem('tts_testimonial_asked')) return;
+    if (typeof SESSION === 'undefined' || !SESSION.email) return;  // besoin d'un compte pour l'email
+    localStorage.setItem('tts_testimonial_asked', '1');
+    const tok = localStorage.getItem('tts_token') || '';
+    fetch('/api/request-testimonial-email', {
+      method: 'POST',
+      headers: tok ? { 'Authorization': 'Bearer ' + tok } : {},
+    }).catch(() => {});
+  } catch (e) {}
 }
 
 function updateHistoryBadge() {

@@ -193,6 +193,9 @@ _TERMS_HTML = Path("templates/terms.html").read_text(encoding="utf-8")
 _PRICING_HTML = _bust(Path("templates/pricing.html").read_text(encoding="utf-8"))
 _PRICING_COMPARE_HTML = _bust(Path("templates/pricing_compare.html").read_text(encoding="utf-8"))
 _CREDITS_HTML = _bust(Path("templates/credits.html").read_text(encoding="utf-8"))
+# Témoignages (Feature 2)
+_AVIS_HTML = _bust(Path("templates/avis.html").read_text(encoding="utf-8"))
+_TEMOIGNAGES_HTML = _bust(Path("templates/temoignages.html").read_text(encoding="utf-8"))
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
@@ -300,6 +303,13 @@ async def pricing_compare_page(): return HTMLResponse(_PRICING_COMPARE_HTML)
 @app.get("/credits", response_class=HTMLResponse)
 @app.get("/credits.html", response_class=HTMLResponse)
 async def credits_page(): return HTMLResponse(_CREDITS_HTML)
+
+@app.get("/avis", response_class=HTMLResponse)
+@app.get("/temoignage", response_class=HTMLResponse)
+async def avis_page(): return HTMLResponse(_AVIS_HTML)
+
+@app.get("/temoignages", response_class=HTMLResponse)
+async def temoignages_page(): return HTMLResponse(_TEMOIGNAGES_HTML)
 
 # ── Fichier de vérification de propriété TikTok (méthode « préfixe d'URL ») ───
 # TikTok fournit un fichier de signature à héberger à la racine du domaine. On le
@@ -2467,6 +2477,86 @@ async def list_hooks(request: Request, category: Optional[str] = Query(None)):
         "count": len(items), "locked_count": sum(1 for i in items if i["locked"]),
         "items": items,
     }
+
+
+# ── FEATURE 2 — Témoignages (public) ────────────────────────────────────────
+@app.get("/api/temoignages")
+async def list_temoignages(featured: Optional[int] = Query(None), limit: Optional[int] = Query(None)):
+    rows = []
+    try:
+        q = (supabase_client.table("temoignages").select("*")
+             .eq("statut", "publie")
+             .order("mis_en_avant", desc=True).order("date_publication", desc=True))
+        if featured:
+            q = q.eq("mis_en_avant", True)
+        if limit:
+            q = q.limit(int(limit))
+        rows = q.execute().data or []
+    except Exception as e:
+        print(f"[temoignages] list error: {e}")
+    # On n'expose que les champs publics
+    items = [{"nom": r.get("nom"), "texte": r.get("texte"), "lien_tiktok": r.get("lien_tiktok"),
+              "photo_url": r.get("photo_url"), "metrique": r.get("metrique"), "note": r.get("note")}
+             for r in rows]
+    return {"ok": True, "count": len(items), "items": items}
+
+
+@app.post("/api/temoignages")
+async def submit_temoignage(request: Request):
+    body = await request.json()
+    nom = (body.get("nom") or "").strip()[:80]
+    texte = (body.get("texte") or "").strip()[:1000]
+    lien = (body.get("lien_tiktok") or "").strip()[:200] or None
+    note = body.get("note")
+    if not nom or len(texte) < 10:
+        raise HTTPException(status_code=422, detail="Nom et témoignage (≥10 caractères) requis.")
+    try:
+        note = int(note) if note not in (None, "") else None
+    except Exception:
+        note = None
+    try:
+        supabase_client.table("temoignages").insert({
+            "nom": nom, "texte": texte, "lien_tiktok": lien, "note": note, "statut": "en_attente",
+        }).execute()
+    except Exception as e:
+        print(f"[temoignages] insert error: {e}")
+        raise HTTPException(status_code=500, detail="Enregistrement impossible.")
+    return {"ok": True, "message": "Merci ! Ton témoignage sera publié après validation."}
+
+
+@app.post("/api/request-testimonial-email")
+async def request_testimonial_email(request: Request):
+    """Déclenché par le front après X analyses. Envoie UNE fois un email de
+    relance invitant à laisser un avis (lien vers /avis pré-rempli)."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        return {"ok": False, "reason": "not_logged_in"}
+    email = user["email"]
+    try:
+        r = supabase_client.table("users").select("testimonial_email_sent").eq("email", email).execute()
+        if r.data and r.data[0].get("testimonial_email_sent"):
+            return {"ok": True, "already_sent": True}
+    except Exception as e:
+        print(f"[testimonial-email] check error: {e}")
+    # Envoi
+    try:
+        from email_service import send_transactional_email
+        app_url = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com").rstrip("/")
+        link = f"{app_url}/avis?nom={quote((user.get('name') or email.split('@')[0]))}"
+        html = f"""<div style="font-family:sans-serif;max-width:520px;margin:auto">
+          <h2>Ton avis compte 🙏</h2>
+          <p>Tu utilises TTS Analyzer depuis quelques analyses — ça nous aiderait énormément que tu partages ton retour.</p>
+          <p>Ça prend 1 minute, et ça aide d'autres créateurs à se lancer.</p>
+          <p style="margin:24px 0"><a href="{link}" style="background:#2563EB;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Laisser mon avis →</a></p>
+          <p style="font-size:12px;color:#888">TTS Analyzer · L'outil d'analyse pensé par des créateurs, pour des créateurs.</p>
+        </div>"""
+        sent = send_transactional_email(email, "Ton avis sur TTS Analyzer 🙏", html)
+        if sent:
+            supabase_client.table("users").update({"testimonial_email_sent": True}).eq("email", email).execute()
+        return {"ok": bool(sent)}
+    except Exception as e:
+        print(f"[testimonial-email] send error: {e}")
+        return {"ok": False}
 
 
 @app.post("/api/credits/purchase")

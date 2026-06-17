@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Ce que les créateurs disent de TTS Analyzer.">
+  <title>Témoignages — TTS Analyzer</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --primary:#D4AF37; --accent:#2563EB; --bg:#F5F7FA; --surface:#FFFFFF; --surface2:#EEF1F6; --text:#1A1A1A; --muted:#6B7280; --border:#E5E7EB; --shadow:0 4px 20px rgba(0,0,0,.07); }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    header { padding:14px 20px; border-bottom:1px solid var(--border); background:#fff; display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-size:17px; font-weight:800; color:var(--text); text-decoration:none; } .logo span{ color:var(--primary); }
+    .nav a { color:var(--text); text-decoration:none; font-size:14px; font-weight:600; margin-left:16px; } .nav a:hover{ color:var(--accent); }
+    main { max-width:980px; margin:0 auto; padding:40px 20px 80px; }
+    h1 { text-align:center; font-size:30px; font-weight:800; margin-bottom:8px; }
+    .sub { text-align:center; color:var(--muted); margin-bottom:30px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; }
+    .who { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--accent); overflow:hidden; }
+    .avatar img { width:100%; height:100%; object-fit:cover; }
+    .nom { font-weight:700; font-size:14px; }
+    .stars { color:var(--primary); font-size:13px; }
+    .texte { font-size:14px; color:var(--text); flex:1; }
+    .metrique { margin-top:12px; font-size:12px; font-weight:700; color:#16A34A; background:rgba(22,163,74,.08); border-radius:8px; padding:6px 10px; align-self:flex-start; }
+    .tiktok { margin-top:12px; font-size:12px; font-weight:600; color:var(--accent); text-decoration:none; }
+    .cta { text-align:center; margin-top:36px; }
+    .btn { display:inline-block; padding:12px 24px; border-radius:12px; background:var(--accent); color:#fff; text-decoration:none; font-weight:700; }
+    .empty { text-align:center; color:var(--muted); padding:40px; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-HR4QQJ52DT');</script>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">TikTok Shop <span>Analyzer</span></a>
+    <nav class="nav"><a href="/avis">Donner mon avis</a><a href="/app">Ouvrir l'app →</a></nav>
+  </header>
+  <main>
+    <h1>Ils utilisent TTS Analyzer</h1>
+    <p class="sub">Les retours de créateurs TikTok Shop comme toi.</p>
+    <div class="grid" id="grid"><div class="empty">⏳ Chargement…</div></div>
+    <div class="cta"><a class="btn" href="/avis">Partager mon avis →</a></div>
+  </main>
+
+  <script>
+    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function stars(n){ n=parseInt(n)||0; return n? '★'.repeat(n)+'☆'.repeat(5-n) : ''; }
+    fetch('/api/temoignages').then(function(r){return r.json();}).then(function(d){
+      var g=document.getElementById('grid'); var items=(d&&d.items)||[];
+      if(!items.length){ g.innerHTML='<div class="empty">Les premiers témoignages arrivent bientôt 🚀</div>'; return; }
+      g.innerHTML=items.map(function(t){
+        var initial=(t.nom||'?').trim().charAt(0).toUpperCase();
+        var av=t.photo_url?('<img src="'+esc(t.photo_url)+'" alt="">'):esc(initial);
+        var tk=t.lien_tiktok?('<a class="tiktok" href="'+esc(t.lien_tiktok)+'" target="_blank" rel="noopener">🎵 Voir le profil TikTok</a>'):'';
+        var mt=t.metrique?('<div class="metrique">📈 '+esc(t.metrique)+'</div>'):'';
+        var st=t.note?('<div class="stars">'+stars(t.note)+'</div>'):'';
+        return '<div class="card"><div class="who"><div class="avatar">'+av+'</div><div><div class="nom">'+esc(t.nom)+'</div>'+st+'</div></div>'+
+               '<div class="texte">'+esc(t.texte)+'</div>'+mt+tk+'</div>';
+      }).join('');
+    }).catch(function(){ document.getElementById('grid').innerHTML='<div class="empty">Erreur de chargement.</div>'; });
+  </script>
+</body>
+</html>
