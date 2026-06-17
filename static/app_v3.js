@@ -1072,7 +1072,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide', 'promptstudio', 'credits'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -1085,6 +1085,90 @@ function switchTab(tab) {
   if (tab === 'photoslide') initPhotoSlideTab();
   if (tab === 'promptstudio') initPromptStudioTab();
   if (tab === 'credits') initCreditsTab();
+  if (tab === 'hooks') initHooksTab();
+}
+
+/* ── FEATURE 1 — Banque de Hooks ─────────────────────────────────────────── */
+let _hooksCategory = 'all';
+let _hooksData = null;
+
+async function initHooksTab() {
+  const list = document.getElementById('hooks-list');
+  if (!list) return;
+  list.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px">⏳ Chargement…</div>';
+  try {
+    const tok = localStorage.getItem('tts_token') || '';
+    const url = '/api/hooks' + (_hooksCategory !== 'all' ? ('?category=' + encodeURIComponent(_hooksCategory)) : '');
+    const r = await fetch(url, { headers: tok ? { 'Authorization': 'Bearer ' + tok } : {} });
+    _hooksData = await r.json();
+  } catch (e) {
+    list.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#DC2626;padding:24px">Erreur de chargement.</div>';
+    return;
+  }
+  renderHooksFilters();
+  renderHooks();
+}
+
+function renderHooksFilters() {
+  const bar = document.getElementById('hooks-filters');
+  if (!bar || !_hooksData) return;
+  const cats = _hooksData.categories || [];
+  const labels = _hooksData.category_labels || {};
+  const mk = (key, label) =>
+    `<button onclick="setHooksCategory('${key}')" class="hook-cat${_hooksCategory === key ? ' on' : ''}"
+       style="border:1px solid ${_hooksCategory === key ? 'var(--accent)' : 'var(--border)'};background:${_hooksCategory === key ? 'rgba(37,99,235,.1)' : 'var(--surface)'};color:var(--text);border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:600;cursor:pointer">${label}</button>`;
+  bar.innerHTML = mk('all', 'Toutes') + cats.map(c => mk(c, labels[c] || c)).join('');
+}
+
+function setHooksCategory(c) { _hooksCategory = c; initHooksTab(); }
+
+function renderHooks() {
+  const list = document.getElementById('hooks-list');
+  if (!list || !_hooksData) return;
+  const items = _hooksData.items || [];
+  const isFree = (_hooksData.tier || 'free') === 'free';
+
+  if (!items.length) {
+    list.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px">Aucun hook dans cette catégorie pour le moment.</div>';
+    return;
+  }
+  const labels = _hooksData.category_labels || {};
+  list.innerHTML = items.map(h => {
+    const catLabel = labels[h.categorie] || h.categorie || '';
+    if (h.locked) {
+      const why = isFree ? 'Réservé aux abonnés' : (h.required || 'Plan supérieur requis');
+      return `<div style="position:relative;border:1px solid var(--border);border-radius:14px;padding:16px;background:var(--surface);overflow:hidden">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">${escapeHtml(catLabel)}</div>
+        <div style="filter:blur(5px);user-select:none;color:var(--muted);font-size:14px;line-height:1.5;pointer-events:none">Cette accroche convertit très bien pour ce type de produit, débloque-la pour la copier.</div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.55);backdrop-filter:blur(1px)">
+          <div style="font-size:22px">🔒</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text)">${escapeHtml(why)}</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:7px 14px" onclick="switchTab('pricing')">Débloquer 👑</button>
+        </div>
+      </div>`;
+    }
+    const vid = h.url_video
+      ? `<a href="${escapeHtml(h.url_video)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none">▶️ Voir la vidéo d'exemple</a>` : '';
+    const enc = encodeURIComponent(h.texte || '');
+    return `<div style="border:1px solid var(--border);border-radius:14px;padding:16px;background:var(--surface);display:flex;flex-direction:column">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">${escapeHtml(catLabel)}</div>
+      <div style="font-size:14px;line-height:1.5;color:var(--text);flex:1">${escapeHtml(h.texte || '')}</div>
+      ${vid}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="navigator.clipboard.writeText(decodeURIComponent('${enc}')).then(()=>showToast('Hook copié ✓'))" class="btn btn-secondary" style="font-size:12px;flex:1">📋 Copier</button>
+        <button onclick="_downloadHook(decodeURIComponent('${enc}'))" class="btn btn-secondary" style="font-size:12px">⬇️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _downloadHook(text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hook-tts-analyzer.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
 }
 
 // ── UPLOAD ────────────────────────────────────────────────────

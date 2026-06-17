@@ -1334,6 +1334,7 @@
     <button class="tab"        id="tab-creators" onclick="switchTab('creators')">🔥 Créateurs Gagnants</button>
     <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">📸 Photo Slide</button>
     <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
+    <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
     <button class="tab"        id="tab-pricing" onclick="switchTab('pricing')">💎 Tarifs</button>
   </div>
 
@@ -1959,6 +1960,18 @@
   </div>
 
   <!-- Historique déplacé dans l'onglet Compte (renderAccountPage). -->
+
+  <!-- ── ONGLET BANQUE DE HOOKS ── -->
+  <div id="tab-hooks-content" style="display:none">
+    <div class="section">
+      <h2>💡 Banque de Hooks</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Des accroches qui convertissent, classées par catégorie de produit. Copie-les et adapte-les à ton produit.</p>
+      <div id="hooks-filters" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+      <div id="hooks-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+        <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px">⏳ Chargement…</div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── ONGLET ADMIN ── -->
   <!-- Back-office admin déplacé sur la route isolée /dope-admin (hors espace client). -->

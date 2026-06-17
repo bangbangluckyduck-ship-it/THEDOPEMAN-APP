@@ -188,3 +188,77 @@ async def reset_user_password(body: ResetPasswordBody, request: Request):
     except Exception as e:
         print(f"Admin reset password error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ════════════════════════════════════════════════════════════════════
+# FEATURE 1 — Banque de Hooks : CRUD admin
+# ════════════════════════════════════════════════════════════════════
+from typing import List
+
+
+class HookBody(BaseModel):
+    texte: str
+    categorie: str
+    url_video: Optional[str] = None
+    type_acces: str = "plan_minimum"          # tous | plan_minimum | plans_specifiques
+    plan_min: Optional[str] = "pro"
+    plans_autorises: Optional[List[str]] = None
+
+
+def _hook_record(body: HookBody) -> dict:
+    return {
+        "texte": (body.texte or "").strip(),
+        "categorie": (body.categorie or "autre").strip().lower(),
+        "url_video": (body.url_video or None) or None,
+        "type_acces": (body.type_acces or "plan_minimum").strip().lower(),
+        "plan_min": (body.plan_min or "pro").strip().lower(),
+        "plans_autorises": [str(p).lower() for p in (body.plans_autorises or [])],
+    }
+
+
+@router.get("/hooks")
+async def admin_list_hooks(request: Request, category: Optional[str] = None):
+    _require_admin(request)
+    from supabase_client import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    q = supabase.table("hooks").select("*").order("created_at", desc=True)
+    if category:
+        q = q.eq("categorie", category.lower())
+    rows = q.execute().data or []
+    return {"ok": True, "count": len(rows), "hooks": rows}
+
+
+@router.post("/hooks")
+async def admin_create_hook(body: HookBody, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    if not body.texte.strip():
+        raise HTTPException(status_code=422, detail="Le texte du hook est obligatoire.")
+    res = supabase.table("hooks").insert(_hook_record(body)).execute()
+    return {"ok": True, "hook": (res.data or [None])[0]}
+
+
+@router.put("/hooks/{hook_id}")
+async def admin_update_hook(hook_id: int, body: HookBody, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    from datetime import datetime, timezone
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    rec = _hook_record(body)
+    rec["updated_at"] = datetime.now(timezone.utc).isoformat()
+    supabase.table("hooks").update(rec).eq("id", hook_id).execute()
+    return {"ok": True, "id": hook_id}
+
+
+@router.delete("/hooks/{hook_id}")
+async def admin_delete_hook(hook_id: int, request: Request):
+    _require_admin(request)
+    from supabase_client import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+    supabase.table("hooks").delete().eq("id", hook_id).execute()
+    return {"ok": True, "id": hook_id}

@@ -2445,6 +2445,30 @@ async def notify_me(request: Request):
     return {"ok": True, "message": "On te préviendra dès l'ouverture 🔔"}
 
 
+# ── FEATURE 1 — Banque de Hooks (public, gating 100 % serveur) ───────────────
+@app.get("/api/hooks")
+async def list_hooks(request: Request, category: Optional[str] = Query(None)):
+    import hooks_lib
+    user = get_user_from_request(request)
+    tier = (user.get("tier") or "free").lower() if user.get("valid") else "free"
+    rows = []
+    try:
+        q = supabase_client.table("hooks").select("*").order("created_at", desc=True)
+        if category and category not in ("all", ""):
+            q = q.eq("categorie", category)
+        rows = q.execute().data or []
+    except Exception as e:
+        print(f"[hooks] list error: {e}")
+    items = [hooks_lib.public_payload(h, tier) for h in rows]
+    return {
+        "ok": True, "tier": tier,
+        "categories": hooks_lib.HOOK_CATEGORIES,
+        "category_labels": hooks_lib.CATEGORY_LABELS,
+        "count": len(items), "locked_count": sum(1 for i in items if i["locked"]),
+        "items": items,
+    }
+
+
 @app.post("/api/credits/purchase")
 async def credits_purchase(request: Request):
     # Paiement Stripe DIFFÉRÉ (société non créée) → stub jusqu'à mise en prod.
