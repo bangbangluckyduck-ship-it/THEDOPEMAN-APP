@@ -1120,9 +1120,9 @@
       </div>
 
       <!-- PRO -->
-      <div class="pricing-card popular">
+      <div class="pricing-card popular" data-plan="pro">
         <span class="pricing-badge">⭐ POPULAIRE · 🔥 LANCEMENT</span>
-        <div class="price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">12,99€</span>9<span style="font-size:20px">,99€</span></div>
+        <div class="price" id="hp-pro-price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">12,99€</span>9<span style="font-size:20px">,99€</span></div>
         <div class="period">/ mois</div>
         <ul class="features-list">
           <li>20 analyses/mois</li>
@@ -1135,7 +1135,7 @@
       </div>
 
       <!-- GOLD -->
-      <div class="pricing-card">
+      <div class="pricing-card" data-plan="gold">
         <span class="pricing-badge">GOLD ⭐ · 🔥 LANCEMENT</span>
         <div class="price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">99€</span>79,99€</div>
         <div class="period">/ mois</div>
@@ -1150,7 +1150,7 @@
       </div>
 
       <!-- AGENCY -->
-      <div class="pricing-card">
+      <div class="pricing-card" data-plan="agency">
         <span class="pricing-badge">AGENCY</span>
         <div class="price">249€</div>
         <div class="period">/ mois</div>
@@ -1158,7 +1158,7 @@
           <li>5 créateurs inclus</li>
           <li>Tout GOLD × 5</li>
           <li>Coach IA Premium</li>
-          <li>Données Echotik</li>
+          <li>Données marché</li>
           <li>Support 24/7</li>
         </ul>
         <button class="btn-pricing" onclick="showToast('Redirection vers checkout')">Contacter</button>
@@ -2023,6 +2023,60 @@
   </div>
 </div>
 
+<!-- Pricing piloté par la roadmap (feature flags serveur) -->
+<script>
+(function () {
+  function fmtEur(n) {
+    var hasDec = Math.round(n * 100) % 100 !== 0;
+    return (hasDec ? n.toFixed(2).replace('.', ',') : String(Math.round(n))) + '€';
+  }
+  function notifyMe(plan) {
+    var email = (prompt('Ton email pour être prévenu·e du lancement 🔔') || '').trim();
+    if (!email || email.indexOf('@') < 1) return;
+    fetch('/api/notify-me', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, plan: plan })
+    }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (d) { if (typeof showToast === 'function') showToast(d.message || 'On te préviendra 🔔'); })
+      .catch(function () { if (typeof showToast === 'function') showToast('Erreur, réessaie.'); });
+  }
+  window.notifyMe = notifyMe;
+
+  function makeSoon(card, plan, dateStr) {
+    card.style.opacity = '.92';
+    var badge = card.querySelector('.pricing-badge');
+    if (badge) badge.textContent = '🔜 BIENTÔT';
+    var price = card.querySelector('.price'); if (price) price.style.display = 'none';
+    var period = card.querySelector('.period'); if (period) period.style.display = 'none';
+    var info = document.createElement('div');
+    info.style.cssText = 'text-align:center;font-size:13px;color:var(--muted);background:rgba(0,0,0,.04);border:1px dashed var(--border);border-radius:12px;padding:12px;margin:8px 0 14px';
+    info.innerHTML = '🔜 Disponible le<br><strong style="color:var(--text);font-size:16px">' + dateStr + '</strong>';
+    var feats = card.querySelector('.features-list');
+    if (feats) card.insertBefore(info, feats); else card.appendChild(info);
+    var btn = card.querySelector('.btn-pricing');
+    if (btn) { btn.textContent = '🔔 Me notifier'; btn.onclick = function () { notifyMe(plan); }; }
+  }
+
+  Promise.all([
+    fetch('/api/plans/available').then(function (r) { return r.json(); }),
+    fetch('/api/plans/prices').then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var plans = res[0].plans, dates = res[0].dates, prices = res[1].prices;
+    if (!plans || !prices) return;
+    var proEl = document.getElementById('hp-pro-price');
+    if (proEl && prices.pro) {
+      var cur = prices.pro.current, parts = cur.toFixed(2).split('.');
+      var old = prices.pro.promo
+        ? '<span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">' + fmtEur(prices.pro.original) + '</span>' : '';
+      proEl.innerHTML = old + parts[0] + '<span style="font-size:20px">,' + parts[1] + '€</span>';
+    }
+    ['pro', 'gold', 'agency'].forEach(function (plan) {
+      var card = document.querySelector('.pricing-card[data-plan="' + plan + '"]');
+      if (card && !plans[plan]) makeSoon(card, plan, dates[plan]);
+    });
+  }).catch(function () { /* garde l'affichage statique si l'API échoue */ });
+})();
+</script>
 <!--TURNSTILE_SCRIPT-->
 </body>
 </html>
