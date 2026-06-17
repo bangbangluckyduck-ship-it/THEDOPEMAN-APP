@@ -658,6 +658,32 @@ function setBilling(period) {
     b.classList.toggle('active', b.dataset.period === BILLING_PERIOD));
 }
 
+/* ── Indicateur de crédits temps réel (header) ───────────────────────────── */
+async function updateCreditIndicator() {
+  const pill = document.getElementById('credit-pill');
+  const count = document.getElementById('credit-count');
+  if (!pill || !count) return;
+  // Visible uniquement si connecté
+  if (typeof SESSION === 'undefined' || !SESSION.email) { pill.style.display = 'none'; return; }
+  try {
+    const _tok = localStorage.getItem('tts_token') || '';
+    const r = await fetch('/api/credits/balance', {
+      headers: _tok ? { 'Authorization': 'Bearer ' + _tok } : {}
+    });
+    if (!r.ok) { pill.style.display = 'none'; return; }
+    const d = await r.json();
+    const total = (d && typeof d.total_available === 'number') ? d.total_available : 0;
+    count.textContent = total;
+    pill.style.display = 'inline-flex';
+    pill.classList.remove('cp-low', 'cp-crit', 'cp-empty');
+    if (total === 0) pill.classList.add('cp-empty');
+    else if (total < 5) pill.classList.add('cp-crit');
+    else if (total < 20) pill.classList.add('cp-low');
+  } catch (e) {
+    pill.style.display = 'none';
+  }
+}
+
 /* ── Pricing piloté par la roadmap (feature flags serveur) ───────────────── */
 function _fmtEur(n) {
   // 9.99 → "9,99 €" · 249 → "249 €"
@@ -871,8 +897,11 @@ function updateSessionUI() {
     }
     // Fetch user tier info (appelle fetchUserInfo qui met à jour le badge)
     fetchUserInfo();
+    updateCreditIndicator();
   } else {
     // User is not logged in
+    const _pill = document.getElementById('credit-pill');
+    if (_pill) _pill.style.display = 'none';
     if (overlay) overlay.style.display = 'flex';
     if (userEmailEl) userEmailEl.textContent = '';
     if (btnAuth) {
@@ -949,6 +978,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateHistoryBadge();
   handleCheckoutReturn();
   initDynamicPricing();
+  updateCreditIndicator();
 
   // Language selector
   const sel = document.getElementById('lang-select');
@@ -3777,6 +3807,7 @@ async function generatePhotoSlide() {
   } finally {
     _psStopTimer();
     btn.disabled = false; btn.textContent = '✨ Régénérer';
+    updateCreditIndicator();
   }
 }
 
@@ -4098,7 +4129,7 @@ async function generateVideoPrompt() {
     while (true) { const { done, value } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true }); let i; while ((i = buf.indexOf('\n\n')) !== -1) { const b = buf.slice(0, i); buf = buf.slice(i + 2); if (b.trim()) proc(b); } }
     if (buf.trim()) proc(buf);
   } catch (e) { out.innerHTML = '<div style="color:#DC2626;padding:12px">Erreur réseau. Réessaie.</div>'; }
-  finally { btn.disabled = false; btn.innerHTML = oldHtml; updateVpCost(); }
+  finally { btn.disabled = false; btn.innerHTML = oldHtml; updateVpCost(); updateCreditIndicator(); }
 }
 
 let _vpCopyId = 0;
