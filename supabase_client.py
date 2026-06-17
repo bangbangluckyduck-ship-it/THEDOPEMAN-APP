@@ -15,6 +15,15 @@ supabase: Optional[Client] = None
 if SUPABASE_URL and SUPABASE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Client service_role (bypasse RLS) — pour les écritures côté admin/serveur.
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+supabase_service: Optional[Client] = None
+if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    supabase_service = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+# Repli sur le client anon si la clé service n'est pas configurée.
+if supabase_service is None:
+    supabase_service = supabase
+
 # Flag pour vérifier si Supabase est disponible
 SUPABASE_ENABLED = bool(supabase)
 
