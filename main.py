@@ -189,6 +189,10 @@ _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
 # Pages légales publiques (URLs dédiées exigées par TikTok / RGPD)
 _PRIVACY_HTML = Path("templates/privacy.html").read_text(encoding="utf-8")
 _TERMS_HTML = Path("templates/terms.html").read_text(encoding="utf-8")
+# Pages tarifs/crédits dédiées (dynamiques côté client via /api/plans/*)
+_PRICING_HTML = _bust(Path("templates/pricing.html").read_text(encoding="utf-8"))
+_PRICING_COMPARE_HTML = _bust(Path("templates/pricing_compare.html").read_text(encoding="utf-8"))
+_CREDITS_HTML = _bust(Path("templates/credits.html").read_text(encoding="utf-8"))
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
@@ -284,6 +288,18 @@ async def privacy_page(): return HTMLResponse(_PRIVACY_HTML)
 @app.get("/conditions", response_class=HTMLResponse)
 @app.get("/terms", response_class=HTMLResponse)
 async def terms_page(): return HTMLResponse(_TERMS_HTML)
+
+@app.get("/pricing", response_class=HTMLResponse)
+@app.get("/tarifs", response_class=HTMLResponse)
+async def pricing_page(): return HTMLResponse(_PRICING_HTML)
+
+@app.get("/pricing/compare", response_class=HTMLResponse)
+@app.get("/tarifs/comparer", response_class=HTMLResponse)
+async def pricing_compare_page(): return HTMLResponse(_PRICING_COMPARE_HTML)
+
+@app.get("/credits", response_class=HTMLResponse)
+@app.get("/credits.html", response_class=HTMLResponse)
+async def credits_page(): return HTMLResponse(_CREDITS_HTML)
 
 # ── Fichier de vérification de propriété TikTok (méthode « préfixe d'URL ») ───
 # TikTok fournit un fichier de signature à héberger à la racine du domaine. On le

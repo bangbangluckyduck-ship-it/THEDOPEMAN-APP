@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Recharge tes crédits Photo Slide & AI Prompt Studio — packs dès 9 €.">
+  <title>Crédits — TTS Analyzer</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --primary:#D4AF37; --navy:#1F3A70; --accent:#2563EB; --bg:#F5F7FA; --surface:#FFFFFF; --surface2:#EEF1F6; --text:#1A1A1A; --muted:#6B7280; --border:#E5E7EB; --shadow:0 4px 20px rgba(0,0,0,.07); }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    header { position:sticky; top:0; z-index:50; background:rgba(255,255,255,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-size:17px; font-weight:800; color:var(--text); text-decoration:none; } .logo span{ color:var(--primary); }
+    .nav-links a { color:var(--text); text-decoration:none; font-size:14px; font-weight:600; margin-left:18px; } .nav-links a:hover{ color:var(--accent); }
+    main { max-width:980px; margin:0 auto; padding:36px 20px 80px; }
+    h1 { font-size:30px; font-weight:800; text-align:center; margin-bottom:8px; }
+    .sub { text-align:center; color:var(--muted); font-size:14px; margin-bottom:28px; }
+    .balance { max-width:480px; margin:0 auto 30px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 22px; box-shadow:var(--shadow); }
+    .balance.hidden { display:none; }
+    .brow { display:flex; justify-content:space-between; font-size:14px; padding:6px 0; color:var(--muted); }
+    .brow.total { border-top:1px solid var(--border); margin-top:6px; padding-top:10px; font-weight:800; color:var(--text); font-size:16px; }
+    h2 { font-size:18px; margin:0 0 14px; }
+    .packs { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; }
+    .pack { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center; box-shadow:var(--shadow); position:relative; transition:transform .2s; display:flex; flex-direction:column; }
+    .pack:hover{ transform:translateY(-4px); } .pack.best{ border:2px solid var(--primary); }
+    .pack .tag{ position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--primary); color:#1a1a1a; font-size:10px; font-weight:800; padding:3px 10px; border-radius:999px; }
+    .pack .ico{ font-size:26px; } .pack .name{ font-weight:700; margin:6px 0; }
+    .pack .credits{ font-size:30px; font-weight:800; color:var(--accent); } .pack .credits small{ font-size:13px; color:var(--muted); font-weight:600; }
+    .pack .price{ font-size:20px; font-weight:800; margin:6px 0 2px; } .pack .ppc{ font-size:11px; color:var(--muted); }
+    .pack .approx{ font-size:12px; color:var(--muted); margin:8px 0 14px; flex:1; }
+    .btn{ display:block; width:100%; padding:11px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer; background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .pack.best .btn{ background:var(--primary); color:#1a1a1a; border:none; }
+    .info{ text-align:center; color:var(--muted); font-size:12.5px; margin-top:20px; }
+    .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; } .toast.show{ opacity:1; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-HR4QQJ52DT');
+  </script>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">TikTok Shop <span>Analyzer</span></a>
+    <nav class="nav-links">
+      <a href="/pricing">Tarifs</a>
+      <a href="/pricing/compare">Comparer</a>
+      <a href="/app">Ouvrir l'app →</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>💎 Recharge tes crédits</h1>
+    <p class="sub">Crédits Photo Slide & AI Prompt Studio · valables 1 mois · renouvelables à tout moment</p>
+
+    <div class="balance hidden" id="balance">
+      <h2 style="font-size:15px">Ton solde</h2>
+      <div class="brow"><span>📅 Abonnement</span><span id="b-sub">—</span></div>
+      <div class="brow"><span>🛒 Crédits achetés</span><span id="b-pur">—</span></div>
+      <div class="brow total"><span>💎 Total disponible</span><span id="b-total">—</span></div>
+    </div>
+
+    <h2>📦 Packs de crédits</h2>
+    <div class="packs" id="packs"></div>
+
+    <p class="info">⚠️ Validité 1 mois après achat · notification avant expiration. Les crédits d'abonnement se renouvellent chaque mois (non reportés).</p>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3200); }
+    function buy(){ toast("💳 L'achat de crédits sera disponible très bientôt (paiement en cours d'activation)."); }
+
+    // Solde (si connecté)
+    var tok = localStorage.getItem('tts_token') || '';
+    if (tok) {
+      fetch('/api/credits/balance', { headers:{ 'Authorization':'Bearer '+tok } })
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(d){
+          if(!d) return;
+          document.getElementById('balance').classList.remove('hidden');
+          var sub=d.subscription||{}, pur=d.purchased||{};
+          document.getElementById('b-sub').textContent=(sub.used||0)+' / '+(sub.total||0)+' utilisés';
+          document.getElementById('b-pur').textContent=(pur.remaining||0)+' restants';
+          document.getElementById('b-total').textContent=(d.total_available||0)+' crédits';
+        }).catch(function(){});
+    }
+
+    // Packs
+    fetch('/api/credits/packs').then(function(r){return r.json();}).then(function(res){
+      var packs=res.packs||{}, wrap=document.getElementById('packs');
+      Object.keys(packs).forEach(function(key){
+        var p=packs[key];
+        var ppc=(p.price/p.credits); ppc=ppc.toFixed(2).replace('.',',');
+        var carrousels=Math.max(1, Math.round(p.credits/8));
+        var el=document.createElement('div'); el.className='pack'+(p.best?' best':'');
+        el.innerHTML=(p.best?'<span class="tag">⭐ Best value</span>':'')+
+          '<div class="ico">📦</div>'+
+          '<div class="name">'+(p.label||key)+'</div>'+
+          '<div class="credits">'+p.credits+' <small>crédits</small></div>'+
+          '<div class="price">'+p.price+' €</div>'+
+          '<div class="ppc">'+ppc+' € / crédit</div>'+
+          '<div class="approx">~'+carrousels+' carrousels Mode B<br>validité 1 mois</div>'+
+          '<button class="btn" onclick="buy()">Acheter</button>';
+        wrap.appendChild(el);
+      });
+    }).catch(function(){});
+  </script>
+</body>
+</html>
