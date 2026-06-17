@@ -658,6 +658,94 @@ function setBilling(period) {
     b.classList.toggle('active', b.dataset.period === BILLING_PERIOD));
 }
 
+/* ── Pricing piloté par la roadmap (feature flags serveur) ───────────────── */
+function _fmtEur(n) {
+  // 9.99 → "9,99 €" · 249 → "249 €"
+  const hasDec = Math.round(n * 100) % 100 !== 0;
+  return (hasDec ? n.toFixed(2).replace('.', ',') : String(Math.round(n))) + ' €';
+}
+
+async function initDynamicPricing() {
+  let plans, prices, dates;
+  try {
+    const [a, p] = await Promise.all([
+      fetch('/api/plans/available').then(r => r.json()),
+      fetch('/api/plans/prices').then(r => r.json()),
+    ]);
+    plans = a.plans; dates = a.dates; prices = p.prices;
+  } catch (e) {
+    return; // En cas d'échec API on garde l'affichage statique (sûr).
+  }
+  if (!plans || !prices) return;
+
+  // 1) Prix PRO dynamique (9,99 → 11,99 → 12,99 selon la date)
+  const proEl = document.getElementById('pc-pro-month');
+  if (proEl && prices.pro) {
+    const cur = prices.pro.current;
+    const [intPart, decPart] = cur.toFixed(2).split('.');
+    const old = prices.pro.promo
+      ? `<span class="pc-old">${_fmtEur(prices.pro.original)}</span>` : '';
+    proEl.innerHTML = `${old}${intPart}<span style="font-size:18px">,${decPart} €</span>`;
+  }
+
+  // 2) Cartes non encore ouvertes → "🔜 bientôt + 🔔 me notifier"
+  ['pro', 'gold', 'agency'].forEach(plan => {
+    const card = document.querySelector(`.pricing-card[data-plan="${plan}"]`);
+    if (!card || plans[plan]) return;
+    _makeComingSoon(card, plan, dates[plan]);
+  });
+
+  // 3) LTD masquée jusqu'au 15 oct → bannière de capture d'email à la place
+  const ltd = document.getElementById('ltd-section');
+  if (ltd && !plans.ltd) _ltdComingSoon(ltd, dates.ltd);
+}
+
+function _makeComingSoon(card, plan, dateStr) {
+  card.classList.add('pc-soon');
+  const badge = card.querySelector('.pc-badge');
+  if (badge) badge.textContent = '🔜 BIENTÔT';
+  card.querySelectorAll('.pc-price, .pc-period').forEach(n => n.style.display = 'none');
+  const info = document.createElement('div');
+  info.className = 'pc-soon-date';
+  info.innerHTML = `🔜 Disponible le<br><strong>${dateStr}</strong>`;
+  const feats = card.querySelector('.pc-features');
+  if (feats) card.insertBefore(info, feats); else card.appendChild(info);
+  const btn = card.querySelector('.pc-btn');
+  if (btn) {
+    btn.textContent = '🔔 Me notifier';
+    btn.disabled = false;
+    btn.classList.add('pc-btn-notify');
+    btn.onclick = () => notifyMe(plan);
+  }
+}
+
+function _ltdComingSoon(ltd, dateStr) {
+  ltd.innerHTML =
+    `<div style="text-align:center">
+       <span style="display:inline-block;background:var(--gold,#D4AF37);color:#1a1a1a;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px">💎 OFFRE À VIE</span>
+       <h3 style="margin:8px 0 2px;font-size:18px">Accès à vie en préparation</h3>
+       <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Paiement unique · 50 places au total · ouverture le <strong>${dateStr}</strong></p>
+       <button class="btn pc-btn pc-btn-notify" style="max-width:240px;margin:0 auto" onclick="notifyMe('ltd')">🔔 Préviens-moi de l'offre à vie</button>
+     </div>`;
+}
+
+async function notifyMe(plan) {
+  let email = (typeof SESSION !== 'undefined' && SESSION.email) ? SESSION.email : '';
+  if (!email) email = (prompt('Ton email pour être prévenu·e du lancement 🔔') || '').trim();
+  if (!email || email.indexOf('@') < 1) return;
+  try {
+    const r = await fetch('/api/notify-me', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, plan }),
+    });
+    const d = await r.json().catch(() => ({}));
+    showToast(r.ok ? (d.message || 'On te préviendra 🔔') : ('❌ ' + (d.detail || 'Erreur')));
+  } catch (e) {
+    showToast('❌ Erreur réseau');
+  }
+}
+
 async function startCheckout(plan) {
   // Les abonnements automatiques ne sont pas encore ouverts : message propre.
   if (!CHECKOUT_ENABLED) {
@@ -860,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUsageCounter();
   updateHistoryBadge();
   handleCheckoutReturn();
+  initDynamicPricing();
 
   // Language selector
   const sel = document.getElementById('lang-select');

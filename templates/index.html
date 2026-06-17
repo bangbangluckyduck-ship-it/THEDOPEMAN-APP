@@ -707,6 +707,16 @@
       transition: transform .2s, box-shadow .2s;
     }
     .pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    /* État "bientôt disponible" (plan pas encore ouvert selon la roadmap) */
+    .pricing-card.pc-soon { opacity: .92; }
+    .pricing-card.pc-soon .pc-features { filter: grayscale(.35); opacity: .8; }
+    .pc-soon-date {
+      text-align: center; font-size: 13px; color: var(--muted);
+      background: var(--surface2); border: 1px dashed var(--border);
+      border-radius: 12px; padding: 12px; margin: 4px 0 14px;
+    }
+    .pc-soon-date strong { color: var(--text); font-size: 16px; }
+    .pc-btn-notify { background: var(--surface2) !important; color: var(--text) !important; border: 1px solid var(--border) !important; }
     .pricing-card-gold {
       border: 2px solid var(--primary);
       box-shadow: 0 8px 32px rgba(212,175,55,.2);
@@ -1691,9 +1701,9 @@
       </div>
 
       <!-- PRO -->
-      <div class="pricing-card">
+      <div class="pricing-card" data-plan="pro">
         <div class="pc-badge" style="background:rgba(37,99,235,.1);color:var(--accent)">PRO · 🔥 LANCEMENT</div>
-        <div class="pc-price price-month"><span class="pc-old">12,99 €</span>9<span style="font-size:18px">,99 €</span></div>
+        <div class="pc-price price-month" id="pc-pro-month"><span class="pc-old">12,99 €</span>9<span style="font-size:18px">,99 €</span></div>
         <div class="pc-period price-month">/ mois</div>
         <div class="pc-price price-year"><span class="pc-old">155,88 €</span>99,90 €</div>
         <div class="pc-period price-year">/ an · 2 mois offerts 🎁</div>
@@ -1710,7 +1720,7 @@
       </div>
 
       <!-- GOLD ⭐ POPULAIRE -->
-      <div class="pricing-card pricing-card-gold">
+      <div class="pricing-card pricing-card-gold" data-plan="gold">
         <div class="pc-badge pc-badge-gold">⭐ POPULAIRE · 🔥 LANCEMENT</div>
         <div class="pc-price price-month" style="color:var(--primary)"><span class="pc-old">99 €</span>79,99 €</div>
         <div class="pc-period price-month">/ mois</div>
@@ -1729,7 +1739,7 @@
       </div>
 
       <!-- AGENCY -->
-      <div class="pricing-card pricing-card-navy">
+      <div class="pricing-card pricing-card-navy" data-plan="agency">
         <div class="pc-badge" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)">AGENCY</div>
         <div class="pc-price price-month" style="color:#FFFFFF"><span class="pc-old">299 €</span>249 €</div>
         <div class="pc-period price-month" style="color:rgba(255,255,255,.6)">/ mois · 5 comptes Gold</div>
@@ -1750,7 +1760,7 @@
     </div>
 
     <!-- OFFRE À VIE (LTD) — lancement, 50 places au total -->
-    <div style="max-width:760px;margin:8px auto 0;background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.5);border-radius:16px;padding:20px">
+    <div id="ltd-section" style="max-width:760px;margin:8px auto 0;background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.5);border-radius:16px;padding:20px">
       <div style="text-align:center;margin-bottom:14px">
         <span style="display:inline-block;background:var(--gold,#D4AF37);color:#1a1a1a;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px">🔥 OFFRE DE LANCEMENT</span>
         <h3 style="margin:8px 0 2px;font-size:18px">Accès à VIE — paiement unique</h3>

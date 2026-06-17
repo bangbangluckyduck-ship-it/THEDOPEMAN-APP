@@ -2367,6 +2367,68 @@ async def credits_packs():
     return {"ok": True, "packs": credits_mod.CREDIT_PACKS, "level_cost": credits_mod.LEVEL_COST}
 
 
+# ── Plans & prix dynamiques (pilotés par la roadmap, 100 % serveur) ──────────
+@app.get("/api/plans/available")
+async def plans_available():
+    import feature_flags
+    return {"ok": True, "plans": feature_flags.available_plans(),
+            "dates": feature_flags.availability_dates()}
+
+
+@app.get("/api/plans/prices")
+async def plans_prices():
+    import feature_flags
+    return {"ok": True, "prices": feature_flags.current_prices()}
+
+
+@app.get("/api/ltd/availability")
+async def ltd_availability():
+    import feature_flags
+    return {"ok": True, "enabled": feature_flags.is_enabled("ltd_available"),
+            "date": feature_flags.availability_dates()["ltd"]}
+
+
+@app.get("/api/_admin/feature-flags")
+async def admin_feature_flags(request: Request, token: Optional[str] = Query(None)):
+    ok_admin = False
+    try:
+        u = get_user_from_request(request)
+        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+    except Exception:
+        ok_admin = False
+    if not ok_admin and token:
+        try:
+            from auth import verify_access_token, ADMIN_EMAIL
+            email = verify_access_token(token.replace(" ", "+"))
+            ok_admin = bool(email and ADMIN_EMAIL and email.lower() == ADMIN_EMAIL)
+        except Exception:
+            ok_admin = False
+    if not ok_admin:
+        raise HTTPException(status_code=403, detail="Accès admin requis.")
+    import feature_flags
+    return {"ok": True, **feature_flags.snapshot()}
+
+
+# ── « 🔔 Me notifier » : capture d'email pour un plan pas encore ouvert ──────
+@app.post("/api/notify-me")
+async def notify_me(request: Request):
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    plan = (body.get("plan") or "").strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=422, detail="Email invalide.")
+    if plan not in ("pro", "gold", "agency", "ltd"):
+        raise HTTPException(status_code=422, detail="Plan invalide.")
+    try:
+        # upsert best-effort : email + plan unique. La table peut ne pas exister encore.
+        supabase_client.table("plan_notify_signups").upsert(
+            {"email": email, "plan": plan}, on_conflict="email,plan"
+        ).execute()
+    except Exception as e:
+        print(f"[notify-me] insert skipped: {e}")
+    return {"ok": True, "message": "On te préviendra dès l'ouverture 🔔"}
+
+
 @app.post("/api/credits/purchase")
 async def credits_purchase(request: Request):
     # Paiement Stripe DIFFÉRÉ (société non créée) → stub jusqu'à mise en prod.
