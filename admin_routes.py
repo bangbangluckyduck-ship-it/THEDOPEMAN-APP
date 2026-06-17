@@ -237,7 +237,11 @@ async def admin_create_hook(body: HookBody, request: Request):
         raise HTTPException(status_code=500, detail="BD non disponible")
     if not body.texte.strip():
         raise HTTPException(status_code=422, detail="Le texte du hook est obligatoire.")
-    res = supabase.table("hooks").insert(_hook_record(body)).execute()
+    try:
+        res = supabase.table("hooks").insert(_hook_record(body)).execute()
+    except Exception as e:
+        print(f"[admin hooks insert] {e}")
+        raise HTTPException(status_code=500, detail=f"insert hooks: {e}")
     return {"ok": True, "hook": (res.data or [None])[0]}
 
 
@@ -300,7 +304,11 @@ async def admin_create_temoignage(body: TemoignageBody, request: Request):
     rec = body.model_dump()
     if rec.get("statut") == "publie":
         rec["date_publication"] = datetime.now(timezone.utc).isoformat()
-    res = supabase.table("temoignages").insert(rec).execute()
+    try:
+        res = supabase.table("temoignages").insert(rec).execute()
+    except Exception as e:
+        print(f"[admin temoignages insert] {e}")
+        raise HTTPException(status_code=500, detail=f"insert temoignages: {e}")
     return {"ok": True, "temoignage": (res.data or [None])[0]}
 
 
