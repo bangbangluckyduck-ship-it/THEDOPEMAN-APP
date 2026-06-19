@@ -135,6 +135,47 @@ function showView(view) {
   if (view === 'users') loadUsers();
   if (view === 'hooks') initHooksView();
   if (view === 'temoignages') loadTemoignages();
+  if (view === 'notifs') initNotifsView();
+}
+
+/* ── NOTIFICATIONS — broadcast (admin) ────────────────────────────────── */
+async function initNotifsView() {
+  try {
+    const res = await fetch('/admin/push/stats', { headers: authHeaders() });
+    if (res.status === 403) { showLogin(); return; }
+    const d = await res.json();
+    const cnt = document.getElementById('push-count');
+    if (cnt) cnt.textContent = d.subscribers ?? 0;
+    const warn = document.getElementById('push-config-warn');
+    if (warn) warn.style.display = d.configured ? 'none' : 'block';
+    const btn = document.getElementById('push-send-btn');
+    if (btn) btn.disabled = !d.configured;
+  } catch (e) { /* noop */ }
+}
+
+async function sendBroadcast() {
+  const title = document.getElementById('push-title').value.trim();
+  const body = document.getElementById('push-body').value.trim();
+  const url = document.getElementById('push-url').value.trim() || '/app';
+  if (!title || !body) { showToast('Titre et message requis'); return; }
+  if (!confirm(`Envoyer cette notification à tous les abonnés ?\n\n${title}\n${body}`)) return;
+  const btn = document.getElementById('push-send-btn');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try {
+    const res = await fetch('/admin/push/broadcast', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ title, body, url }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (d.detail || 'Erreur')); }
+    else {
+      showToast(`✅ Envoyé à ${d.sent} abonné${d.sent > 1 ? 's' : ''}`);
+      document.getElementById('push-title').value = '';
+      document.getElementById('push-body').value = '';
+    }
+  } catch (e) { showToast('❌ Erreur réseau'); }
+  btn.disabled = false; btn.textContent = '📤 Envoyer à tous';
 }
 
 /* ── FEATURE 1 — Banque de Hooks (admin CRUD) ─────────────────────────── */
