@@ -954,6 +954,7 @@ function fetchUserInfo() {
     .then(data => {
       window.__userInfo = data;
       updateTierBadge(data);
+      try { renderProgressionChart(); } catch (e) {}   // re-render avec le bon tier
       return data;
     })
     .catch(() => null);
@@ -1000,6 +1001,7 @@ document.addEventListener('DOMContentLoaded', () => {
   handleCheckoutReturn();
   initDynamicPricing();
   updateCreditIndicator();
+  renderProgressionChart();
 
   // Language selector
   const sel = document.getElementById('lang-select');
@@ -1086,6 +1088,7 @@ function switchTab(tab) {
   if (tab === 'promptstudio') initPromptStudioTab();
   if (tab === 'credits') initCreditsTab();
   if (tab === 'hooks') initHooksTab();
+  if (tab === 'analyze') renderProgressionChart();
 }
 
 /* ── FEATURE 1 — Banque de Hooks ─────────────────────────────────────────── */
@@ -1225,8 +1228,16 @@ async function togglePush() {
 
 async function enablePush() {
   try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      showToast("Ton navigateur ne gère pas les notifications. Ouvre le site dans Chrome (ou installe l'app sur l'écran d'accueil)."); return;
+    }
+    if (!_vapidKey) { showToast('Configuration notifications indisponible, réessaie.'); return; }
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { _setPushBtn(false); return; }
+    if (perm !== 'granted') {
+      _setPushBtn(false);
+      showToast(perm === 'denied' ? '🔕 Autorisation refusée (réactive-la dans les réglages du navigateur).' : 'Autorisation non accordée.');
+      return;
+    }
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
@@ -1236,15 +1247,17 @@ async function enablePush() {
       });
     }
     const tok = localStorage.getItem('tts_token') || '';
-    await fetch('/api/push/subscribe', {
+    const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, tok ? { 'Authorization': 'Bearer ' + tok } : {}),
       body: JSON.stringify({ subscription: sub.toJSON() }),
     });
+    if (!res.ok) { showToast("Enregistrement serveur échoué — réessaie."); return; }
     _setPushBtn(true);
     showToast('🔔 Notifications activées');
   } catch (e) {
-    showToast('Activation impossible.');
+    // Message réel pour diagnostiquer (souvent : navigateur intégré / Custom Tab qui bloque le push).
+    showToast('Notif impossible : ' + ((e && e.message) ? e.message : 'erreur inconnue'));
   }
 }
 
@@ -2983,6 +2996,7 @@ function saveToHistory(data, filename) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
   updateHistoryBadge();
   maybeAskTestimonial(entries.length);
+  try { renderProgressionChart(); } catch (e) {}
 }
 
 /* Relance avis : après 5 analyses, on invite (1 seule fois) à laisser un avis.
@@ -3152,13 +3166,6 @@ function renderAccountPage() {
         <button id="push-btn" class="btn btn-primary" style="font-size:13px" onclick="togglePush()">🔔 Activer les notifications</button>
       </div>`;
 
-  // 📈 Graphe de progression (Feature 3) — payant uniquement
-  html += `
-      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📈 Ma progression</div>
-        <div id="progression-chart"></div>
-      </div>`;
-
   // 📋 Historique des analyses (déplacé ici depuis l'onglet)
   html += `
       <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
@@ -3189,7 +3196,6 @@ function renderAccountPage() {
   container.innerHTML = html;
   loadTikTokShopStatus();
   initPushUI();              // opt-in notifications
-  renderProgressionChart();  // graphe de progression (payant)
   renderHistory();           // historique désormais dans le compte
   renderAccountCredits();    // balance + packs crédits
 }
@@ -3197,7 +3203,10 @@ function renderAccountPage() {
 /* ── FEATURE 3 — Graphe de progression (client-side, depuis localStorage) ── */
 function renderProgressionChart() {
   const box = document.getElementById('progression-chart');
+  const card = document.getElementById('progression-card');
   if (!box) return;
+  const showCard = () => { if (card) card.style.display = ''; };
+  const hideCard = () => { if (card) card.style.display = 'none'; };
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
   const isPaid = ['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier) || window.__userInfo?.is_admin;
 
@@ -3206,6 +3215,11 @@ function renderProgressionChart() {
     .filter(e => typeof e.score_global === 'number')
     .slice(0, 15).reverse()
     .map(e => ({ v: e.score_global, d: e.date }));
+
+  // Masquage propre : pas de carte vide qui encombre le haut de l'onglet.
+  if (isPaid && pts.length < 2) { hideCard(); return; }
+  if (!isPaid && pts.length < 1) { hideCard(); return; }
+  showCard();
 
   if (!isPaid) {
     // Aperçu flou + incitation upgrade (pas un message d'erreur sec)

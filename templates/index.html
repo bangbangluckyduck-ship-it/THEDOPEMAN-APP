@@ -210,9 +210,8 @@
     .logo-sub { font-size: 10px; color: var(--muted); display: block; letter-spacing: .06em; margin-top: 1px; }
     .header-right { display: flex; gap: 8px; align-items: center; }
     .auth-status {
-      padding: 5px 12px;
-      background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
-      color: var(--muted); font-size: 12px;
+      /* L'email/identité s'affiche dans le menu burger, pas dans le header (évite le débordement mobile). */
+      display: none;
     }
     .btn-upgrade {
       background: linear-gradient(135deg, var(--navy) 0%, var(--accent) 100%);
@@ -590,9 +589,13 @@
       background: var(--surface); padding: 4px; border-radius: 14px;
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
+      /* Défilement horizontal pour éviter le débordement sur mobile. */
+      overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab {
-      flex: 1; padding: 10px; border: none;
+      flex: 0 0 auto; white-space: nowrap; padding: 10px 14px; border: none;
       border-radius: 10px; font-size: 13px; font-weight: 700;
       cursor: pointer; background: transparent; color: var(--muted);
       transition: all .2s; font-family: inherit;
@@ -1345,6 +1348,12 @@
       <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>1.</strong> Colle un lien ou importe ta vidéo</span>
       <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>2.</strong> L'IA décrypte la méthode</span>
       <span style="background:var(--surface2);border-radius:999px;padding:5px 12px"><strong>3.</strong> Tu copies ce qui marche</span>
+    </div>
+
+    <!-- 📈 Graphe de progression (masqué s'il n'y a pas assez de données) -->
+    <div id="progression-card" class="section" style="display:none">
+      <h2 style="font-size:18px">📈 Ma progression</h2>
+      <div id="progression-chart"></div>
     </div>
 
     <section id="upload-section" class="section">
