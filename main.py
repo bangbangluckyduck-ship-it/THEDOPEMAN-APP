@@ -2521,6 +2521,16 @@ async def submit_temoignage(request: Request):
     except Exception as e:
         print(f"[temoignages] insert error: {e}")
         raise HTTPException(status_code=500, detail="Enregistrement impossible.")
+    # Alerte admin (push) : un avis à valider
+    try:
+        import push
+        push.send_to_admins(supabase_client, {
+            "title": "🆕 Nouveau témoignage à valider",
+            "body": f"{nom} : {texte[:80]}",
+            "url": "/dope-admin",
+        })
+    except Exception as e:
+        print(f"[temoignages] admin push skipped: {e}")
     return {"ok": True, "message": "Merci ! Ton témoignage sera publié après validation."}
 
 
@@ -2557,6 +2567,38 @@ async def request_testimonial_email(request: Request):
     except Exception as e:
         print(f"[testimonial-email] send error: {e}")
         return {"ok": False}
+
+
+# ── NOTIFICATIONS — Web Push (PWA) ──────────────────────────────────────────
+@app.get("/api/push/public-key")
+async def push_public_key():
+    import push
+    return {"ok": True, "key": push.VAPID_PUBLIC_KEY, "enabled": push.is_configured()}
+
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(request: Request):
+    import push
+    body = await request.json()
+    sub = body.get("subscription") or body
+    user = get_user_from_request(request)
+    email = user["email"] if user.get("valid") else None
+    is_admin = bool(user.get("is_admin") or user.get("tier") == "admin")
+    ua = request.headers.get("user-agent", "")
+    ok = push.save_subscription(supabase_client, sub, email, is_admin, ua)
+    if not ok:
+        raise HTTPException(status_code=422, detail="Abonnement invalide.")
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsubscribe(request: Request):
+    import push
+    body = await request.json()
+    endpoint = body.get("endpoint")
+    if endpoint:
+        push.remove_subscription(supabase_client, endpoint)
+    return {"ok": True}
 
 
 @app.post("/api/credits/purchase")

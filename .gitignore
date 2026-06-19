@@ -7,3 +7,4 @@ static/icon-*.png
 static/admin-icon-*.png
 .DS_Store
 exports/
+.vapid_keys.local

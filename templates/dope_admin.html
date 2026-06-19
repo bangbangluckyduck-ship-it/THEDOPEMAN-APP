@@ -403,6 +403,26 @@
         <div class="toolbar"><button class="btn btn-ghost" onclick="loadTemoignages()">🔄 Rafraîchir</button></div>
         <div id="temoignages-admin-list"><div class="empty">Chargement…</div></div>
       </section>
+
+      <section id="view-notifs" class="view">
+        <h1 class="view-title">🔔 Notifications push</h1>
+        <p class="view-sub">Envoie une notification à tous les abonnés (nouveauté, info, relance).</p>
+
+        <div id="push-config-warn" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#b91c1c">
+          ⚠️ Clés VAPID non configurées sur Render (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT). Le push est inactif tant qu'elles ne sont pas posées.
+        </div>
+
+        <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px;margin-bottom:18px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Abonnés actuels : <strong id="push-count">—</strong></div>
+          <label style="font-size:12px;font-weight:700">Titre *</label>
+          <input id="push-title" maxlength="60" placeholder="Ex: Nouveaux hooks disponibles 🎯" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin:4px 0 12px">
+          <label style="font-size:12px;font-weight:700">Message *</label>
+          <textarea id="push-body" rows="2" maxlength="160" placeholder="Ex: 10 nouvelles accroches viennent d'être ajoutées dans la banque." style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin:4px 0 12px;resize:vertical"></textarea>
+          <label style="font-size:12px;font-weight:700">Lien à l'ouverture</label>
+          <input id="push-url" value="/app" style="width:100%;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;margin:4px 0 14px">
+          <button class="btn btn-primary" id="push-send-btn" onclick="sendBroadcast()">📤 Envoyer à tous</button>
+        </div>
+      </section>
     </main>
 
     <!-- ── NAVIGATION BAS ── -->
@@ -418,6 +438,9 @@
       </button>
       <button class="nav-item" data-view="temoignages" onclick="showView('temoignages')">
         <span class="ic">⭐</span>Avis
+      </button>
+      <button class="nav-item" data-view="notifs" onclick="showView('notifs')">
+        <span class="ic">🔔</span>Notifs
       </button>
     </nav>
   </div>

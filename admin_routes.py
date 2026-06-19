@@ -337,3 +337,37 @@ async def admin_delete_temoignage(tid: int, request: Request):
         raise HTTPException(status_code=500, detail="BD non disponible")
     supabase.table("temoignages").delete().eq("id", tid).execute()
     return {"ok": True, "id": tid}
+
+
+# ════════════════════════════════════════════════════════════════════
+# NOTIFICATIONS — broadcast push (nouveautés / relance manuelle)
+# ════════════════════════════════════════════════════════════════════
+class PushBroadcastBody(BaseModel):
+    title: str
+    body: str
+    url: Optional[str] = "/app"
+
+
+@router.post("/push/broadcast")
+async def admin_push_broadcast(body: PushBroadcastBody, request: Request):
+    _require_admin(request)
+    import push
+    from supabase_client import supabase_service as supabase
+    if not push.is_configured():
+        raise HTTPException(status_code=503, detail="Clés VAPID non configurées (variables d'env Render).")
+    if not (body.title.strip() and body.body.strip()):
+        raise HTTPException(status_code=422, detail="Titre et message requis.")
+    sent = push.send_to_all(supabase, {"title": body.title.strip(), "body": body.body.strip(), "url": body.url or "/app"})
+    return {"ok": True, "sent": sent}
+
+
+@router.get("/push/stats")
+async def admin_push_stats(request: Request):
+    _require_admin(request)
+    import push
+    from supabase_client import supabase_service as supabase
+    try:
+        total = supabase.table("push_subscriptions").select("id", count="exact").execute().count or 0
+    except Exception:
+        total = 0
+    return {"ok": True, "configured": push.is_configured(), "subscribers": total}
