@@ -8,7 +8,7 @@ jamais planter l'appelant (inscription, reset, etc.).
 Variables d'environnement (configurées sur Render) :
   SMTP_SERVER    (défaut "smtp.hostinger.com")
   SMTP_PORT      (défaut 465 — SSL)
-  SMTP_USERNAME  (ex. contact@tiktokshop-analyzer.com)
+  SMTP_USERNAME  (ex. contact@qeerah.com)
   SMTP_PASSWORD  (jamais hardcodé)
   SMTP_FROM_NAME (défaut "TikTok Shop Analyzer")
 """
@@ -40,7 +40,7 @@ _executor = ThreadPoolExecutor(max_workers=2)
 # ── Configuration SMTP (lue depuis l'environnement, aucun secret hardcodé) ──
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.hostinger.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "contact@tiktokshop-analyzer.com")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "contact@qeerah.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "TikTok Shop Analyzer")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", SMTP_USERNAME)
@@ -51,13 +51,13 @@ SMTP_ENABLED = bool(SMTP_PASSWORD)
 # ── Resend (transport PRIORITAIRE si RESEND_API_KEY est posée sur Render) ──
 # ⚠️ `from` doit être sur un domaine VÉRIFIÉ dans Resend, sinon l'envoi échoue.
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", f"{SMTP_FROM_NAME} <noreply@tiktokshop-analyzer.com>")
+EMAIL_FROM = os.getenv("EMAIL_FROM", f"{SMTP_FROM_NAME} <noreply@qeerah.com>")
 RESEND_ENABLED = bool(RESEND_API_KEY)
 
 # Le service email est actif si AU MOINS un transport est configuré (Resend OU SMTP).
 SERVICE_ENABLED = RESEND_ENABLED or SMTP_ENABLED
 
-APP_URL = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com")
+APP_URL = os.getenv("APP_PUBLIC_URL", "https://qeerah.com")
 
 
 # ════════════════════════════════════════════════════════════════════════════

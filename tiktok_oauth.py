@@ -32,7 +32,7 @@ import httpx
 
 from auth import SECRET_KEY
 
-APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com").rstrip("/")
+APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://qeerah.com").rstrip("/")
 REDIRECT_URI = os.getenv("TIKTOK_REDIRECT_URI", f"{APP_PUBLIC_URL}/api/auth/tiktok/callback")
 _STATE_TTL_SECONDS = 600
 

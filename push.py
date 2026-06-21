@@ -13,7 +13,7 @@ import json
 
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "").strip()
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "").strip()
-VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:dopeventure44@gmail.com").strip()
+VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:contact@qeerah.com").strip()
 
 
 def is_configured() -> bool:

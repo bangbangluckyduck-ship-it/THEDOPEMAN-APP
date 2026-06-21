@@ -4,7 +4,7 @@ Test script for /api/analyze/stream endpoint.
 Tests cache hits and misses with SSE streaming.
 
 Usage:
-    python3 test_streaming_analysis.py https://tiktokshop-analyzer.com
+    python3 test_streaming_analysis.py https://qeerah.com
 """
 
 import sys
@@ -147,7 +147,7 @@ def main():
 
     if len(sys.argv) < 2:
         print("Usage: python3 test_streaming_analysis.py <api_url>")
-        print("Example: python3 test_streaming_analysis.py https://tiktokshop-analyzer.com")
+        print("Example: python3 test_streaming_analysis.py https://qeerah.com")
         sys.exit(1)
 
     api_url = sys.argv[1].rstrip('/')

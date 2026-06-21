@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-BASE_URL = os.getenv("API_URL", "https://tiktokshop-analyzer.com").rstrip('/')
+BASE_URL = os.getenv("API_URL", "https://qeerah.com").rstrip('/')
 
 # Test bot credentials
 BOTS = {
