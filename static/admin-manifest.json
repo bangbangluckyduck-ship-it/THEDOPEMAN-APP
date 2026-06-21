@@ -1,7 +1,7 @@
 {
   "name": "Dope Admin",
   "short_name": "Dope Admin",
-  "description": "Back-office TikTok Shop Analyzer",
+  "description": "Back-office Qeerah",
   "start_url": "/dope-admin",
   "scope": "/dope-admin",
   "display": "standalone",

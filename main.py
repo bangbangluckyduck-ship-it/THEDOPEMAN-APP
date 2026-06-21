@@ -151,7 +151,7 @@ class CanonicalHostRedirect:
 
 app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)
 app.add_middleware(CanonicalHostRedirect,
-                   canonical_host=os.getenv("CANONICAL_HOST", "tiktokshop-analyzer.com"))
+                   canonical_host=os.getenv("CANONICAL_HOST", "qeerah.com"))
 app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)
@@ -2551,7 +2551,7 @@ async def request_testimonial_email(request: Request):
     # Envoi
     try:
         from email_service import send_transactional_email
-        app_url = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com").rstrip("/")
+        app_url = os.getenv("APP_PUBLIC_URL", "https://qeerah.com").rstrip("/")
         link = f"{app_url}/avis?nom={quote((user.get('name') or email.split('@')[0]))}"
         html = f"""<div style="font-family:sans-serif;max-width:520px;margin:auto">
           <h2>Ton avis compte 🙏</h2>

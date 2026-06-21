@@ -18,7 +18,7 @@ let currentLanguage = 'fr';
 
 const TRANSLATIONS = {
   fr: {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Se connecter', btn_account:'Mon compte',
     server_waking:'⏳ Réveil du serveur en cours… (~30 sec)',
     pwa_title:'Ajouter à l\'écran d\'accueil', pwa_desc:'Accède à l\'application depuis ton téléphone', pwa_install:'Installer',
@@ -54,7 +54,7 @@ const TRANSLATIONS = {
     sv_accroche:'Accroche', sv_probleme:'Problème', sv_solution:'Solution', sv_produit:'Produit', sv_cta:'Appel action',
     err_timeout:'❌ Délai dépassé. Réessaie avec une vidéo plus courte.',
     saved_ok:'Sauvegardé !',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · Tous droits réservés',
+    footer:'© 2026 Dope Ventures · Qeerah · Tous droits réservés',
     tb_title:'Vos données vous appartiennent', tb_sub:'restent EN LOCAL, jamais envoyées.', tb_link:'Détails →',
     ck_title:'🍪 Nous utilisons des cookies',
     ck_body:'Vos données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.',
@@ -74,14 +74,14 @@ const TRANSLATIONS = {
 <h3>📤 Export & suppression</h3>
 <p>Vous pouvez exporter vos analyses en PDF à tout moment. Pour supprimer toutes vos données, effacez les données de site dans les réglages de votre navigateur.</p>
 <h3>📧 Questions ?</h3>
-<p>Contactez-nous : <a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+<p>Contactez-nous : <a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Installer sur iPhone / iPad',
     ios_s1:'Appuie sur <strong style="color:var(--text)">Partager</strong> ⎋ en bas de Safari',
     ios_s2:'Fais défiler et appuie sur <strong style="color:var(--text)">"Sur l\'écran d\'accueil"</strong>',
     ios_s3:'Appuie sur <strong style="color:var(--text)">"Ajouter"</strong> en haut à droite',
   },
   en: {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Sign in', btn_account:'My account',
     server_waking:'⏳ Server waking up… (~30 sec)',
     pwa_title:'Add to home screen', pwa_desc:'Access the app directly from your phone', pwa_install:'Install',
@@ -117,7 +117,7 @@ const TRANSLATIONS = {
     sv_accroche:'Hook', sv_probleme:'Problem', sv_solution:'Solution', sv_produit:'Product', sv_cta:'Call to action',
     err_timeout:'❌ Timeout. Try again with a shorter video.',
     saved_ok:'Saved!',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · All rights reserved',
+    footer:'© 2026 Dope Ventures · Qeerah · All rights reserved',
     tb_title:'Your data belongs to you', tb_sub:'stays LOCAL, never sent.', tb_link:'Details →',
     ck_title:'🍪 We use cookies',
     ck_body:'Your video data always stays local. Cookies help us improve your experience.',
@@ -137,14 +137,14 @@ const TRANSLATIONS = {
 <h3>📤 Export & deletion</h3>
 <p>You can export your analyses as PDF at any time. To delete all your data, clear site data in your browser settings.</p>
 <h3>📧 Questions?</h3>
-<p>Contact us: <a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+<p>Contact us: <a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Install on iPhone / iPad',
     ios_s1:'Tap <strong style="color:var(--text)">Share</strong> ⎋ at the bottom of Safari',
     ios_s2:'Scroll down and tap <strong style="color:var(--text)">"Add to Home Screen"</strong>',
     ios_s3:'Tap <strong style="color:var(--text)">"Add"</strong> in the top right corner',
   },
   'pt-br': {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Entrar', btn_account:'Minha conta',
     server_waking:'⏳ Servidor acordando… (~30 seg)',
     pwa_title:'Adicionar à tela inicial', pwa_desc:'Acesse o app do seu celular', pwa_install:'Instalar',
@@ -180,19 +180,19 @@ const TRANSLATIONS = {
     sv_accroche:'Gancho', sv_probleme:'Problema', sv_solution:'Solução', sv_produit:'Produto', sv_cta:'Chamada',
     err_timeout:'❌ Tempo esgotado. Tente com um vídeo mais curto.',
     saved_ok:'Salvo!',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · Todos os direitos reservados',
+    footer:'© 2026 Dope Ventures · Qeerah · Todos os direitos reservados',
     tb_title:'Seus dados são seus', tb_sub:'ficam em LOCAL, nunca enviados.', tb_link:'Detalhes →',
     ck_title:'🍪 Usamos cookies', ck_body:'Seus dados de vídeo ficam SEMPRE em local. Os cookies nos ajudam a melhorar sua experiência.', ck_link:'Política de privacidade', ck_accept:'Aceitar tudo', ck_reject:'Recusar',
     pm_title:'Sua privacidade', pm_close:'Entendido! Fechar',
     footer_privacy:'Privacidade', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Seus dados ficam EM LOCAL</h3><p>Todas as suas análises ficam <strong>apenas no seu dispositivo</strong>. Nunca as recuperamos em nossos servidores.</p><h3>🍪 Cookies usados</h3><ul><li>localStorage: análises, histórico, idioma</li><li>cookieConsent: sua escolha</li></ul><h3>📧 Dúvidas?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+    pm_content:`<h3>✅ Seus dados ficam EM LOCAL</h3><p>Todas as suas análises ficam <strong>apenas no seu dispositivo</strong>. Nunca as recuperamos em nossos servidores.</p><h3>🍪 Cookies usados</h3><ul><li>localStorage: análises, histórico, idioma</li><li>cookieConsent: sua escolha</li></ul><h3>📧 Dúvidas?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Instalar no iPhone / iPad',
     ios_s1:'Toque em <strong style="color:var(--text)">Compartilhar</strong> ⎋ na parte inferior do Safari',
     ios_s2:'Role para baixo e toque em <strong style="color:var(--text)">"Tela de Início"</strong>',
     ios_s3:'Toque em <strong style="color:var(--text)">"Adicionar"</strong> no canto superior direito',
   },
   es: {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Iniciar sesión', btn_account:'Mi cuenta',
     server_waking:'⏳ Iniciando servidor… (~30 seg)',
     pwa_title:'Añadir a pantalla de inicio', pwa_desc:'Accede a la app desde tu teléfono', pwa_install:'Instalar',
@@ -228,19 +228,19 @@ const TRANSLATIONS = {
     sv_accroche:'Gancho', sv_probleme:'Problema', sv_solution:'Solución', sv_produit:'Producto', sv_cta:'Llamada',
     err_timeout:'❌ Tiempo agotado. Intenta con un vídeo más corto.',
     saved_ok:'¡Guardado!',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · Todos los derechos reservados',
+    footer:'© 2026 Dope Ventures · Qeerah · Todos los derechos reservados',
     tb_title:'Tus datos son tuyos', tb_sub:'se quedan EN LOCAL, nunca se envían.', tb_link:'Detalles →',
     ck_title:'🍪 Usamos cookies', ck_body:'Tus datos de vídeo siempre permanecen en local. Las cookies nos ayudan a mejorar tu experiencia.', ck_link:'Política de privacidad', ck_accept:'Aceptar todo', ck_reject:'Rechazar',
     pm_title:'Tu privacidad', pm_close:'¡Entendido! Cerrar',
     footer_privacy:'Privacidad', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Tus datos EN LOCAL</h3><p>Todos tus análisis se almacenan <strong>solo en tu dispositivo</strong>. Nunca los recuperamos en nuestros servidores.</p><h3>🍪 Cookies usadas</h3><ul><li>localStorage: análisis, historial, idioma</li><li>cookieConsent: tu elección</li></ul><h3>📧 ¿Preguntas?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+    pm_content:`<h3>✅ Tus datos EN LOCAL</h3><p>Todos tus análisis se almacenan <strong>solo en tu dispositivo</strong>. Nunca los recuperamos en nuestros servidores.</p><h3>🍪 Cookies usadas</h3><ul><li>localStorage: análisis, historial, idioma</li><li>cookieConsent: tu elección</li></ul><h3>📧 ¿Preguntas?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Instalar en iPhone / iPad',
     ios_s1:'Pulsa <strong style="color:var(--text)">Compartir</strong> ⎋ en la parte inferior de Safari',
     ios_s2:'Desplázate y pulsa <strong style="color:var(--text)">"En pantalla de inicio"</strong>',
     ios_s3:'Pulsa <strong style="color:var(--text)">"Añadir"</strong> arriba a la derecha',
   },
   it: {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Accedi', btn_account:'Il mio account',
     server_waking:'⏳ Avvio del server… (~30 sec)',
     pwa_title:'Aggiungi alla schermata iniziale', pwa_desc:'Accedi all\'app dal tuo telefono', pwa_install:'Installa',
@@ -276,19 +276,19 @@ const TRANSLATIONS = {
     sv_accroche:'Gancio', sv_probleme:'Problema', sv_solution:'Soluzione', sv_produit:'Prodotto', sv_cta:'Azione',
     err_timeout:'❌ Timeout. Riprova con un video più breve.',
     saved_ok:'Salvato!',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · Tutti i diritti riservati',
+    footer:'© 2026 Dope Ventures · Qeerah · Tutti i diritti riservati',
     tb_title:'I tuoi dati sono tuoi', tb_sub:'restano IN LOCALE, mai inviati.', tb_link:'Dettagli →',
     ck_title:'🍪 Usiamo i cookie', ck_body:'I tuoi dati video restano SEMPRE in locale. I cookie ci aiutano a migliorare la tua esperienza.', ck_link:'Privacy policy', ck_accept:'Accetta tutto', ck_reject:'Rifiuta',
     pm_title:'La tua privacy', pm_close:'Capito! Chiudi',
     footer_privacy:'Privacy', footer_cookies:'Cookie',
-    pm_content:`<h3>✅ I tuoi dati IN LOCALE</h3><p>Tutte le tue analisi sono memorizzate <strong>solo sul tuo dispositivo</strong>. Non le recuperiamo mai sui nostri server.</p><h3>🍪 Cookie usati</h3><ul><li>localStorage: analisi, cronologia, lingua</li><li>cookieConsent: la tua scelta</li></ul><h3>📧 Domande?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+    pm_content:`<h3>✅ I tuoi dati IN LOCALE</h3><p>Tutte le tue analisi sono memorizzate <strong>solo sul tuo dispositivo</strong>. Non le recuperiamo mai sui nostri server.</p><h3>🍪 Cookie usati</h3><ul><li>localStorage: analisi, cronologia, lingua</li><li>cookieConsent: la tua scelta</li></ul><h3>📧 Domande?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Installa su iPhone / iPad',
     ios_s1:'Tocca <strong style="color:var(--text)">Condividi</strong> ⎋ in fondo a Safari',
     ios_s2:'Scorri e tocca <strong style="color:var(--text)">"Aggiungi a Home"</strong>',
     ios_s3:'Tocca <strong style="color:var(--text)">"Aggiungi"</strong> in alto a destra',
   },
   de: {
-    app_title:'TikTok Shop', app_title_hl:'Analyzer', app_sub:'by Dope Ventures',
+    app_title:'Qeerah', app_title_hl:'', app_sub:'by Dope Ventures',
     btn_connect:'Anmelden', btn_account:'Mein Konto',
     server_waking:'⏳ Server wird gestartet… (~30 Sek)',
     pwa_title:'Zum Startbildschirm hinzufügen', pwa_desc:'Greife direkt vom Telefon auf die App zu', pwa_install:'Installieren',
@@ -324,12 +324,12 @@ const TRANSLATIONS = {
     sv_accroche:'Hook', sv_probleme:'Problem', sv_solution:'Lösung', sv_produit:'Produkt', sv_cta:'Aktion',
     err_timeout:'❌ Zeitüberschreitung. Versuche mit einem kürzeren Video.',
     saved_ok:'Gespeichert!',
-    footer:'© 2026 Dope Ventures · TTS Analyzer · Alle Rechte vorbehalten',
+    footer:'© 2026 Dope Ventures · Qeerah · Alle Rechte vorbehalten',
     tb_title:'Deine Daten gehören dir', tb_sub:'bleiben LOKAL, werden nie gesendet.', tb_link:'Details →',
     ck_title:'🍪 Wir verwenden Cookies', ck_body:'Deine Videodaten bleiben IMMER lokal. Cookies helfen uns, deine Erfahrung zu verbessern.', ck_link:'Datenschutz', ck_accept:'Alle akzeptieren', ck_reject:'Ablehnen',
     pm_title:'Dein Datenschutz', pm_close:'Verstanden! Schließen',
     footer_privacy:'Datenschutz', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Deine Daten LOKAL</h3><p>Alle deine Analysen werden <strong>nur auf deinem Gerät</strong> gespeichert. Wir rufen sie nie auf unseren Servern ab.</p><h3>🍪 Verwendete Cookies</h3><ul><li>localStorage: Analysen, Verlauf, Sprache</li><li>cookieConsent: deine Wahl</li></ul><h3>📧 Fragen?</h3><p><a href="mailto:dopeventure44@gmail.com">dopeventure44@gmail.com</a></p>`,
+    pm_content:`<h3>✅ Deine Daten LOKAL</h3><p>Alle deine Analysen werden <strong>nur auf deinem Gerät</strong> gespeichert. Wir rufen sie nie auf unseren Servern ab.</p><h3>🍪 Verwendete Cookies</h3><ul><li>localStorage: Analysen, Verlauf, Sprache</li><li>cookieConsent: deine Wahl</li></ul><h3>📧 Fragen?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Auf iPhone / iPad installieren',
     ios_s1:'Tippe auf <strong style="color:var(--text)">Teilen</strong> ⎋ unten in Safari',
     ios_s2:'Scrolle und tippe auf <strong style="color:var(--text)">"Zum Home-Bildschirm"</strong>',
@@ -3267,7 +3267,7 @@ function _scoreCardCanvas(score, productName) {
   // Marque
   c.fillStyle = '#FFFFFF';
   c.font = '700 56px -apple-system, Segoe UI, sans-serif';
-  c.fillText('TTS Analyzer', W / 2, 220);
+  c.fillText('Qeerah', W / 2, 220);
   c.fillStyle = 'rgba(255,255,255,.6)';
   c.font = '400 32px -apple-system, Segoe UI, sans-serif';
   c.fillText('Analyse TikTok Shop par l\'IA', W / 2, 280);
@@ -3312,7 +3312,7 @@ function _scoreCardCanvas(score, productName) {
   c.fillText('Analyse ta vidéo gratuitement', cx, 1640);
   c.fillStyle = '#D4AF37';
   c.font = '700 50px -apple-system, Segoe UI, sans-serif';
-  c.fillText('tiktokshop-analyzer.com', cx, 1720);
+  c.fillText('qeerah.com', cx, 1720);
 
   return cv;
 }
@@ -3332,8 +3332,8 @@ async function shareScoreCard(mode) {
     try {
       await navigator.share({
         files: [file],
-        title: 'Mon score TTS Analyzer',
-        text: `Mon score de persuasion : ${score}/100 — analysé sur tiktokshop-analyzer.com`,
+        title: 'Mon score Qeerah',
+        text: `Mon score de persuasion : ${score}/100 — analysé sur qeerah.com`,
       });
       return;
     } catch (e) {
@@ -4344,7 +4344,7 @@ const VP_LEVELS = [
   { n: 1, name: 'Simple', cost: 1, desc: '3-5s · B-roll, hook, transition' },
   { n: 2, name: 'Intermédiaire', cost: 2, desc: '5-10s · démo, avant/après' },
   { n: 3, name: 'Complexe', cost: 3, desc: '10-20s · mini-pub narrative' },
-  { n: 4, name: 'Vidéo TTS', cost: 5, desc: '15-30s · prête à publier ⭐', popular: true },
+  { n: 4, name: 'Vidéo Qeerah', cost: 5, desc: '15-30s · prête à publier ⭐', popular: true },
   { n: 5, name: 'Multi-clips', cost: 10, desc: '30-60s · séquence 3-5 plans' },
 ];
 const VP_PLATFORMS = [

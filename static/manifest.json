@@ -1,11 +1,11 @@
 {
-  "name": "TikTok Shop Analyzer",
-  "short_name": "TT Analyzer",
+  "name": "Qeerah",
+  "short_name": "Qeerah",
   "description": "Analyse IA de tes vidéos TikTok Shop",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
-  "theme_color": "#fe2c55",
+  "theme_color": "#1F3A70",
   "orientation": "portrait",
   "icons": [
     { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },

@@ -147,7 +147,7 @@ async def reset_user_password(body: ResetPasswordBody, request: Request):
 
             import os
             from urllib.parse import quote as _q
-            app_url = os.getenv("APP_PUBLIC_URL", "https://tiktokshop-analyzer.com").rstrip("/")
+            app_url = os.getenv("APP_PUBLIC_URL", "https://qeerah.com").rstrip("/")
             reset_link = f"{app_url}/reset-password?token={token_plaintext}&email={_q(email)}"
             email_sent = await email_service.send_magic_link_email(email, reset_link)
 

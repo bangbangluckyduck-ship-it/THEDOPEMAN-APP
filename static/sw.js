@@ -6,7 +6,7 @@ self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
 self.addEventListener('push', e => {
   let data = {};
   try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: (e.data && e.data.text()) || '' }; }
-  const title = data.title || 'TTS Analyzer';
+  const title = data.title || 'Qeerah';
   const options = {
     body: data.body || '',
     icon: data.icon || '/static/TTS-LOGO.jpg',

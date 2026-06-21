@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-BASE_URL = os.getenv("API_URL", "https://tiktokshop-analyzer.com")
+BASE_URL = os.getenv("API_URL", "https://qeerah.com")
 # Fallback to localhost if API_URL not set
 if BASE_URL.startswith("http"):
     pass  # Use as-is
