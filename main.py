@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta, timezone
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Query
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import time
@@ -296,6 +296,12 @@ async def terms_page(): return HTMLResponse(_TERMS_HTML)
 @app.get("/cgv", response_class=HTMLResponse)
 @app.get("/conditions-de-vente", response_class=HTMLResponse)
 async def cgv_page(): return HTMLResponse(_CGV_HTML)
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon(): return FileResponse("static/favicon.ico")
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch(): return FileResponse("static/apple-touch-icon.png")
 
 @app.get("/pricing", response_class=HTMLResponse)
 @app.get("/tarifs", response_class=HTMLResponse)
