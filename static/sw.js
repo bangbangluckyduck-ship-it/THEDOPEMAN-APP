@@ -9,8 +9,8 @@ self.addEventListener('push', e => {
   const title = data.title || 'Qeerah';
   const options = {
     body: data.body || '',
-    icon: data.icon || '/static/TTS-LOGO.jpg',
-    badge: data.badge || '/static/TTS-LOGO.jpg',
+    icon: data.icon || '/static/qeerah-logo.png',
+    badge: data.badge || '/static/qeerah-logo.png',
     data: { url: data.url || '/app' },
     tag: data.tag || undefined,
   };
