@@ -658,29 +658,28 @@ function setBilling(period) {
     b.classList.toggle('active', b.dataset.period === BILLING_PERIOD));
 }
 
-/* ── Indicateur de crédits temps réel (header) ───────────────────────────── */
+/* ── Indicateur de crédits temps réel (stocké pour affichage dans le menu burger) ─ */
 async function updateCreditIndicator() {
   const pill = document.getElementById('credit-pill');
   const count = document.getElementById('credit-count');
-  if (!pill || !count) return;
-  // Visible uniquement si connecté
-  if (typeof SESSION === 'undefined' || !SESSION.email) { pill.style.display = 'none'; return; }
+  // Toujours cacher le pill du header (les crédits sont désormais dans le menu burger).
+  if (pill) pill.style.display = 'none';
+  if (typeof SESSION === 'undefined' || !SESSION.email) {
+    window.__creditBalance = null;
+    return;
+  }
   try {
     const _tok = localStorage.getItem('tts_token') || '';
     const r = await fetch('/api/credits/balance', {
       headers: _tok ? { 'Authorization': 'Bearer ' + _tok } : {}
     });
-    if (!r.ok) { pill.style.display = 'none'; return; }
+    if (!r.ok) { window.__creditBalance = null; return; }
     const d = await r.json();
     const total = (d && typeof d.total_available === 'number') ? d.total_available : 0;
-    count.textContent = total;
-    pill.style.display = 'inline-flex';
-    pill.classList.remove('cp-low', 'cp-crit', 'cp-empty');
-    if (total === 0) pill.classList.add('cp-empty');
-    else if (total < 5) pill.classList.add('cp-crit');
-    else if (total < 20) pill.classList.add('cp-low');
+    window.__creditBalance = total;
+    if (count) count.textContent = total;  // garde l'élément à jour si jamais utilisé ailleurs
   } catch (e) {
-    pill.style.display = 'none';
+    window.__creditBalance = null;
   }
 }
 
@@ -859,16 +858,18 @@ function showAuthMenu(e) {
   `;
 
   const meEmail = (typeof SESSION !== 'undefined' && SESSION && SESSION.email) || '';
-  const _tier = (window.__userInfo?.tier || 'free').toLowerCase();
-  const _isPaid = ['pro','gold','agency','beta','admin'].includes(_tier);
+  const _credits = (typeof window.__creditBalance === 'number') ? window.__creditBalance : null;
+  const _creditsRow = _credits !== null
+    ? `<button onclick="closeAuthMenu(); switchTab('account'); return false" style="width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <span>💎 Crédits : <strong>${_credits}</strong></span>
+      <span style="font-size:12px;color:var(--accent);font-weight:700">Recharger →</span>
+    </button>` : '';
   menu.innerHTML = `
     ${meEmail ? `<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(meEmail)}</div>` : ''}
+    ${_creditsRow}
     <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       👤 Mon compte
     </button>
-    ${_isPaid ? `<button onclick="closeAuthMenu(); openMyAnalyses(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-      📊 Mes analyses
-    </button>` : ''}
     <button onclick="window.logout(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--danger);background:transparent;border:none;font-size:14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       🚪 Se déconnecter
     </button>
@@ -960,12 +961,15 @@ function fetchUserInfo() {
       window.__userInfo = data;
       updateTierBadge(data);
       try { renderProgressionChart(); } catch (e) {}   // re-render avec le bon tier
-      // Affiche le bouton "Lancer en arrière-plan" (upload) si Pro+ (le bouton
-      // URL est déjà dans la section Pro+ donc visible directement).
-      // "Mes analyses" est dans le menu burger (rendu dans openAuthMenu).
+      // Affiche le bouton "Mes analyses" dans le header + "Lancer en arrière-
+      // plan" (upload) si Pro+ (le bouton URL async est déjà dans la section
+      // Pro+ donc visible directement). Les crédits sont maintenant dans le
+      // menu burger (rendu par renderAuthMenu).
       try {
         const tier = (data?.tier || 'free').toLowerCase();
         const isPaid = ['pro','gold','agency','beta','admin'].includes(tier);
+        const myBtn = document.getElementById('my-analyses-btn');
+        if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
         const uploadAsync = document.getElementById('analyze-upload-async-btn');
         if (uploadAsync) uploadAsync.style.display = isPaid ? 'block' : 'none';
       } catch (e) {}

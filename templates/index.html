@@ -1279,9 +1279,13 @@
       <option value="it">🇮🇹 IT</option>
       <option value="de">🇩🇪 DE</option>
     </select>
-    <button id="credit-pill" type="button" title="Tes crédits — clique pour recharger" onclick="switchTab('account')" style="display:none">
+    <button id="credit-pill" type="button" title="Tes crédits" onclick="switchTab('account')" style="display:none">
       <span class="cp-ico">💎</span><span id="credit-count">–</span>
-      <span class="cp-plus" aria-label="Recharger">+</span>
+    </button>
+    <button id="my-analyses-btn" type="button" title="Mes analyses"
+            onclick="openMyAnalyses()"
+            style="display:none;padding:6px 12px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:999px;font-size:13px;cursor:pointer;font-weight:600;white-space:nowrap">
+      📊 <span class="my-analyses-text">Analyses</span>
     </button>
     <span class="auth-status" id="auth-status">
       <span id="user-email">Gratuit</span>
