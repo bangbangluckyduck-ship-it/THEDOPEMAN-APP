@@ -10,7 +10,7 @@ Variables d'environnement (configurées sur Render) :
   SMTP_PORT      (défaut 465 — SSL)
   SMTP_USERNAME  (ex. contact@qeerah.com)
   SMTP_PASSWORD  (jamais hardcodé)
-  SMTP_FROM_NAME (défaut "TikTok Shop Analyzer")
+  SMTP_FROM_NAME (défaut "Qeerah")
 """
 
 import os
@@ -42,7 +42,7 @@ SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.hostinger.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "contact@qeerah.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "TikTok Shop Analyzer")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Qeerah")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", SMTP_USERNAME)
 
 # Le service est « actif » uniquement si un mot de passe SMTP est fourni.
@@ -73,7 +73,7 @@ def _wrap(title: str, body_html: str) -> str:
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
         <tr><td style="background:#1a1a2e;padding:28px 32px;text-align:center;">
-          <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.4px;">TikTok Shop <span style="color:#6c5ce7;">Analyzer</span></span>
+          <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.4px;"><span style="color:#6c5ce7;">Qeerah</span></span>
         </td></tr>
         <tr><td style="padding:32px;">
           <h1 style="font-size:21px;font-weight:800;margin:0 0 16px;color:#1a1a2e;">{title}</h1>
@@ -81,7 +81,7 @@ def _wrap(title: str, body_html: str) -> str:
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #ecedf2;text-align:center;">
           <p style="font-size:12px;color:#9a9ab0;margin:0;">
-            TikTok Shop Analyzer · Cet email vous est envoyé par <a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;text-decoration:none;">{SUPPORT_EMAIL}</a>
+            Qeerah · Cet email vous est envoyé par <a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;text-decoration:none;">{SUPPORT_EMAIL}</a>
           </p>
         </td></tr>
       </table>
@@ -104,13 +104,13 @@ def _button(label: str, url: str) -> str:
 def _welcome_body() -> str:
     return (
         "<p>Bonjour,</p>"
-        "<p>Bienvenue sur <strong>TikTok Shop Analyzer</strong> 🎉 Votre compte est prêt.</p>"
+        "<p>Bienvenue sur <strong>Qeerah</strong> 🎉 Votre compte est prêt.</p>"
         "<p>Vous pouvez dès maintenant analyser vos vidéos TikTok Shop grâce à l'IA : "
         "détection produit, accroche optimale, potentiel viral et conseils personnalisés.</p>"
         f"{_button('Lancer ma première analyse', APP_URL + '/app')}"
         "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'êtes pas à l'origine de cette inscription, "
         "vous pouvez ignorer cet email.</p>"
-        "<p>À très vite,<br>L'équipe TikTok Shop Analyzer</p>"
+        "<p>À très vite,<br>L'équipe Qeerah</p>"
     )
 
 
@@ -127,7 +127,7 @@ def _temporary_password_body(temp_password: str) -> str:
         "<li>Ce mot de passe expire dans 24 heures.</li>"
         "</ul>"
         "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
-        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+        "<p>Cordialement,<br>L'équipe Qeerah</p>"
     )
 
 
@@ -141,7 +141,7 @@ def _magic_link_body(reset_link: str) -> str:
         f'<p style="background:#f4f5f7;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;">{reset_link}</p>'
         "<p style=\"font-size:13px;color:#9a9ab0;\">Ce lien expire dans 24 heures. "
         "Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
-        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+        "<p>Cordialement,<br>L'équipe Qeerah</p>"
     )
 
 
@@ -151,7 +151,7 @@ def _password_changed_body() -> str:
         "<p>Votre mot de passe a bien été <strong>modifié avec succès</strong>.</p>"
         f"<p>Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement le support à "
         f'<a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;">{SUPPORT_EMAIL}</a>.</p>'
-        "<p>Cordialement,<br>L'équipe TikTok Shop Analyzer</p>"
+        "<p>Cordialement,<br>L'équipe Qeerah</p>"
     )
 
 
@@ -185,7 +185,7 @@ def _upsell_body(kind: str, unsubscribe_url: str) -> str:
     cta = _button("Voir les offres", APP_URL + "/#pricing")
     foot = (
         f'<p style="font-size:12px;color:#9a9ab0;margin-top:22px;">Tu reçois cet email car tu as un compte '
-        f'TikTok Shop Analyzer. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Se désinscrire des emails '
+        f'Qeerah. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Se désinscrire des emails '
         f'promotionnels</a>.</p>'
     )
     return intro + benefits + cta + foot
@@ -290,7 +290,7 @@ class EmailService:
         """Email de bienvenue après création de compte."""
         return await self._send(
             email,
-            "Bienvenue sur TikTok Shop Analyzer 🎉",
+            "Bienvenue sur Qeerah 🎉",
             _wrap("Bienvenue à bord 🎉", _welcome_body()),
         )
 
@@ -298,7 +298,7 @@ class EmailService:
         """Email contenant un mot de passe temporaire."""
         return await self._send(
             email,
-            "Réinitialisation de mot de passe — TikTok Shop Analyzer",
+            "Réinitialisation de mot de passe — Qeerah",
             _wrap("Réinitialisation de mot de passe", _temporary_password_body(temp_password)),
         )
 
@@ -306,7 +306,7 @@ class EmailService:
         """Email contenant un lien magique de réinitialisation."""
         return await self._send(
             email,
-            "Réinitialiser votre mot de passe — TikTok Shop Analyzer",
+            "Réinitialiser votre mot de passe — Qeerah",
             _wrap("Réinitialisation de mot de passe", _magic_link_body(reset_link)),
         )
 
@@ -314,7 +314,7 @@ class EmailService:
         """Confirmation après changement de mot de passe."""
         return await self._send(
             email,
-            "Votre mot de passe a été modifié — TikTok Shop Analyzer",
+            "Votre mot de passe a été modifié — Qeerah",
             _wrap("Mot de passe modifié", _password_changed_body()),
         )
 
