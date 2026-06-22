@@ -911,6 +911,11 @@ async def analyze_stream_sse(
             # PIPELINE PRO+ : Gemini Pro vidéo native (visuel + audio en un appel)
             # ════════════════════════════════════════════════════════════════
             if _use_native_pipeline and _video_upload is not None:
+                # Annonce d'attente DÈS LE DÉBUT (psychologiquement, le user
+                # accepte d'attendre s'il sait à quoi s'attendre).
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+
                 # Streaming UploadFile → fichier temporaire SANS jamais charger
                 # la vidéo entière en RAM (Render 512 MB → OOM sinon).
                 yield 'event: progress\n'
@@ -937,18 +942,23 @@ async def analyze_stream_sse(
                     return
 
                 import analysis_cache
-                # Hash construit pendant le streaming (pas de relecture du fichier)
-                cache_key = hasher.hexdigest()
-                cached = analysis_cache.get_cached(cache_key, pipeline="pro")
-                if cached:
-                    cached["usage"] = usage_info(user)
-                    cached["source"] = "upload"
-                    cached["from_cache"] = True
-                    yield 'event: progress\n'
-                    yield 'data: {"message": "\\u26a1 R\\u00e9sultat trouv\\u00e9 en cache", "stage": "cache_hit"}\n\n'
-                    yield 'event: complete\n'
-                    yield f'data: {json.dumps(cached)}\n\n'
-                    return
+                # On ne lit/écrit le cache QUE si l'utilisateur n'a pas fourni
+                # de product/price custom — sinon le résultat dépend de ses inputs,
+                # pas seulement du contenu vidéo (= risque de retourner le résultat
+                # d'un autre user qui avait analysé la même vidéo avec d'autres inputs).
+                can_cache = not product and not price
+                cache_key = hasher.hexdigest() if can_cache else None
+                if cache_key:
+                    cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+                    if cached:
+                        cached["usage"] = usage_info(user)
+                        cached["source"] = "upload"
+                        cached["from_cache"] = True
+                        yield 'event: progress\n'
+                        yield 'data: {"message": "\\u26a1 R\\u00e9sultat trouv\\u00e9 en cache", "stage": "cache_hit"}\n\n'
+                        yield 'event: complete\n'
+                        yield f'data: {json.dumps(cached)}\n\n'
+                        return
 
                 yield 'event: progress\n'
                 yield 'data: {"message": "\\ud83c\\udfac Pr\\u00e9paration de la vid\\u00e9o (720p)\\u2026", "stage": "downscale"}\n\n'
@@ -1043,10 +1053,11 @@ async def analyze_stream_sse(
                     if winning: result["structures_gagnantes"] = winning
                 except Exception: pass
 
-                # Cache store
-                try:
-                    analysis_cache.store(cache_key, result, pipeline="pro")
-                except Exception: pass
+                # Cache store (uniquement si pas de product/price custom)
+                if cache_key:
+                    try:
+                        analysis_cache.store(cache_key, result, pipeline="pro")
+                    except Exception: pass
 
                 yield 'event: complete\n'
                 yield f'data: {json.dumps(result)}\n\n'
@@ -1558,20 +1569,17 @@ async def analyze_url_stream(request: Request):
             yield 'event: start\n'
             yield 'data: {"message": "Analyse du lien en cours\\u2026"}\n\n'
 
-            # ── 0. Cache lookup avant téléchargement (gagne 100% du temps si hit) ──
+            # Annonce d'attente DÈS LE DÉBUT
+            yield 'event: progress\n'
+            yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+
+            # ── 0. Cache lookup ──
+            # Sur /analyze-url/stream, product et price sont OBLIGATOIRES (gate
+            # en amont). Donc le résultat dépend de ces inputs, pas seulement
+            # de la vidéo : on désactive le cache pour éviter qu'un user reçoive
+            # le résultat d'un autre user qui avait fourni d'autres inputs.
             import analysis_cache
-            cache_key = analysis_cache.hash_video_url(url)
-            cached = analysis_cache.get_cached(cache_key, pipeline="pro")
-            if cached:
-                cached["usage"] = usage_info(user)
-                cached["source"] = "url"
-                cached["source_url"] = url
-                cached["from_cache"] = True
-                yield 'event: progress\n'
-                yield 'data: {"message": "\\u26a1 R\\u00e9sultat trouv\\u00e9 en cache (analyse pr\\u00e9c\\u00e9dente)", "stage": "cache_hit"}\n\n'
-                yield 'event: complete\n'
-                yield f'data: {json.dumps(cached)}\n\n'
-                return
+            cache_key = None
 
             # 1. Téléchargement (keepalive pendant l'attente)
             yield 'event: progress\n'
@@ -1707,11 +1715,8 @@ async def analyze_url_stream(request: Request):
             result["usage"] = usage_info(user)
             result["analysis_duration_ms"] = dur
             result["from_cache"] = False
-            # Stocker en cache (URL identique → résultat instantané au prochain appel)
-            try:
-                analysis_cache.store(cache_key, result, pipeline="pro")
-            except Exception:
-                pass
+            # Pas de store en cache : product/price obligatoires sur cet endpoint
+            # donc le résultat est trop spécifique à l'utilisateur pour être partagé.
             try:
                 await save_to_cache(normalize_tiktok_url(url)[0], result, dur, product_id=product)
             except Exception:

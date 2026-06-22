@@ -28,7 +28,7 @@ from supabase_client import supabase_service
 logger = logging.getLogger(__name__)
 
 # Bump la version quand on change un prompt → invalide tout le cache d'un coup.
-PROMPT_VERSION = "v2-gemini-pro-claude-haiku"
+PROMPT_VERSION = "v3-gemini-pro-claude-haiku-strict-cache-key"
 
 
 def _normalize_tiktok_url(url: str) -> str:
