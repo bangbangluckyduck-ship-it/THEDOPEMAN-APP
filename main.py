@@ -911,7 +911,7 @@ async def analyze_stream_sse(
 
             async def _do_transcribe():
                 if not audio_path: return None
-                try: return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, audio_path), timeout=25.0)
+                try: return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, audio_path), timeout=120.0)
                 except asyncio.TimeoutError: return None
 
             async def _do_visual():
@@ -1106,15 +1106,22 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 _URL_ANALYSIS_TIERS = {"pro", "gold", "agency", "beta", "admin"}
 
 
-def _extract_frames_opencv(video_path: str, n_frames: int = 6) -> list[str]:
-    """Extrait n_frames réparties sur la durée de la vidéo → liste de base64 JPEG (sans préfixe)."""
+def _extract_frames_opencv(video_path: str, n_frames: int = 9) -> list[str]:
+    """Extrait n_frames échantillonnées en TEMPS RÉEL (pas en fractions) pour
+    capturer le hook (0-3s), le milieu, et surtout le CTA des 2 dernières secondes.
+
+    Le bug précédent : positions fractionnaires (...0.94) ratait systématiquement
+    la dernière seconde où apparaît le CTA visuel sur TikTok Shop."""
     import cv2
     import base64
     cap = cv2.VideoCapture(video_path)
     try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = (total / fps) if (total > 0 and fps > 0) else 0.0
         frames_b64: list[str] = []
-        if total <= 0:
+
+        if total <= 0 or duration <= 0:
             # Fallback : lecture séquentielle si le compteur de frames est indisponible
             ok, frame = cap.read()
             while ok and len(frames_b64) < n_frames:
@@ -1123,10 +1130,33 @@ def _extract_frames_opencv(video_path: str, n_frames: int = 6) -> list[str]:
                     frames_b64.append(base64.b64encode(buf).decode("utf-8"))
                 ok, frame = cap.read()
             return frames_b64
-        # Positions réparties (évite la toute 1ère et la toute dernière frame)
-        fractions = [0.05, 0.22, 0.40, 0.58, 0.76, 0.94][:n_frames]
-        for f in fractions:
-            idx = max(0, min(total - 1, int(total * f)))
+
+        # Timestamps absolus : hook (0-3s) + milieu + CTA (dernières 2s)
+        # Garantit qu'on capte le CTA même sur les vidéos très courtes ou longues.
+        timestamps: list[float] = []
+        # Hook : 0.5s, 1.5s, 2.5s (les 3 premières secondes = accroche)
+        for t in (0.5, 1.5, 2.5):
+            if t < duration:
+                timestamps.append(t)
+        # Milieu : 3 frames réparties entre 3s et (duration-2s)
+        mid_start = 3.0
+        mid_end = max(duration - 2.0, mid_start + 0.1)
+        if mid_end > mid_start:
+            for i in range(3):
+                timestamps.append(mid_start + (mid_end - mid_start) * i / 2)
+        # CTA : dernières 2 secondes — 3 frames pour maximiser la détection
+        for offset in (2.0, 1.0, 0.3):
+            t = duration - offset
+            if t > 0:
+                timestamps.append(t)
+
+        # Conversion timestamp → index de frame, dédupliqué et borné
+        seen_idx = set()
+        for t in timestamps:
+            idx = max(0, min(total - 1, int(t * fps)))
+            if idx in seen_idx:
+                continue
+            seen_idx.add(idx)
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ok, frame = cap.read()
             if not ok:
@@ -1134,6 +1164,8 @@ def _extract_frames_opencv(video_path: str, n_frames: int = 6) -> list[str]:
             success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if success:
                 frames_b64.append(base64.b64encode(buf).decode("utf-8"))
+            if len(frames_b64) >= n_frames:
+                break
         return frames_b64
     finally:
         cap.release()
@@ -1209,11 +1241,11 @@ async def analyze_url(request: Request):
 
         # ── 3. Extraction frames (OpenCV) + transcription, en parallèle ──
         async def _do_frames():
-            return await asyncio.wait_for(loop.run_in_executor(None, _extract_frames_opencv, video_path, 6), timeout=45.0)
+            return await asyncio.wait_for(loop.run_in_executor(None, _extract_frames_opencv, video_path, 9), timeout=45.0)
 
         async def _do_transcribe():
             try:
-                return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=40.0)
+                return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=120.0)
             except asyncio.TimeoutError:
                 return None
 
@@ -1373,11 +1405,13 @@ async def analyze_url_stream(request: Request):
             # 2. Frames + transcription (parallèle + keepalive)
             yield 'event: progress\n'
             yield 'data: {"message": "\\ud83c\\udf9e\\ufe0f Extraction images + transcription\\u2026", "stage": "frames"}\n\n'
-            frames_task = loop.run_in_executor(None, _extract_frames_opencv, video_path, 6)
+            frames_task = loop.run_in_executor(None, _extract_frames_opencv, video_path, 9)
 
             async def _do_tr():
                 try:
-                    return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=40.0)
+                    # Timeout étendu : 40s coupait les vidéos longues = transcript tronqué
+                    # = CTA audio raté. 120s couvre les TikTok Shop standard (60s max).
+                    return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=120.0)
                 except asyncio.TimeoutError:
                     return None
             tr_task = asyncio.create_task(_do_tr())
