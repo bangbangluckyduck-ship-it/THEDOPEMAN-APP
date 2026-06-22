@@ -5004,39 +5004,36 @@ function closeJobLaunchedModal() {
   document.getElementById('job-launched-overlay')?.remove();
 }
 
-// ── Page "Mes analyses" : liste avec polling auto ────────────────────────
+// ── Overlay "Mes analyses" : full-screen, sticky par-dessus tout l'UI ────
 function openMyAnalyses() {
-  // Crée la section si elle n'existe pas
-  let section = document.getElementById('my-analyses-section');
-  if (!section) {
-    section = document.createElement('div');
-    section.id = 'my-analyses-section';
-    section.style.cssText = 'padding:24px 20px;max-width:900px;margin:0 auto';
-    section.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-        <h1 style="margin:0;font-size:24px">📊 Mes analyses</h1>
-        <button onclick="closeMyAnalyses()" style="padding:8px 16px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer">← Retour</button>
-      </div>
-      <div id="my-analyses-list">Chargement…</div>`;
-    document.body.appendChild(section);
+  // Si déjà ouvert, on rafraîchit juste
+  let overlay = document.getElementById('my-analyses-overlay');
+  if (overlay) {
+    loadMyAnalyses();
+    return;
   }
-  section.style.display = 'block';
-  // Cache les autres sections principales pour ne pas avoir un mélange visuel
-  ['upload-section','loading-section','results-section'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.dataset._prevDisplay = el.style.display || ''; el.style.display = 'none'; }
-  });
+  overlay = document.createElement('div');
+  overlay.id = 'my-analyses-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg,#0a0a0a);z-index:9998;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  overlay.innerHTML = `
+    <div style="position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:1">
+      <h1 style="margin:0;font-size:18px;font-weight:700">📊 Mes analyses</h1>
+      <button onclick="closeMyAnalyses()" type="button" style="padding:8px 14px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-weight:600">← Retour</button>
+    </div>
+    <div style="padding:18px 16px;max-width:900px;margin:0 auto">
+      <div id="my-analyses-list" style="min-height:120px">Chargement…</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Empêche le scroll du body sous l'overlay (iOS)
+  document.body.style.overflow = 'hidden';
   loadMyAnalyses();
   startJobsPolling();
 }
 
 function closeMyAnalyses() {
-  const section = document.getElementById('my-analyses-section');
-  if (section) section.style.display = 'none';
-  ['upload-section','loading-section','results-section'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.dataset._prevDisplay !== undefined) el.style.display = el.dataset._prevDisplay;
-  });
+  const overlay = document.getElementById('my-analyses-overlay');
+  if (overlay) overlay.remove();
+  document.body.style.overflow = '';
   stopJobsPolling();
 }
 
@@ -5113,7 +5110,8 @@ async function openJobResult(jobId) {
 function startJobsPolling() {
   stopJobsPolling();
   _jobsPollTimer = setInterval(() => {
-    if (document.getElementById('my-analyses-section')?.style.display === 'block') {
+    // Tant que l'overlay est dans le DOM, on continue de poller
+    if (document.getElementById('my-analyses-overlay')) {
       loadMyAnalyses();
     } else {
       stopJobsPolling();
