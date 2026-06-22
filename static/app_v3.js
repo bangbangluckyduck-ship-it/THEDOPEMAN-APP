@@ -859,11 +859,16 @@ function showAuthMenu(e) {
   `;
 
   const meEmail = (typeof SESSION !== 'undefined' && SESSION && SESSION.email) || '';
+  const _tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  const _isPaid = ['pro','gold','agency','beta','admin'].includes(_tier);
   menu.innerHTML = `
     ${meEmail ? `<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(meEmail)}</div>` : ''}
     <button onclick="switchTab('account'); closeAuthMenu(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       👤 Mon compte
     </button>
+    ${_isPaid ? `<button onclick="closeAuthMenu(); openMyAnalyses(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      📊 Mes analyses
+    </button>` : ''}
     <button onclick="window.logout(); return false" style="width:100%;display:block;text-align:left;padding:13px 16px;color:var(--danger);background:transparent;border:none;font-size:14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
       🚪 Se déconnecter
     </button>
@@ -955,12 +960,12 @@ function fetchUserInfo() {
       window.__userInfo = data;
       updateTierBadge(data);
       try { renderProgressionChart(); } catch (e) {}   // re-render avec le bon tier
-      // Affiche les boutons async (Mes analyses + Lancer en arrière-plan) si Pro+
+      // Affiche le bouton "Lancer en arrière-plan" (upload) si Pro+ (le bouton
+      // URL est déjà dans la section Pro+ donc visible directement).
+      // "Mes analyses" est dans le menu burger (rendu dans openAuthMenu).
       try {
         const tier = (data?.tier || 'free').toLowerCase();
         const isPaid = ['pro','gold','agency','beta','admin'].includes(tier);
-        const myBtn = document.getElementById('my-analyses-btn');
-        if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
         const uploadAsync = document.getElementById('analyze-upload-async-btn');
         if (uploadAsync) uploadAsync.style.display = isPaid ? 'block' : 'none';
       } catch (e) {}
