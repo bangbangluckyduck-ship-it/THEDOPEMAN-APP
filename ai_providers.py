@@ -156,7 +156,18 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
 
     video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
-    cfg = gt.GenerateContentConfig(temperature=temperature) if temperature is not None else None
+
+    # Config : temperature=0 + thinking désactivé (gemini-2.5-pro "thinking" est
+    # activé par défaut → +30-60s de latence ET non-déterministe même à T=0).
+    # Pour notre cas d'usage (extraction structurée JSON), thinking n'apporte rien.
+    cfg_kwargs = {}
+    if temperature is not None:
+        cfg_kwargs["temperature"] = temperature
+    try:
+        cfg_kwargs["thinking_config"] = gt.ThinkingConfig(thinking_budget=0)
+    except Exception:
+        pass  # Si l'API ne supporte pas ThinkingConfig sur ce modèle, on l'ignore
+    cfg = gt.GenerateContentConfig(**cfg_kwargs) if cfg_kwargs else None
     resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
     return resp.text or ""
 
