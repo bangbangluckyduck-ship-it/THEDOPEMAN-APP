@@ -1283,6 +1283,11 @@
       <span class="cp-ico">💎</span><span id="credit-count">–</span>
       <span class="cp-plus" aria-label="Recharger">+</span>
     </button>
+    <button id="my-analyses-btn" type="button" title="Mes analyses"
+            onclick="openMyAnalyses()"
+            style="display:none;padding:6px 12px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:999px;font-size:13px;cursor:pointer;font-weight:600">
+      📊 Mes analyses
+    </button>
     <span class="auth-status" id="auth-status">
       <span id="user-email">Gratuit</span>
       <span id="user-tier-badge" style="display:none;margin-left:8px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;color:#fff"></span>
@@ -1403,6 +1408,14 @@
         🚀 Analyser avec l'IA
       </button>
 
+      <!-- Bouton async : Pro+ uniquement (caché si tier=free, montré par JS si éligible) -->
+      <button type="button" id="analyze-upload-async-btn" data-async-upload
+              onclick="analyzeUploadAsync()" disabled
+              class="btn btn-block"
+              style="display:none;margin-top:10px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-weight:600">
+        ⏱️ Lancer en arrière-plan (fermer l'onglet possible)
+      </button>
+
       <!-- ── Analyse 1 lien TikTok (Pro et +) — affichage dynamique ── -->
       <div style="display:flex;align-items:center;gap:10px;margin:20px 0 14px;color:var(--muted);font-size:12px">
         <span style="flex:1;height:1px;background:var(--border)"></span>OU PAR LIEN<span style="flex:1;height:1px;background:var(--border)"></span>
@@ -1429,6 +1442,12 @@
         <p style="font-size:12px;color:var(--muted);margin-top:6px">⭐ Nom du produit + prix <b>obligatoires</b> pour fiabiliser l'analyse prix/conversion.</p>
         <button class="btn btn-primary btn-block" id="analyze-url-single-btn" style="margin-top:10px">
           🔗 Analyser ce lien
+        </button>
+        <button type="button" data-async-submit
+                onclick="analyzeUrlAsync()"
+                class="btn btn-block"
+                style="margin-top:8px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-weight:600">
+          ⏱️ Lancer en arrière-plan (fermer l'onglet possible)
         </button>
       </div>
 

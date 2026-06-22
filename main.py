@@ -99,6 +99,15 @@ except Exception as e:
 
 generate_icons()
 
+# Nettoyage des jobs orphelins au démarrage : si Render a redéployé pendant
+# qu'un job était en cours, le worker a été tué → le job reste "running"
+# pour l'éternité. On marque "error" tous les jobs running depuis >10 min.
+try:
+    import analysis_jobs as _aj_startup
+    _aj_startup.cleanup_stale_running(timeout_minutes=10)
+except Exception as _e_startup:
+    print(f"[startup] cleanup_stale_running KO: {_e_startup}")
+
 app = FastAPI(title="Qeerah")
 
 # --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
@@ -1758,6 +1767,142 @@ async def analyze_url_stream(request: Request):
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ANALYSE ASYNCHRONE (Pro+) — soumets, ferme l'onglet, reviens voir le résultat
+# ════════════════════════════════════════════════════════════════════════════
+# Architecture : POST /api/jobs/create renvoie un job_id immédiatement, le
+# traitement tourne en background (asyncio.create_task), le frontend poll
+# GET /api/jobs/{id} jusqu'à status='done' ou 'error'.
+# Sécurité : ownership vérifiée à chaque GET/list par user_email.
+
+
+@app.post("/api/jobs/create-url")
+async def jobs_create_url(request: Request):
+    """Crée un job d'analyse à partir d'une URL TikTok. Renvoie {job_id}."""
+    if not ai_providers.any_ai_key():
+        raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
+    user = get_user_from_request(request)
+    tier = user.get("tier", "free")
+    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+        raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
+    check_quota(user)
+
+    body = await request.json()
+    url = (body.get("url") or "").strip()
+    product = (body.get("product") or "").strip() or None
+    price = (body.get("price") or "").strip() or None
+    if not url or not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+    if not product or not price:
+        raise HTTPException(status_code=422, detail="Le nom du produit et le prix sont obligatoires.")
+
+    import analysis_jobs as _jobs
+    import analysis_runner as _runner
+    title = f"{product[:40]}" if product else "Analyse vidéo"
+    job_id = _jobs.create_job(
+        user_email=user["email"], source="url", source_url=url,
+        product=product, price=price, title=title,
+    )
+    if not job_id:
+        raise HTTPException(status_code=500, detail="Impossible de créer le job (Supabase indisponible).")
+
+    # Quota déduit dès la création (sinon spam possible avant fin du job)
+    if user["valid"]:
+        increment_usage(user["email"])
+
+    # Lance le traitement en background (continue après le return de l'endpoint)
+    asyncio.create_task(_runner.process_url_job(
+        job_id=job_id, url=url, product=product, price=price,
+        user_tier=tier, user_email=user["email"],
+    ))
+    return JSONResponse({"job_id": job_id, "status": "queued"})
+
+
+@app.post("/api/jobs/create-upload")
+async def jobs_create_upload(
+    request: Request,
+    video: UploadFile = File(...),
+    product: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+):
+    """Crée un job d'analyse à partir d'un upload vidéo. Renvoie {job_id}."""
+    if not ai_providers.any_ai_key():
+        raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
+    user = get_user_from_request(request)
+    tier = user.get("tier", "free")
+    if not user.get("valid") or tier not in {"pro", "gold", "agency", "beta", "admin"}:
+        raise HTTPException(status_code=403, detail="L'analyse asynchrone est réservée aux plans Pro, Gold et Agency.")
+    check_quota(user)
+
+    # Stream → bytes en mémoire (les vidéos TikTok font 5-30 MB, OK sous 512 MB
+    # Render pour le temps du job. Si problème, alternative = sauver d'abord en
+    # tmpfile puis passer le path au worker plutôt que les bytes).
+    import hashlib
+    hasher = hashlib.sha256()
+    chunks: list[bytes] = []
+    try:
+        while True:
+            chunk = await video.read(1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            hasher.update(chunk)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Lecture vidéo échouée : {str(e)[:200]}")
+    video_bytes = b"".join(chunks)
+    if not video_bytes:
+        raise HTTPException(status_code=400, detail="Fichier vidéo vide.")
+    video_hash = hasher.hexdigest()
+
+    p = (product or "").strip() or None
+    pr = (price or "").strip() or None
+
+    import analysis_jobs as _jobs
+    import analysis_runner as _runner
+    title = (p or (video.filename or "Vidéo uploadée"))[:60]
+    job_id = _jobs.create_job(
+        user_email=user["email"], source="upload",
+        product=p, price=pr, video_hash=video_hash, title=title,
+    )
+    if not job_id:
+        raise HTTPException(status_code=500, detail="Impossible de créer le job.")
+
+    if user["valid"]:
+        increment_usage(user["email"])
+
+    asyncio.create_task(_runner.process_upload_job(
+        job_id=job_id, video_bytes=video_bytes, product=p, price=pr,
+        user_tier=tier, user_email=user["email"], video_hash=video_hash,
+    ))
+    return JSONResponse({"job_id": job_id, "status": "queued"})
+
+
+@app.get("/api/jobs/{job_id}")
+async def jobs_get(job_id: str, request: Request):
+    """Status + résultat d'un job. Ownership vérifiée par user_email."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    import analysis_jobs as _jobs
+    job = _jobs.get_job(job_id, user_email=user["email"])
+    if not job:
+        raise HTTPException(status_code=404, detail="Job introuvable ou ne vous appartient pas.")
+    # On ne retourne pas le video_hash brut (interne)
+    job.pop("video_hash", None)
+    return JSONResponse(job)
+
+
+@app.get("/api/jobs")
+async def jobs_list(request: Request, limit: int = 20):
+    """Historique des N derniers jobs de l'utilisateur connecté."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    import analysis_jobs as _jobs
+    limit = max(1, min(int(limit or 20), 100))
+    return JSONResponse({"jobs": _jobs.list_user_jobs(user["email"], limit=limit)})
 
 
 # ════════════════════════════════════════════════════════════════════════════

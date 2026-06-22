@@ -24,7 +24,7 @@ import httpx
 
 # IDs modèles (overridables par env, sans redéploiement)
 GEMINI_VISION_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-GEMINI_VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-2.5-flash")  # vidéo native (audio + visuel) — Flash : 3-5× plus rapide que Pro, qualité suffisante pour extraction JSON structurée
+GEMINI_VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-2.5-pro")  # vidéo native (audio + visuel) — Pro pour qualité max, OK car en mode async la latence n'est plus visible par l'utilisateur
 CLAUDE_TEXT_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
 CLAUDE_HAIKU_MODEL = os.getenv("CLAUDE_HAIKU_MODEL", "claude-haiku-4-5-20251001")
 MISTRAL_VISION_MODEL = "pixtral-12b-2409"
