@@ -882,16 +882,7 @@ async def analyze_stream_sse(
     _paid_tiers = {"pro", "gold", "agency", "beta", "admin"}
     _user_tier = user.get("tier", "free")
     _use_native_pipeline = (_user_tier in _paid_tiers) and (video is not None)
-
-    # On lit la vidéo en mémoire AVANT le stream (UploadFile ne survit pas au yield).
-    video_bytes: Optional[bytes] = None
-    if _use_native_pipeline and video is not None:
-        try:
-            video_bytes = await video.read()
-            if not video_bytes:
-                _use_native_pipeline = False
-        except Exception:
-            _use_native_pipeline = False
+    _video_upload = video  # référence conservée pour lecture DANS le stream
 
     async def stream_analysis():
         loop = asyncio.get_event_loop()
@@ -919,7 +910,23 @@ async def analyze_stream_sse(
             # ════════════════════════════════════════════════════════════════
             # PIPELINE PRO+ : Gemini Pro vidéo native (visuel + audio en un appel)
             # ════════════════════════════════════════════════════════════════
-            if _use_native_pipeline and video_bytes:
+            if _use_native_pipeline and _video_upload is not None:
+                # Lecture de la vidéo APRÈS les premiers yields → le browser
+                # reçoit déjà du SSE et ne déclenche pas "pas de données reçues".
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\ud83d\\udce4 R\\u00e9ception de la vid\\u00e9o\\u2026", "stage": "video_upload"}\n\n'
+                try:
+                    video_bytes = await _video_upload.read()
+                except Exception as e:
+                    yield 'event: error\n'
+                    _err = "Lecture vidéo échouée : " + str(e)[:200]
+                    yield f'data: {json.dumps({"error": _err})}\n\n'
+                    return
+                if not video_bytes:
+                    yield 'event: error\n'
+                    yield 'data: {"error": "Fichier vid\\u00e9o vide."}\n\n'
+                    return
+
                 import analysis_cache
                 # Cache lookup par hash du contenu vidéo
                 cache_key = analysis_cache.hash_video_bytes(video_bytes)
