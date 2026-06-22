@@ -1815,7 +1815,7 @@ async def jobs_create_url(request: Request):
     # Lance le traitement en background (continue après le return de l'endpoint)
     asyncio.create_task(_runner.process_url_job(
         job_id=job_id, url=url, product=product, price=price,
-        user_tier=tier, user_email=user["email"],
+        user_tier=tier, user_email=user["email"], job_title=title,
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
@@ -1875,6 +1875,7 @@ async def jobs_create_upload(
     asyncio.create_task(_runner.process_upload_job(
         job_id=job_id, video_bytes=video_bytes, product=p, price=pr,
         user_tier=tier, user_email=user["email"], video_hash=video_hash,
+        job_title=title,
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
