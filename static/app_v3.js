@@ -5091,14 +5091,22 @@ async function openJobResult(jobId) {
       showError("Cette analyse n'est pas encore prête.");
       return;
     }
-    // Réutilise le renderer de résultat existant si dispo
     closeMyAnalyses();
-    if (typeof renderResults === 'function') {
-      renderResults(job.result);
-    } else if (typeof displayResults === 'function') {
-      displayResults(job.result);
+    // Bascule sur l'onglet Analyser, masque upload, montre les sections résultat
+    try { switchTab('analyze'); } catch (_) {}
+    const upSec = document.getElementById('upload-section');
+    if (upSec) upSec.style.display = 'none';
+    const loadSec = document.getElementById('loading-section');
+    if (loadSec) loadSec.style.display = 'none';
+    // Render via la fonction existante (même chemin que le flow sync)
+    if (typeof showResults === 'function') {
+      showResults(job.result);
+      // Scroll vers le résultat
+      setTimeout(() => {
+        const target = document.getElementById('results-section');
+        if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } else {
-      // Fallback : affichage brut
       const c = document.getElementById('analysis-container') || document.body;
       c.innerHTML = '<pre style="padding:20px;overflow:auto;font-size:12px">' + escapeHtml(JSON.stringify(job.result, null, 2)) + '</pre>';
     }
