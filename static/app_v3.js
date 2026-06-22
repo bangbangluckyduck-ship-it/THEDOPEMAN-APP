@@ -955,6 +955,15 @@ function fetchUserInfo() {
       window.__userInfo = data;
       updateTierBadge(data);
       try { renderProgressionChart(); } catch (e) {}   // re-render avec le bon tier
+      // Affiche les boutons async (Mes analyses + Lancer en arrière-plan) si Pro+
+      try {
+        const tier = (data?.tier || 'free').toLowerCase();
+        const isPaid = ['pro','gold','agency','beta','admin'].includes(tier);
+        const myBtn = document.getElementById('my-analyses-btn');
+        if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
+        const uploadAsync = document.getElementById('analyze-upload-async-btn');
+        if (uploadAsync) uploadAsync.style.display = isPaid ? 'block' : 'none';
+      } catch (e) {}
       return data;
     })
     .catch(() => null);
@@ -1301,6 +1310,9 @@ function setFile(f) {
   tag.textContent = `📎 ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} Mo)`;
   tag.style.display = 'block';
   document.getElementById('analyze-btn').disabled = false;
+  // Active aussi le bouton async si user Pro+ (sinon il reste caché)
+  const asyncBtn = document.getElementById('analyze-upload-async-btn');
+  if (asyncBtn) asyncBtn.disabled = false;
 }
 
 document.getElementById('analyze-btn').addEventListener('click', analyzeVideo);
@@ -2828,6 +2840,8 @@ function resetAnalysis() {
   document.getElementById('file-tag').style.display           = 'none';
   document.getElementById('video-file').value                 = '';
   document.getElementById('analyze-btn').disabled             = true;
+  const _asyncBtn = document.getElementById('analyze-upload-async-btn');
+  if (_asyncBtn) _asyncBtn.disabled = true;
   document.getElementById('transcript-section').style.display       = 'none';
   document.getElementById('verdict-section').style.display           = 'none';
   document.getElementById('structure-vente-section').style.display   = 'none';
@@ -4884,3 +4898,232 @@ function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return String(text == null ? '' : text).replace(/[&<>"']/g, m => map[m]);
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// ANALYSE ASYNCHRONE (Pro+) — submit, ferme l'onglet, reviens voir le résultat
+// ════════════════════════════════════════════════════════════════════════════
+const _AUTH_HEADER = () => ({ 'Authorization': 'Bearer ' + (localStorage.getItem('tts_token') || '') });
+let _jobsPollTimer = null;
+
+// ── Lancement async d'une analyse par URL ────────────────────────────────
+async function analyzeUrlAsync() {
+  const input = document.getElementById('tiktok-url-single');
+  const url = input ? input.value.trim() : '';
+  if (!url) { showError('Colle un lien TikTok.'); return; }
+  if (!/tiktok\.com|vt\.tiktok|vm\.tiktok/i.test(url)) { showError('Lien TikTok invalide.'); return; }
+
+  const product = (document.getElementById('single-product')?.value || '').trim();
+  const price = (document.getElementById('single-price')?.value || '').trim();
+  if (!product) { showError('⭐ Indique le nom du produit (obligatoire pour le lien).'); return; }
+  if (!price) { showError('⭐ Indique le prix (obligatoire pour le lien).'); return; }
+
+  const submitBtn = document.querySelector('[data-async-submit]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const res = await fetch('/api/jobs/create-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ..._AUTH_HEADER() },
+      body: JSON.stringify({ url, product, price }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(t || ('HTTP ' + res.status));
+    }
+    const data = await res.json();
+    showJobLaunchedModal(data.job_id);
+  } catch (e) {
+    showError('Lancement échoué : ' + (e.message || e));
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+// ── Lancement async d'une analyse par upload ─────────────────────────────
+async function analyzeUploadAsync() {
+  if (!selectedFile) { showError('Choisis une vidéo.'); return; }
+  const product = (document.getElementById('product-input')?.value || '').trim();
+  const price = (document.getElementById('price-input')?.value || '').trim();
+
+  const fd = new FormData();
+  fd.append('video', selectedFile, selectedFile.name || 'video.mp4');
+  if (product) fd.append('product', product);
+  if (price) fd.append('price', price);
+
+  const submitBtn = document.querySelector('[data-async-upload]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const res = await fetch('/api/jobs/create-upload', {
+      method: 'POST',
+      headers: _AUTH_HEADER(),  // pas de Content-Type — FormData s'en charge
+      body: fd,
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(t || ('HTTP ' + res.status));
+    }
+    const data = await res.json();
+    showJobLaunchedModal(data.job_id);
+  } catch (e) {
+    showError('Lancement échoué : ' + (e.message || e));
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+// ── Modal "job lancé" : rassure l'utilisateur ────────────────────────────
+function showJobLaunchedModal(jobId) {
+  // Stocke le dernier job_id lancé pour pouvoir le retrouver facilement
+  try { localStorage.setItem('tts_last_job_id', jobId); } catch (_) {}
+  const html = `
+    <div id="job-launched-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:#1a1a2e;color:#fff;border:1px solid rgba(212,175,55,0.4);border-radius:16px;padding:32px;max-width:480px;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">✅</div>
+        <h2 style="margin:0 0 12px;font-size:22px">Analyse lancée !</h2>
+        <p style="margin:0 0 20px;line-height:1.6;color:rgba(255,255,255,0.85)">
+          Tu peux <strong>fermer cet onglet</strong> ou continuer sur le site.<br>
+          On t'avertit dès que c'est prêt dans <strong>Mes analyses</strong>.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          <button onclick="closeJobLaunchedModal();openMyAnalyses();" style="padding:12px 20px;background:#d4af37;color:#000;border:none;border-radius:10px;font-weight:700;cursor:pointer">📊 Voir Mes analyses</button>
+          <button onclick="closeJobLaunchedModal()" style="padding:12px 20px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:10px;cursor:pointer">Continuer</button>
+        </div>
+      </div>
+    </div>`;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function closeJobLaunchedModal() {
+  document.getElementById('job-launched-overlay')?.remove();
+}
+
+// ── Page "Mes analyses" : liste avec polling auto ────────────────────────
+function openMyAnalyses() {
+  // Crée la section si elle n'existe pas
+  let section = document.getElementById('my-analyses-section');
+  if (!section) {
+    section = document.createElement('div');
+    section.id = 'my-analyses-section';
+    section.style.cssText = 'padding:24px 20px;max-width:900px;margin:0 auto';
+    section.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h1 style="margin:0;font-size:24px">📊 Mes analyses</h1>
+        <button onclick="closeMyAnalyses()" style="padding:8px 16px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer">← Retour</button>
+      </div>
+      <div id="my-analyses-list">Chargement…</div>`;
+    document.body.appendChild(section);
+  }
+  section.style.display = 'block';
+  // Cache les autres sections principales pour ne pas avoir un mélange visuel
+  ['upload-section','loading-section','results-section'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.dataset._prevDisplay = el.style.display || ''; el.style.display = 'none'; }
+  });
+  loadMyAnalyses();
+  startJobsPolling();
+}
+
+function closeMyAnalyses() {
+  const section = document.getElementById('my-analyses-section');
+  if (section) section.style.display = 'none';
+  ['upload-section','loading-section','results-section'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.dataset._prevDisplay !== undefined) el.style.display = el.dataset._prevDisplay;
+  });
+  stopJobsPolling();
+}
+
+async function loadMyAnalyses() {
+  const container = document.getElementById('my-analyses-list');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/jobs?limit=30', { headers: _AUTH_HEADER() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderJobsList(data.jobs || []);
+  } catch (e) {
+    container.innerHTML = `<div style="padding:20px;border:1px solid var(--border);border-radius:10px;color:var(--muted)">Impossible de charger l'historique : ${escapeHtml(e.message || e)}</div>`;
+  }
+}
+
+function renderJobsList(jobs) {
+  const container = document.getElementById('my-analyses-list');
+  if (!container) return;
+  if (!jobs.length) {
+    container.innerHTML = `<div style="padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px">Aucune analyse pour le moment.<br>Lance ta première vidéo depuis l'écran d'accueil.</div>`;
+    return;
+  }
+  const statusBadge = (s) => {
+    if (s === 'queued')  return '<span style="background:rgba(120,120,120,0.2);color:#aaa;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600">🕐 En file</span>';
+    if (s === 'running') return '<span style="background:rgba(212,175,55,0.15);color:#d4af37;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600">⚙️ En cours</span>';
+    if (s === 'done')    return '<span style="background:rgba(46,204,113,0.15);color:#2ecc71;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600">✅ Prête</span>';
+    if (s === 'error')   return '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600">❌ Erreur</span>';
+    return '<span style="color:var(--muted)">' + escapeHtml(s) + '</span>';
+  };
+  const fmtDate = (s) => {
+    if (!s) return '';
+    try { return new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+    catch (_) { return s; }
+  };
+  container.innerHTML = jobs.map(j => `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:var(--surface);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:700;margin-bottom:4px">${escapeHtml(j.title || j.source_url || '(sans titre)')}</div>
+        <div style="font-size:12px;color:var(--muted)">${escapeHtml(j.source || '')} · ${fmtDate(j.created_at)}${j.duration_ms ? ' · ' + Math.round(j.duration_ms/1000) + 's' : ''}</div>
+        ${j.error_message ? `<div style="font-size:12px;color:#e74c3c;margin-top:4px">${escapeHtml(j.error_message)}</div>` : ''}
+      </div>
+      <div>${statusBadge(j.status)}</div>
+      ${j.status === 'done' ? `<button onclick="openJobResult('${j.id}')" style="padding:8px 14px;background:#d4af37;color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700">Voir →</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function openJobResult(jobId) {
+  try {
+    const res = await fetch('/api/jobs/' + encodeURIComponent(jobId), { headers: _AUTH_HEADER() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const job = await res.json();
+    if (job.status !== 'done' || !job.result) {
+      showError("Cette analyse n'est pas encore prête.");
+      return;
+    }
+    // Réutilise le renderer de résultat existant si dispo
+    closeMyAnalyses();
+    if (typeof renderResults === 'function') {
+      renderResults(job.result);
+    } else if (typeof displayResults === 'function') {
+      displayResults(job.result);
+    } else {
+      // Fallback : affichage brut
+      const c = document.getElementById('analysis-container') || document.body;
+      c.innerHTML = '<pre style="padding:20px;overflow:auto;font-size:12px">' + escapeHtml(JSON.stringify(job.result, null, 2)) + '</pre>';
+    }
+  } catch (e) {
+    showError('Impossible de charger le résultat : ' + (e.message || e));
+  }
+}
+
+function startJobsPolling() {
+  stopJobsPolling();
+  _jobsPollTimer = setInterval(() => {
+    if (document.getElementById('my-analyses-section')?.style.display === 'block') {
+      loadMyAnalyses();
+    } else {
+      stopJobsPolling();
+    }
+  }, 5000);
+}
+
+function stopJobsPolling() {
+  if (_jobsPollTimer) { clearInterval(_jobsPollTimer); _jobsPollTimer = null; }
+}
+
+// Expose globalement pour les onclick HTML
+window.analyzeUrlAsync = analyzeUrlAsync;
+window.analyzeUploadAsync = analyzeUploadAsync;
+window.openMyAnalyses = openMyAnalyses;
+window.closeMyAnalyses = closeMyAnalyses;
+window.closeJobLaunchedModal = closeJobLaunchedModal;
+window.openJobResult = openJobResult;
