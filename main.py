@@ -957,7 +957,7 @@ async def analyze_stream_sse(
 
                 analysis_start = time.time()
                 yield 'event: progress\n'
-                yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision"}\n\n'
+                yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
 
                 from analyzer import analyze_video_native
                 vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
@@ -1626,7 +1626,7 @@ async def analyze_url_stream(request: Request):
 
             # 3. Gemini Pro vidéo native : visuel + audio en un seul appel
             yield 'event: progress\n'
-            yield 'data: {"message": "\\ud83c\\udfa5 Gemini Pro analyse la vid\\u00e9o (image + audio)\\u2026", "stage": "vision"}\n\n'
+            yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie de la vid\\u00e9o (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
             from analyzer import analyze_video_native
             vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
             _w = 0.0

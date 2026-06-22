@@ -135,6 +135,25 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     # starter = 512 MB RAM, on doit éviter `f.read()` sur des fichiers vidéo qui
     # font 10-30 MB et risquent l'OOM quand combinés au reste de l'app).
     uploaded = client.files.upload(file=video_path, config={"mime_type": "video/mp4"})
+
+    # Attente du passage à l'état ACTIVE — Google a besoin de quelques secondes
+    # pour traiter la vidéo après upload. Sans ça, generate_content renvoie
+    # 400 FAILED_PRECONDITION "File X is not in an ACTIVE state".
+    import time as _t
+    _wait = 0
+    while True:
+        state = getattr(uploaded, "state", None)
+        state_name = getattr(state, "name", str(state)) if state else "UNKNOWN"
+        if state_name == "ACTIVE":
+            break
+        if state_name == "FAILED":
+            raise Exception("Gemini Files API : traitement vidéo échoué")
+        if _wait >= 60:
+            raise Exception(f"Gemini Files API : timeout (état toujours {state_name} après 60s)")
+        _t.sleep(2)
+        _wait += 2
+        uploaded = client.files.get(name=uploaded.name)
+
     video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
     cfg = gt.GenerateContentConfig(temperature=temperature) if temperature is not None else None
