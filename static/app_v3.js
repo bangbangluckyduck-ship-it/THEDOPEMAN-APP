@@ -1417,7 +1417,7 @@ async function analyzeVideo() {
     // Annonce d'attente affichée IMMÉDIATEMENT (avant l'upload du fichier qui
     // peut prendre 5-15s sur connexion lente) → l'utilisateur sait à quoi
     // s'attendre dès la 1re seconde.
-    setLoadingInfo("L'analyse Pro prend généralement 1 à 2 minutes — c'est le prix d'une analyse vraiment précise.");
+    setLoadingInfo("L'analyse Pro prend généralement 30 à 60 secondes — on traite ta vidéo (image + audio + détection CTA) pour une analyse fiable.");
     const fd = new FormData();
     fd.append('frames', JSON.stringify(frames));
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
@@ -1591,7 +1591,7 @@ async function analyzeSingleUrl() {
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
   setLoadingText('🔗 Analyse du lien…');
-  setLoadingInfo("L'analyse Pro prend généralement 1 à 2 minutes — c'est le prix d'une analyse vraiment précise.");
+  setLoadingInfo("L'analyse Pro prend généralement 30 à 60 secondes — on traite ta vidéo (image + audio + détection CTA) pour une analyse fiable.");
 
   try {
     const res = await fetch('/analyze-url/stream', {

@@ -914,7 +914,7 @@ async def analyze_stream_sse(
                 # Annonce d'attente DÈS LE DÉBUT (psychologiquement, le user
                 # accepte d'attendre s'il sait à quoi s'attendre).
                 yield 'event: progress\n'
-                yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+                yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
 
                 # Streaming UploadFile → fichier temporaire SANS jamais charger
                 # la vidéo entière en RAM (Render 512 MB → OOM sinon).
@@ -967,7 +967,7 @@ async def analyze_stream_sse(
 
                 analysis_start = time.time()
                 yield 'event: progress\n'
-                yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+                yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
 
                 from analyzer import analyze_video_native
                 vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
@@ -1571,7 +1571,7 @@ async def analyze_url_stream(request: Request):
 
             # Annonce d'attente DÈS LE DÉBUT
             yield 'event: progress\n'
-            yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+            yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
 
             # ── 0. Cache lookup ──
             # Sur /analyze-url/stream, product et price sont OBLIGATOIRES (gate
@@ -1634,7 +1634,7 @@ async def analyze_url_stream(request: Request):
 
             # 3. Gemini Pro vidéo native : visuel + audio en un seul appel
             yield 'event: progress\n'
-            yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie de la vid\\u00e9o (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 1 \\u00e0 2 minutes \\u2014 c\'est le prix d\'une analyse vraiment pr\\u00e9cise."}\n\n'
+            yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie de la vid\\u00e9o (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
             from analyzer import analyze_video_native
             vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
             _w = 0.0
