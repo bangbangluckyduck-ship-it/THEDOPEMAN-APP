@@ -74,9 +74,22 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 # Mapping price_id Stripe → tier interne (rempli via env Render une fois les prix créés)
 STRIPE_PRICE_TO_TIER: dict[str, str] = {
-    os.getenv("STRIPE_PRICE_PRO", ""):    "pro",
-    os.getenv("STRIPE_PRICE_GOLD", ""):   "gold",
-    os.getenv("STRIPE_PRICE_AGENCY", ""): "agency",
+    p: tier
+    for p, tier in [
+        (os.getenv("STRIPE_PRICE_PRO", ""),              "pro"),
+        (os.getenv("STRIPE_PRICE_PRO_YEAR", ""),         "pro"),
+        (os.getenv("STRIPE_PRICE_PRO_999", ""),          "pro"),
+        (os.getenv("STRIPE_PRICE_PRO_999_YEAR", ""),     "pro"),
+        (os.getenv("STRIPE_PRICE_PRO_1199", ""),         "pro"),
+        (os.getenv("STRIPE_PRICE_PRO_1199_YEAR", ""),    "pro"),
+        (os.getenv("STRIPE_PRICE_GOLD", ""),             "gold"),
+        (os.getenv("STRIPE_PRICE_GOLD_YEAR", ""),        "gold"),
+        (os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),      "gold"),
+        (os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", ""), "gold"),
+        (os.getenv("STRIPE_PRICE_AGENCY", ""),           "agency"),
+        (os.getenv("STRIPE_PRICE_AGENCY_YEAR", ""),      "agency"),
+    ]
+    if p  # exclut les clés vides
 }
 try:
     supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -86,7 +99,7 @@ except Exception as e:
 
 generate_icons()
 
-app = FastAPI(title="TikTok Shop Analyzer")
+app = FastAPI(title="Qeerah")
 
 # --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
 ANALYSIS_SEMAPHORE = asyncio.Semaphore(1)
@@ -2566,12 +2579,12 @@ async def request_testimonial_email(request: Request):
         link = f"{app_url}/avis?nom={quote((user.get('name') or email.split('@')[0]))}"
         html = f"""<div style="font-family:sans-serif;max-width:520px;margin:auto">
           <h2>Ton avis compte 🙏</h2>
-          <p>Tu utilises TTS Analyzer depuis quelques analyses — ça nous aiderait énormément que tu partages ton retour.</p>
+          <p>Tu utilises Qeerah depuis quelques analyses — ça nous aiderait énormément que tu partages ton retour.</p>
           <p>Ça prend 1 minute, et ça aide d'autres créateurs à se lancer.</p>
           <p style="margin:24px 0"><a href="{link}" style="background:#2563EB;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Laisser mon avis →</a></p>
-          <p style="font-size:12px;color:#888">TTS Analyzer · L'outil d'analyse pensé par des créateurs, pour des créateurs.</p>
+          <p style="font-size:12px;color:#888">Qeerah · L'outil d'analyse pensé par des créateurs, pour des créateurs.</p>
         </div>"""
-        sent = send_transactional_email(email, "Ton avis sur TTS Analyzer 🙏", html)
+        sent = send_transactional_email(email, "Ton avis sur Qeerah 🙏", html)
         if sent:
             supabase_client.table("users").update({"testimonial_email_sent": True}).eq("email", email).execute()
         return {"ok": bool(sent)}

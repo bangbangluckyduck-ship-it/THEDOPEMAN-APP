@@ -321,7 +321,7 @@ class EmailService:
     async def send_upsell_email(self, email: str, unsubscribe_url: str, kind: str = "quota") -> bool:
         """Email promotionnel free → payant (avec lien de désinscription RGPD)."""
         subject = ("Tu as atteint ta limite gratuite 🚀" if kind == "quota"
-                   else "Débloque tout le potentiel de TTS Analyzer 🚀")
+                   else "Débloque tout le potentiel de Qeerah 🚀")
         return await self._send(
             email, subject,
             _wrap("Passe à la vitesse supérieure 🚀", _upsell_body(kind, unsubscribe_url)),

@@ -236,7 +236,7 @@ def check_quota(user: dict) -> None:
             label = cfg["label"]
             raise HTTPException(
                 status_code=429,
-                detail=f"Quota {label} atteint ({cfg['monthly']} analyses/mois). Passe au plan supérieur sur tts-analyzer.fr",
+                detail=f"Quota {label} atteint ({cfg['monthly']} analyses/mois). Passe au plan supérieur sur qeerah.com",
             )
 
     if cfg["daily"] is not None:
