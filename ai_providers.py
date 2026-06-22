@@ -162,21 +162,48 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     if temperature is not None:
         base_kwargs["temperature"] = temperature
 
-    # Tentative 1 : avec thinking désactivé (gemini-2.5-pro thinking ajoute
-    # 30-60s de latence sans intérêt pour extraction JSON structurée).
-    # Si le serveur rejette la config (modèle/SDK incompatible), retry sans.
-    try:
-        thinking_cfg = gt.ThinkingConfig(thinking_budget=0)
-        cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
-        resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
-        return resp.text or ""
-    except Exception as e:
-        # Fallback : retry sans ThinkingConfig (modèle plus ancien ou SDK différent)
-        if "thinking" not in str(e).lower() and "invalid" not in str(e).lower():
-            raise  # erreur non-liée à thinking → on remonte
-        cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
-        resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
-        return resp.text or ""
+    # Modèles à tester en cascade :
+    # 1. Modèle primaire (Flash 2.5 par défaut, rapide mais parfois surchargé)
+    # 2. Fallback Flash 2.0 (plus ancien, généralement plus stable côté capacité)
+    # Override possible par env GEMINI_VIDEO_FALLBACK_MODEL.
+    fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", "gemini-2.0-flash")
+    models_to_try = [GEMINI_VIDEO_MODEL]
+    if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
+        models_to_try.append(fallback_model)
+
+    def _try_call(model_name: str):
+        """Tente un appel generate_content avec ThinkingConfig, fallback sans si rejeté."""
+        try:
+            thinking_cfg = gt.ThinkingConfig(thinking_budget=0)
+            cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
+            return client.models.generate_content(model=model_name, contents=parts, config=cfg)
+        except Exception as e:
+            if "thinking" in str(e).lower() or "invalid" in str(e).lower():
+                # Retry sans ThinkingConfig
+                cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
+                return client.models.generate_content(model=model_name, contents=parts, config=cfg)
+            raise
+
+    import time as _t
+    last_err = None
+    for model_name in models_to_try:
+        # 3 tentatives par modèle avec backoff exponentiel (2s, 5s) avant de
+        # passer au modèle suivant. Couvre les "503 high demand" temporaires.
+        for attempt, delay in enumerate([0, 2, 5]):
+            if delay:
+                _t.sleep(delay)
+            try:
+                resp = _try_call(model_name)
+                return resp.text or ""
+            except Exception as e:
+                msg = str(e).lower()
+                last_err = e
+                # Si 503 / overloaded / unavailable → on retry
+                if any(s in msg for s in ("503", "unavailable", "overload", "high demand", "resource_exhausted", "429")):
+                    continue
+                # Erreur non-récupérable → on passe au modèle suivant directement
+                break
+    raise Exception(f"Tous les modèles vidéo Gemini ont échoué : {last_err}")
 
 
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
