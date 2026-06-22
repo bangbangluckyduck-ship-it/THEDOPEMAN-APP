@@ -131,14 +131,11 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     from google.genai import types as gt
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"),
                           http_options=gt.HttpOptions(timeout=int(timeout * 1000)))
-    size = os.path.getsize(video_path)
-    if size < 18 * 1024 * 1024:  # marge sous la limite 20 MB inline
-        with open(video_path, "rb") as f:
-            video_part = gt.Part.from_bytes(data=f.read(), mime_type="video/mp4")
-    else:
-        # Files API pour les vidéos plus lourdes (jusqu'à 2 GB, 48h de rétention)
-        uploaded = client.files.upload(file=video_path, config={"mime_type": "video/mp4"})
-        video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
+    # Toujours Files API : ne charge JAMAIS la vidéo en mémoire Python (Render
+    # starter = 512 MB RAM, on doit éviter `f.read()` sur des fichiers vidéo qui
+    # font 10-30 MB et risquent l'OOM quand combinés au reste de l'app).
+    uploaded = client.files.upload(file=video_path, config={"mime_type": "video/mp4"})
+    video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
     cfg = gt.GenerateContentConfig(temperature=temperature) if temperature is not None else None
     resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
