@@ -1417,6 +1417,10 @@ async function analyzeVideo() {
     const fd = new FormData();
     fd.append('frames', JSON.stringify(frames));
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
+    // Envoie aussi la vidéo entière — le backend basculera sur le pipeline
+    // Pro+ (Gemini Pro natif) si l'utilisateur est éligible. Sinon, fallback
+    // automatique sur le pipeline frames+audio (ancien).
+    if (selectedFile) fd.append('video', selectedFile, selectedFile.name || 'video.mp4');
 
     // Ajouter le produit optionnel si l'utilisateur l'a entré
     const productInput = document.getElementById('product-input');

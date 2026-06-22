@@ -844,9 +844,13 @@ async def analyze_stream_sse(
     request: Request,
     frames: str = Form(...),
     audio: Optional[UploadFile] = File(None),
+    video: Optional[UploadFile] = File(None),
     product: Optional[str] = Form(None),
     price: Optional[str] = Form(None),
 ):
+    # Si l'utilisateur est Pro+ ET qu'il a uploadé la vidéo entière → on bascule
+    # sur le pipeline natif Gemini Pro (visuel + audio en un appel, qualité
+    # identique au pipeline URL). Sinon → ancien pipeline frames+AssemblyAI.
     if not ai_providers.any_ai_key(): raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
     ua = request.headers.get("User-Agent", "").lower()
@@ -874,9 +878,26 @@ async def analyze_stream_sse(
     except json.JSONDecodeError as e: raise HTTPException(status_code=400, detail="Frames JSON invalide.")
     if not frames_list: raise HTTPException(status_code=400, detail="Aucune image extraite de la vidéo.")
 
+    # ── Dispatcher de pipeline : si Pro+ ET vidéo uploadée → nouveau pipeline ──
+    _paid_tiers = {"pro", "gold", "agency", "beta", "admin"}
+    _user_tier = user.get("tier", "free")
+    _use_native_pipeline = (_user_tier in _paid_tiers) and (video is not None)
+
+    # On lit la vidéo en mémoire AVANT le stream (UploadFile ne survit pas au yield).
+    video_bytes: Optional[bytes] = None
+    if _use_native_pipeline and video is not None:
+        try:
+            video_bytes = await video.read()
+            if not video_bytes:
+                _use_native_pipeline = False
+        except Exception:
+            _use_native_pipeline = False
+
     async def stream_analysis():
         loop = asyncio.get_event_loop()
         audio_path: Optional[str] = None
+        video_path_tmp: Optional[str] = None
+        downscaled_path: Optional[str] = None
         semaphore_acquired = False
         try:
             yield 'event: start\n'
@@ -892,18 +913,144 @@ async def analyze_stream_sse(
             yield 'event: progress\n'
             yield 'data: {"message": "🚀 Place libérée ! Initialisation...", "stage": "queue_released"}\n\n'
 
+            market_context = None
+            tier = _user_tier
+
+            # ════════════════════════════════════════════════════════════════
+            # PIPELINE PRO+ : Gemini Pro vidéo native (visuel + audio en un appel)
+            # ════════════════════════════════════════════════════════════════
+            if _use_native_pipeline and video_bytes:
+                import analysis_cache
+                # Cache lookup par hash du contenu vidéo
+                cache_key = analysis_cache.hash_video_bytes(video_bytes)
+                cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+                if cached:
+                    cached["usage"] = usage_info(user)
+                    cached["source"] = "upload"
+                    cached["from_cache"] = True
+                    yield 'event: progress\n'
+                    yield 'data: {"message": "\\u26a1 R\\u00e9sultat trouv\\u00e9 en cache", "stage": "cache_hit"}\n\n'
+                    yield 'event: complete\n'
+                    yield f'data: {json.dumps(cached)}\n\n'
+                    return
+
+                # Écrire la vidéo dans un fichier temporaire pour ffmpeg + Gemini
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    video_path_tmp = tmp.name
+                    tmp.write(video_bytes)
+
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\ud83c\\udfac Pr\\u00e9paration de la vid\\u00e9o (720p)\\u2026", "stage": "downscale"}\n\n'
+                from video_processor import downscale_720p
+                downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path_tmp)
+
+                analysis_start = time.time()
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision"}\n\n'
+
+                from analyzer import analyze_video_native
+                vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
+                _w = 0.0
+                while True:
+                    _d, _pending = await asyncio.wait({vis_task}, timeout=4.0)
+                    if not _pending:
+                        break
+                    _w += 4.0
+                    if _w >= 180:
+                        vis_task.cancel()
+                        yield 'event: error\n'
+                        yield 'data: {"error": "L\'analyse a pris trop longtemps."}\n\n'
+                        return
+                    yield ': keepalive\n\n'
+                try:
+                    visual_result = vis_task.result()
+                except Exception as e:
+                    yield 'event: error\n'
+                    yield f'data: {json.dumps({"error": f"Analyse visuelle : {str(e)[:200]}"})}\n\n'
+                    return
+
+                transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
+                detected_product = str(visual_result.get("produit") or "")[:60] if isinstance(visual_result, dict) else ""
+
+                if isinstance(visual_result, dict):
+                    partial_payload = {
+                        "produit": detected_product,
+                        "description_visuelle": str(visual_result.get("description_visuelle") or "")[:400],
+                        "qualite_visuelle_score": visual_result.get("qualite_visuelle_score"),
+                        "format_visuel_score": visual_result.get("format_visuel_score"),
+                        "hook_visuel_score": visual_result.get("hook_visuel_score"),
+                        "cta_visuel": visual_result.get("cta_visuel"),
+                        "cta_audio": visual_result.get("cta_audio"),
+                        "transcript_preview": (transcript or "")[:200],
+                    }
+                    yield 'event: partial\n'
+                    yield f'data: {json.dumps(partial_payload)}\n\n'
+
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale\\u2026", "stage": "synthesis"}\n\n'
+                synth_task = loop.run_in_executor(
+                    None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price)
+                _w = 0.0
+                result = None
+                while True:
+                    _d, _pending = await asyncio.wait({synth_task}, timeout=4.0)
+                    if synth_task in _d:
+                        try:
+                            result = synth_task.result()
+                        except Exception as e:
+                            yield 'event: error\n'
+                            _err = "Synthèse : " + str(e)[:200]
+                            yield f'data: {json.dumps({"error": _err})}\n\n'
+                            return
+                        break
+                    _w += 4.0
+                    if _w >= 140:
+                        synth_task.cancel()
+                        yield 'event: error\n'
+                        yield 'data: {"error": "La synth\\u00e8se a pris trop longtemps."}\n\n'
+                        return
+                    yield ': keepalive\n\n'
+
+                analysis_duration_ms = int((time.time() - analysis_start) * 1000)
+                if user["valid"]:
+                    increment_usage(user["email"])
+                _record_analyzed_product(result)
+
+                result["transcript"] = transcript
+                result["pipeline"] = "gemini-pro-native"
+                result["cta_visuel"] = visual_result.get("cta_visuel") if isinstance(visual_result, dict) else None
+                result["cta_audio"] = visual_result.get("cta_audio") if isinstance(visual_result, dict) else None
+                result["usage"] = usage_info(user)
+                result["analysis_duration_ms"] = analysis_duration_ms
+                result["source"] = "upload"
+                result["from_cache"] = False
+
+                try: save_insight(result, product=product, price=price)
+                except Exception: pass
+                try:
+                    winning = build_winning_payload(result, tier, product=product, price=price)
+                    if winning: result["structures_gagnantes"] = winning
+                except Exception: pass
+
+                # Cache store
+                try:
+                    analysis_cache.store(cache_key, result, pipeline="pro")
+                except Exception: pass
+
+                yield 'event: complete\n'
+                yield f'data: {json.dumps(result)}\n\n'
+                await _maybe_upsell_free_quota(user)
+                return
+
+            # ════════════════════════════════════════════════════════════════
+            # PIPELINE LEGACY (Free, ou pas de vidéo uploadée) : frames + AssemblyAI
+            # ════════════════════════════════════════════════════════════════
             if audio:
                 yield 'event: progress\n'
                 yield 'data: {"message": "📥 Audio en cours de traitement...", "stage": "audio_processing"}\n\n'
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                     audio_path = tmp.name
                     tmp.write(await audio.read())
-
-            # Scraper retiré : les données marché viennent désormais de KeyAPI
-            # (blocs créateurs/produits cliquables côté UI). L'IA de synthèse reste
-            # lean (momentum + saisonnalité + exigences qualité suffisent).
-            market_context = None
-            tier = user.get("tier", "free")
 
             analysis_start = time.time()
             yield 'event: progress\n'
@@ -1043,6 +1190,13 @@ async def analyze_stream_sse(
             if semaphore_acquired: ANALYSIS_SEMAPHORE.release()
             if audio_path:
                 try: os.unlink(audio_path)
+                except OSError: pass
+            # Nettoyage des fichiers temporaires du pipeline natif vidéo
+            if downscaled_path and downscaled_path != video_path_tmp:
+                try: os.unlink(downscaled_path)
+                except OSError: pass
+            if video_path_tmp:
+                try: os.unlink(video_path_tmp)
                 except OSError: pass
 
     return StreamingResponse(stream_analysis(), media_type="text/event-stream",
