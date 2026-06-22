@@ -505,7 +505,8 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
     # Vision de l'analyse = Gemini 3.5 Flash (rapide + meilleure « vue ») par défaut.
     # Flippable : ANALYSIS_VISION_PROVIDER=mistral si besoin.
     raw = ai_providers.vision_complete(content, timeout=45.0,
-                                       provider=os.getenv("ANALYSIS_VISION_PROVIDER", "gemini"))
+                                       provider=os.getenv("ANALYSIS_VISION_PROVIDER", "gemini"),
+                                       temperature=0.0, seed=42)
     try:
         return _extract_json(raw)
     except Exception:
@@ -783,6 +784,7 @@ def synthesize_analysis(
         max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")),
         provider=_atp,
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
+        temperature=0.0,
     )
     try:
         parsed = _extract_json(raw)
@@ -792,7 +794,8 @@ def synthesize_analysis(
             try:
                 raw2 = ai_providers.text_complete(
                     full_prompt, timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
-                    max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral")
+                    max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral",
+                    temperature=0.0)
                 parsed = _extract_json(raw2)
             except Exception:
                 return {"error": "Impossible de parser la réponse IA", "raw": raw[:1000]}
@@ -1140,7 +1143,8 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
     prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
 
     raw = ai_providers.text_complete(prompt, timeout=60.0,
-                                     provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral"))
+                                     provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral"),
+                                     temperature=0.0)
     try:
         result = _extract_json(raw)
     except Exception:
