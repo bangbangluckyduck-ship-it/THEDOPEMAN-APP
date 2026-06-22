@@ -50,7 +50,7 @@ def _send_done_email(user_email: str, result: dict, job_id: str,
         score = result.get("score_global") or result.get("note_globale") or result.get("note")
     label = (title or "Ton analyse")[:80]
     score_html = f'<p style="font-size:24px;font-weight:800;color:#6c5ce7;margin:8px 0">Note&nbsp;: {score}/100</p>' if score is not None else ''
-    btn_html = _button("Voir mon analyse →", _app_url() + "/app")
+    btn_html = _button("Voir mon analyse →", f"{_app_url()}/app?job={job_id}")
     footer_text = "Ce mail t'a été envoyé parce que tu as lancé une analyse en arrière-plan sur Qeerah."
     body = (
         f"<p>Salut,</p>"
@@ -75,7 +75,7 @@ def _send_error_email(user_email: str, error_message: str, job_id: str,
         return
     label = (title or "Ton analyse")[:80]
     err_short = error_message[:300] if error_message else "Erreur inconnue"
-    btn_html = _button("Retour à l'app", _app_url() + "/app")
+    btn_html = _button("Retour à l'app", f"{_app_url()}/app?job={job_id}")
     body = (
         f"<p>Salut,</p>"
         f"<p>Aïe — <strong>{label}</strong> n'a pas pu être analysée.</p>"

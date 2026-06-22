@@ -5138,3 +5138,32 @@ window.openMyAnalyses = openMyAnalyses;
 window.closeMyAnalyses = closeMyAnalyses;
 window.closeJobLaunchedModal = closeJobLaunchedModal;
 window.openJobResult = openJobResult;
+
+// ── Deep-link depuis le mail : /app?job=<id> ouvre directement le résultat ──
+(function autoOpenJobFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get('job');
+    if (!jobId) return;
+    // Attend que SESSION + userInfo soient prêts (sinon openJobResult échoue
+    // car le token n'est pas encore lu) — on poll toutes les 300ms, max 10s.
+    let waited = 0;
+    const tryOpen = () => {
+      const tokenReady = !!localStorage.getItem('tts_token');
+      const infoReady = !!window.__userInfo;
+      if (tokenReady && infoReady) {
+        // Nettoyer l'URL pour ne pas re-ouvrir au refresh
+        try {
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+        } catch (_) {}
+        openJobResult(jobId);
+        return;
+      }
+      waited += 300;
+      if (waited >= 10000) return;  // abandonne après 10s (probable pas connecté)
+      setTimeout(tryOpen, 300);
+    };
+    setTimeout(tryOpen, 500);  // léger délai initial pour laisser le boot s'amorcer
+  } catch (_) {}
+})();
