@@ -157,19 +157,26 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
 
-    # Config : temperature=0 + thinking désactivé (gemini-2.5-pro "thinking" est
-    # activé par défaut → +30-60s de latence ET non-déterministe même à T=0).
-    # Pour notre cas d'usage (extraction structurée JSON), thinking n'apporte rien.
-    cfg_kwargs = {}
+    # Config de base : temperature
+    base_kwargs = {}
     if temperature is not None:
-        cfg_kwargs["temperature"] = temperature
+        base_kwargs["temperature"] = temperature
+
+    # Tentative 1 : avec thinking désactivé (gemini-2.5-pro thinking ajoute
+    # 30-60s de latence sans intérêt pour extraction JSON structurée).
+    # Si le serveur rejette la config (modèle/SDK incompatible), retry sans.
     try:
-        cfg_kwargs["thinking_config"] = gt.ThinkingConfig(thinking_budget=0)
-    except Exception:
-        pass  # Si l'API ne supporte pas ThinkingConfig sur ce modèle, on l'ignore
-    cfg = gt.GenerateContentConfig(**cfg_kwargs) if cfg_kwargs else None
-    resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
-    return resp.text or ""
+        thinking_cfg = gt.ThinkingConfig(thinking_budget=0)
+        cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
+        resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
+        return resp.text or ""
+    except Exception as e:
+        # Fallback : retry sans ThinkingConfig (modèle plus ancien ou SDK différent)
+        if "thinking" not in str(e).lower() and "invalid" not in str(e).lower():
+            raise  # erreur non-liée à thinking → on remonte
+        cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
+        resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
+        return resp.text or ""
 
 
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
