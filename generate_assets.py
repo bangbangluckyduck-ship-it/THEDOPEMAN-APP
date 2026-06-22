@@ -57,27 +57,25 @@ def generate_icons():
     static = Path(__file__).parent / "static"
     static.mkdir(exist_ok=True)
 
-    # ── Front office (PWA principale) : TTS-LOGO.jpg > logo.png > icône générée
-    logo = static / "TTS-LOGO.jpg"
-    if not logo.exists():
-        logo = static / "logo.png"
+    # ── Front office (PWA Qeerah) : icon-192/512 sont commités dans le repo
+    # depuis le rebrand. On ne les régénère QUE s'ils sont absents (fresh clone)
+    # — sinon on écraserait la version Qeerah avec un fallback "play button".
+    logo = static / "qeerah-logo.png"
     for sz in (192, 512):
-        if logo.exists():
-            img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
-        else:
-            img = make_icon(sz)
-        img.save(static / f"icon-{sz}.png", "PNG")
+        out = static / f"icon-{sz}.png"
+        if out.exists() or not logo.exists():
+            continue
+        img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        img.save(out, "PNG")
 
-    # ── Back office (Dope Admin) : on utilise le TOUT PREMIER logo (logo.png)
-    # afin de distinguer visuellement l'app admin de l'app front une fois les
-    # deux PWA installées sur le smartphone.
-    admin_logo = static / "logo.png"
+    # ── Back office (Dope Admin) : même logo Qeerah (l'ancien logo.png
+    # distinctif a été supprimé lors du rebrand).
     for sz in (192, 512):
-        if admin_logo.exists():
-            img = Image.open(admin_logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
-        else:
-            img = make_icon(sz)
-        img.save(static / f"admin-icon-{sz}.png", "PNG")
+        out = static / f"admin-icon-{sz}.png"
+        if out.exists() or not logo.exists():
+            continue
+        img = Image.open(logo).convert("RGBA").resize((sz, sz), Image.LANCZOS)
+        img.save(out, "PNG")
 
 
 def generate_qr_b64(url: str) -> str:
