@@ -1414,6 +1414,10 @@ async function analyzeVideo() {
     ]);
 
     setLoadingText(t('loading_ai'));
+    // Annonce d'attente affichée IMMÉDIATEMENT (avant l'upload du fichier qui
+    // peut prendre 5-15s sur connexion lente) → l'utilisateur sait à quoi
+    // s'attendre dès la 1re seconde.
+    setLoadingInfo("L'analyse Pro prend généralement 1 à 2 minutes — c'est le prix d'une analyse vraiment précise.");
     const fd = new FormData();
     fd.append('frames', JSON.stringify(frames));
     if (audioBlob) fd.append('audio', audioBlob, 'audio.wav');
@@ -1469,11 +1473,12 @@ async function analyzeVideo() {
       if (eventType === 'start') {
         console.log('[STREAM] Analysis started');
       } else if (eventType === 'progress') {
-        // Si le serveur annonce une fourchette d'attente (ex. analyse Pro
-        // ~60-120s), on l'affiche en sous-texte pour préparer l'utilisateur.
-        let label = eventData.message || '🔄 En cours...';
-        if (eventData.info) label += '\n\n💡 ' + eventData.info;
-        setLoadingText(label);
+        setLoadingText(eventData.message || '🔄 En cours...');
+        // Info "sticky" : reste affichée tant qu'on ne l'efface pas (un nouveau
+        // progress event SANS info ne l'écrase pas, contrairement au texte du
+        // spinner). Permet d'annoncer "L'analyse Pro prend 1-2 min" au début
+        // et que ça reste visible pendant download + downscale + vision.
+        if (eventData.info) setLoadingInfo(eventData.info);
         console.log('[STREAM] Progress:', eventData.message);
       } else if (eventType === 'partial') {
         renderAnalysisPreview(eventData);   // aperçu vision avant la synthèse finale
@@ -1482,8 +1487,10 @@ async function analyzeVideo() {
       } else if (eventType === 'complete') {
         completeData = eventData;
         setLoadingText('✅ Analyse terminée!');
+        setLoadingInfo(null);  // efface l'info sticky une fois fini
         console.log('[STREAM] Analysis complete');
       } else if (eventType === 'error') {
+        setLoadingInfo(null);
         throw new Error(eventData.error || 'Erreur analyse');
       }
     };
@@ -1584,6 +1591,7 @@ async function analyzeSingleUrl() {
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
   setLoadingText('🔗 Analyse du lien…');
+  setLoadingInfo("L'analyse Pro prend généralement 1 à 2 minutes — c'est le prix d'une analyse vraiment précise.");
 
   try {
     const res = await fetch('/analyze-url/stream', {
@@ -1603,13 +1611,12 @@ async function analyzeSingleUrl() {
     const handle = (ev, dstr) => {
       let o; try { o = JSON.parse(dstr); } catch (_) { return; }
       if (ev === 'progress') {
-        let label = o.message || '🔄 En cours…';
-        if (o.info) label += '\n\n💡 ' + o.info;
-        setLoadingText(label);
+        setLoadingText(o.message || '🔄 En cours…');
+        if (o.info) setLoadingInfo(o.info);
       }
       else if (ev === 'partial') renderAnalysisPreview(o);
-      else if (ev === 'complete') { completeData = o; setLoadingText('✅ Analyse terminée!'); }
-      else if (ev === 'error') throw new Error(o.error || 'Erreur analyse');
+      else if (ev === 'complete') { completeData = o; setLoadingText('✅ Analyse terminée!'); setLoadingInfo(null); }
+      else if (ev === 'error') { setLoadingInfo(null); throw new Error(o.error || 'Erreur analyse'); }
     };
     const proc = (block) => {
       let ev = 'message'; const dl = [];
@@ -1963,6 +1970,26 @@ function setLoadingText(txt) {
   if (!el) return;
   el.style.whiteSpace = 'pre-line';  // permet les sauts de ligne via \n
   el.textContent = txt;
+}
+
+// Info "sticky" sous le spinner : reste affichée tant qu'on ne l'efface pas
+// explicitement. Permet d'annoncer "L'analyse Pro prend 1-2 min" au début et
+// que ça reste visible pendant tout le download + downscale + vision.
+function setLoadingInfo(info) {
+  const parent = document.getElementById('loading-text');
+  if (!parent) return;
+  let el = document.getElementById('loading-info-sticky');
+  if (!info) {
+    if (el) el.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-info-sticky';
+    el.style.cssText = 'margin-top:12px;padding:10px 14px;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.35);border-radius:10px;color:#d4af37;font-size:13px;line-height:1.5;max-width:480px;';
+    parent.parentNode.insertBefore(el, parent.nextSibling);
+  }
+  el.textContent = '💡 ' + info;
 }
 
 // Aperçu progressif vidéo : carte « premier coup d'œil » affichée après la passe
