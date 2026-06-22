@@ -33,7 +33,7 @@ ROADMAP: dict[str, date] = {
 
 # Prix de référence (l'« original » barré dans l'UI)
 PRO_FINAL_PRICE = 12.99
-GOLD_PROMO, GOLD_ORIGINAL = 79.99, 99.0
+GOLD_PROMO, GOLD_ORIGINAL = 79.0, 99.0
 AGENCY_PROMO, AGENCY_ORIGINAL = 249.0, 299.0
 
 _TRUE = {"on", "1", "true", "yes", "y"}

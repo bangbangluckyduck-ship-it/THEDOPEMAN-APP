@@ -2,20 +2,31 @@
 Routes Stripe — Checkout, Customer Portal, Webhooks.
 
 Variables d'environnement Render à configurer :
-  STRIPE_SECRET_KEY        sk_live_...  (ou sk_test_... en dev)
-  STRIPE_PUBLISHABLE_KEY   pk_live_...
-  STRIPE_WEBHOOK_SECRET    whsec_...
-  Mensuel :
-  STRIPE_PRICE_PRO         price_...    (19,90 €/mois)
-  STRIPE_PRICE_GOLD        price_...    (99 €/mois)
-  STRIPE_PRICE_AGENCY      price_...    (299 €/mois — 5 comptes Gold)
-  Annuel (2 mois offerts = paie 10 mois) :
-  STRIPE_PRICE_PRO_YEAR    price_...    (199 €/an)
-  STRIPE_PRICE_GOLD_YEAR   price_...    (990 €/an)
-  STRIPE_PRICE_AGENCY_YEAR price_...    (2990 €/an)
+  STRIPE_SECRET_KEY              sk_live_...
+  STRIPE_PUBLISHABLE_KEY         pk_live_...
+  STRIPE_WEBHOOK_SECRET          whsec_...
+
+  PRO — montée progressive (créer 3 prix sur Stripe) :
+  STRIPE_PRICE_PRO_999           price_...   (9,99 €/mois  — 31/07 → 19/08)
+  STRIPE_PRICE_PRO_999_YEAR      price_...   (99,90 €/an)
+  STRIPE_PRICE_PRO_1199          price_...   (11,99 €/mois — 20/08 → 15/09)
+  STRIPE_PRICE_PRO_1199_YEAR     price_...   (119,90 €/an)
+  STRIPE_PRICE_PRO               price_...   (12,99 €/mois — 16/09+)
+  STRIPE_PRICE_PRO_YEAR          price_...   (129,90 €/an)
+
+  GOLD — prix de lancement puis prix normal :
+  STRIPE_PRICE_GOLD_LAUNCH       price_...   (79 €/mois   — 16/09 → 14/10)
+  STRIPE_PRICE_GOLD_LAUNCH_YEAR  price_...   (790 €/an)
+  STRIPE_PRICE_GOLD              price_...   (99 €/mois   — 15/10+)
+  STRIPE_PRICE_GOLD_YEAR         price_...   (990 €/an)
+
+  AGENCY :
+  STRIPE_PRICE_AGENCY            price_...   (299 €/mois)
+  STRIPE_PRICE_AGENCY_YEAR       price_...   (2990 €/an)
 """
 from __future__ import annotations
 import os
+from datetime import date as _date
 import stripe
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
@@ -26,32 +37,47 @@ router = APIRouter(tags=["stripe"])
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
-# Price IDs — remplis dans Render une fois les prix créés dans le dashboard Stripe.
-# Clé = (plan, période) ; période ∈ {"month", "year"}. L'annuel applique 2 mois
-# offerts (paiement de 10 mois pour 12).
-PRICE_IDS: dict[str, str] = {
-    "pro":    os.getenv("STRIPE_PRICE_PRO",    ""),
-    "gold":   os.getenv("STRIPE_PRICE_GOLD",   ""),
-    "agency": os.getenv("STRIPE_PRICE_AGENCY", ""),
-}
-PRICE_IDS_YEAR: dict[str, str] = {
-    "pro":    os.getenv("STRIPE_PRICE_PRO_YEAR",    ""),
-    "gold":   os.getenv("STRIPE_PRICE_GOLD_YEAR",   ""),
-    "agency": os.getenv("STRIPE_PRICE_AGENCY_YEAR", ""),
-}
+# Dates de transition tarifaire
+_PRO_999_END    = _date(2026, 8, 20)   # PRO passe à 11,99 €
+_PRO_1199_END   = _date(2026, 9, 16)   # PRO passe à 12,99 €
+_GOLD_PROMO_END = _date(2026, 10, 15)  # GOLD passe à 99 €
+
+# Prix PRO progressifs
+_PRO_999  = {"month": os.getenv("STRIPE_PRICE_PRO_999", ""),  "year": os.getenv("STRIPE_PRICE_PRO_999_YEAR", "")}
+_PRO_1199 = {"month": os.getenv("STRIPE_PRICE_PRO_1199", ""), "year": os.getenv("STRIPE_PRICE_PRO_1199_YEAR", "")}
+_PRO      = {"month": os.getenv("STRIPE_PRICE_PRO", ""),      "year": os.getenv("STRIPE_PRICE_PRO_YEAR", "")}
+
+# Prix GOLD lancement puis normal
+_GOLD_LAUNCH = {"month": os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),      "year": os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", "")}
+_GOLD        = {"month": os.getenv("STRIPE_PRICE_GOLD", ""),              "year": os.getenv("STRIPE_PRICE_GOLD_YEAR", "")}
+
+# AGENCY (prix fixe)
+_AGENCY = {"month": os.getenv("STRIPE_PRICE_AGENCY", ""), "year": os.getenv("STRIPE_PRICE_AGENCY_YEAR", "")}
 
 
 def get_price_id(plan: str, billing: str = "month") -> str:
-    """Retourne le price_id Stripe pour un plan et une période de facturation."""
-    if billing == "year":
-        return PRICE_IDS_YEAR.get(plan, "")
-    return PRICE_IDS.get(plan, "")
+    """Retourne le price_id Stripe selon le plan, la période et la date du jour."""
+    b = "year" if (billing or "month").lower().startswith("year") else "month"
+    today = _date.today()
+
+    if plan == "pro":
+        if today < _PRO_999_END:
+            return _PRO_999[b]
+        elif today < _PRO_1199_END:
+            return _PRO_1199[b]
+        else:
+            return _PRO[b]
+    elif plan == "gold":
+        return _GOLD_LAUNCH[b] if today < _GOLD_PROMO_END else _GOLD[b]
+    elif plan == "agency":
+        return _AGENCY[b]
+    return ""
 
 
 PLAN_NAMES = {
-    "pro":    "PRO — 19,90 €/mois (199 €/an)",
+    "pro":    "PRO — 12,99 €/mois (129,90 €/an)",
     "gold":   "GOLD — 99 €/mois (990 €/an)",
-    "agency": "AGENCY — 299 €/mois (5 comptes Gold)",
+    "agency": "AGENCY — 299 €/mois (2990 €/an)",
 }
 
 

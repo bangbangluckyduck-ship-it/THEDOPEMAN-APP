@@ -1169,7 +1169,7 @@ function _downloadHook(text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'hook-tts-analyzer.txt';
+  a.download = 'hook-qeerah.txt';
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(a.href);
 }
