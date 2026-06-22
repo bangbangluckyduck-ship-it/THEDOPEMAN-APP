@@ -1469,7 +1469,11 @@ async function analyzeVideo() {
       if (eventType === 'start') {
         console.log('[STREAM] Analysis started');
       } else if (eventType === 'progress') {
-        setLoadingText(eventData.message || '🔄 En cours...');
+        // Si le serveur annonce une fourchette d'attente (ex. analyse Pro
+        // ~60-120s), on l'affiche en sous-texte pour préparer l'utilisateur.
+        let label = eventData.message || '🔄 En cours...';
+        if (eventData.info) label += '\n\n💡 ' + eventData.info;
+        setLoadingText(label);
         console.log('[STREAM] Progress:', eventData.message);
       } else if (eventType === 'partial') {
         renderAnalysisPreview(eventData);   // aperçu vision avant la synthèse finale
@@ -1598,7 +1602,11 @@ async function analyzeSingleUrl() {
     let buf = '', completeData = null;
     const handle = (ev, dstr) => {
       let o; try { o = JSON.parse(dstr); } catch (_) { return; }
-      if (ev === 'progress') setLoadingText(o.message || '🔄 En cours…');
+      if (ev === 'progress') {
+        let label = o.message || '🔄 En cours…';
+        if (o.info) label += '\n\n💡 ' + o.info;
+        setLoadingText(label);
+      }
       else if (ev === 'partial') renderAnalysisPreview(o);
       else if (ev === 'complete') { completeData = o; setLoadingText('✅ Analyse terminée!'); }
       else if (ev === 'error') throw new Error(o.error || 'Erreur analyse');
@@ -1951,7 +1959,10 @@ function renderContexteTemporel(ct) {
 }
 
 function setLoadingText(txt) {
-  document.getElementById('loading-text').textContent = txt;
+  const el = document.getElementById('loading-text');
+  if (!el) return;
+  el.style.whiteSpace = 'pre-line';  // permet les sauts de ligne via \n
+  el.textContent = txt;
 }
 
 // Aperçu progressif vidéo : carte « premier coup d'œil » affichée après la passe
