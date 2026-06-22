@@ -1174,9 +1174,15 @@ def _extract_frames_opencv(video_path: str, n_frames: int = 9) -> list[str]:
 @app.post("/analyze-url")
 async def analyze_url(request: Request):
     """
-    Analyse une vidéo TikTok à partir de son lien.
-    Réservé aux plans Pro / Gold / Agency (et beta/admin).
-    Télécharge via yt-dlp → extrait 6 frames (OpenCV) + audio → pipeline Mistral.
+    Analyse une vidéo TikTok à partir de son lien — pipeline Pro+ Gemini natif vidéo.
+
+    Pipeline (Pro / Gold / Agency / beta / admin) :
+      1. Cache lookup par hash d'URL → hit = retour instantané (0 appel LLM)
+      2. yt-dlp download
+      3. Downscale 720p (gain temps Gemini)
+      4. Gemini Pro vidéo native (visuel + audio en un seul appel)
+      5. Synthèse Claude Haiku 4.5 (raisonnement + JSON final)
+      6. Stockage cache
     """
     if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
@@ -1204,9 +1210,26 @@ async def analyze_url(request: Request):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
     # Multi-liens (batch) = analyse de patterns → produit/prix facultatifs.
 
+    # ── CACHE LOOKUP : URL identique déjà analysée ? ──
+    # On cache UNIQUEMENT quand l'utilisateur n'a pas fourni de product/price
+    # custom (sinon le résultat dépend de ses inputs, pas seulement de la vidéo).
+    import analysis_cache
+    can_cache = not product and not price
+    cache_key = analysis_cache.hash_video_url(url) if can_cache else None
+    if cache_key:
+        cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+        if cached:
+            cached["usage"] = usage_info(user)
+            cached["source"] = "url"
+            cached["source_url"] = url
+            cached["from_cache"] = True
+            cached["performance"] = performance
+            return JSONResponse(cached)
+
     loop = asyncio.get_event_loop()
     tmpdir = tempfile.mkdtemp(prefix="ttsurl_")
     video_path: Optional[str] = None
+    downscaled_path: Optional[str] = None
     semaphore_acquired = False
     try:
         # ── 1. Téléchargement yt-dlp (dans un thread, bloquant) ──
@@ -1239,33 +1262,27 @@ async def analyze_url(request: Request):
         await ANALYSIS_SEMAPHORE.acquire()
         semaphore_acquired = True
 
-        # ── 3. Extraction frames (OpenCV) + transcription, en parallèle ──
-        async def _do_frames():
-            return await asyncio.wait_for(loop.run_in_executor(None, _extract_frames_opencv, video_path, 9), timeout=45.0)
-
-        async def _do_transcribe():
-            try:
-                return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=120.0)
-            except asyncio.TimeoutError:
-                return None
-
-        frames_list, transcript = await asyncio.gather(_do_frames(), _do_transcribe(), return_exceptions=True)
-        if isinstance(transcript, Exception):
-            transcript = None
-        if isinstance(frames_list, Exception) or not frames_list:
-            raise HTTPException(status_code=422, detail="Impossible d'extraire les images de la vidéo.")
+        # ── 3. Downscale 720p (réduit le temps d'upload + processing Gemini) ──
+        from video_processor import downscale_720p
+        downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
 
         # ── 4. Contexte marché : scraper retiré (données marché via KeyAPI côté UI) ──
         market_context = None
 
-        # ── 5. Pipeline Mistral : vision → synthèse ──
+        # ── 5. Pipeline NATIF Gemini Pro vidéo (visuel + audio en un appel) ──
+        from analyzer import analyze_video_native
         analysis_start = time.time()
         visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_visual, frames_list, product, price), timeout=60.0
+            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price),
+            timeout=180.0,  # Gemini Pro sur vidéo complète peut être plus lent que sur frames
         )
+        # Le transcript est retourné par Gemini Pro directement
+        transcript = visual_result.get("transcript")
+
+        # ── 6. Synthèse via Claude Haiku (provider sélectionné selon tier) ──
         result = await asyncio.wait_for(
             loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
-            timeout=140.0,   # medium/large peut être lent (cohérent avec SYNTHESIS_TIMEOUT)
+            timeout=140.0,
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
 
@@ -1292,12 +1309,15 @@ async def analyze_url(request: Request):
             print(f"video_products enrich error: {e}")
 
         result["transcript"] = transcript
-        result["frames_analyzed"] = len(frames_list)
+        result["pipeline"] = "gemini-pro-native"
+        result["cta_visuel"] = visual_result.get("cta_visuel")
+        result["cta_audio"] = visual_result.get("cta_audio")
         result["usage"] = usage_info(user)
         result["analysis_duration_ms"] = analysis_duration_ms
         result["source"] = "url"
         result["source_url"] = url
         result["performance"] = performance  # None pour l'instant (futur : stats TikTok)
+        result["from_cache"] = False
 
         # Nourrit la base de connaissances (anonymisé) — best effort.
         try: save_insight(result, product=product, price=price)
@@ -1308,14 +1328,27 @@ async def analyze_url(request: Request):
             if winning: result["structures_gagnantes"] = winning
         except Exception: pass
 
+        # ── Cache store (seulement si l'utilisateur n'a pas fourni d'input custom) ──
+        if cache_key:
+            try:
+                analysis_cache.store(cache_key, result, pipeline="pro")
+            except Exception as e:
+                print(f"[analyze-url] cache store error: {e}")
+
         ip = request.client.host if request.client else "unknown"
-        security_logger.analyze_ok(ip, len(frames_list))
+        security_logger.analyze_ok(ip, 0)  # frames_analyzed n'a plus de sens avec Gemini natif
         return JSONResponse(result)
 
     finally:
         # ── PROTECTION SERVEUR : nettoie TOUT, quoi qu'il arrive ──
         if semaphore_acquired:
             ANALYSIS_SEMAPHORE.release()
+        # Supprimer le fichier downscalé temporaire si différent du path tmpdir
+        if downscaled_path and downscaled_path != video_path:
+            try:
+                os.unlink(downscaled_path)
+            except Exception:
+                pass
         try:
             import shutil
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -1354,10 +1387,26 @@ async def analyze_url_stream(request: Request):
     async def stream():
         tmpdir = tempfile.mkdtemp(prefix="ttsurls_")
         video_path = None
+        downscaled_path = None
         semaphore_acquired = False
         try:
             yield 'event: start\n'
             yield 'data: {"message": "Analyse du lien en cours\\u2026"}\n\n'
+
+            # ── 0. Cache lookup avant téléchargement (gagne 100% du temps si hit) ──
+            import analysis_cache
+            cache_key = analysis_cache.hash_video_url(url)
+            cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+            if cached:
+                cached["usage"] = usage_info(user)
+                cached["source"] = "url"
+                cached["source_url"] = url
+                cached["from_cache"] = True
+                yield 'event: progress\n'
+                yield 'data: {"message": "\\u26a1 R\\u00e9sultat trouv\\u00e9 en cache (analyse pr\\u00e9c\\u00e9dente)", "stage": "cache_hit"}\n\n'
+                yield 'event: complete\n'
+                yield f'data: {json.dumps(cached)}\n\n'
+                return
 
             # 1. Téléchargement (keepalive pendant l'attente)
             yield 'event: progress\n'
@@ -1402,44 +1451,30 @@ async def analyze_url_stream(request: Request):
             await ANALYSIS_SEMAPHORE.acquire()
             semaphore_acquired = True
 
-            # 2. Frames + transcription (parallèle + keepalive)
+            # 2. Downscale 720p (économise upload + processing Gemini)
             yield 'event: progress\n'
-            yield 'data: {"message": "\\ud83c\\udf9e\\ufe0f Extraction images + transcription\\u2026", "stage": "frames"}\n\n'
-            frames_task = loop.run_in_executor(None, _extract_frames_opencv, video_path, 9)
-
-            async def _do_tr():
-                try:
-                    # Timeout étendu : 40s coupait les vidéos longues = transcript tronqué
-                    # = CTA audio raté. 120s couvre les TikTok Shop standard (60s max).
-                    return await asyncio.wait_for(loop.run_in_executor(None, transcribe_audio, video_path), timeout=120.0)
-                except asyncio.TimeoutError:
-                    return None
-            tr_task = asyncio.create_task(_do_tr())
-            while True:
-                _d, _pending = await asyncio.wait({frames_task, tr_task}, timeout=4.0)
-                if not _pending:
-                    break
-                yield ': keepalive\n\n'
-            try:
-                frames_list = frames_task.result()
-            except Exception:
-                frames_list = None
-            transcript = tr_task.result() if (tr_task.done() and not tr_task.cancelled()) else None
-            if not frames_list:
-                yield 'event: error\n'
-                yield 'data: {"error": "Impossible d\'extraire les images de la vid\\u00e9o."}\n\n'
-                return
+            yield 'data: {"message": "\\ud83c\\udfac Pr\\u00e9paration de la vid\\u00e9o (720p)\\u2026", "stage": "downscale"}\n\n'
+            from video_processor import downscale_720p
+            downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
 
             analysis_start = time.time()
 
-            # 3. Vision (keepalive) + aperçu progressif
+            # 3. Gemini Pro vidéo native : visuel + audio en un seul appel
             yield 'event: progress\n'
-            yield 'data: {"message": "\\ud83d\\udc41\\ufe0f Analyse visuelle\\u2026", "stage": "vision"}\n\n'
-            vis_task = loop.run_in_executor(None, analyze_visual, frames_list, product, price)
+            yield 'data: {"message": "\\ud83c\\udfa5 Gemini Pro analyse la vid\\u00e9o (image + audio)\\u2026", "stage": "vision"}\n\n'
+            from analyzer import analyze_video_native
+            vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
+            _w = 0.0
             while True:
                 _d, _pending = await asyncio.wait({vis_task}, timeout=4.0)
                 if not _pending:
                     break
+                _w += 4.0
+                if _w >= 180:
+                    vis_task.cancel()
+                    yield 'event: error\n'
+                    yield 'data: {"error": "L\'analyse Gemini a pris trop longtemps."}\n\n'
+                    return
                 yield ': keepalive\n\n'
             try:
                 visual_result = vis_task.result()
@@ -1447,6 +1482,7 @@ async def analyze_url_stream(request: Request):
                 yield 'event: error\n'
                 yield f'data: {json.dumps({"error": f"Analyse visuelle : {str(e)[:160]}"})}\n\n'
                 return
+            transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
             detected_product = str(visual_result.get("produit") or "")[:60] if isinstance(visual_result, dict) else ""
             if isinstance(visual_result, dict):
                 partial_payload = {
@@ -1455,6 +1491,9 @@ async def analyze_url_stream(request: Request):
                     "qualite_visuelle_score": visual_result.get("qualite_visuelle_score"),
                     "format_visuel_score": visual_result.get("format_visuel_score"),
                     "hook_visuel_score": visual_result.get("hook_visuel_score"),
+                    "cta_visuel": visual_result.get("cta_visuel"),
+                    "cta_audio": visual_result.get("cta_audio"),
+                    "transcript_preview": (transcript or "")[:200],
                 }
                 yield 'event: partial\n'
                 yield f'data: {json.dumps(partial_payload)}\n\n'
@@ -1497,9 +1536,17 @@ async def analyze_url_stream(request: Request):
             except Exception:
                 pass
             result["transcript"] = transcript
-            result["frames_analyzed"] = len(frames_list)
+            result["pipeline"] = "gemini-pro-native"
+            result["cta_visuel"] = visual_result.get("cta_visuel") if isinstance(visual_result, dict) else None
+            result["cta_audio"] = visual_result.get("cta_audio") if isinstance(visual_result, dict) else None
             result["usage"] = usage_info(user)
             result["analysis_duration_ms"] = dur
+            result["from_cache"] = False
+            # Stocker en cache (URL identique → résultat instantané au prochain appel)
+            try:
+                analysis_cache.store(cache_key, result, pipeline="pro")
+            except Exception:
+                pass
             try:
                 await save_to_cache(normalize_tiktok_url(url)[0], result, dur, product_id=product)
             except Exception:
@@ -1522,6 +1569,12 @@ async def analyze_url_stream(request: Request):
         finally:
             if semaphore_acquired:
                 ANALYSIS_SEMAPHORE.release()
+            # Supprimer le fichier downscalé temporaire si différent du path tmpdir
+            if downscaled_path and downscaled_path != video_path:
+                try:
+                    os.unlink(downscaled_path)
+                except Exception:
+                    pass
             try:
                 import shutil
                 shutil.rmtree(tmpdir, ignore_errors=True)
