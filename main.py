@@ -911,25 +911,34 @@ async def analyze_stream_sse(
             # PIPELINE PRO+ : Gemini Pro vidéo native (visuel + audio en un appel)
             # ════════════════════════════════════════════════════════════════
             if _use_native_pipeline and _video_upload is not None:
-                # Lecture de la vidéo APRÈS les premiers yields → le browser
-                # reçoit déjà du SSE et ne déclenche pas "pas de données reçues".
+                # Streaming UploadFile → fichier temporaire SANS jamais charger
+                # la vidéo entière en RAM (Render 512 MB → OOM sinon).
                 yield 'event: progress\n'
                 yield 'data: {"message": "\\ud83d\\udce4 R\\u00e9ception de la vid\\u00e9o\\u2026", "stage": "video_upload"}\n\n'
+                import hashlib
+                hasher = hashlib.sha256()
                 try:
-                    video_bytes = await _video_upload.read()
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                        video_path_tmp = tmp.name
+                        while True:
+                            chunk = await _video_upload.read(1024 * 1024)  # 1 MB par chunk
+                            if not chunk:
+                                break
+                            tmp.write(chunk)
+                            hasher.update(chunk)
                 except Exception as e:
                     yield 'event: error\n'
-                    _err = "Lecture vidéo échouée : " + str(e)[:200]
+                    _err = "Réception vidéo échouée : " + str(e)[:200]
                     yield f'data: {json.dumps({"error": _err})}\n\n'
                     return
-                if not video_bytes:
+                if not video_path_tmp or os.path.getsize(video_path_tmp) == 0:
                     yield 'event: error\n'
                     yield 'data: {"error": "Fichier vid\\u00e9o vide."}\n\n'
                     return
 
                 import analysis_cache
-                # Cache lookup par hash du contenu vidéo
-                cache_key = analysis_cache.hash_video_bytes(video_bytes)
+                # Hash construit pendant le streaming (pas de relecture du fichier)
+                cache_key = hasher.hexdigest()
                 cached = analysis_cache.get_cached(cache_key, pipeline="pro")
                 if cached:
                     cached["usage"] = usage_info(user)
@@ -940,11 +949,6 @@ async def analyze_stream_sse(
                     yield 'event: complete\n'
                     yield f'data: {json.dumps(cached)}\n\n'
                     return
-
-                # Écrire la vidéo dans un fichier temporaire pour ffmpeg + Gemini
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                    video_path_tmp = tmp.name
-                    tmp.write(video_bytes)
 
                 yield 'event: progress\n'
                 yield 'data: {"message": "\\ud83c\\udfac Pr\\u00e9paration de la vid\\u00e9o (720p)\\u2026", "stage": "downscale"}\n\n'
