@@ -24,7 +24,9 @@ import httpx
 
 # IDs modèles (overridables par env, sans redéploiement)
 GEMINI_VISION_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-2.5-pro")  # vidéo native (audio + visuel)
 CLAUDE_TEXT_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+CLAUDE_HAIKU_MODEL = os.getenv("CLAUDE_HAIKU_MODEL", "claude-haiku-4-5-20251001")
 MISTRAL_VISION_MODEL = "pixtral-12b-2409"
 MISTRAL_TEXT_MODEL = "mistral-small-latest"
 
@@ -112,6 +114,37 @@ def _gemini_vision(content: Any, timeout: float, temperature: Optional[float] = 
     return resp.text or ""
 
 
+# ── Gemini Pro (VIDÉO native + audio) ────────────────────────────────────────
+def _gemini_video(video_path: str, prompt: str, timeout: float,
+                  temperature: Optional[float] = None) -> str:
+    """Envoie la vidéo entière (mp4) à Gemini Pro pour analyse multimodale
+    native — vision + audio dans un seul appel. Pas d'extraction de frames,
+    pas de transcription audio séparée.
+
+    Gemini Pro voit le rythme, les transitions, écoute la piste audio,
+    repère les CTA en fin de vidéo (visuels + audio) en un seul passage.
+
+    Inline pour vidéos < 20 MB, Files API au-delà (TikTok Shop max 60s
+    en 720p reste largement sous la limite inline).
+    """
+    from google import genai
+    from google.genai import types as gt
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"),
+                          http_options=gt.HttpOptions(timeout=int(timeout * 1000)))
+    size = os.path.getsize(video_path)
+    if size < 18 * 1024 * 1024:  # marge sous la limite 20 MB inline
+        with open(video_path, "rb") as f:
+            video_part = gt.Part.from_bytes(data=f.read(), mime_type="video/mp4")
+    else:
+        # Files API pour les vidéos plus lourdes (jusqu'à 2 GB, 48h de rétention)
+        uploaded = client.files.upload(file=video_path, config={"mime_type": "video/mp4"})
+        video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
+    parts = [video_part, gt.Part.from_text(text=prompt)]
+    cfg = gt.GenerateContentConfig(temperature=temperature) if temperature is not None else None
+    resp = client.models.generate_content(model=GEMINI_VIDEO_MODEL, contents=parts, config=cfg)
+    return resp.text or ""
+
+
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
 def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
                  temperature: Optional[float] = None, model: Optional[str] = None) -> str:
@@ -171,6 +204,21 @@ def vision_complete(content: Any, timeout: float = 60.0,
             print(f"[ai] Gemini vision KO → fallback Mistral : {e}")
     out = _mistral_chat(MISTRAL_VISION_MODEL, content, timeout, temperature=temperature, seed=seed)
     _LAST["vision"] = "mistral:" + MISTRAL_VISION_MODEL
+    return out
+
+
+def video_complete(video_path: str, prompt: str, timeout: float = 90.0,
+                   temperature: Optional[float] = None) -> str:
+    """Analyse vidéo NATIVE via Gemini Pro (visuel + audio, un seul appel).
+    Plus précis qu'une analyse de frames extraites + transcription séparée.
+
+    Lève une exception si Gemini KO — pas de fallback automatique car les autres
+    providers ne supportent pas la vidéo native. L'appelant peut retomber sur le
+    pipeline frames+transcription si besoin."""
+    out = _gemini_video(video_path, prompt, timeout, temperature=temperature)
+    if not out or not out.strip():
+        raise Exception("réponse Gemini vidéo vide")
+    _LAST["vision"] = "gemini-video:" + GEMINI_VIDEO_MODEL
     return out
 
 

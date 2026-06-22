@@ -12,6 +12,38 @@ def _ffmpeg() -> str:
     return "ffmpeg"
 
 
+def downscale_720p(video_path: str) -> str:
+    """Downscale une vidéo à 720p H.264 + audio AAC pour réduire le temps d'upload
+    et de processing Gemini. Garde le ratio, qualité d'analyse identique.
+
+    Retourne le path du fichier downscalé (à supprimer par l'appelant après usage).
+    Si la conversion échoue, retourne le path original (jamais bloquant)."""
+    out_fd, out_path = tempfile.mkstemp(suffix="_720p.mp4")
+    os.close(out_fd)
+    try:
+        result = subprocess.run(
+            [
+                _ffmpeg(), "-y", "-i", video_path,
+                "-vf", "scale=-2:720",  # hauteur 720, largeur auto (multiple de 2)
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "28",
+                "-c:a", "aac", "-b:a", "96k",
+                "-movflags", "+faststart",
+                out_path,
+            ],
+            capture_output=True, timeout=60,
+        )
+        if result.returncode == 0 and os.path.getsize(out_path) > 1024:
+            return out_path
+    except Exception:
+        pass
+    # Échec → on retourne le path original (jamais bloquant)
+    try:
+        os.unlink(out_path)
+    except Exception:
+        pass
+    return video_path
+
+
 def get_duration(video_path: str) -> float:
     result = subprocess.run(
         [_ffmpeg(), "-i", video_path, "-hide_banner"],

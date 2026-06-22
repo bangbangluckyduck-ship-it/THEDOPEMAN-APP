@@ -521,6 +521,84 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# ÉTAPE 1bis : ANALYSE VIDÉO NATIVE (Gemini Pro — vision + audio en un appel)
+# Utilisé pour le pipeline PRO+. Voit la vidéo entière, écoute l'audio, repère
+# les CTA visuels ET audio en fin de vidéo (corrige le bug "CTA raté").
+# ════════════════════════════════════════════════════════════════════════════
+VIDEO_NATIVE_PROMPT = """Tu es expert vision + audio pour TikTok Shop. Tu reçois la VIDÉO COMPLÈTE (image + son). Analyse-la et retourne UNIQUEMENT du JSON valide en français.
+
+CONSIGNES IMPORTANTES :
+- Tu vois ET tu entends la vidéo en intégralité — utilise les DEUX
+- Pour les CTA, regarde explicitement les 2 DERNIÈRES SECONDES : CTA visuel (texte/flèche/produit à l'écran) ET CTA audio (verbal "achète", "swipe up", "lien en bio", etc.)
+- Transcris fidèlement l'audio parlé (mot à mot, pas de paraphrase) dans `transcript`
+
+Retourne ce JSON exact :
+{
+  "produit": "<nom du produit principal détecté>",
+  "confiance_detection": <0.6 à 1.0>,
+  "description_visuelle": "<résumé en 2-3 phrases : décor, plans, ambiance, rythme>",
+  "transcript": "<retranscription verbatim de tout l'audio parlé, séparé par des sauts de ligne pour les pauses>",
+  "qualite_visuelle_score": <0-100 : netteté, éclairage, cadrage>,
+  "format_visuel_score": <0-100 : adapté TikTok vertical, rythme de coupes, lisibilité>,
+  "hook_visuel_score": <0-100 : impact des 3 premières secondes>,
+  "cta_visuel": {
+    "present": <true|false>,
+    "description": "<ce qui apparaît visuellement comme CTA, ou null>",
+    "timestamp_seconds": <secondes depuis le début, ou null>
+  },
+  "cta_audio": {
+    "present": <true|false>,
+    "phrase": "<la phrase exacte du CTA prononcée, ou null>",
+    "timestamp_seconds": <secondes depuis le début, ou null>
+  },
+  "rythme": "<lent | moyen | rapide>",
+  "duree_secondes": <durée totale de la vidéo>
+}
+
+AUCUN texte avant ou après le JSON. AUCUN markdown ```json. JSON BRUT."""
+
+
+def analyze_video_native(video_path: str, product: Optional[str] = None,
+                         price: Optional[str] = None) -> dict:
+    """Analyse multimodale via Gemini Pro sur la vidéo ENTIÈRE (visuel + audio).
+    Une seule requête remplace : extraction frames + transcription AssemblyAI + appel vision.
+
+    Retourne un dict avec : produit, transcript, scores visuels, CTA détectés.
+    Le caller utilise ensuite synthesize_analysis() pour produire le rapport final.
+    """
+    if not ai_providers.any_ai_key():
+        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
+
+    prompt = VIDEO_NATIVE_PROMPT
+    if product:
+        prompt += f"\n\n🎯 PRODUIT INDIQUÉ par l'utilisateur : {product}. Utilise pour valider ta détection."
+    if price:
+        prompt += f"\n💶 PRIX INDIQUÉ par l'utilisateur : {price}. Considère-le comme prix de référence."
+
+    raw = ai_providers.video_complete(
+        video_path, prompt,
+        timeout=float(os.getenv("VIDEO_NATIVE_TIMEOUT", "120")),
+        temperature=0.0,
+    )
+    try:
+        return _extract_json(raw)
+    except Exception:
+        return {
+            "produit": product or "non détecté",
+            "confiance_detection": 0.6,
+            "description_visuelle": "Analyse Gemini vidéo native échouée — JSON invalide",
+            "transcript": "",
+            "qualite_visuelle_score": 50,
+            "format_visuel_score": 50,
+            "hook_visuel_score": 50,
+            "cta_visuel": {"present": False, "description": None, "timestamp_seconds": None},
+            "cta_audio": {"present": False, "phrase": None, "timestamp_seconds": None},
+            "rythme": "moyen",
+            "duree_secondes": 0,
+        }
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # ÉTAPE 2 : SYNTHÈSE (Mistral small / text-only — combine vision + transcript)
 # ════════════════════════════════════════════════════════════════════════════
 SYNTHESIS_PROMPT = """Tu es expert TikTok Shop & psychologie persuasion. Tu reçois UNE analyse visuelle déjà faite + un transcript audio + contexte marché. Tu dois produire le JSON FINAL complet d'analyse. Langage probabiliste ("semble", "tend à"). FRANÇAIS PUR. JSON UNIQUEMENT.
@@ -775,9 +853,14 @@ def synthesize_analysis(
 
     full_prompt = "\n".join(parts)
 
-    # Synthèse = Mistral small par défaut : RAPIDE + JSON fiable sur ce gros schéma
-    # (Claude était lent/instable ici). Flippable : ANALYSIS_TEXT_PROVIDER=claude (+ SYNTHESIS_CLAUDE_MODEL).
-    _atp = os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral")
+    # Synthèse — provider dépend du tier :
+    # - Free : Mistral small (rapide, "Aperçu rapide")
+    # - Pro / Gold / Agency / Beta / Admin : Claude Haiku 4.5 (raisonnement supérieur,
+    #   meilleur sur psychologie de la persuasion / nuance / langage probabiliste)
+    # Override par env ANALYSIS_TEXT_PROVIDER pour forcer une valeur globale.
+    _is_paid = user_tier in ("pro", "gold", "agency", "beta", "admin")
+    _default_provider = "claude" if _is_paid else "mistral"
+    _atp = os.getenv("ANALYSIS_TEXT_PROVIDER", _default_provider)
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
