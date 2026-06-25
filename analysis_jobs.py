@@ -138,6 +138,39 @@ def mark_done(job_id: str, result: dict, duration_ms: int) -> None:
         logger.warning("[analysis_jobs] mark_done failed: %s", e)
 
 
+def create_done_job(user_email: str, source: str, result: dict, *,
+                    source_url: Optional[str] = None,
+                    product: Optional[str] = None,
+                    price: Optional[str] = None,
+                    title: Optional[str] = None,
+                    duration_ms: Optional[int] = None) -> Optional[str]:
+    """Crée un job déjà en status='done' avec son résultat. Utilisé pour les
+    analyses SYNCHRONES (déjà terminées au moment de l'écriture en DB), afin
+    qu'elles apparaissent aussi dans "Mes analyses" cross-device, à côté
+    des jobs async."""
+    if not supabase_service:
+        return None
+    try:
+        row = {
+            "user_email": (user_email or "").lower(),
+            "status": _STATUS_DONE,
+            "source": source,
+            "source_url": source_url,
+            "product": product,
+            "price": price,
+            "title": title,
+            "result": result,
+            "started_at": _now_iso(),
+            "completed_at": _now_iso(),
+            "duration_ms": duration_ms,
+        }
+        r = supabase_service.table("analysis_jobs").insert(row).execute()
+        return r.data[0]["id"] if r.data else None
+    except Exception as e:
+        logger.warning("[analysis_jobs] create_done_job failed: %s", e)
+        return None
+
+
 def mark_error(job_id: str, error_message: str) -> None:
     if not supabase_service or not job_id:
         return
