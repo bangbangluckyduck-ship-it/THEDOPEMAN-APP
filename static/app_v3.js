@@ -3231,12 +3231,8 @@ function renderAccountPage() {
         <button id="push-btn" class="btn btn-primary" style="font-size:13px" onclick="togglePush()">🔔 Activer les notifications</button>
       </div>`;
 
-  // 📋 Historique des analyses (déplacé ici depuis l'onglet)
-  html += `
-      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📋 Historique des analyses</div>
-        <div id="history-list"></div>
-      </div>`;
+  // Historique des analyses : déplacé vers "📊 Mes analyses" (DB Supabase
+  // cross-device). L'ancien bloc localStorage n'est plus rendu ici.
 
   // Buttons
   if (tier !== 'free' && tier !== 'admin') {
@@ -3261,7 +3257,6 @@ function renderAccountPage() {
   container.innerHTML = html;
   loadTikTokShopStatus();
   initPushUI();              // opt-in notifications
-  renderHistory();           // historique désormais dans le compte
   renderAccountCredits();    // balance + packs crédits
 }
 
