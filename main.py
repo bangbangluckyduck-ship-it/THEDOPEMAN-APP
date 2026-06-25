@@ -97,6 +97,33 @@ except Exception as e:
     print(f"⚠️  Supabase analytics client init failed: {e}")
     supabase_client = None
 
+def _persist_sync_analysis(user: dict, result: dict, *, source: str,
+                           source_url=None, product=None, price=None,
+                           title=None, duration_ms=None) -> None:
+    """Persiste une analyse sync dans analysis_jobs (status='done') pour qu'elle
+    apparaisse dans "Mes analyses" cross-device. Best-effort, jamais bloquant.
+
+    Skip si :
+    - utilisateur non connecté (pas de stockage anonyme dans la table)
+    - result vient du cache (déjà persisté lors de la 1re analyse)
+    """
+    try:
+        if not user or not user.get("valid") or not user.get("email"):
+            return
+        if isinstance(result, dict) and result.get("from_cache"):
+            return
+        import analysis_jobs as _aj
+        # Titre court : product → filename → "Analyse vidéo"
+        t = title or product or (source_url[:60] if source_url else "Analyse vidéo")
+        _aj.create_done_job(
+            user_email=user["email"], source=source, result=result,
+            source_url=source_url, product=product, price=price,
+            title=t[:80], duration_ms=duration_ms,
+        )
+    except Exception as e:
+        print(f"[_persist_sync_analysis] KO: {e}")
+
+
 generate_icons()
 
 # Nettoyage des jobs orphelins au démarrage : si Render a redéployé pendant
@@ -1068,6 +1095,14 @@ async def analyze_stream_sse(
                         analysis_cache.store(cache_key, result, pipeline="pro")
                     except Exception: pass
 
+                # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
+                _persist_sync_analysis(
+                    user, result, source="upload",
+                    product=product, price=price,
+                    title=product or (getattr(_video_upload, "filename", None) or "Vidéo uploadée"),
+                    duration_ms=analysis_duration_ms,
+                )
+
                 yield 'event: complete\n'
                 yield f'data: {json.dumps(result)}\n\n'
                 await _maybe_upsell_free_quota(user)
@@ -1204,6 +1239,14 @@ async def analyze_stream_sse(
                         new_count = (existing.data[0].get("analysis_count") or 0) + 1
                         supabase_client.table("daily_visitor_stats").update({"analysis_count": new_count, "updated_at": datetime.now().isoformat()}).eq("date", today).execute()
                 except Exception: pass
+
+            # Persiste l'analyse legacy aussi pour qu'elle apparaisse dans Mes analyses
+            _persist_sync_analysis(
+                user, result, source="upload",
+                product=product, price=price,
+                title=product or "Vidéo uploadée",
+                duration_ms=analysis_duration_ms,
+            )
 
             yield 'event: complete\n'
             yield f'data: {json.dumps(result)}\n\n'
@@ -1520,6 +1563,14 @@ async def analyze_url(request: Request):
             except Exception as e:
                 print(f"[analyze-url] cache store error: {e}")
 
+        # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
+        _persist_sync_analysis(
+            user, result, source="url", source_url=url,
+            product=product, price=price,
+            title=product or url[:60],
+            duration_ms=analysis_duration_ms,
+        )
+
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, 0)  # frames_analyzed n'a plus de sens avec Gemini natif
         return JSONResponse(result)
@@ -1724,6 +1775,12 @@ async def analyze_url_stream(request: Request):
             result["usage"] = usage_info(user)
             result["analysis_duration_ms"] = dur
             result["from_cache"] = False
+            # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
+            _persist_sync_analysis(
+                user, result, source="url", source_url=url,
+                product=product, price=price,
+                title=product or url[:60], duration_ms=dur,
+            )
             # Pas de store en cache : product/price obligatoires sur cet endpoint
             # donc le résultat est trop spécifique à l'utilisateur pour être partagé.
             try:
