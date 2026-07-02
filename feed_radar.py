@@ -57,7 +57,7 @@ FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "2"))
 # via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
 FEED_RADAR_REGIONS = [
     r.strip().upper() for r in os.getenv(
-        "FEED_RADAR_REGIONS", "US,GB,BR,DE,FR,ES,IT,ID,MY"
+        "FEED_RADAR_REGIONS", "FR,US,GB,BR,DE,ES,IT,ID,MY"  # FR en priorité : audience cœur de cible de l'app
     ).split(",") if r.strip()
 ]
 
