@@ -129,11 +129,11 @@ Chaîne créateur-centric confirmée (endpoint debug admin `/api/_debug/keyapi` 
 - Le **cache Supabase** (24h créateurs/catégorie, 12h détail) limite la conso → activer la table `market_cache` (SQL fourni) pour économiser le quota.
 - 🔧 Endpoint debug `/api/_debug/keyapi` = consomme du quota → **à retirer** une fois le multi-pays fini.
 
-## 🌍 Multi-pays (demandé, EN ATTENTE de quota)
+## 🌍 Multi-pays — CONFIRMÉ FONCTIONNEL (2026-07-02)
 Objectif : Top créateurs par **pays** (mensuel ≈ 30j), localisé selon la langue de l'app — l'utilisateur voit d'abord son pays puis les autres marchés (US, UK, BR…).
-- ⚠️ **FR = 0 créateur** (TikTok Shop France pas couvert par KeyAPI). GB/BR à reconfirmer quand quota dispo (les 0 récents étaient dus au quota épuisé, pas à l'absence de données).
-- Param `region` du ranking (US confirmé). À tester : GB, BR, autres.
-- À coder une fois la liste des régions réellement dispo connue.
+- ✅ **FR CONFIRMÉ COUVERT** — re-testé en direct le 02/07/2026, 9 créateurs FR remontés (ex: @hannaholala, 2M abonnés). Le "FR = 0 créateur" plus haut était dû au quota KeyAPI épuisé au moment du test, pas à une absence de données — ne pas re-douter cette couverture sans re-tester.
+- 9 régions confirmées utilisables : US, GB, BR, DE, FR, ES, IT, ID, MY (= `MARKET_COUNTRIES` dans `static/app_v3.js`, réutilisé par `FEED_RADAR_REGIONS` dans `feed_radar.py`).
+- Codé : Feed Radar boucle sur ces 9 régions à chaque collecte cron ; chaque utilisateur voit les vidéos de sa région (détectée via `_userRegion()` côté frontend).
 
 ## 🐛 Bugs marché restants
 - **Lien produit** : `shop.tiktok.com/view/product/{id}` ne redirige pas (peut-être géo-bloqué FR). À tester `www.tiktok.com/view/product/{id}` dans le navigateur (sans quota). Endpoint `insights/product/detail` = payant (402), inutilisable.

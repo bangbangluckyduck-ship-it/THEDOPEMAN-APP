@@ -39,6 +39,14 @@ FEED_RADAR_VIEW_THRESHOLD = int(os.getenv("FEED_RADAR_VIEW_THRESHOLD", "100000")
 # pas vue→achat (l'écrasante majorité des vues ne cliquent jamais).
 FEED_RADAR_DEFAULT_CTOR = float(os.getenv("FEED_RADAR_DEFAULT_CTOR", "0.0004"))
 FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison"]
+# Mêmes régions que MARKET_COUNTRIES (static/app_v3.js) — marchés déjà
+# confirmés couverts par KeyAPI pour "Créateurs Gagnants". Override possible
+# via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
+FEED_RADAR_REGIONS = [
+    r.strip().upper() for r in os.getenv(
+        "FEED_RADAR_REGIONS", "US,GB,BR,DE,FR,ES,IT,ID,MY"
+    ).split(",") if r.strip()
+]
 
 _TIKTOK_OEMBED_URL = "https://www.tiktok.com/oembed"
 
@@ -121,13 +129,34 @@ async def discover_candidate_videos(region: str = "US",
     return candidates
 
 
-async def run_feed_radar_collection(region: str = "US") -> dict:
-    """Point d'entrée du cron : découverte → filtre vues → GMV estimé +
-    tendance créateur → oEmbed (nouvelles vidéos seulement) → upsert."""
+async def run_feed_radar_collection(region: Optional[str] = None) -> dict:
+    """Point d'entrée du cron : boucle sur FEED_RADAR_REGIONS (tous les marchés
+    déjà couverts par KeyAPI, cf. MARKET_COUNTRIES côté frontend) sauf si un
+    `region` précis est fourni (utile pour un déclenchement manuel ciblé)."""
     from supabase_client import supabase_service as supabase
     if not supabase:
         return {"ok": False, "error": "Supabase indisponible", "found": 0, "new": 0, "updated": 0}
 
+    regions = [region.upper()] if region else FEED_RADAR_REGIONS
+    totals = {"found": 0, "new": 0, "updated": 0}
+    by_region = {}
+    for r in regions:
+        try:
+            res = await _collect_region(r, supabase)
+        except Exception as e:
+            print(f"run_feed_radar_collection region {r} error: {e}")
+            res = {"found": 0, "new": 0, "updated": 0}
+        by_region[r] = res
+        totals["found"] += res["found"]
+        totals["new"] += res["new"]
+        totals["updated"] += res["updated"]
+
+    return {"ok": True, **totals, "by_region": by_region}
+
+
+async def _collect_region(region: str, supabase) -> dict:
+    """Collecte pour UNE région : découverte → filtre vues → GMV estimé +
+    tendance créateur → oEmbed (nouvelles vidéos seulement) → upsert."""
     candidates = await discover_candidate_videos(region)
     found = len(candidates)
     new_count = 0
@@ -140,7 +169,7 @@ async def run_feed_radar_collection(region: str = "US") -> dict:
             .in_("video_id", [c["id"] for c in candidates]).execute().data or []
         existing_ids = {r["video_id"] for r in existing_rows}
     except Exception as e:
-        print(f"run_feed_radar_collection existing lookup error: {e}")
+        print(f"_collect_region({region}) existing lookup error: {e}")
 
     # Cache par créateur (GMV 30j + prix moyen) — évite de répéter les mêmes
     # appels KeyAPI pour chaque vidéo d'un même créateur dans cette collecte.
@@ -216,6 +245,6 @@ async def run_feed_radar_collection(region: str = "US") -> dict:
         try:
             supabase.table("feed_radar_videos").upsert(row, on_conflict="video_id").execute()
         except Exception as e:
-            print(f"run_feed_radar_collection upsert error ({video_id}): {e}")
+            print(f"_collect_region({region}) upsert error ({video_id}): {e}")
 
-    return {"ok": True, "found": found, "new": new_count, "updated": updated_count}
+    return {"found": found, "new": new_count, "updated": updated_count}

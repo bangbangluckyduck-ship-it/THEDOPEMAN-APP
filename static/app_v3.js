@@ -4988,7 +4988,7 @@ async function loadFeedRadarTab() {
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const res = await fetch('/api/feed-radar?region=US', { headers });
+    const res = await fetch(`/api/feed-radar?region=${_userRegion()}`, { headers });
     const data = await res.json().catch(() => ({}));
     loading.style.display = 'none';
 
