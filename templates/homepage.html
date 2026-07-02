@@ -1170,7 +1170,9 @@
 <script>
 (function () {
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  fetch('/api/feed-radar/teaser').then(function(r){return r.json();}).then(function(d){
+  var _lang=(document.documentElement.lang||navigator.language||'fr').slice(0,2).toLowerCase();
+  var _region=({fr:'FR',en:'US',pt:'BR',es:'ES',it:'IT',de:'DE',id:'ID',ms:'MY'})[_lang]||'US';
+  fetch('/api/feed-radar/teaser?region='+_region).then(function(r){return r.json();}).then(function(d){
     var items=(d&&d.videos)||[]; if(!items.length) return;
     var sec=document.getElementById('feedradar-teaser-section'); var g=document.getElementById('feedradar-teaser-grid');
     g.innerHTML=items.map(function(v){

@@ -504,9 +504,11 @@ async def cron_upsell_j3(key: str = Query("")):
 
 
 @app.get("/api/_cron/feed-radar-collect")
-async def cron_feed_radar_collect(key: str = Query(""), region: str = Query("US")):
+async def cron_feed_radar_collect(key: str = Query(""), region: Optional[str] = Query(None)):
     """Tâche planifiée (cron ~6h) : collecte Feed Radar (découverte créateurs
-    → vidéos ≥ seuil de vues → GMV estimé + tendance créateur → oEmbed).
+    → vidéos ≥ seuil de vues → GMV estimé + tendance créateur → oEmbed) sur
+    tous les marchés de FEED_RADAR_REGIONS (mêmes marchés que "Créateurs
+    Gagnants") — précise ?region=XX pour un déclenchement manuel ciblé.
     Protégé par CRON_SECRET. À appeler via Render Cron Job / pinger externe —
     aucun scheduler n'existe dans ce repo, cf. mémoire projet."""
     cron_secret = os.getenv("CRON_SECRET", "")
@@ -2571,16 +2573,24 @@ async def feed_radar_video_embed(request: Request, video_id: str):
 
 
 @app.get("/api/feed-radar/teaser")
-async def feed_radar_teaser():
-    """3 vidéos top pour la homepage publique. Pas d'auth. Cache 6h."""
-    cache_key = "feedradar::teaser::top3"
+async def feed_radar_teaser(region: Optional[str] = Query(None)):
+    """3 vidéos top pour la homepage publique. Pas d'auth. Cache 6h.
+    Filtré par région du visiteur si fournie ; repli sur le top global si
+    cette région n'a pas encore de données collectées."""
+    region = (region or "").strip().upper() or None
+    cache_key = f"feedradar::teaser::{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
         try:
-            rows = (supabase_client.table("feed_radar_videos").select(
-                        "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated")
-                    .order("views", desc=True).limit(3).execute().data or [])
-            teaser = rows
+            cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
+            teaser = []
+            if region:
+                teaser = (supabase_client.table("feed_radar_videos").select(cols)
+                          .eq("region", region).order("views", desc=True).limit(3)
+                          .execute().data or [])
+            if not teaser:
+                teaser = (supabase_client.table("feed_radar_videos").select(cols)
+                          .order("views", desc=True).limit(3).execute().data or [])
         except Exception as e:
             print(f"/api/feed-radar/teaser error: {e}")
             teaser = []
