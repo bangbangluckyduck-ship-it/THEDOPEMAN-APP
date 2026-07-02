@@ -550,9 +550,17 @@ async function lookupRechercheGmv() {
       box.innerHTML = `<div class="empty">❌ ${data.detail || 'Erreur'}</div>`;
       return;
     }
-    box.innerHTML = `
-      <div style="font-size:28px;font-weight:900">$${(data.gmv_30d || 0).toLocaleString()}</div>
-      <div style="color:var(--muted,#6b7280)">@${data.unique_id || ''} · ${data.nickname || ''} · ${(data.sales_30d || 0).toLocaleString()} ventes (30j)</div>`;
+    if (data.reliable === false) {
+      box.innerHTML = `
+        <div style="font-size:14px;color:#e67e22;font-weight:700">⚠️ GMV 30j indisponible (compte hors classement actif KeyAPI)</div>
+        <div style="color:var(--muted,#6b7280);margin-top:4px">@${data.unique_id || ''} · ${data.nickname || ''}</div>
+        ${data.lifetime_gmv_fallback ? `<div style="font-size:22px;font-weight:900;margin-top:8px">$${data.lifetime_gmv_fallback.toLocaleString()}</div>
+        <div style="color:var(--muted,#6b7280)">GMV total historique connu</div>` : ''}`;
+    } else {
+      box.innerHTML = `
+        <div style="font-size:28px;font-weight:900">$${(data.gmv_30d || 0).toLocaleString()}</div>
+        <div style="color:var(--muted,#6b7280)">@${data.unique_id || ''} · ${data.nickname || ''} · ${(data.sales_30d || 0).toLocaleString()} ventes (30j)</div>`;
+    }
   } catch (e) {
     box.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
   }
