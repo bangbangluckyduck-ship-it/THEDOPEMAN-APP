@@ -53,7 +53,7 @@ FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison",
 # max API) — 5 pages = jusqu'à 50 créateurs par catégorie. La boucle s'arrête
 # d'elle-même dès qu'une page revient vide (pas de gaspillage si le classement
 # KeyAPI a moins de créateurs que ça pour une catégorie/région donnée).
-FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "5"))
+FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "10"))
 # Mêmes régions que MARKET_COUNTRIES (static/app_v3.js) — marchés déjà
 # confirmés couverts par KeyAPI pour "Créateurs Gagnants". Override possible
 # via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
