@@ -6,7 +6,7 @@ import string
 import bcrypt
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Tuple
-from supabase_client import supabase
+from supabase_client import supabase_service as supabase
 
 PASSWORD_RESET_TOKEN_EXPIRE_HOURS = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS", "24"))
 TEMPORARY_PASSWORD_LENGTH = int(os.getenv("TEMPORARY_PASSWORD_LENGTH", "12"))

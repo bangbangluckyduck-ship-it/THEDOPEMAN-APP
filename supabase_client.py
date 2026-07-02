@@ -37,7 +37,7 @@ def get_or_create_user(email: str) -> dict:
 
     try:
         # Récupérer l'utilisateur
-        response = supabase.table("users").select("*").eq("email", email).execute()
+        response = supabase_service.table("users").select("*").eq("email", email).execute()
 
         if response.data:
             return response.data[0]
@@ -47,7 +47,7 @@ def get_or_create_user(email: str) -> dict:
             "email": email,
             "tier": "free",
         }
-        response = supabase.table("users").insert(new_user).execute()
+        response = supabase_service.table("users").insert(new_user).execute()
         return response.data[0] if response.data else new_user
 
     except Exception as e:
@@ -68,7 +68,7 @@ def set_user_tier(email: str, tier: str, customer_id: Optional[str] = None,
             "subscription_id": subscription_id,
             "tier_expiry": expiry,
         }
-        supabase.table("users").update(data).eq("email", email).execute()
+        supabase_service.table("users").update(data).eq("email", email).execute()
     except Exception as e:
         print(f"Erreur set_user_tier: {e}")
 
@@ -117,7 +117,7 @@ def revoke_by_customer(customer_id: str) -> None:
         return
 
     try:
-        supabase.table("users").update({"tier": "free"}).eq("customer_id", customer_id).execute()
+        supabase_service.table("users").update({"tier": "free"}).eq("customer_id", customer_id).execute()
     except Exception as e:
         print(f"Erreur revoke_by_customer: {e}")
 
@@ -138,7 +138,7 @@ def _get_monthly_count(email: str) -> int:
         return 0
 
     try:
-        response = supabase.table("monthly_usage").select("count").eq("user_id", _get_user_id(email)).eq("month", _this_month()).execute()
+        response = supabase_service.table("monthly_usage").select("count").eq("user_id", _get_user_id(email)).eq("month", _this_month()).execute()
         return response.data[0]["count"] if response.data else 0
     except Exception:
         return 0
@@ -150,7 +150,7 @@ def _get_daily_count(email: str) -> int:
         return 0
 
     try:
-        response = supabase.table("daily_usage").select("count").eq("user_id", _get_user_id(email)).eq("day", _today()).execute()
+        response = supabase_service.table("daily_usage").select("count").eq("user_id", _get_user_id(email)).eq("day", _today()).execute()
         return response.data[0]["count"] if response.data else 0
     except Exception:
         return 0
@@ -178,16 +178,16 @@ def _increment_monthly(email: str) -> int:
         month = _this_month()
 
         # Essayer de mettre à jour
-        response = supabase.table("monthly_usage").select("*").eq("user_id", user_id).eq("month", month).execute()
+        response = supabase_service.table("monthly_usage").select("*").eq("user_id", user_id).eq("month", month).execute()
 
         if response.data:
             # Mettre à jour
             new_count = response.data[0]["count"] + 1
-            supabase.table("monthly_usage").update({"count": new_count}).eq("user_id", user_id).eq("month", month).execute()
+            supabase_service.table("monthly_usage").update({"count": new_count}).eq("user_id", user_id).eq("month", month).execute()
             return new_count
         else:
             # Créer une nouvelle entrée
-            supabase.table("monthly_usage").insert({"user_id": user_id, "month": month, "count": 1}).execute()
+            supabase_service.table("monthly_usage").insert({"user_id": user_id, "month": month, "count": 1}).execute()
             return 1
     except Exception as e:
         print(f"Erreur _increment_monthly: {e}")
@@ -204,16 +204,16 @@ def _increment_daily(email: str) -> int:
         day = _today()
 
         # Essayer de mettre à jour
-        response = supabase.table("daily_usage").select("*").eq("user_id", user_id).eq("day", day).execute()
+        response = supabase_service.table("daily_usage").select("*").eq("user_id", user_id).eq("day", day).execute()
 
         if response.data:
             # Mettre à jour
             new_count = response.data[0]["count"] + 1
-            supabase.table("daily_usage").update({"count": new_count}).eq("user_id", user_id).eq("day", day).execute()
+            supabase_service.table("daily_usage").update({"count": new_count}).eq("user_id", user_id).eq("day", day).execute()
             return new_count
         else:
             # Créer une nouvelle entrée
-            supabase.table("daily_usage").insert({"user_id": user_id, "day": day, "count": 1}).execute()
+            supabase_service.table("daily_usage").insert({"user_id": user_id, "day": day, "count": 1}).execute()
             return 1
     except Exception as e:
         print(f"Erreur _increment_daily: {e}")
@@ -263,7 +263,7 @@ def get_all_users() -> list[dict]:
         return []
 
     try:
-        response = supabase.table("users").select("*").execute()
+        response = supabase_service.table("users").select("*").execute()
         print(f"get_all_users: response data count = {len(response.data) if response.data else 0}")
         if not response.data:
             print("get_all_users: no data from supabase")

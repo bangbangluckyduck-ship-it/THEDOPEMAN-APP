@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
-from supabase_client import supabase, _get_user_id
+from supabase_client import supabase_service as supabase, _get_user_id
 
 PRO_DAILY_LIMIT = 10
 
