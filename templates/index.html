@@ -1345,6 +1345,8 @@
   <div class="tabs">
     <button class="tab active" id="tab-analyze"  onclick="switchTab('analyze')"  data-i18n="tab_analyze">🎬 Analyser</button>
     <button class="tab"        id="tab-creators" onclick="switchTab('creators')">🔥 Créateurs Gagnants</button>
+    <button class="tab"        id="tab-recherche" onclick="switchTab('recherche')">🔍 Recherche</button>
+    <button class="tab"        id="tab-feedradar" onclick="switchTab('feedradar')">📡 Feed Radar</button>
     <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">📸 Photo Slide</button>
     <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
     <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
@@ -1364,6 +1366,19 @@
     <div id="progression-card" class="section" style="display:none">
       <h2 style="font-size:18px">📈 Ma progression</h2>
       <div id="progression-chart"></div>
+    </div>
+
+    <!-- 🎯 Rôle — change l'angle des conseils et du script réécrit (pas les scores) -->
+    <div class="section" style="padding:14px 16px">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
+        🎯 Tu analyses cette vidéo en tant que...
+      </label>
+      <select id="user-role-select"
+              style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit">
+        <option value="affilie">🔥 Affilié — je revends un produit qui n'est pas ma marque</option>
+        <option value="vendeur">🏷️ Vendeur — je vends ma propre marque</option>
+      </select>
+      <p style="font-size:12px;color:var(--muted);margin-top:6px">Affilié → conseils orientés clic impulsif et urgence. Vendeur → conseils orientés confiance de marque et long terme.</p>
     </div>
 
     <section id="upload-section" class="section">
@@ -1495,6 +1510,31 @@
           <button class="btn btn-secondary" style="font-size:13px" onclick="shareScoreCard('share')">📲 Partager mon score</button>
           <button class="btn btn-secondary" style="font-size:13px" onclick="shareScoreCard('download')">⬇️ Télécharger le visuel</button>
         </div>
+      </div>
+
+      <!-- ⚠️ MODÉRATION — affiché uniquement si is_safe=false -->
+      <div class="section" id="moderation-banner" style="display:none;background:#3a1414;border:1px solid #c0392b">
+        <h2 style="font-size:16px;color:#e74c3c;margin:0 0 6px">⚠️ Analyse bloquée</h2>
+        <p id="moderation-reason" style="font-size:13px;color:var(--text);margin:0"></p>
+      </div>
+
+      <!-- 🎬 TIMELINE INTERACTIVE — marqueurs rouges aux moments d'erreur détectés -->
+      <div class="section" id="video-timeline-section" style="display:none">
+        <h2 style="font-size:18px">🎬 Timeline des erreurs de conversion</h2>
+        <div id="video-timeline-player-wrap" style="display:none;position:relative;max-width:340px;margin:0 auto">
+          <video id="analysis-video-player" controls playsinline style="width:100%;border-radius:8px;background:#000"></video>
+        </div>
+        <div id="video-timeline-track" style="display:none;position:relative;height:10px;background:var(--surface2);border-radius:999px;margin:14px auto 4px;max-width:340px"></div>
+        <div id="video-timeline-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+        <p id="video-timeline-novideo-note" style="display:none;font-size:12px;color:var(--muted);margin-top:8px">📎 Aperçu vidéo non disponible pour une analyse par lien — voici les moments repérés avec leur minutage.</p>
+      </div>
+
+      <!-- 📝 SCRIPT RÉÉCRIT + DIRECTIVE DE TOURNAGE -->
+      <div class="section" id="script-optimise-section" style="display:none">
+        <h2 style="font-size:18px">📝 Script réécrit (prêt à tourner)</h2>
+        <pre id="script-optimise-box" style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;line-height:1.6"></pre>
+        <h3 style="font-size:14px;margin-top:14px">🎥 Directive de tournage</h3>
+        <p id="directive-tournage-box" style="font-size:13.5px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px"></p>
       </div>
 
       <!-- DÉTECTION -->
@@ -1898,6 +1938,32 @@
       <div id="creators-upsell" style="display:none;margin-top:16px"></div>
     </div>
     <div id="creator-detail" style="display:none"></div>
+  </div>
+
+  <!-- ── ONGLET RECHERCHE DE PROFIL (PRO 10/j, GOLD+ illimité) ── -->
+  <div id="tab-recherche-content" style="display:none">
+    <div class="section">
+      <h2>🔍 Recherche de profil TikTok</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Tape un <strong>@pseudo</strong> pour voir son GMV réel des <strong>30 derniers jours</strong> et ses meilleures ventes.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="recherche-handle" type="text" placeholder="@pseudo" style="flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text);box-sizing:border-box;font-family:inherit" onkeydown="if(event.key==='Enter')runRechercheSearch()">
+        <button class="btn btn-primary" onclick="runRechercheSearch()">Rechercher</button>
+      </div>
+      <div id="recherche-quota-label" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div>
+      <div id="recherche-locked" style="display:none"></div>
+      <div id="recherche-result"></div>
+    </div>
+  </div>
+
+  <!-- ── ONGLET FEED RADAR (GOLD/AGENCY) ── -->
+  <div id="tab-feedradar-content" style="display:none">
+    <div class="section">
+      <h2>📡 Feed Radar</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Les vidéos TikTok Shop qui cartonnent en ce moment (≥100k vues) — GMV estimé, tendance du créateur.</p>
+      <div id="feedradar-loading" style="text-align:center;padding:24px;color:var(--muted)">⏳ Chargement…</div>
+      <div id="feedradar-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px"></div>
+      <div id="feedradar-upsell" style="display:none;margin-top:16px"></div>
+    </div>
   </div>
 
   <!-- ── ONGLET PHOTO SLIDE COACH (GOLD/AGENCY) ── -->

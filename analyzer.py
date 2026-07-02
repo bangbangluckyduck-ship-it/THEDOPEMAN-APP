@@ -531,6 +531,8 @@ CONSIGNES IMPORTANTES :
 - Tu vois ET tu entends la vidéo en intégralité — utilise les DEUX
 - Pour les CTA, regarde explicitement les 2 DERNIÈRES SECONDES : CTA visuel (texte/flèche/produit à l'écran) ET CTA audio (verbal "achète", "swipe up", "lien en bio", etc.)
 - Transcris fidèlement l'audio parlé (mot à mot, pas de paraphrase) dans `transcript`
+- MODÉRATION VISUELLE : tu es le SEUL maillon de la chaîne à voir réellement l'image. Signale toute nudité, contenu choquant ou violation flagrante des règles TikTok Shop dans `moderation`. Un modèle en aval n'aura accès qu'au texte que tu produis ici — s'il rate une violation visuelle, personne d'autre ne peut la rattraper.
+- TIMELINE OBLIGATOIRE : découpe la vidéo en repères temporels réels (toutes les 2-3 secondes environ, ou à chaque coupure/changement de plan/texte à l'écran). Chaque `timestamp_seconds` que tu donnes DOIT correspondre à un instant que tu as réellement observé — n'arrondis pas au hasard, n'invente jamais un instant que tu n'as pas vu/entendu.
 
 Retourne ce JSON exact :
 {
@@ -552,8 +554,16 @@ Retourne ce JSON exact :
     "timestamp_seconds": <secondes depuis le début, ou null>
   },
   "rythme": "<lent | moyen | rapide>",
-  "duree_secondes": <durée totale de la vidéo>
+  "duree_secondes": <durée totale de la vidéo>,
+  "moderation": {
+    "is_safe_visuel": <true|false — false si nudité, contenu choquant ou violation flagrante VUE à l'image>,
+    "raison": "<description courte du problème visuel, ou null si is_safe_visuel=true>"
+  },
+  "timeline_evenements": [
+    {"timestamp_seconds": <secondes réelles observées>, "evenement": "<ce qui se passe : action, cut, silence, changement de décor…>", "texte_ecran": "<texte affiché à l'écran à cet instant, ou null>"}
+  ]
 }
+`timeline_evenements` doit couvrir toute la durée de la vidéo (pas seulement le début) : c'est la SEULE source de vérité temporelle pour l'étape suivante, qui elle ne voit pas la vidéo.
 
 AUCUN texte avant ou après le JSON. AUCUN markdown ```json. JSON BRUT."""
 
@@ -595,6 +605,8 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
             "cta_audio": {"present": False, "phrase": None, "timestamp_seconds": None},
             "rythme": "moyen",
             "duree_secondes": 0,
+            "moderation": {"is_safe_visuel": True, "raison": None},
+            "timeline_evenements": [],
         }
 
 
@@ -683,6 +695,165 @@ EXIGENCES DE QUALITÉ — RESPECTE-LES POUR CHAQUE "feedback" / "commentaire" / 
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# MODÉRATION TRUST & SAFETY (texte) — complète la modération VISUELLE déjà faite
+# par Gemini (clé `moderation.is_safe_visuel` du rapport vidéo natif, seul maillon
+# à avoir réellement vu l'image). Ici on ne juge que ce qui est dans le TEXTE
+# (transcript + description) : fausses promesses médicales, arnaques явные, etc.
+# Le blocage final (`is_safe`) est un ET logique entre les deux — appliqué aussi
+# côté code dans _post_process() par sécurité (ne dépend jamais que du LLM).
+# ════════════════════════════════════════════════════════════════════════════
+TRUST_SAFETY_BLOCK = """
+
+════════════════════════════════════════════════════════════════════════════════
+MODÉRATION TRUST & SAFETY — À VÉRIFIER EN PREMIER, AVANT TOUTE AUTRE ANALYSE
+════════════════════════════════════════════════════════════════════════════════
+Tu ne vois PAS l'image (seul un autre modèle en amont l'a vue) : base ce contrôle
+UNIQUEMENT sur le transcript et la description visuelle fournis. Réponds "is_safe": false si tu identifies dans le TEXTE :
+- une promesse médicale fausse ou non prouvée ("guérit", "élimine le cancer", "remplace un traitement"…)
+- une arnaque manifeste (fausse urgence chiffrée mensongère assumée comme telle, produit interdit)
+- un langage explicite de nature sexuelle ou une incitation à un contenu interdit par TikTok Shop
+Si aucun de ces éléments n'apparaît dans le texte fourni, "is_safe": true — tu ne peux
+PAS juger la nudité ou un contenu visuel choquant : c'est déjà couvert par la modération
+visuelle en amont (tu n'as pas accès à l'image, ne te prononce pas dessus).
+Si is_safe = false : renseigne "moderation_reason" (1 phrase factuelle, sans jugement moral)
+et NE PRODUIS PAS de script_optimise ni de directive_tournage (mets ces deux champs à null) —
+continue quand même à remplir le reste du JSON avec des scores bas et des feedbacks factuels.
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CIBLAGE PAR RÔLE (Affilié vs Vendeur) — choisi par l'utilisateur à chaque
+# analyse (dropdown frontend). Change l'angle des conseils et de script_optimise,
+# PAS le calcul des scores (qui restent objectifs, indépendants du rôle).
+# ════════════════════════════════════════════════════════════════════════════
+ROLE_TARGETING_BLOCKS = {
+    "affilie": """
+
+════════════════════════════════════════════════════════════════════════════════
+CIBLAGE RÔLE : AFFILIÉ
+════════════════════════════════════════════════════════════════════════════════
+L'utilisateur revend en affiliation (pas sa marque). Oriente tes conseils, script_optimise
+et directive_tournage vers : le clic impulsif, le biais de négativité, la peur de rater/de
+mal choisir, un ton direct et intense. Peu importe l'image de marque long terme — l'objectif
+est la conversion immédiate. N'hésite pas à recommander les hooks "Controverse Douce" ou
+"Urgence Tarifaire" de la base de données ci-dessous s'ils correspondent au produit.
+""",
+    "vendeur": """
+
+════════════════════════════════════════════════════════════════════════════════
+CIBLAGE RÔLE : VENDEUR (marque propre)
+════════════════════════════════════════════════════════════════════════════════
+L'utilisateur vend SA marque. Oriente tes conseils, script_optimise et directive_tournage
+vers : la notoriété, la confiance long terme, la preuve sociale, la cohérence avec l'ADN
+esthétique de la marque. Évite les hooks trop agressifs ou putaclic qui useraient la
+crédibilité de la marque sur la durée — privilégie "Témoignage", "Cas d'Usage" de la base
+de données ci-dessous quand c'est pertinent pour le produit.
+""",
+}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# RÈGLES DE RÉÉCRITURE DU SCRIPT (Anti-IA) — appliquées à `script_optimise`.
+# ════════════════════════════════════════════════════════════════════════════
+ANTI_AI_SCRIPT_RULES = """
+
+════════════════════════════════════════════════════════════════════════════════
+RÈGLES DE RÉÉCRITURE DU SCRIPT (`script_optimise`) — ANTI-IA
+════════════════════════════════════════════════════════════════════════════════
+- INTERDIT : toute salutation ("salut les gars", "hey tout le monde"…) et tout emoji.
+  Commence directement par le hook.
+- OBLIGATOIRE : 12 mots maximum par phrase (pacing — évite les pertes de souffle et le scroll).
+- OBLIGATOIRE : le texte à afficher à l'écran (dans les balises de montage) est écrit tout en
+  minuscules (confiance subconsciente, imite le langage natif SMS de la cible).
+- OBLIGATOIRE : inclus des balises de montage entre crochets directement dans le texte,
+  ex : [Action Cut sur le produit], [gros plan visage], [texte à l'écran : "..."].
+- `script_optimise` doit être un texte RÉEL prêt à dire face caméra, jamais une description
+  abstraite du script.
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# BASE DE CONNAISSANCES COMPLÉMENTAIRE — psychologie de vente, frameworks de
+# narration, spécificités culturelles. Les hooks (catégorie B) sont déjà couverts,
+# avec scores de performance réels, par hooks_db.json / _HOOKS_CONTEXT ci-dessus :
+# on ne duplique pas cette liste ici.
+# ════════════════════════════════════════════════════════════════════════════
+EXTRA_CONVERSION_KNOWLEDGE = """
+
+════════════════════════════════════════════════════════════════════════════════
+BASE DE DONNÉES TIKTOK SHOP — LEVIERS COMPLÉMENTAIRES (source de vérité pour ta notation)
+════════════════════════════════════════════════════════════════════════════════
+A. PSYCHOLOGIE DE VENTE (à repérer dans le transcript, jamais à supposer) :
+- Coût de l'inaction : démontrer le prix payé par le client à NE PAS résoudre son problème
+  (plutôt que de parler du prix du produit).
+- Aversion à la perte : insister sur ce que le client perd chaque jour à ne pas agir.
+- Désamorçage : mentionner délibérément un inconvénient mineur pour désarmer la méfiance.
+- Biais de négativité / peur : urgence par l'inconfort, produit positionné comme la seule
+  porte de sortie.
+- Confiance subconsciente (mimétisme) : textes à l'écran exclusivement en minuscules.
+- BS Detector visuel : décor/vêtements cohérents avec l'identité précise de l'avatar ciblé.
+
+C. FRAMEWORKS DE NARRATION :
+- Cadrage sans pression (l'Alliance) : ne pas vendre directement, se positionner en
+  sceptique face à une affirmation tierce et "tester" avec l'audience.
+- Spécificité de l'initié : décrire une douleur avec un niveau de détail intime qui prouve
+  l'expérience vécue.
+- Boucle de curiosité : Action Cut (ouverture) → Processus (rétention) → Explication de
+  l'ouverture (fermeture).
+- Effet von Restorff (visuel) : couleurs de vêtements/décors très contrastées pour casser
+  l'inertie visuelle et stopper le scroll.
+
+E. SPÉCIFICITÉS CULTURELLES (si le marché cible est identifiable dans le contexte) :
+- USA : transactionnel, ultra-stimulé — biais de négativité + Action Cut.
+- UK : sceptique, casual — exige l'authenticité via le cadrage sans pression.
+- France : achat impulsif, LIVE shopping fort — effet von Restorff crucial.
+- Brésil : émotionnel, communautaire — storytelling + spécificité de l'initié.
+- Allemagne : analytique, sensible au prix — désamorçage des objections obligatoire.
+- Italie / Espagne : achat d'impulsion rapide — dynamisme visuel élevé (quick cuts, caméra instable).
+
+BARÈME ZERO TRUST : pour chaque levier ci-dessus que tu cites dans tes feedbacks, il DOIT
+être explicitement confirmé par le transcript ou la description visuelle fournis. Si un
+levier n'est pas confirmé, ne l'attribue pas à la vidéo (ne l'invente pas pour "faire riche").
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# NOUVEAUX CHAMPS DE SORTIE (additifs — ne remplacent AUCUNE clé existante du
+# schéma JSON ci-dessus). Ancrage temporel : `timeline_evenements` (fourni dans
+# l'analyse visuelle déjà effectuée) est la SEULE source de timestamps valides —
+# tu ne vois pas la vidéo, tu ne peux donc JAMAIS inventer un timestamp.
+# ════════════════════════════════════════════════════════════════════════════
+NEW_OUTPUT_FIELDS_BLOCK = """
+
+════════════════════════════════════════════════════════════════════════════════
+CHAMPS JSON SUPPLÉMENTAIRES À AJOUTER (en plus de la structure exigée plus haut)
+════════════════════════════════════════════════════════════════════════════════
+Ajoute ces clés au niveau racine du JSON final :
+{
+  "is_safe": <true|false — résultat de la modération trust & safety ci-dessus>,
+  "moderation_reason": "<raison courte si is_safe=false, sinon null>",
+  "moments_erreurs": [
+    {
+      "pilier": "<nom du pilier concerné, ex: 'Hook', 'CTA', 'Mécanismes de vente'>",
+      "diagnostic": "<description précise et actionnable du problème>",
+      "gravite": "<faible|moyen|critique>",
+      "timestamp_seconds": <UNIQUEMENT une valeur reprise TELLE QUELLE depuis `timeline_evenements`, `cta_visuel.timestamp_seconds` ou `cta_audio.timestamp_seconds` de l'analyse visuelle fournie — sinon null. N'arrondis pas, n'estime pas, n'invente pas.>
+    }
+  ],
+  "script_optimise": "<script réécrit en appliquant les RÈGLES DE RÉÉCRITURE ANTI-IA ci-dessous — null si is_safe=false>",
+  "directive_tournage": "<instruction concrète de tournage pour la prochaine vidéo — null si is_safe=false>",
+  "predicted_impact_conversion": {
+    "direction": "<faible|moyen|fort — impact DIRECTIONNEL attendu des changements suggérés, jamais un pourcentage chiffré : aucune donnée de conversion réelle n'alimente cette analyse>",
+    "justification": "<1-2 phrases reliant un changement concret suggéré à cet impact>"
+  }
+}
+`moments_erreurs` : 3 à 6 entrées maximum, uniquement des problèmes réels et spécifiques
+(pas de remplissage). Si aucun timestamp n'est disponible pour un pilier donné, mets
+"timestamp_seconds": null plutôt que d'en inventer un.
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # Modèle de synthèse — configurable via env (défaut inchangé : mistral-small).
 # Pour un gain de qualité, définir SYNTHESIS_MODEL=mistral-medium-latest (ou large)
 # sur Render — aucun redéploiement de code nécessaire.
@@ -753,6 +924,7 @@ def synthesize_analysis(
     product: Optional[str] = None,
     user_tier: str = "free",
     price: Optional[str] = None,
+    user_role: Optional[str] = None,
 ) -> dict:
     """
     Synthèse text-only via mistral-small : combine vision + transcript + marché.
@@ -761,7 +933,14 @@ def synthesize_analysis(
     `user_tier` est résolu côté serveur (token JWT / Supabase). Pour les plans
     Gold / Agency (+ beta / admin), on concatène le bloc PREMIUM qui génère la
     section "👑 Stratégie de Conversion (Premium)" (persona + script de vente).
+
+    `user_role` ∈ {"affilie", "vendeur"} : choisi par l'utilisateur à chaque analyse
+    (dropdown frontend). Change l'angle des conseils / du script réécrit, jamais le
+    calcul des scores. Valeur inconnue/absente → aucun ciblage de rôle appliqué.
     """
+    user_role = (user_role or "").strip().lower() or None
+    if user_role not in ROLE_TARGETING_BLOCKS:
+        user_role = None
     if not ai_providers.any_ai_key():
         raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
 
@@ -845,6 +1024,12 @@ def synthesize_analysis(
     parts.append(f"\n🎯 Produit de référence pour tes conseils : « {_prod_label} ».")
     parts.append(QUALITY_DIRECTIVES)
     parts.append(AWARENESS_FRAMEWORK)
+    parts.append(EXTRA_CONVERSION_KNOWLEDGE)
+    parts.append(TRUST_SAFETY_BLOCK)
+    if user_role:
+        parts.append(ROLE_TARGETING_BLOCKS[user_role])
+    parts.append(ANTI_AI_SCRIPT_RULES)
+    parts.append(NEW_OUTPUT_FIELDS_BLOCK)
 
     # Bloc PREMIUM en TOUT DERNIER (recency) → le modèle lit l'instruction juste
     # avant de répondre, ce qui fiabilise l'ajout de la clé strategie_conversion_premium.
@@ -896,7 +1081,7 @@ def synthesize_analysis(
     if not is_premium:
         parsed.pop("strategie_conversion_premium", None)
 
-    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit, manual_price=price)
+    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit, manual_price=price, user_role=user_role)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -909,6 +1094,7 @@ def _post_process(
     cal_ctx: Optional[dict] = None,
     saison_produit: Optional[dict] = None,
     manual_price: Optional[str] = None,
+    user_role: Optional[str] = None,
 ) -> dict:
     """Applique la logique business prix/conversion + injection des données marché + timing."""
     # Prix saisi manuellement par l'utilisateur → fait autorité sur la détection IA.
@@ -1109,6 +1295,56 @@ def _post_process(
         "confiance": visual_result.get("confiance_detection"),
         "description": visual_result.get("description_visuelle"),
     }
+
+    parsed["user_role"] = user_role
+
+    # ────────────────────────────────────────────────────────────────────────
+    # TRUST & SAFETY — appliqué en code, jamais laissé à la seule discrétion du
+    # LLM. is_safe final = ET logique entre la modération VISUELLE de Gemini
+    # (seul maillon à avoir vu la vidéo) et la modération TEXTE de Claude.
+    # ────────────────────────────────────────────────────────────────────────
+    visual_moderation = (visual_result or {}).get("moderation") or {}
+    is_safe_visuel = visual_moderation.get("is_safe_visuel", True) is not False
+    is_safe_texte = parsed.get("is_safe", True) is not False
+    is_safe = bool(is_safe_visuel and is_safe_texte)
+    parsed["is_safe"] = is_safe
+    if not is_safe:
+        if not is_safe_visuel and not parsed.get("moderation_reason"):
+            parsed["moderation_reason"] = visual_moderation.get("raison") or "Contenu visuel non conforme détecté."
+        parsed["script_optimise"] = None
+        parsed["directive_tournage"] = None
+
+    # ────────────────────────────────────────────────────────────────────────
+    # ANTI-HALLUCINATION DES TIMESTAMPS — un timestamp n'est conservé QUE s'il
+    # correspond (± 1.5s) à un instant réellement observé par Gemini (seul
+    # maillon ayant vu/entendu la vidéo). Claude ne voit qu'un rapport texte :
+    # tout timestamp non ancré est mis à null plutôt que d'être fait confiance.
+    # ────────────────────────────────────────────────────────────────────────
+    def _grounded_timestamps(vr: dict) -> list:
+        vals = []
+        for ev in (vr or {}).get("timeline_evenements") or []:
+            if isinstance(ev, dict) and isinstance(ev.get("timestamp_seconds"), (int, float)):
+                vals.append(float(ev["timestamp_seconds"]))
+        for key in ("cta_visuel", "cta_audio"):
+            sub = (vr or {}).get(key) or {}
+            if isinstance(sub, dict) and isinstance(sub.get("timestamp_seconds"), (int, float)):
+                vals.append(float(sub["timestamp_seconds"]))
+        return vals
+
+    _grounded = _grounded_timestamps(visual_result)
+    moments = parsed.get("moments_erreurs")
+    if isinstance(moments, list):
+        for m in moments:
+            if not isinstance(m, dict):
+                continue
+            ts = m.get("timestamp_seconds")
+            if not isinstance(ts, (int, float)):
+                m["timestamp_seconds"] = None
+                continue
+            if not any(abs(float(ts) - g) <= 1.5 for g in _grounded):
+                m["timestamp_seconds"] = None
+    elif moments is not None:
+        parsed["moments_erreurs"] = []
 
     return parsed
 

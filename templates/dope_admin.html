@@ -369,6 +369,16 @@
         <div id="hooks-admin-list"><div class="empty">Chargement…</div></div>
       </section>
 
+      <section id="view-recherche-gmv" class="view">
+        <h1 class="view-title">🔍 GMV Lookup</h1>
+        <p class="view-sub">Handle TikTok → GMV réel des 30 derniers jours. Outil de vérif rapide, pas de cache ni de quota.</p>
+        <div style="display:flex;gap:10px;margin-bottom:16px">
+          <input id="rgmv-handle" type="text" placeholder="@handle" style="flex:1;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px" onkeydown="if(event.key==='Enter')lookupRechercheGmv()">
+          <button class="btn btn-primary" onclick="lookupRechercheGmv()">Chercher</button>
+        </div>
+        <div id="rgmv-result"><div class="empty">—</div></div>
+      </section>
+
       <section id="view-temoignages" class="view">
         <h1 class="view-title">⭐ Témoignages</h1>
         <p class="view-sub">Valide, publie ou masque les avis. Mets en avant ceux à afficher en page d'accueil.</p>
@@ -435,6 +445,9 @@
       </button>
       <button class="nav-item" data-view="hooks" onclick="showView('hooks')">
         <span class="ic">💡</span>Hooks
+      </button>
+      <button class="nav-item" data-view="recherche-gmv" onclick="showView('recherche-gmv')">
+        <span class="ic">🔍</span>GMV
       </button>
       <button class="nav-item" data-view="temoignages" onclick="showView('temoignages')">
         <span class="ic">⭐</span>Avis

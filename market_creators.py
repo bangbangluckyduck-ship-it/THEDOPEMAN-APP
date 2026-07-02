@@ -11,6 +11,7 @@ produit), vraies miniatures, vraies stats. Aucune fabrication.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -540,3 +541,142 @@ async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -
         except Exception as e:
             print(f"market_creators products error: {e}")
     return {"unique_id": unique_id, "videos": videos, "products": products}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# RECHERCHE DE PROFIL (Pro / Gold / Agency) — recherche libre par @handle, sans
+# passer par le ranking. Chaîne : /influencer/detail (handle → uid) →
+# /influencer/trends/analytics (uid → GMV réel fenêtre glissante) →
+# /influencer/products/analytics (uid → meilleures ventes lifetime).
+# ════════════════════════════════════════════════════════════════════════════
+def _clean_influencer_profile(u: dict) -> dict:
+    uid = u.get("uid")
+    unique_id = u.get("unique_id")
+    return {
+        "uid": str(uid) if uid else None,
+        "unique_id": unique_id,
+        "nickname": u.get("nickname") or unique_id or "",
+        "avatar": ((u.get("avatar_larger") or {}).get("url_list") or [None])[0],
+        "followers": u.get("follower_count") or 0,
+        "total_favorited": u.get("total_favorited") or 0,
+        "signature": (u.get("signature") or "")[:300],
+        "aweme_count": u.get("aweme_count") or 0,
+        "profile_url": f"https://www.tiktok.com/@{unique_id}" if unique_id else None,
+    }
+
+
+async def get_influencer_profile(handle: str) -> Optional[dict]:
+    """Étape 1 : @handle (recherche libre) → profil + uid interne, requis pour
+    les appels suivants. Renvoie None si le handle n'existe pas — l'API renvoie
+    une erreur explicite ("unique_id is invalid", statut 200 + code non-zéro,
+    PAS un 404 HTTP classique) pour un handle inconnu, traitée ici comme "not found"."""
+    handle = (handle or "").lstrip("@").strip()
+    if not handle:
+        return None
+    try:
+        data = await _get("/v1/tiktok/influencer/detail", {"unique_id": handle})
+    except Exception as e:
+        print(f"get_influencer_profile({handle}) error: {e}")
+        return None
+    user = (data or {}).get("user") if isinstance(data, dict) else None
+    if not user or not user.get("uid"):
+        return None
+    return _clean_influencer_profile(user)
+
+
+async def get_creator_gmv_30d(uid: str, days: int = 30) -> dict:
+    """Étape 2 : uid → GMV/ventes RÉELS sur une fenêtre glissante de `days` jours.
+    Pagine /influencer/trends/analytics (page_size plafonné à 10 par l'API →
+    ~3 pages pour 30j). Les jours absents de la réponse comptent pour 0€, jamais
+    une erreur. C'est la SEULE source de vérité pour un GMV daté (les endpoints
+    produits sont cumulés lifetime, start_date/end_date y sont ignorés)."""
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    by_day: dict = {}
+    page_num = 1
+    while True:
+        rows = await _get("/v1/tiktok/influencer/trends/analytics", {
+            "user_id": uid,
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "page_num": page_num,
+            "page_size": 10,
+        })
+        rows = rows if isinstance(rows, list) else []
+        if not rows:
+            break
+        for r in rows:
+            dt = r.get("dt")
+            if dt:
+                by_day[dt] = r
+        if len(rows) < 10 or page_num >= 6:  # garde-fou : ~60j de pagination max
+            break
+        page_num += 1
+
+    gmv_total = sum((r.get("total_sale_gmv_1d_amt") or 0) for r in by_day.values())
+    sales_total = sum((r.get("total_sale_1d_cnt") or 0) for r in by_day.values())
+
+    series = []
+    cur = start
+    while cur <= end:
+        key = cur.isoformat()
+        row = by_day.get(key, {})
+        series.append({
+            "date": key,
+            "gmv": row.get("total_sale_gmv_1d_amt") or 0,
+            "sales": row.get("total_sale_1d_cnt") or 0,
+        })
+        cur += timedelta(days=1)
+
+    return {"gmv_30d": gmv_total, "sales_30d": sales_total, "days": days, "series": series}
+
+
+async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
+    """Étape 3 : uid → produits vendus (cumulé lifetime), triés par GMV desc."""
+    data = await _get("/v1/tiktok/influencer/products/analytics",
+                      {"user_id": uid, "page_num": 1, "page_size": 10})
+    rows = data if isinstance(data, list) else []
+    cleaned = [_clean_product(p) for p in rows]
+    cleaned.sort(key=lambda p: p.get("gmv") or 0, reverse=True)
+    return cleaned[:limit]
+
+
+async def search_creator_profile(handle: str) -> Optional[dict]:
+    """Orchestration complète de la Recherche de profil : profil + GMV 30j réel +
+    meilleures ventes. ~5 appels KeyAPI. None si le handle n'existe pas."""
+    profile = await get_influencer_profile(handle)
+    if not profile or not profile.get("uid"):
+        return None
+    uid = profile["uid"]
+
+    async def _safe_gmv():
+        try:
+            return await get_creator_gmv_30d(uid, days=30)
+        except Exception as e:
+            print(f"search_creator_profile gmv error: {e}")
+            return {"gmv_30d": 0, "sales_30d": 0, "days": 30, "series": []}
+
+    async def _safe_products():
+        try:
+            return await get_creator_best_sellers(uid, limit=10)
+        except Exception as e:
+            print(f"search_creator_profile products error: {e}")
+            return []
+
+    gmv_data, products = await asyncio.gather(_safe_gmv(), _safe_products())
+    return {"profile": profile, "gmv": gmv_data, "best_sellers": products}
+
+
+async def get_creator_gmv_only(handle: str) -> Optional[dict]:
+    """Outil ADMIN minimal : @handle → profil léger + GMV 30j SEULEMENT (pas de
+    produits). Pas de cache/quota — appelant (admin_routes.py) gère ça."""
+    profile = await get_influencer_profile(handle)
+    if not profile or not profile.get("uid"):
+        return None
+    gmv_data = await get_creator_gmv_30d(profile["uid"], days=30)
+    return {
+        "unique_id": profile.get("unique_id"),
+        "nickname": profile.get("nickname"),
+        "gmv_30d": gmv_data.get("gmv_30d"),
+        "sales_30d": gmv_data.get("sales_30d"),
+    }

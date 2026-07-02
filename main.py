@@ -28,6 +28,7 @@ from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_u
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
 import market_creators
+import recherche_quota
 import photo_slide
 import product_store
 import credits as credits_mod
@@ -501,6 +502,25 @@ async def cron_upsell_j3(key: str = Query("")):
         return {"ok": False, "error": str(ex), "sent": sent}
     return {"ok": True, "sent": sent, "skipped": skipped}
 
+
+@app.get("/api/_cron/feed-radar-collect")
+async def cron_feed_radar_collect(key: str = Query(""), region: str = Query("US")):
+    """Tâche planifiée (cron ~6h) : collecte Feed Radar (découverte créateurs
+    → vidéos ≥ seuil de vues → GMV estimé + tendance créateur → oEmbed).
+    Protégé par CRON_SECRET. À appeler via Render Cron Job / pinger externe —
+    aucun scheduler n'existe dans ce repo, cf. mémoire projet."""
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if not cron_secret or key != cron_secret:
+        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+    import feed_radar
+    try:
+        summary = await feed_radar.run_feed_radar_collection(region)
+    except Exception as e:
+        print(f"/api/_cron/feed-radar-collect error: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+    return summary
+
+
 @app.get("/analytics", response_class=HTMLResponse)
 async def analytics(request: Request):
     try:
@@ -883,7 +903,13 @@ async def analyze_stream_sse(
     video: Optional[UploadFile] = File(None),
     product: Optional[str] = Form(None),
     price: Optional[str] = Form(None),
+    user_role: Optional[str] = Form(None),
 ):
+    # Rôle choisi par l'utilisateur (Affilié/Vendeur) à CETTE analyse — normalisé
+    # ici une bonne fois, propagé tel quel à synthesize_analysis().
+    user_role = (user_role or "").strip().lower() or None
+    if user_role not in ("affilie", "vendeur"):
+        user_role = None
     # Si l'utilisateur est Pro+ ET qu'il a uploadé la vidéo entière → on bascule
     # sur le pipeline natif Gemini Pro (visuel + audio en un appel, qualité
     # identique au pipeline URL). Sinon → ancien pipeline frames+AssemblyAI.
@@ -982,8 +1008,10 @@ async def analyze_stream_sse(
                 # de product/price custom — sinon le résultat dépend de ses inputs,
                 # pas seulement du contenu vidéo (= risque de retourner le résultat
                 # d'un autre user qui avait analysé la même vidéo avec d'autres inputs).
+                # user_role est inclus DANS la clé (pas un facteur qui désactive le cache) :
+                # même vidéo + rôle différent = résultat différent, donc entrée distincte.
                 can_cache = not product and not price
-                cache_key = hasher.hexdigest() if can_cache else None
+                cache_key = f"{hasher.hexdigest()}:{user_role or 'none'}" if can_cache else None
                 if cache_key:
                     cached = analysis_cache.get_cached(cache_key, pipeline="pro")
                     if cached:
@@ -1046,7 +1074,7 @@ async def analyze_stream_sse(
                 yield 'event: progress\n'
                 yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale\\u2026", "stage": "synthesis"}\n\n'
                 synth_task = loop.run_in_executor(
-                    None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price)
+                    None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role)
                 _w = 0.0
                 result = None
                 while True:
@@ -1179,7 +1207,7 @@ async def analyze_stream_sse(
             # Keepalive pendant la synthèse (medium/large peut être long) : un ping
             # toutes les 4s → la connexion n'est jamais muette (pas de coupure proxy).
             synth_task = loop.run_in_executor(
-                None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price)
+                None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role)
             _waited = 0.0
             result = None
             while True:
@@ -1431,6 +1459,9 @@ async def analyze_url(request: Request):
     url = (body.get("url") or "").strip()
     product = (body.get("product") or "").strip() or None
     price = (body.get("price") or "").strip() or None
+    user_role = (body.get("user_role") or "").strip().lower() or None
+    if user_role not in ("affilie", "vendeur"):
+        user_role = None
     # Tuyauterie future : stats réelles de la vidéo (ventes/vues) une fois le compte
     # TikTok connecté. None tant que la connexion n'existe pas — passé tel quel au résultat.
     performance = body.get("performance") if isinstance(body.get("performance"), dict) else None
@@ -1443,7 +1474,7 @@ async def analyze_url(request: Request):
     # custom (sinon le résultat dépend de ses inputs, pas seulement de la vidéo).
     import analysis_cache
     can_cache = not product and not price
-    cache_key = analysis_cache.hash_video_url(url) if can_cache else None
+    cache_key = f"{analysis_cache.hash_video_url(url)}:{user_role or 'none'}" if can_cache else None
     if cache_key:
         cached = analysis_cache.get_cached(cache_key, pipeline="pro")
         if cached:
@@ -1509,7 +1540,7 @@ async def analyze_url(request: Request):
 
         # ── 6. Synthèse via Claude Haiku (provider sélectionné selon tier) ──
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role),
             timeout=140.0,
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
@@ -1613,6 +1644,9 @@ async def analyze_url_stream(request: Request):
     url = (body.get("url") or "").strip()
     product = (body.get("product") or "").strip() or None
     price = (body.get("price") or "").strip() or None
+    user_role = (body.get("user_role") or "").strip().lower() or None
+    if user_role not in ("affilie", "vendeur"):
+        user_role = None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
     if not product or not price:
@@ -1735,7 +1769,7 @@ async def analyze_url_stream(request: Request):
             yield 'event: progress\n'
             yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale (scoring + conseils)\\u2026", "stage": "synthesis"}\n\n'
             synth_task = loop.run_in_executor(
-                None, synthesize_analysis, visual_result, transcript, None, product, tier, price)
+                None, synthesize_analysis, visual_result, transcript, None, product, tier, price, user_role)
             _w = 0.0
             result = None
             while True:
@@ -1774,6 +1808,8 @@ async def analyze_url_stream(request: Request):
             result["cta_audio"] = visual_result.get("cta_audio") if isinstance(visual_result, dict) else None
             result["usage"] = usage_info(user)
             result["analysis_duration_ms"] = dur
+            result["source"] = "url"
+            result["source_url"] = url
             result["from_cache"] = False
             # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
             _persist_sync_analysis(
@@ -1850,6 +1886,9 @@ async def jobs_create_url(request: Request):
     url = (body.get("url") or "").strip()
     product = (body.get("product") or "").strip() or None
     price = (body.get("price") or "").strip() or None
+    user_role = (body.get("user_role") or "").strip().lower() or None
+    if user_role not in ("affilie", "vendeur"):
+        user_role = None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
     if not product or not price:
@@ -1873,6 +1912,7 @@ async def jobs_create_url(request: Request):
     asyncio.create_task(_runner.process_url_job(
         job_id=job_id, url=url, product=product, price=price,
         user_tier=tier, user_email=user["email"], job_title=title,
+        user_role=user_role,
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
@@ -1883,6 +1923,7 @@ async def jobs_create_upload(
     video: UploadFile = File(...),
     product: Optional[str] = Form(None),
     price: Optional[str] = Form(None),
+    user_role: Optional[str] = Form(None),
 ):
     """Crée un job d'analyse à partir d'un upload vidéo. Renvoie {job_id}."""
     if not ai_providers.any_ai_key():
@@ -1915,6 +1956,9 @@ async def jobs_create_upload(
 
     p = (product or "").strip() or None
     pr = (price or "").strip() or None
+    ur = (user_role or "").strip().lower() or None
+    if ur not in ("affilie", "vendeur"):
+        ur = None
 
     import analysis_jobs as _jobs
     import analysis_runner as _runner
@@ -1932,7 +1976,7 @@ async def jobs_create_upload(
     asyncio.create_task(_runner.process_upload_job(
         job_id=job_id, video_bytes=video_bytes, product=p, price=pr,
         user_tier=tier, user_email=user["email"], video_hash=video_hash,
-        job_title=title,
+        job_title=title, user_role=ur,
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
@@ -2436,6 +2480,112 @@ async def market_product_detail(request: Request, product_id: str, region: str =
     if not detail:
         return JSONResponse({"ok": False, "error": "introuvable"}, status_code=404)
     return {"ok": True, "product": detail}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# RECHERCHE DE PROFIL TIKTOK — recherche libre par @handle (GMV réel 30j +
+# meilleures ventes). Pro (10/jour) / Gold+/Agency/Beta/Admin (illimité).
+# Free = bloqué. Distinct de "Créateurs Gagnants" (qui part d'un ranking) :
+# ici l'utilisateur tape n'importe quel handle, même hors ranking.
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/recherche/profile")
+async def recherche_profile(request: Request, handle: str = Query(...)):
+    """Profil + GMV réel 30 derniers jours + meilleures ventes pour un @handle."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    recherche_quota.check_recherche_quota(user)  # 403 free / 429 pro épuisé / no-op gold+
+
+    handle_clean = (handle or "").lstrip("@").strip().lower()
+    if not handle_clean:
+        raise HTTPException(status_code=422, detail="Handle manquant.")
+
+    cache_key = f"recherche::{handle_clean}"
+    result = _market_cache_get(cache_key)
+    is_fresh_fetch = result is None
+    if result is None:
+        try:
+            result = await market_creators.search_creator_profile(handle_clean)
+        except Exception as e:
+            print(f"/api/recherche/profile error: {e}")
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+        if result is None:
+            # Handle introuvable : jamais mis en cache (évite de figer une erreur transitoire).
+            return JSONResponse({"ok": False, "error": "Profil introuvable."}, status_code=404)
+        _market_cache_set(cache_key, result, hours=8)  # 8h : compromis fraîcheur GMV / coût crédits
+
+    tier = (user.get("tier") or "free").lower()
+    quota_info = {"tier": tier, "remaining_today": None, "limit": None}
+    if tier == "pro":
+        # Le quota ne compte QUE les vrais appels KeyAPI, jamais un résultat déjà en cache.
+        if is_fresh_fetch:
+            recherche_quota.increment_recherche_count(user["email"])
+        remaining = max(0, recherche_quota.PRO_DAILY_LIMIT - recherche_quota.get_recherche_count_today(user["email"]))
+        quota_info = {"tier": "pro", "remaining_today": remaining, "limit": recherche_quota.PRO_DAILY_LIMIT}
+
+    return {"ok": True, **result, "quota": quota_info}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# FEED RADAR — feed de vidéos TikTok Shop virales (≥ seuil de vues), thumbnail
+# oEmbed officiel, GMV estimé (calcul), tendance créateur. Même gating que
+# "Créateurs Gagnants" : Gold/Agency/Beta/Admin complet, Free/Pro = aperçu 3.
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/feed-radar")
+async def feed_radar_list(request: Request, region: str = Query("US"), limit: int = Query(24)):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+
+    try:
+        q = (supabase_client.table("feed_radar_videos").select(
+                "video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
+                "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
+                "gmv_estimated,gmv_estimation_method,collected_at")
+             .eq("region", region).order("views", desc=True).limit(limit))
+        rows = q.execute().data or []
+    except Exception as e:
+        print(f"/api/feed-radar error: {e}")
+        return JSONResponse({"ok": False, "error": str(e), "videos": []}, status_code=502)
+
+    if not premium:
+        return {"ok": True, "preview": True, "videos": rows[:3]}
+    return {"ok": True, "preview": False, "videos": rows}
+
+
+@app.get("/api/feed-radar/{video_id}/embed")
+async def feed_radar_video_embed(request: Request, video_id: str):
+    """Blockquote oEmbed complet pour hydratation au TAP (jamais au scroll)."""
+    user = get_user_from_request(request)
+    if not user.get("valid") or (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+    try:
+        r = supabase_client.table("feed_radar_videos").select("oembed_html,oembed_fetched_at") \
+            .eq("video_id", video_id).execute()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+    if not r.data:
+        return JSONResponse({"ok": False, "error": "Vidéo introuvable"}, status_code=404)
+    return {"ok": True, **r.data[0]}
+
+
+@app.get("/api/feed-radar/teaser")
+async def feed_radar_teaser():
+    """3 vidéos top pour la homepage publique. Pas d'auth. Cache 6h."""
+    cache_key = "feedradar::teaser::top3"
+    teaser = _market_cache_get(cache_key)
+    if teaser is None:
+        try:
+            rows = (supabase_client.table("feed_radar_videos").select(
+                        "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated")
+                    .order("views", desc=True).limit(3).execute().data or [])
+            teaser = rows
+        except Exception as e:
+            print(f"/api/feed-radar/teaser error: {e}")
+            teaser = []
+        _market_cache_set(cache_key, teaser, hours=6)
+    return {"ok": True, "videos": teaser or []}
 
 
 @app.post("/api/photo-slide/generate")

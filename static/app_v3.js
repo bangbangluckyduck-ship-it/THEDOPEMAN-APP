@@ -1092,7 +1092,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -1102,6 +1102,8 @@ function switchTab(tab) {
   if (tab === 'pricing') updatePricingCTA();
   if (tab === 'account') renderAccountPage();
   if (tab === 'creators') loadCreatorsTab();
+  if (tab === 'recherche') initRechercheTab();
+  if (tab === 'feedradar') loadFeedRadarTab();
   if (tab === 'photoslide') initPhotoSlideTab();
   if (tab === 'promptstudio') initPromptStudioTab();
   if (tab === 'credits') initCreditsTab();
@@ -1324,6 +1326,12 @@ function setFile(f) {
   if (asyncBtn) asyncBtn.disabled = false;
 }
 
+// Rôle choisi par l'utilisateur (Affilié/Vendeur) — lu à chaque analyse, jamais mémorisé.
+function getUserRole() {
+  const sel = document.getElementById('user-role-select');
+  return sel ? sel.value : null;
+}
+
 document.getElementById('analyze-btn').addEventListener('click', analyzeVideo);
 
 // Analyse par liens TikTok (Pro / Gold / Agency)
@@ -1457,6 +1465,7 @@ async function analyzeVideo() {
     if (priceInput && priceInput.value.trim()) {
       fd.append('price', priceInput.value.trim());
     }
+    fd.append('user_role', getUserRole());
 
     const ctrl    = new AbortController();
     const timer   = setTimeout(() => ctrl.abort(), 100000);
@@ -1618,7 +1627,7 @@ async function analyzeSingleUrl() {
     const res = await fetch('/analyze-url/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ url, product, price }),
+      body: JSON.stringify({ url, product, price, user_role: getUserRole() }),
     });
     if (!res.ok) {
       let m = 'Erreur serveur';
@@ -2081,10 +2090,110 @@ function showLockedCoachingSection(firstCoachingLine) {
   section.style.display = 'block';
 }
 
+// ── MODÉRATION + SCRIPT RÉÉCRIT + TIMELINE INTERACTIVE (marqueurs rouges) ──
+let _timelineVideoUrl = null;
+
+function _formatMmSs(seconds) {
+  const s = Math.max(0, Math.round(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function renderModerationAndScript(d) {
+  const banner = document.getElementById('moderation-banner');
+  const scriptSection = document.getElementById('script-optimise-section');
+  if (d.is_safe === false) {
+    banner.style.display = 'block';
+    document.getElementById('moderation-reason').textContent =
+      d.moderation_reason || "Cette vidéo ne respecte pas les règles TikTok Shop — analyse bloquée.";
+    scriptSection.style.display = 'none';
+    return;
+  }
+  banner.style.display = 'none';
+  if (d.script_optimise) {
+    scriptSection.style.display = 'block';
+    document.getElementById('script-optimise-box').textContent = d.script_optimise;
+    document.getElementById('directive-tournage-box').textContent = d.directive_tournage || '—';
+  } else {
+    scriptSection.style.display = 'none';
+  }
+}
+
+function renderErrorTimeline(d) {
+  const section   = document.getElementById('video-timeline-section');
+  const playerWrap = document.getElementById('video-timeline-player-wrap');
+  const player    = document.getElementById('analysis-video-player');
+  const track     = document.getElementById('video-timeline-track');
+  const list      = document.getElementById('video-timeline-list');
+  const noVideoNote = document.getElementById('video-timeline-novideo-note');
+
+  const moments = Array.isArray(d.moments_erreurs) ? d.moments_erreurs.filter(m => m && m.diagnostic) : [];
+
+  if (d.is_safe === false || !moments.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  const GRAVITE_COLOR = { critique: '#e74c3c', moyen: '#e67e22', faible: '#f1c40f' };
+
+  // Nettoyage de la précédente URL locale (évite les fuites mémoire entre 2 analyses)
+  if (_timelineVideoUrl) { URL.revokeObjectURL(_timelineVideoUrl); _timelineVideoUrl = null; }
+  track.innerHTML = '';
+
+  // Aperçu vidéo local UNIQUEMENT possible pour une analyse par upload (le
+  // fichier vient du disque de l'utilisateur) — une analyse par lien TikTok
+  // n'a pas de vidéo à rejouer côté navigateur (jamais renvoyée par le backend).
+  const hasLocalVideo = !!selectedFile && (d.source === 'upload' || !d.source_url);
+
+  if (hasLocalVideo) {
+    _timelineVideoUrl = URL.createObjectURL(selectedFile);
+    player.src = _timelineVideoUrl;
+    playerWrap.style.display = 'block';
+    track.style.display = 'block';
+    noVideoNote.style.display = 'none';
+
+    const placeMarkers = () => {
+      const dur = player.duration;
+      if (!dur || !isFinite(dur)) return;
+      track.innerHTML = '';
+      moments.forEach(m => {
+        if (typeof m.timestamp_seconds !== 'number') return;
+        const dot = document.createElement('div');
+        const pct = Math.min(100, Math.max(0, (m.timestamp_seconds / dur) * 100));
+        dot.title = `${_formatMmSs(m.timestamp_seconds)} — ${m.pilier || ''} : ${m.diagnostic}`;
+        dot.style.cssText = `position:absolute;top:-3px;left:${pct}%;width:14px;height:14px;margin-left:-7px;
+          border-radius:50%;background:${GRAVITE_COLOR[m.gravite] || '#e74c3c'};border:2px solid var(--surface);cursor:pointer`;
+        dot.addEventListener('click', () => { player.currentTime = m.timestamp_seconds; player.play(); });
+        track.appendChild(dot);
+      });
+    };
+    player.addEventListener('loadedmetadata', placeMarkers, { once: true });
+  } else {
+    playerWrap.style.display = 'none';
+    track.style.display = 'none';
+    noVideoNote.style.display = 'block';
+  }
+
+  list.innerHTML = moments.map(m => {
+    const hasTs = typeof m.timestamp_seconds === 'number';
+    const tsLabel = hasTs ? _formatMmSs(m.timestamp_seconds) : '—';
+    const color = GRAVITE_COLOR[m.gravite] || '#e74c3c';
+    return `
+      <div class="${hasTs && hasLocalVideo ? 'timeline-item-clickable' : ''}"
+           ${hasTs && hasLocalVideo ? `onclick="document.getElementById('analysis-video-player').currentTime=${m.timestamp_seconds};document.getElementById('analysis-video-player').play();window.scrollTo({top:document.getElementById('video-timeline-section').offsetTop-10,behavior:'smooth'})"` : ''}
+           style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--surface2);border-left:3px solid ${color};border-radius:6px;${hasTs && hasLocalVideo ? 'cursor:pointer' : ''}">
+        <strong style="color:${color};min-width:44px">${tsLabel}</strong>
+        <span style="font-size:13px"><strong>${m.pilier || ''}</strong> — ${m.diagnostic}</span>
+      </div>`;
+  }).join('');
+}
+
 // ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
   console.log('[DEBUG] showResults called with data:', d);
   window._lastAnalysis = d;   // pour le partage du score (Feature 4)
+  renderModerationAndScript(d);
+  renderErrorTimeline(d);
   document.getElementById('loading-section').style.display  = 'none';
   document.getElementById('results-section').style.display  = 'block';
 
@@ -4759,6 +4868,192 @@ function _avatarBadge(name, size) {
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:800;color:#fff;background:${bg}">${escapeHtml(init)}</div>`;
 }
 
+/* ── RECHERCHE DE PROFIL TIKTOK (GMV réel 30j + meilleures ventes) ────────── */
+function initRechercheTab() {
+  const tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  const locked = document.getElementById('recherche-locked');
+  const result = document.getElementById('recherche-result');
+  const quotaLabel = document.getElementById('recherche-quota-label');
+  if (!locked || !result) return;
+  if (tier === 'free') {
+    locked.style.display = 'block';
+    result.style.display = 'none';
+    quotaLabel.textContent = '';
+    locked.innerHTML = `
+      <div style="background:var(--surface2);border-radius:12px;padding:20px;text-align:center">
+        <div style="font-size:14px;margin-bottom:12px">🔒 La recherche de profil est réservée aux plans <strong>Pro</strong> et plus.</div>
+        <button class="btn btn-primary" onclick="switchTab('pricing')">Passer Pro 👑</button>
+      </div>`;
+  } else {
+    locked.style.display = 'none';
+    result.style.display = 'block';
+  }
+}
+
+async function runRechercheSearch() {
+  const tier = (window.__userInfo?.tier || 'free').toLowerCase();
+  if (tier === 'free') { switchTab('pricing'); return; }
+
+  const input = document.getElementById('recherche-handle');
+  const handle = (input?.value || '').trim();
+  if (!handle) { showToast('Entre un @pseudo.'); return; }
+
+  const box = document.getElementById('recherche-result');
+  box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">⏳ Recherche…</div>';
+
+  const token = localStorage.getItem('tts_token');
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+  try {
+    const res = await fetch(`/api/recherche/profile?handle=${encodeURIComponent(handle)}`, { headers });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) { switchTab('pricing'); return; }
+    if (res.status === 403) {
+      box.innerHTML = `<div style="background:var(--surface2);border-radius:12px;padding:20px;text-align:center">
+        🔒 ${escapeHtml(data.detail || 'Réservé aux plans Pro et plus.')}
+        <div style="margin-top:10px"><button class="btn btn-primary" onclick="switchTab('pricing')">Passer Pro 👑</button></div>
+      </div>`;
+      return;
+    }
+    if (res.status === 429) {
+      box.innerHTML = `<div style="background:var(--surface2);border-radius:12px;padding:20px;text-align:center">
+        ⏳ ${escapeHtml(data.detail || 'Quota de recherches atteint.')}
+        <div style="margin-top:10px"><button class="btn btn-primary" onclick="switchTab('pricing')">Passer Gold 👑</button></div>
+      </div>`;
+      return;
+    }
+    if (!res.ok || !data.ok) {
+      box.innerHTML = `<div style="color:#dc2626;padding:16px;text-align:center">❌ ${escapeHtml(data.error || 'Profil introuvable.')}</div>`;
+      return;
+    }
+
+    renderRechercheResult(data);
+    const quotaLabel = document.getElementById('recherche-quota-label');
+    if (quotaLabel) {
+      quotaLabel.textContent = (data.quota && data.quota.tier === 'pro')
+        ? `${data.quota.remaining_today}/${data.quota.limit} recherches restantes aujourd'hui`
+        : '';
+    }
+  } catch (e) {
+    box.innerHTML = '<div style="color:#dc2626;padding:16px;text-align:center">❌ Erreur réseau.</div>';
+  }
+}
+
+function renderRechercheResult(data) {
+  const p = data.profile || {};
+  const gmv = data.gmv || {};
+  const products = data.best_sellers || [];
+  const box = document.getElementById('recherche-result');
+
+  const productsHtml = products.length
+    ? products.map(pr => `
+        <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px">
+          <img src="${pr.image || ''}" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || '')}</div>
+            <div style="font-size:12px;color:var(--muted)">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV total</div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--muted);font-size:13px">Aucun produit vendu détecté.</p>';
+
+  box.innerHTML = `
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
+      <img src="${p.avatar || ''}" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2)">
+      <div>
+        <div style="font-weight:800;font-size:17px">${escapeHtml(p.nickname || p.unique_id || '')}</div>
+        <div style="color:var(--muted);font-size:13px">@${escapeHtml(p.unique_id || '')} · ${(p.followers || 0).toLocaleString()} abonnés</div>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px">
+      <div style="font-size:12px;color:var(--muted)">GMV estimé (30 derniers jours)</div>
+      <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
+      <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
+    </div>
+    <h3 style="font-size:15px;margin-bottom:10px">🏆 Meilleures ventes</h3>
+    <div style="display:grid;gap:8px">${productsHtml}</div>`;
+}
+
+/* ── FEED RADAR — feed de vidéos virales (thumbnail oEmbed, GMV estimé) ──── */
+let _tiktokEmbedJsLoaded = false;
+
+async function loadFeedRadarTab() {
+  const grid = document.getElementById('feedradar-grid');
+  const loading = document.getElementById('feedradar-loading');
+  const upsell = document.getElementById('feedradar-upsell');
+  if (!grid) return;
+  grid.innerHTML = ''; upsell.style.display = 'none'; loading.style.display = 'block';
+
+  const token = localStorage.getItem('tts_token');
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+  try {
+    const res = await fetch('/api/feed-radar?region=US', { headers });
+    const data = await res.json().catch(() => ({}));
+    loading.style.display = 'none';
+
+    if (!res.ok || !data.ok) {
+      grid.innerHTML = `<p style="color:var(--muted);grid-column:1/-1">Feed Radar indisponible pour le moment. Réessaie plus tard.</p>`;
+      return;
+    }
+    const videos = data.videos || [];
+    if (!videos.length) {
+      grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">Aucune vidéo collectée pour le moment.</p>';
+      return;
+    }
+    grid.innerHTML = videos.map(renderFeedRadarCard).join('');
+
+    if (data.preview) {
+      upsell.style.display = 'block';
+      upsell.innerHTML = `
+        <div style="background:var(--surface2);border-radius:12px;padding:18px;text-align:center">
+          🔒 Accès complet au Feed Radar réservé aux plans <strong>Gold</strong> et <strong>Agency</strong>.
+          <div style="margin-top:10px"><button class="btn btn-primary" onclick="switchTab('pricing')">Passer Gold 👑</button></div>
+        </div>`;
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+    grid.innerHTML = '<p style="color:#dc2626;grid-column:1/-1">❌ Erreur réseau.</p>';
+  }
+}
+
+function renderFeedRadarCard(v) {
+  const gmv = v.gmv_estimated || 0;
+  return `
+    <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
+         style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
+      <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+      <div style="padding:8px 10px">
+        <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}</div>
+        <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div>
+        <div style="font-size:11px;color:var(--muted)">💰 GMV estimé : $${gmv.toLocaleString()}</div>
+      </div>
+    </div>`;
+}
+
+async function hydrateFeedRadarCard(videoId, cardEl) {
+  // Tap-to-hydrate : embed.js n'est JAMAIS chargé au scroll, uniquement ici,
+  // et une seule fois par page quel que soit le nombre de cartes tapées.
+  const token = localStorage.getItem('tts_token');
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+  try {
+    const res = await fetch(`/api/feed-radar/${encodeURIComponent(videoId)}/embed`, { headers });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403) { switchTab('pricing'); return; }
+    if (!res.ok || !data.ok || !data.oembed_html) { showToast('Vidéo indisponible.'); return; }
+
+    cardEl.innerHTML = data.oembed_html;
+    if (!_tiktokEmbedJsLoaded) {
+      const s = document.createElement('script');
+      s.src = 'https://www.tiktok.com/embed.js';
+      document.body.appendChild(s);
+      _tiktokEmbedJsLoaded = true;
+    }
+  } catch (e) {
+    showToast('Erreur réseau.');
+  }
+}
+
 async function loadCreatorsTab() {
   const grid = document.getElementById('creators-grid');
   const loading = document.getElementById('creators-loading');
@@ -4928,7 +5223,7 @@ async function analyzeUrlAsync() {
     const res = await fetch('/api/jobs/create-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ..._AUTH_HEADER() },
-      body: JSON.stringify({ url, product, price }),
+      body: JSON.stringify({ url, product, price, user_role: getUserRole() }),
     });
     if (!res.ok) {
       const t = await res.text();
@@ -4953,6 +5248,7 @@ async function analyzeUploadAsync() {
   fd.append('video', selectedFile, selectedFile.name || 'video.mp4');
   if (product) fd.append('product', product);
   if (price) fd.append('price', price);
+  fd.append('user_role', getUserRole());
 
   const submitBtn = document.querySelector('[data-async-upload]');
   if (submitBtn) submitBtn.disabled = true;
