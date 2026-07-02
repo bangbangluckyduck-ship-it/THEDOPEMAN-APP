@@ -371,3 +371,24 @@ async def admin_push_stats(request: Request):
     except Exception:
         total = 0
     return {"ok": True, "configured": push.is_configured(), "subscribers": total}
+
+
+# ════════════════════════════════════════════════════════════════════
+# RECHERCHE GMV — outil admin minimal (pas de cache, pas de quota).
+# Version simplifiée de /api/recherche/profile côté user, juste pour une
+# vérification ponctuelle du GMV d'un handle.
+# ════════════════════════════════════════════════════════════════════
+@router.get("/recherche-gmv")
+async def admin_recherche_gmv(request: Request, handle: str):
+    _require_admin(request)
+    import market_creators
+    handle_clean = (handle or "").lstrip("@").strip()
+    if not handle_clean:
+        raise HTTPException(status_code=422, detail="Handle requis.")
+    try:
+        result = await market_creators.get_creator_gmv_only(handle_clean)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    if not result:
+        raise HTTPException(status_code=404, detail="Profil introuvable.")
+    return {"ok": True, **result}

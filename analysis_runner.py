@@ -88,7 +88,7 @@ def _send_error_email(user_email: str, error_message: str, job_id: str,
 
 
 async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[str],
-                            user_tier: str) -> dict:
+                            user_tier: str, user_role: Optional[str] = None) -> dict:
     """Download URL → downscale → Gemini Pro vidéo → synthèse."""
     from analyzer import analyze_video_native, synthesize_analysis
     from video_processor import downscale_720p
@@ -127,7 +127,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
 
         # 4. Synthèse
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
             timeout=180.0,
         )
         result["transcript"] = transcript
@@ -148,7 +148,8 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
 
 
 async def _run_upload_pipeline(video_bytes: bytes, product: Optional[str],
-                               price: Optional[str], user_tier: str) -> dict:
+                               price: Optional[str], user_tier: str,
+                               user_role: Optional[str] = None) -> dict:
     """Upload vidéo → downscale → Gemini Pro → synthèse."""
     from analyzer import analyze_video_native, synthesize_analysis
     from video_processor import downscale_720p
@@ -174,7 +175,7 @@ async def _run_upload_pipeline(video_bytes: bytes, product: Optional[str],
 
         # 4. Synthèse
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
             timeout=180.0,
         )
         result["transcript"] = transcript
@@ -195,15 +196,19 @@ async def _run_upload_pipeline(video_bytes: bytes, product: Optional[str],
 async def process_url_job(job_id: str, url: str, product: Optional[str],
                           price: Optional[str], user_tier: str,
                           user_email: str, video_hash: Optional[str] = None,
-                          job_title: Optional[str] = None) -> None:
+                          job_title: Optional[str] = None,
+                          user_role: Optional[str] = None) -> None:
     """Coroutine de traitement d'un job URL. Met à jour le job au fil de l'eau."""
     started = time.time()
     try:
         analysis_jobs.mark_running(job_id, stage="download")
 
-        # Cache lookup si pas de product/price custom
+        # Cache lookup si pas de product/price custom. user_role fait partie de
+        # la clé (pas un facteur qui désactive le cache) : même vidéo + rôle
+        # différent = résultat différent, donc entrée de cache distincte.
         can_cache = not product and not price
-        cache_key = video_hash or (analysis_cache.hash_video_url(url) if can_cache else None)
+        _base_key = video_hash or (analysis_cache.hash_video_url(url) if can_cache else None)
+        cache_key = f"{_base_key}:{user_role or 'none'}" if _base_key else None
         if can_cache and cache_key:
             cached = analysis_cache.get_cached(cache_key, pipeline="pro")
             if cached:
@@ -213,7 +218,7 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
                 return
 
         analysis_jobs.update_stage(job_id, "vision")
-        result = await _run_url_pipeline(url, product, price, user_tier)
+        result = await _run_url_pipeline(url, product, price, user_tier, user_role)
         result["from_cache"] = False
 
         # Cache store si autorisé
@@ -237,14 +242,15 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
 async def process_upload_job(job_id: str, video_bytes: bytes, product: Optional[str],
                              price: Optional[str], user_tier: str,
                              user_email: str, video_hash: Optional[str] = None,
-                             job_title: Optional[str] = None) -> None:
+                             job_title: Optional[str] = None,
+                             user_role: Optional[str] = None) -> None:
     """Coroutine de traitement d'un job upload. Met à jour le job au fil de l'eau."""
     started = time.time()
     try:
         analysis_jobs.mark_running(job_id, stage="downscale")
 
         can_cache = not product and not price
-        cache_key = video_hash if can_cache else None
+        cache_key = f"{video_hash}:{user_role or 'none'}" if (can_cache and video_hash) else None
         if can_cache and cache_key:
             cached = analysis_cache.get_cached(cache_key, pipeline="pro")
             if cached:
@@ -254,7 +260,7 @@ async def process_upload_job(job_id: str, video_bytes: bytes, product: Optional[
                 return
 
         analysis_jobs.update_stage(job_id, "vision")
-        result = await _run_upload_pipeline(video_bytes, product, price, user_tier)
+        result = await _run_upload_pipeline(video_bytes, product, price, user_tier, user_role)
         result["from_cache"] = False
 
         if can_cache and cache_key:

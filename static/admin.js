@@ -535,6 +535,29 @@ async function confirmTierChange() {
   }
 }
 
+/* ── RECHERCHE GMV (outil minimal, pas de cache/quota) ────────────────── */
+async function lookupRechercheGmv() {
+  const handle = (document.getElementById('rgmv-handle').value || '').trim();
+  const box = document.getElementById('rgmv-result');
+  if (!handle) { showToast('Entre un handle.'); return; }
+  box.innerHTML = '<div class="empty">⏳…</div>';
+  try {
+    const res = await fetch(`/admin/recherche-gmv?handle=${encodeURIComponent(handle)}`, {
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      box.innerHTML = `<div class="empty">❌ ${data.detail || 'Erreur'}</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div style="font-size:28px;font-weight:900">$${(data.gmv_30d || 0).toLocaleString()}</div>
+      <div style="color:var(--muted,#6b7280)">@${data.unique_id || ''} · ${data.nickname || ''} · ${(data.sales_30d || 0).toLocaleString()} ventes (30j)</div>`;
+  } catch (e) {
+    box.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
+  }
+}
+
 /* ── INITIALISATION ───────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   const isAdmin = await checkIsAdmin();
