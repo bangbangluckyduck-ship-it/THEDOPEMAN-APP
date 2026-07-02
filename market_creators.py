@@ -642,6 +642,21 @@ async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
     return cleaned[:limit]
 
 
+def _flag_unreliable_gmv(gmv_data: dict, products: list) -> dict:
+    """KeyAPI ne semble alimenter le suivi quotidien ventes/GMV (utilisé pour
+    gmv_30d) que pour les comptes qu'il classe activement — confirmé en test
+    (2026-07) sur un vrai compte avec 600k€+ de GMV lifetime réel (best_sellers)
+    mais gmv_30d=0 systématique, alors que d'autres comptes classés donnent des
+    chiffres réels cohérents. Si gmv_30d=0 ET qu'il existe du GMV lifetime
+    substantiel, on marque explicitement "non fiable" plutôt que de laisser
+    afficher un 0€ qui donnerait l'illusion trompeuse de zéro vente réelle."""
+    lifetime_gmv = sum((p.get("gmv") or 0) for p in (products or []))
+    unreliable = (gmv_data.get("gmv_30d") or 0) == 0 and lifetime_gmv > 0
+    gmv_data["reliable"] = not unreliable
+    gmv_data["lifetime_gmv_fallback"] = lifetime_gmv if unreliable else None
+    return gmv_data
+
+
 async def search_creator_profile(handle: str) -> Optional[dict]:
     """Orchestration complète de la Recherche de profil : profil + GMV 30j réel +
     meilleures ventes. ~5 appels KeyAPI. None si le handle n'existe pas."""
@@ -665,19 +680,33 @@ async def search_creator_profile(handle: str) -> Optional[dict]:
             return []
 
     gmv_data, products = await asyncio.gather(_safe_gmv(), _safe_products())
+    gmv_data = _flag_unreliable_gmv(gmv_data, products)
     return {"profile": profile, "gmv": gmv_data, "best_sellers": products}
 
 
 async def get_creator_gmv_only(handle: str) -> Optional[dict]:
-    """Outil ADMIN minimal : @handle → profil léger + GMV 30j SEULEMENT (pas de
-    produits). Pas de cache/quota — appelant (admin_routes.py) gère ça."""
+    """Outil ADMIN minimal : @handle → profil léger + GMV 30j (+ un appel
+    supplémentaire produits UNIQUEMENT pour fiabiliser le 0€, cf.
+    _flag_unreliable_gmv). Pas de cache/quota — appelant (admin_routes.py) gère ça."""
     profile = await get_influencer_profile(handle)
     if not profile or not profile.get("uid"):
         return None
-    gmv_data = await get_creator_gmv_30d(profile["uid"], days=30)
+    uid = profile["uid"]
+    gmv_data = await get_creator_gmv_30d(uid, days=30)
+    if (gmv_data.get("gmv_30d") or 0) == 0:
+        try:
+            products = await get_creator_best_sellers(uid, limit=10)
+        except Exception:
+            products = []
+        gmv_data = _flag_unreliable_gmv(gmv_data, products)
+    else:
+        gmv_data["reliable"] = True
+        gmv_data["lifetime_gmv_fallback"] = None
     return {
         "unique_id": profile.get("unique_id"),
         "nickname": profile.get("nickname"),
         "gmv_30d": gmv_data.get("gmv_30d"),
         "sales_30d": gmv_data.get("sales_30d"),
+        "reliable": gmv_data.get("reliable", True),
+        "lifetime_gmv_fallback": gmv_data.get("lifetime_gmv_fallback"),
     }

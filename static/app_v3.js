@@ -4966,9 +4966,16 @@ function renderRechercheResult(data) {
       </div>
     </div>
     <div style="background:var(--surface2);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px">
-      <div style="font-size:12px;color:var(--muted)">GMV estimé (30 derniers jours)</div>
-      <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
-      <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
+      ${gmv.reliable === false ? `
+        <div style="font-size:12px;color:var(--muted)">GMV des 30 derniers jours indisponible</div>
+        <div style="font-size:13px;color:var(--muted);margin:6px 0">Ce compte n'est pas suivi en temps réel par notre source de données (pas dans son classement actif) — impossible de calculer un chiffre fiable sur 30 jours.</div>
+        ${gmv.lifetime_gmv_fallback ? `<div style="font-size:22px;font-weight:900;margin-top:8px">$${gmv.lifetime_gmv_fallback.toLocaleString()}</div>
+        <div style="font-size:12px;color:var(--muted)">GMV total historique connu (tous produits, toutes périodes confondues)</div>` : ''}
+      ` : `
+        <div style="font-size:12px;color:var(--muted)">GMV estimé (30 derniers jours)</div>
+        <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
+        <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
+      `}
     </div>
     <h3 style="font-size:15px;margin-bottom:10px">🏆 Meilleures ventes</h3>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
