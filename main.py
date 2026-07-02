@@ -597,7 +597,7 @@ async def admin_stats(request: Request):
         raise HTTPException(status_code=403, detail="Accès admin requis.")
 
     try:
-        from supabase_client import supabase, SUPABASE_ENABLED
+        from supabase_client import supabase_service as supabase, SUPABASE_ENABLED
     except Exception:
         supabase, SUPABASE_ENABLED = None, False
 
@@ -701,7 +701,7 @@ async def register(request: Request):
 @app.post("/api/login")
 async def login(request: Request):
     import bcrypt
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from auth import create_access_token
 
     try:
@@ -769,7 +769,7 @@ async def forgot_password(request: Request):
     Le mot de passe n'est PAS modifié ici — il le sera sur /reset-password (preuve
     de possession de la boîte mail), via /api/change-password. Anti-énumération : même
     réponse que le compte existe ou non."""
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from password_reset import create_password_reset_token, check_rate_limit
     from email_service import email_service
     from urllib.parse import quote as _q
@@ -810,7 +810,7 @@ async def forgot_password(request: Request):
 @app.post("/api/change-password")
 async def change_password(request: Request):
     import bcrypt
-    from supabase_client import supabase
+    from supabase_client import supabase_service as supabase
     from password_reset import validate_reset_token, mark_token_as_used
     from email_service import email_service
 

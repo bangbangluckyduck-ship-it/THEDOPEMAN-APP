@@ -199,7 +199,7 @@ async def refresh_access_token(refresh_token: str, provider: str = "display") ->
 # ── Persistance Supabase (1 ligne par email + provider) ──────────────────────
 def save_tiktok_token(email: str, data: dict, provider: str = "display") -> bool:
     try:
-        from supabase_client import supabase
+        from supabase_client import supabase_service as supabase
     except Exception:
         return False
     if not supabase or not isinstance(data, dict):
@@ -234,7 +234,7 @@ def save_tiktok_token(email: str, data: dict, provider: str = "display") -> bool
 
 def get_saved_token(email: str, provider: str = "display") -> Optional[dict]:
     try:
-        from supabase_client import supabase
+        from supabase_client import supabase_service as supabase
     except Exception:
         return None
     if not supabase:
@@ -252,7 +252,7 @@ def get_saved_token(email: str, provider: str = "display") -> Optional[dict]:
 
 def _persist_refreshed(email: str, provider: str, data: dict) -> None:
     try:
-        from supabase_client import supabase
+        from supabase_client import supabase_service as supabase
     except Exception:
         return
     if not supabase:
