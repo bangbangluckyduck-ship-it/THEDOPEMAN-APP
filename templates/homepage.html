@@ -1124,6 +1124,37 @@
 
 <!-- ════════════════════ PRICING ════════════════════ -->
 <!-- ════════════════════ TÉMOIGNAGES ════════════════════ -->
+<section id="feedradar-teaser-section" style="display:none;padding:60px 20px;background:var(--bg,#F5F7FA)">
+  <div style="max-width:1100px;margin:0 auto">
+    <h2 class="section-title" style="text-align:center">📡 Feed Radar</h2>
+    <p class="section-subtitle" style="text-align:center;margin-bottom:32px">Les vidéos TikTok Shop qui cartonnent en ce moment — GMV estimé, en temps réel</p>
+    <div id="feedradar-teaser-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;max-width:600px;margin:0 auto"></div>
+    <div style="text-align:center;margin-top:28px">
+      <a href="/pricing" style="color:var(--accent);font-weight:700;text-decoration:none">Voir plus →</a>
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var _lang=(document.documentElement.lang||navigator.language||'fr').slice(0,2).toLowerCase();
+  var _region=({fr:'FR',en:'US',pt:'BR',es:'ES',it:'IT',de:'DE',id:'ID',ms:'MY'})[_lang]||'US';
+  fetch('/api/feed-radar/teaser?region='+_region).then(function(r){return r.json();}).then(function(d){
+    var items=(d&&d.videos)||[]; if(!items.length) return;
+    var sec=document.getElementById('feedradar-teaser-section'); var g=document.getElementById('feedradar-teaser-grid');
+    g.innerHTML=items.map(function(v){
+      var thumb=v.oembed_thumbnail_url?('<img src="'+esc(v.oembed_thumbnail_url)+'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">'):'';
+      var gmv=(v.gmv_estimated||0).toLocaleString();
+      return '<div style="border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--border,#e5e7eb)">'+thumb+
+        '<div style="padding:8px 10px;font-size:12px"><div style="font-weight:700">@'+esc(v.oembed_author_name||'')+'</div>'+
+        '<div style="color:var(--muted,#6b7280)">'+ (v.views||0).toLocaleString() +' vues</div>'+
+        '<div style="color:var(--muted,#6b7280)">💰 GMV estimé : $'+gmv+'</div></div></div>';
+    }).join('');
+    sec.style.display='block';
+  }).catch(function(){});
+})();
+</script>
+
 <section id="temoignages-section" style="display:none;padding:60px 20px;background:var(--surface,#fff)">
   <div style="max-width:1100px;margin:0 auto">
     <h2 class="section-title" style="text-align:center">Ils utilisent Qeerah</h2>
@@ -1151,37 +1182,6 @@
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent);overflow:hidden">'+av+'</div>'+
         '<div><div style="font-weight:700;font-size:14px">'+esc(t.nom)+'</div>'+st+'</div></div>'+
         '<div style="font-size:14px;flex:1">'+esc(t.texte)+'</div>'+mt+tk+'</div>';
-    }).join('');
-    sec.style.display='block';
-  }).catch(function(){});
-})();
-</script>
-
-<section id="feedradar-teaser-section" style="display:none;padding:60px 20px;background:var(--bg,#F5F7FA)">
-  <div style="max-width:1100px;margin:0 auto">
-    <h2 class="section-title" style="text-align:center">📡 Feed Radar</h2>
-    <p class="section-subtitle" style="text-align:center;margin-bottom:32px">Les vidéos TikTok Shop qui cartonnent en ce moment — GMV estimé, en temps réel</p>
-    <div id="feedradar-teaser-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;max-width:600px;margin:0 auto"></div>
-    <div style="text-align:center;margin-top:28px">
-      <a href="/pricing" style="color:var(--accent);font-weight:700;text-decoration:none">Voir plus →</a>
-    </div>
-  </div>
-</section>
-<script>
-(function () {
-  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  var _lang=(document.documentElement.lang||navigator.language||'fr').slice(0,2).toLowerCase();
-  var _region=({fr:'FR',en:'US',pt:'BR',es:'ES',it:'IT',de:'DE',id:'ID',ms:'MY'})[_lang]||'US';
-  fetch('/api/feed-radar/teaser?region='+_region).then(function(r){return r.json();}).then(function(d){
-    var items=(d&&d.videos)||[]; if(!items.length) return;
-    var sec=document.getElementById('feedradar-teaser-section'); var g=document.getElementById('feedradar-teaser-grid');
-    g.innerHTML=items.map(function(v){
-      var thumb=v.oembed_thumbnail_url?('<img src="'+esc(v.oembed_thumbnail_url)+'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">'):'';
-      var gmv=(v.gmv_estimated||0).toLocaleString();
-      return '<div style="border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--border,#e5e7eb)">'+thumb+
-        '<div style="padding:8px 10px;font-size:12px"><div style="font-weight:700">@'+esc(v.oembed_author_name||'')+'</div>'+
-        '<div style="color:var(--muted,#6b7280)">'+ (v.views||0).toLocaleString() +' vues</div>'+
-        '<div style="color:var(--muted,#6b7280)">💰 GMV estimé : $'+gmv+'</div></div></div>';
     }).join('');
     sec.style.display='block';
   }).catch(function(){});
