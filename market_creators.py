@@ -176,13 +176,14 @@ def _clean_product(p: dict) -> dict:
     }
 
 
-async def get_top_creators(category: Optional[str] = None, region: str = "US", limit: int = 10) -> list[dict]:
+async def get_top_creators(category: Optional[str] = None, region: str = "US", limit: int = 10,
+                           page_num: int = 1) -> list[dict]:
     params = {
         "date": _default_rank_date(),
         "region": region or "US",
         "rank_type": 3,            # mensuel
         "influencer_rank_field": 2,  # tri par ventes
-        "page_num": 1,
+        "page_num": page_num,
         "page_size": min(max(limit, 1), 10),
     }
     cid = CATEGORY_ID_MAP.get((category or "").lower().strip())
