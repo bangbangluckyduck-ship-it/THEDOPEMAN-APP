@@ -4948,21 +4948,21 @@ function renderRechercheResult(data) {
 
   const productsHtml = products.length
     ? products.map(pr => `
-        <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px">
+        <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px;width:100%;min-width:0;box-sizing:border-box">
           <img src="${pr.image || ''}" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
-          <div style="flex:1;min-width:0">
+          <div style="flex:1;min-width:0;overflow:hidden">
             <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || '')}</div>
-            <div style="font-size:12px;color:var(--muted)">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV total</div>
+            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV total</div>
           </div>
         </div>`).join('')
     : '<p style="color:var(--muted);font-size:13px">Aucun produit vendu détecté.</p>';
 
   box.innerHTML = `
-    <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
-      <img src="${p.avatar || ''}" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2)">
-      <div>
-        <div style="font-weight:800;font-size:17px">${escapeHtml(p.nickname || p.unique_id || '')}</div>
-        <div style="color:var(--muted);font-size:13px">@${escapeHtml(p.unique_id || '')} · ${(p.followers || 0).toLocaleString()} abonnés</div>
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;max-width:100%;box-sizing:border-box">
+      <img src="${p.avatar || ''}" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2);flex-shrink:0">
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="font-weight:800;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.nickname || p.unique_id || '')}</div>
+        <div style="color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(p.unique_id || '')} · ${(p.followers || 0).toLocaleString()} abonnés</div>
       </div>
     </div>
     <div style="background:var(--surface2);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px">
@@ -4971,7 +4971,7 @@ function renderRechercheResult(data) {
       <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
     </div>
     <h3 style="font-size:15px;margin-bottom:10px">🏆 Meilleures ventes</h3>
-    <div style="display:grid;gap:8px">${productsHtml}</div>`;
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
 }
 
 /* ── FEED RADAR — feed de vidéos virales (thumbnail oEmbed, GMV estimé) ──── */

@@ -22,6 +22,14 @@ réelles fournies par Aimeric, juin 2026) : pour les vidéos ≥ ~100k vues
 autour de 0.03-0.06%, moyenne ≈ 0.04% — PAS 1-2% comme un CTOR "clic→achat"
 classique le laisserait penser (la quasi-totalité des vues ne cliquent
 jamais). Toujours labellisé "GMV estimé" côté UI (jamais "GMV" nu).
+
+Volumes amplifiés le 2026-07-02 (crédits KeyAPI à écouler avant expiration) :
+seuil de vues abaissé (50k), 7 passes de découverte par région (6 catégories
++ 1 classement global), 2 pages de créateurs par passe (~20 au lieu de 10),
+20 vidéos par créateur (au lieu de 10). Le coût réel par run n'est PAS
+mesuré précisément (le ratio appel KeyAPI ↔ crédit consommé n'est pas connu
+ici) — surveiller la conso réelle sur le dashboard KeyAPI après les premiers
+runs plutôt que de se fier à une estimation.
 """
 from __future__ import annotations
 
@@ -33,12 +41,17 @@ import httpx
 
 import market_creators as mc
 
-FEED_RADAR_VIEW_THRESHOLD = int(os.getenv("FEED_RADAR_VIEW_THRESHOLD", "100000"))
+FEED_RADAR_VIEW_THRESHOLD = int(os.getenv("FEED_RADAR_VIEW_THRESHOLD", "50000"))
 # 0.04% = calibré empiriquement sur ~65 vraies vidéos TikTok Shop ≥ ~100k vues
 # (articles vendus / vues). PAS 1-2% : ça correspondrait à un taux clic→achat,
 # pas vue→achat (l'écrasante majorité des vues ne cliquent jamais).
 FEED_RADAR_DEFAULT_CTOR = float(os.getenv("FEED_RADAR_DEFAULT_CTOR", "0.0004"))
-FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison"]
+# None = classement global (sans filtre catégorie), en plus des 6 catégories —
+# capte des créateurs qui ne sortent dans aucun classement par catégorie.
+FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison", None]
+# Nb de pages de créateurs récupérées par catégorie/région (10 créateurs/page,
+# max API) — 2 pages = jusqu'à 20 créateurs par catégorie au lieu de 10.
+FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "2"))
 # Mêmes régions que MARKET_COUNTRIES (static/app_v3.js) — marchés déjà
 # confirmés couverts par KeyAPI pour "Créateurs Gagnants". Override possible
 # via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
@@ -93,20 +106,27 @@ async def discover_candidate_videos(region: str = "US",
     seen_video_ids: set = set()
     candidates: list[dict] = []
 
+    seen_creators: set = set()
     for category in categories:
-        try:
-            creators = await mc.get_top_creators(category, region, limit=10)
-        except Exception as e:
-            print(f"discover_candidate_videos({category}) ranking error: {e}")
-            continue
+        creators: list = []
+        for page in range(1, FEED_RADAR_CREATOR_PAGES + 1):
+            try:
+                page_creators = await mc.get_top_creators(category, region, limit=10, page_num=page)
+            except Exception as e:
+                print(f"discover_candidate_videos({category}, page {page}) ranking error: {e}")
+                break
+            if not page_creators:
+                break
+            creators.extend(page_creators)
         for creator in creators:
             unique_id = creator.get("unique_id")
             user_id = creator.get("user_id")
-            if not unique_id:
+            if not unique_id or unique_id in seen_creators:
                 continue
+            seen_creators.add(unique_id)
             try:
                 vdata = await mc._get("/v1/tiktok/influencer/videos",
-                                      {"unique_id": unique_id, "page_num": 1, "page_size": 10})
+                                      {"unique_id": unique_id, "page_num": 1, "page_size": 20})
                 aweme = (vdata or {}).get("aweme_list") if isinstance(vdata, dict) else None
                 videos = [mc._clean_video(v) for v in (aweme or [])]
             except Exception as e:
