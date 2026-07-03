@@ -4952,7 +4952,7 @@ function renderRechercheResult(data) {
           <img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
           <div style="flex:1;min-width:0;overflow:hidden">
             <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || '')}</div>
-            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV total</div>
+            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV — produit, tous créateurs</div>
           </div>
         </div>`).join('')
     : '<p style="color:var(--muted);font-size:13px">Aucun produit vendu détecté.</p>';
@@ -4967,17 +4967,16 @@ function renderRechercheResult(data) {
     </div>
     <div style="background:var(--surface2);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px">
       ${gmv.reliable === false ? `
-        <div style="font-size:12px;color:var(--muted)">GMV des 30 derniers jours indisponible</div>
-        <div style="font-size:13px;color:var(--muted);margin:6px 0">Ce compte n'est pas suivi en temps réel par notre source de données (pas dans son classement actif) — impossible de calculer un chiffre fiable sur 30 jours.</div>
-        ${gmv.lifetime_gmv_fallback ? `<div style="font-size:22px;font-weight:900;margin-top:8px">$${gmv.lifetime_gmv_fallback.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted)">GMV total historique connu (tous produits, toutes périodes confondues)</div>` : ''}
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">GMV indisponible pour ce compte</div>
+        <div style="font-size:13px;color:var(--muted)">Ce compte n'est pas suivi en temps réel par notre source de données (réservée aux comptes de son classement actif) — aucun chiffre de ventes fiable ne peut être affiché. Ça ne veut pas dire zéro vente.</div>
       ` : `
         <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
         <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
         <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
       `}
     </div>
-    <h3 style="font-size:15px;margin-bottom:10px">🏆 Meilleures ventes</h3>
+    <h3 style="font-size:15px;margin-bottom:6px">🛍️ Produits mis en avant par ce compte</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Ventes et GMV = performance globale du produit sur TikTok Shop (tous créateurs confondus), pas celle de ce compte.</p>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
 }
 
