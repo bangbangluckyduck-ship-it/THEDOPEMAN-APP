@@ -27,6 +27,7 @@ from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
+import google_oauth
 import market_creators
 import recherche_quota
 import photo_slide
@@ -2134,6 +2135,42 @@ async def stripe_webhook_v1(request: Request):
             revoke_by_customer(cust_id)
 
     return {"received": True}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# OAUTH GOOGLE — connexion « Continuer avec Google » (login / inscription)
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/auth/google/login")
+async def google_login():
+    """Démarre le flux Google et redirige vers l'écran de consentement."""
+    if not google_oauth.is_configured():
+        raise HTTPException(status_code=503,
+                            detail="Connexion Google indisponible (configuration manquante).")
+    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state()))
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(request: Request, code: Optional[str] = Query(None),
+                          state: Optional[str] = Query(None)):
+    """Callback Google : vérifie le state → email vérifié → user + token → /app."""
+    app_url = google_oauth.APP_PUBLIC_URL
+    if not code or not state or not google_oauth.verify_state(state):
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    try:
+        email = await google_oauth.exchange_code_for_email(code)
+    except Exception as e:
+        print(f"❌ Google OAuth failed: {e}")
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    if not email:
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    try:
+        from supabase_client import get_or_create_user
+        get_or_create_user(email)          # crée le compte s'il n'existe pas (tier free)
+    except Exception as e:
+        print(f"google_callback get_or_create_user warn: {e}")
+    token = create_access_token(email)
+    # Token en FRAGMENT (#) : jamais envoyé au serveur ni journalisé (contrairement à ?).
+    return RedirectResponse(f"{app_url}/app#gauth={token}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
