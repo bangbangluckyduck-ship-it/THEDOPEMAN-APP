@@ -1020,7 +1020,9 @@ document.addEventListener('DOMContentLoaded', () => {
       try { localStorage.setItem('tts_email', atob(gtok.split('.')[0])); } catch (e) {}
       history.replaceState(null, '', location.pathname + location.search);
     } else if (new URLSearchParams(location.search).get('gauth') === 'error') {
-      setTimeout(() => { try { showToast('Connexion Google impossible. Réessaie ou utilise ton e-mail.'); } catch (e) {} }, 400);
+      const reason = new URLSearchParams(location.search).get('reason') || '?';
+      console.warn('[google-auth] échec, raison =', reason);
+      setTimeout(() => { try { showToast('Connexion Google impossible (' + reason + '). Réessaie ou utilise ton e-mail.'); } catch (e) {} }, 400);
     }
   } catch (e) {}
 
@@ -5061,13 +5063,22 @@ async function loadFeedRadarTab() {
   const loading = document.getElementById('feedradar-loading');
   const upsell = document.getElementById('feedradar-upsell');
   if (!grid) return;
+
+  // Sélecteur de marché : peuplé une fois, défaut = pays de l'utilisateur (FR en France).
+  const regSel = document.getElementById('feedradar-region');
+  if (regSel && !regSel.options.length) {
+    regSel.innerHTML = MARKET_COUNTRIES.map(c => `<option value="${c.code}">${c.flag} ${escapeHtml(c.name)}</option>`).join('');
+    regSel.value = _userRegion();
+  }
+  const region = (regSel && regSel.value) || _userRegion();
+
   grid.innerHTML = ''; upsell.style.display = 'none'; loading.style.display = 'block';
 
   const token = localStorage.getItem('tts_token');
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const res = await fetch(`/api/feed-radar?region=${_userRegion()}`, { headers });
+    const res = await fetch(`/api/feed-radar?region=${region}`, { headers });
     const data = await res.json().catch(() => ({}));
     loading.style.display = 'none';
 

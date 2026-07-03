@@ -2140,29 +2140,46 @@ async def stripe_webhook_v1(request: Request):
 # ════════════════════════════════════════════════════════════════════════════
 # OAUTH GOOGLE — connexion « Continuer avec Google » (login / inscription)
 # ════════════════════════════════════════════════════════════════════════════
+def _google_host_base(request: Request) -> str:
+    """Host RÉEL de l'utilisateur (www.qeerah.com), depuis les en-têtes proxy.
+    Essentiel : garder tout le flux OAuth sur le même host évite le 301
+    qeerah.com↔www.qeerah.com au milieu de l'échange (qui casse la connexion)."""
+    host = (request.headers.get("x-forwarded-host") or request.headers.get("host")
+            or request.url.hostname or "")
+    proto = request.headers.get("x-forwarded-proto") or "https"
+    return f"{proto}://{host}".rstrip("/")
+
+
+def _google_redirect_uri(request: Request) -> str:
+    forced = os.getenv("GOOGLE_REDIRECT_URI")
+    return forced if forced else f"{_google_host_base(request)}/api/auth/google/callback"
+
+
 @app.get("/api/auth/google/login")
-async def google_login():
+async def google_login(request: Request):
     """Démarre le flux Google et redirige vers l'écran de consentement."""
     if not google_oauth.is_configured():
         raise HTTPException(status_code=503,
                             detail="Connexion Google indisponible (configuration manquante).")
-    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state()))
+    ru = _google_redirect_uri(request)
+    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state(), ru))
 
 
 @app.get("/api/auth/google/callback")
 async def google_callback(request: Request, code: Optional[str] = Query(None),
                           state: Optional[str] = Query(None)):
-    """Callback Google : vérifie le state → email vérifié → user + token → /app."""
-    app_url = google_oauth.APP_PUBLIC_URL
+    """Callback Google : vérifie le state → email vérifié → user + token → /app.
+    redirect_uri reconstruit depuis le MÊME host qu'à l'autorisation (cohérence)."""
+    app_url = _google_host_base(request) or google_oauth.APP_PUBLIC_URL
     if not code or not state or not google_oauth.verify_state(state):
-        return RedirectResponse(f"{app_url}/app?gauth=error")
+        return RedirectResponse(f"{app_url}/app?gauth=error&reason=state")
     try:
-        email = await google_oauth.exchange_code_for_email(code)
+        email = await google_oauth.exchange_code_for_email(code, _google_redirect_uri(request))
     except Exception as e:
-        print(f"❌ Google OAuth failed: {e}")
-        return RedirectResponse(f"{app_url}/app?gauth=error")
+        print(f"❌ Google OAuth exchange failed: {e}")
+        return RedirectResponse(f"{app_url}/app?gauth=error&reason=exchange")
     if not email:
-        return RedirectResponse(f"{app_url}/app?gauth=error")
+        return RedirectResponse(f"{app_url}/app?gauth=error&reason=email")
     try:
         from supabase_client import get_or_create_user
         get_or_create_user(email)          # crée le compte s'il n'existe pas (tier free)
@@ -2585,13 +2602,18 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
+    import random
     _base_cols = ("video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
                   "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
                   "gmv_estimated,gmv_estimation_method,collected_at")
+    # On récupère un POOL plus large des meilleures vues, puis on en tire un
+    # échantillon aléatoire → variété à chaque visite tout en restant sur des
+    # posts performants (l'utilisateur voyait toujours les mêmes 24 sinon).
+    pool = max(limit * 5, 80)
     try:
         q = (supabase_client.table("feed_radar_videos")
              .select(_base_cols + ",is_carousel,image_count")
-             .eq("region", region).order("views", desc=True).limit(limit))
+             .eq("region", region).order("views", desc=True).limit(pool))
         if carousel_only:
             q = q.eq("is_carousel", True)   # carrousels photo à fortes vues uniquement
         rows = q.execute().data or []
@@ -2602,15 +2624,16 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
         print(f"/api/feed-radar carousel-cols fallback: {e}")
         try:
             rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
-                    .eq("region", region).order("views", desc=True).limit(limit)
+                    .eq("region", region).order("views", desc=True).limit(pool)
                     .execute().data or [])
         except Exception as e2:
             print(f"/api/feed-radar error: {e2}")
             return JSONResponse({"ok": False, "error": str(e2), "videos": []}, status_code=502)
 
+    random.shuffle(rows)
     if not premium:
-        return {"ok": True, "preview": True, "videos": rows[:3]}
-    return {"ok": True, "preview": False, "videos": rows}
+        return {"ok": True, "preview": True, "region": region, "videos": rows[:3]}
+    return {"ok": True, "preview": False, "region": region, "videos": rows[:limit]}
 
 
 @app.get("/api/feed-radar/{video_id}/embed")
