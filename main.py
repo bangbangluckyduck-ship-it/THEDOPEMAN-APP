@@ -2541,22 +2541,35 @@ async def recherche_profile(request: Request, handle: str = Query(...)):
 # "Créateurs Gagnants" : Gold/Agency/Beta/Admin complet, Free/Pro = aperçu 3.
 # ════════════════════════════════════════════════════════════════════════════
 @app.get("/api/feed-radar")
-async def feed_radar_list(request: Request, region: str = Query("US"), limit: int = Query(24)):
+async def feed_radar_list(request: Request, region: str = Query("US"), limit: int = Query(24),
+                          carousel_only: bool = Query(False)):
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
+    _base_cols = ("video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
+                  "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
+                  "gmv_estimated,gmv_estimation_method,collected_at")
     try:
-        q = (supabase_client.table("feed_radar_videos").select(
-                "video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
-                "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
-                "gmv_estimated,gmv_estimation_method,collected_at")
+        q = (supabase_client.table("feed_radar_videos")
+             .select(_base_cols + ",is_carousel,image_count")
              .eq("region", region).order("views", desc=True).limit(limit))
+        if carousel_only:
+            q = q.eq("is_carousel", True)   # carrousels photo à fortes vues uniquement
         rows = q.execute().data or []
     except Exception as e:
-        print(f"/api/feed-radar error: {e}")
-        return JSONResponse({"ok": False, "error": str(e), "videos": []}, status_code=502)
+        # Migration supabase_migrations_feed_radar_carousel.sql pas encore appliquée :
+        # colonnes is_carousel/image_count absentes → on retombe sur l'ancien schéma
+        # pour ne jamais casser le Feed Radar. Le filtre carrousel est alors inopérant.
+        print(f"/api/feed-radar carousel-cols fallback: {e}")
+        try:
+            rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
+                    .eq("region", region).order("views", desc=True).limit(limit)
+                    .execute().data or [])
+        except Exception as e2:
+            print(f"/api/feed-radar error: {e2}")
+            return JSONResponse({"ok": False, "error": str(e2), "videos": []}, status_code=502)
 
     if not premium:
         return {"ok": True, "preview": True, "videos": rows[:3]}
@@ -3460,6 +3473,21 @@ def _sse_carousel(gen_callable):
 async def carousel_providers():
     """Liste des IA images (label, coûts, prix) pour le wizard."""
     return {"ok": True, "providers": image_gen.IMAGE_PROVIDERS}
+
+
+@app.get("/api/carousel/product-info")
+async def carousel_product_info(url: str = Query(...), region: Optional[str] = Query(None)):
+    """Pré-remplissage du créateur de carrousel : lien TikTok Shop → fiche produit
+    officielle (nom, catégorie, prix, image HD). Sert aussi la boucle « Recréer »
+    depuis Feed Radar / Créateurs Gagnants. Best-effort, jamais bloquant."""
+    if not url or "tiktok" not in url.lower():
+        return {"ok": False}
+    try:
+        name, niche, price, image = await _enrich_from_product_url(url, None, None, None, region)
+    except Exception:
+        return {"ok": False}
+    return {"ok": bool(name or price or image), "name": name, "niche": niche,
+            "price": price, "image": image}
 
 
 @app.get("/api/_admin/product-detail-selftest")

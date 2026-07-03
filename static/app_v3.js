@@ -5047,7 +5047,8 @@ async function loadFeedRadarTab() {
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const res = await fetch(`/api/feed-radar?region=${_userRegion()}`, { headers });
+    const carOnly = document.getElementById('feedradar-carousel-only')?.checked ? '&carousel_only=true' : '';
+    const res = await fetch(`/api/feed-radar?region=${_userRegion()}${carOnly}`, { headers });
     const data = await res.json().catch(() => ({}));
     loading.style.display = 'none';
 
@@ -5078,13 +5079,19 @@ async function loadFeedRadarTab() {
 
 function renderFeedRadarCard(v) {
   const gmv = v.gmv_estimated || 0;
+  // Post photo-carrousel (même format que ce que l'user génère) → badge distinctif.
+  const carBadge = v.is_carousel
+    ? `<div style="position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">🖼️ Carrousel${v.image_count ? ' · ' + v.image_count : ''}</div>`
+    : '';
+  const centerIcon = v.is_carousel ? '🖼️' : '▶';
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
       <div style="position:relative">
         <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+        ${carBadge}
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">${centerIcon}</div>
         </div>
       </div>
       <div style="padding:8px 10px">
@@ -5237,15 +5244,21 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
     if (prods.length) {
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
       prods.forEach(p => {
-        html += `<a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
-            <div style="padding:8px">
-              <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
-              <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
-              <div style="font-size:11px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
-            </div>
-          </div></a>`;
+        const pUrl = p.url || '';
+        // « Recréer » = ferme la boucle : produit gagnant → créateur de carrousel pré-rempli.
+        const recBtn = pUrl
+          ? `<button onclick="event.stopPropagation();openCarouselFor('${encodeURIComponent(pUrl)}','${encodeURIComponent((p.name || '').replace(/'/g, ''))}')" style="width:100%;border:none;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-weight:700;font-size:12px;padding:8px;cursor:pointer">🎨 Recréer ce carrousel</button>`
+          : '';
+        html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <a href="${escapeHtml(pUrl || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
+              ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+              <div style="padding:8px">
+                <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
+                <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
+                <div style="font-size:11px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
+              </div>
+            </a>${recBtn}
+          </div>`;
       });
       html += '</div>';
     } else {
@@ -5262,6 +5275,16 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
 function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return String(text == null ? '' : text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// « Recréer » : ouvre le créateur de carrousel pré-rempli avec un produit gagnant
+// (Feed Radar / Créateurs Gagnants → /carousel?url=…&name=… → auto-remplissage).
+function openCarouselFor(urlEnc, nameEnc) {
+  const u = decodeURIComponent(urlEnc || ''), n = decodeURIComponent(nameEnc || '');
+  const q = new URLSearchParams();
+  if (u) q.set('url', u);
+  if (n) q.set('name', n);
+  window.open('/carousel?' + q.toString(), '_blank', 'noopener');
 }
 
 
