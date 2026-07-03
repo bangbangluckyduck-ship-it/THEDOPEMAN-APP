@@ -4968,7 +4968,11 @@ function renderRechercheResult(data) {
     <div style="background:var(--surface2);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px">
       ${gmv.reliable === false ? `
         <div style="font-size:15px;font-weight:700;margin-bottom:6px">GMV indisponible pour ce compte</div>
-        <div style="font-size:13px;color:var(--muted)">Ce compte n'est pas suivi en temps réel par notre source de données (réservée aux comptes de son classement actif) — aucun chiffre de ventes fiable ne peut être affiché. Ça ne veut pas dire zéro vente.</div>
+        <div style="font-size:13px;color:var(--muted)">Aucune donnée de ventes trouvée sur les 90 derniers jours pour ce compte — soit il ne vend pas via TikTok Shop, soit il n'est pas couvert par notre source de données. Ça ne veut pas forcément dire zéro vente.</div>
+      ` : gmv.last_sale_date ? `
+        <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
+        <div style="font-size:32px;font-weight:900">$0</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px">Pas de ventes détectées sur les 30 derniers jours. Dernières ventes suivies : <strong>${escapeHtml(_frDate(gmv.last_sale_date))}</strong>${gmv.gmv_prior_90d ? ` · $${Math.round(gmv.gmv_prior_90d).toLocaleString()} de GMV sur les 2 mois précédents` : ''}.</div>
       ` : `
         <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
         <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
@@ -4978,6 +4982,12 @@ function renderRechercheResult(data) {
     <h3 style="font-size:15px;margin-bottom:6px">🛍️ Produits mis en avant par ce compte</h3>
     <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Ventes et GMV = performance globale du produit sur TikTok Shop (tous créateurs confondus), pas celle de ce compte.</p>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
+}
+
+function _frDate(iso) {
+  // '2026-05-24' → '24/05/2026' (sans passer par Date pour éviter les fuseaux)
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '');
 }
 
 /* ── PLAYER TIKTOK IN-APP (modale iframe embed/v2, aucune redirection) ───── */

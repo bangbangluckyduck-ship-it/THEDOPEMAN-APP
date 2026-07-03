@@ -632,6 +632,43 @@ async def get_creator_gmv_30d(uid: str, days: int = 30) -> dict:
     return {"gmv_30d": gmv_total, "sales_30d": sales_total, "days": days, "series": series}
 
 
+async def get_creator_prior_activity(uid: str, days_back: int = 90, skip_recent: int = 30) -> dict:
+    """Quand le GMV 30j est à 0 : regarde la fenêtre J-90 → J-30 pour distinguer
+    « compte suivi mais sans ventes récentes » (cas @thedopeman99, vérifié
+    2026-07-03 : ventes journalières trackées jusqu'au 24/05 puis 0) de
+    « compte sans aucune donnée de ventes ». L'historique KeyAPI ne remonte
+    qu'à ~6-7 mois, inutile d'aller plus loin.
+
+    Retourne {"gmv_prior": float, "sales_prior": int, "last_sale_date": str|None}."""
+    end = date.today() - timedelta(days=skip_recent)
+    start = date.today() - timedelta(days=days_back)
+    gmv_prior, sales_prior, last_sale = 0.0, 0, None
+    page_num = 1
+    while True:
+        rows = await _get("/v1/tiktok/influencer/trends/analytics", {
+            "user_id": uid,
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "page_num": page_num,
+            "page_size": 10,
+        })
+        rows = rows if isinstance(rows, list) else []
+        if not rows:
+            break
+        for r in rows:
+            g = r.get("total_sale_gmv_1d_amt") or 0
+            if g > 0:
+                gmv_prior += g
+                sales_prior += r.get("total_sale_1d_cnt") or 0
+                dt = r.get("dt")
+                if dt and (last_sale is None or dt > last_sale):
+                    last_sale = dt
+        if len(rows) < 10 or page_num >= 8:
+            break
+        page_num += 1
+    return {"gmv_prior": gmv_prior, "sales_prior": sales_prior, "last_sale_date": last_sale}
+
+
 async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
     """Étape 3 : uid → produits de la vitrine du créateur, triés par GMV desc.
 
@@ -648,22 +685,33 @@ async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
     return cleaned[:limit]
 
 
-def _flag_unreliable_gmv(gmv_data: dict, products: list) -> dict:
-    """KeyAPI ne semble alimenter le suivi quotidien ventes/GMV (utilisé pour
-    gmv_30d) que pour les comptes qu'il classe activement — confirmé en test
-    (2026-07). Si gmv_30d=0 alors que le compte a des produits en vitrine, on
-    marque "non fiable" plutôt que de laisser afficher un 0€ qui donnerait
-    l'illusion trompeuse de zéro vente réelle.
-
-    ⚠️ PAS de fallback chiffré possible : `total_sale_gmv_amt` de
-    /influencer/products/analytics est le GMV GLOBAL du produit (tous vendeurs
-    confondus), pas la part du créateur — vérifié en live 2026-07-03 :
-    @thedopeman99 "598k$" incluait 216k$ d'un produit à 1 seule vidéo, et
-    @hannaholala sommait à 3,55M$ pour ~211k$/30j réels. Le champ d'attribution
-    `total_video_sale_gmv_amt` est à 0 partout (inexploitable). On ne renvoie
-    donc AUCUN montant lifetime — juste le drapeau."""
-    unreliable = (gmv_data.get("gmv_30d") or 0) == 0 and bool(products)
-    gmv_data["reliable"] = not unreliable
+async def _enrich_zero_gmv(uid: str, gmv_data: dict, products: list) -> dict:
+    """Qualifie un gmv_30d=0 (vérifié en live 2026-07-03, cf.
+    get_creator_prior_activity) en sondant la fenêtre J-90 → J-30 :
+    - ventes trouvées → le compte EST suivi, le 0 sur 30j est une vraie donnée.
+      On renvoie `last_sale_date` + `gmv_prior_90d` pour l'afficher.
+    - rien trouvé mais des produits en vitrine → données indisponibles
+      (`reliable: false`), sans AUCUN montant de repli : le "GMV lifetime" des
+      produits (`total_sale_gmv_amt`) est le GMV GLOBAL du produit tous
+      vendeurs confondus, pas la part du créateur (598k$ trompeurs sur
+      @thedopeman99, 3,55M$ sur @hannaholala pour ~211k$/30j réels ; le champ
+      d'attribution `total_video_sale_gmv_amt` est à 0 partout).
+    - rien nulle part et pas de produits → 0 affiché tel quel."""
+    if (gmv_data.get("gmv_30d") or 0) > 0:
+        gmv_data["reliable"] = True
+        return gmv_data
+    try:
+        prior = await get_creator_prior_activity(uid)
+    except Exception as e:
+        print(f"_enrich_zero_gmv prior activity error: {e}")
+        prior = {"gmv_prior": 0, "sales_prior": 0, "last_sale_date": None}
+    if prior.get("last_sale_date"):
+        gmv_data["reliable"] = True
+        gmv_data["last_sale_date"] = prior["last_sale_date"]
+        gmv_data["gmv_prior_90d"] = prior["gmv_prior"]
+        gmv_data["sales_prior_90d"] = prior["sales_prior"]
+    else:
+        gmv_data["reliable"] = not bool(products)
     return gmv_data
 
 
@@ -690,14 +738,14 @@ async def search_creator_profile(handle: str) -> Optional[dict]:
             return []
 
     gmv_data, products = await asyncio.gather(_safe_gmv(), _safe_products())
-    gmv_data = _flag_unreliable_gmv(gmv_data, products)
+    gmv_data = await _enrich_zero_gmv(uid, gmv_data, products)
     return {"profile": profile, "gmv": gmv_data, "best_sellers": products}
 
 
 async def get_creator_gmv_only(handle: str) -> Optional[dict]:
-    """Outil ADMIN minimal : @handle → profil léger + GMV 30j (+ un appel
-    supplémentaire produits UNIQUEMENT pour fiabiliser le 0€, cf.
-    _flag_unreliable_gmv). Pas de cache/quota — appelant (admin_routes.py) gère ça."""
+    """Outil ADMIN minimal : @handle → profil léger + GMV 30j (+ appels
+    supplémentaires UNIQUEMENT pour qualifier un 0€, cf. _enrich_zero_gmv).
+    Pas de cache/quota — appelant (admin_routes.py) gère ça."""
     profile = await get_influencer_profile(handle)
     if not profile or not profile.get("uid"):
         return None
@@ -708,7 +756,7 @@ async def get_creator_gmv_only(handle: str) -> Optional[dict]:
             products = await get_creator_best_sellers(uid, limit=10)
         except Exception:
             products = []
-        gmv_data = _flag_unreliable_gmv(gmv_data, products)
+        gmv_data = await _enrich_zero_gmv(uid, gmv_data, products)
     else:
         gmv_data["reliable"] = True
     return {
@@ -717,4 +765,6 @@ async def get_creator_gmv_only(handle: str) -> Optional[dict]:
         "gmv_30d": gmv_data.get("gmv_30d"),
         "sales_30d": gmv_data.get("sales_30d"),
         "reliable": gmv_data.get("reliable", True),
+        "last_sale_date": gmv_data.get("last_sale_date"),
+        "gmv_prior_90d": gmv_data.get("gmv_prior_90d"),
     }

@@ -552,9 +552,14 @@ async function lookupRechercheGmv() {
     }
     if (data.reliable === false) {
       box.innerHTML = `
-        <div style="font-size:14px;color:#e67e22;font-weight:700">⚠️ GMV 30j indisponible (compte hors classement actif KeyAPI)</div>
+        <div style="font-size:14px;color:#e67e22;font-weight:700">⚠️ Aucune donnée de ventes sur 90j (compte non couvert par KeyAPI ou sans ventes Shop)</div>
         <div style="color:var(--muted,#6b7280);margin-top:4px">@${data.unique_id || ''} · ${data.nickname || ''}</div>
         <div style="color:var(--muted,#6b7280);margin-top:6px;font-size:12px">Pas de fallback chiffré : le "GMV lifetime" des produits KeyAPI est le GMV global du produit (tous vendeurs), pas celui du compte.</div>`;
+    } else if (data.last_sale_date) {
+      box.innerHTML = `
+        <div style="font-size:28px;font-weight:900">$0</div>
+        <div style="color:var(--muted,#6b7280)">@${data.unique_id || ''} · ${data.nickname || ''} · 0 vente sur 30j</div>
+        <div style="color:var(--muted,#6b7280);margin-top:6px;font-size:12px">Compte suivi par KeyAPI — dernières ventes détectées le <strong>${data.last_sale_date}</strong>${data.gmv_prior_90d ? ` · $${Math.round(data.gmv_prior_90d).toLocaleString()} GMV sur J-90 → J-30` : ''}.</div>`;
     } else {
       box.innerHTML = `
         <div style="font-size:28px;font-weight:900">$${(data.gmv_30d || 0).toLocaleString()}</div>
