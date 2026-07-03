@@ -5067,8 +5067,7 @@ async function loadFeedRadarTab() {
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const carOnly = document.getElementById('feedradar-carousel-only')?.checked ? '&carousel_only=true' : '';
-    const res = await fetch(`/api/feed-radar?region=${_userRegion()}${carOnly}`, { headers });
+    const res = await fetch(`/api/feed-radar?region=${_userRegion()}`, { headers });
     const data = await res.json().catch(() => ({}));
     loading.style.display = 'none';
 
@@ -5099,21 +5098,15 @@ async function loadFeedRadarTab() {
 
 function renderFeedRadarCard(v) {
   const gmv = v.gmv_estimated || 0;
-  // Post photo-carrousel (même format que ce que l'user génère) → badge distinctif.
-  const carBadge = v.is_carousel
-    ? `<div style="position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">🖼️ Carrousel${v.image_count ? ' · ' + v.image_count : ''}</div>`
-    : '';
-  const centerIcon = v.is_carousel ? '🖼️' : '▶';
-  const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url, is_carousel: v.is_carousel });
+  const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url });
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
       ${heart}
       <div style="position:relative">
         <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
-        ${carBadge}
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">${centerIcon}</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
         </div>
       </div>
       <div style="padding:8px 10px">
@@ -5414,7 +5407,7 @@ async function loadFavoritesTab() {
         ${favBtn('video', it.item_id, v)}
         ${v.thumb ? `<img src="${escapeHtml(v.thumb)}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
         <div style="padding:8px"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(v.creator || '')}</div>
-        <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues${v.is_carousel ? ' · 🖼️' : ''}</div></div>
+        <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div></div>
       </div>`;
     });
     html += '</div>';
