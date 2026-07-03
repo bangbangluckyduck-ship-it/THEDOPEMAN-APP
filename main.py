@@ -3651,11 +3651,20 @@ async def carousel_generate(
     débite les crédits (coût selon l'IA)."""
     if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
-    if not ((product_name or "").strip() and (description or "").strip() and (price or "").strip()):
-        raise HTTPException(status_code=422, detail="Nom, description et prix du produit sont obligatoires.")
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
+
+    # Enrichissement AVANT validation : le lien TikTok Shop remplit nom/prix/image
+    # officiels (identification fiable). Il faut donc enrichir d'abord, PUIS valider.
+    product_name, niche, price, product_image_url = await _enrich_from_product_url(
+        product_url, product_name, niche, price, user_region)
+    # Seul le NOM est requis (après enrichissement). Description et prix sont
+    # optionnels : l'IA travaille à partir du nom + niche + angle. « Colle le
+    # lien → génère » sans ressaisie manuelle.
+    if not (product_name or "").strip():
+        raise HTTPException(status_code=422,
+                            detail="Produit non identifié depuis le lien — ajoute au moins le nom du produit.")
     email = user["email"]
     tier = (user.get("tier") or "free").lower()
     is_paid = tier in ("pro", "gold", "agency", "beta", "admin") or user.get("is_admin")
@@ -3663,10 +3672,6 @@ async def carousel_generate(
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
         img = img.split(",", 1)[1]
-
-    # Enrichissement via lien produit TikTok Shop (KeyAPI) : identification fiable + image officielle.
-    product_name, niche, price, product_image_url = await _enrich_from_product_url(
-        product_url, product_name, niche, price, user_region)
 
     cost = 0
     payment_method = "free"
