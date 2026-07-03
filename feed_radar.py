@@ -151,14 +151,34 @@ async def discover_candidate_videos(region: str = "US",
     return candidates
 
 
+_collection_running = False
+
+
 async def run_feed_radar_collection(region: Optional[str] = None) -> dict:
     """Point d'entrée du cron : boucle sur FEED_RADAR_REGIONS (tous les marchés
     déjà couverts par KeyAPI, cf. MARKET_COUNTRIES côté frontend) sauf si un
-    `region` précis est fourni (utile pour un déclenchement manuel ciblé)."""
+    `region` précis est fourni (utile pour un déclenchement manuel ciblé).
+
+    Garde anti-chevauchement : un run profond (10 pages × 9 régions) dure ~2h ;
+    si le cron (6h) ou un déclenchement manuel repart pendant qu'un run tourne
+    encore, on refuse au lieu d'empiler deux collectes dans le process web
+    (RAM + crédits KeyAPI doublés)."""
+    global _collection_running
+    if _collection_running:
+        return {"ok": False, "error": "Collecte déjà en cours, réessaie plus tard.",
+                "found": 0, "new": 0, "updated": 0}
     from supabase_client import supabase_service as supabase
     if not supabase:
         return {"ok": False, "error": "Supabase indisponible", "found": 0, "new": 0, "updated": 0}
 
+    _collection_running = True
+    try:
+        return await _run_collection(region, supabase)
+    finally:
+        _collection_running = False
+
+
+async def _run_collection(region: Optional[str], supabase) -> dict:
     regions = [region.upper()] if region else FEED_RADAR_REGIONS
     totals = {"found": 0, "new": 0, "updated": 0}
     by_region = {}

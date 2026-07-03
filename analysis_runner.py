@@ -147,23 +147,18 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
         except Exception: pass
 
 
-async def _run_upload_pipeline(video_bytes: bytes, product: Optional[str],
+async def _run_upload_pipeline(video_path: str, product: Optional[str],
                                price: Optional[str], user_tier: str,
                                user_role: Optional[str] = None) -> dict:
-    """Upload vidéo → downscale → Gemini Pro → synthèse."""
+    """Upload vidéo (déjà sur disque, streamée par la route) → downscale →
+    Gemini Pro → synthèse. Ne charge jamais la vidéo entière en RAM."""
     from analyzer import analyze_video_native, synthesize_analysis
     from video_processor import downscale_720p
 
     loop = asyncio.get_event_loop()
-    video_path: Optional[str] = None
     downscaled_path: Optional[str] = None
     try:
-        # 1. Écrire en fichier tmp
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-            video_path = tmp.name
-            tmp.write(video_bytes)
-
-        # 2. Downscale 720p
+        # 1. Downscale 720p
         downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
 
         # 3. Gemini Pro vidéo native
@@ -188,9 +183,8 @@ async def _run_upload_pipeline(video_bytes: bytes, product: Optional[str],
         if downscaled_path and downscaled_path != video_path:
             try: os.unlink(downscaled_path)
             except Exception: pass
-        if video_path:
-            try: os.unlink(video_path)
-            except Exception: pass
+        try: os.unlink(video_path)
+        except Exception: pass
 
 
 async def process_url_job(job_id: str, url: str, product: Optional[str],
@@ -239,7 +233,7 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
         _send_error_email(user_email, err_msg, job_id, title=job_title)
 
 
-async def process_upload_job(job_id: str, video_bytes: bytes, product: Optional[str],
+async def process_upload_job(job_id: str, video_path: str, product: Optional[str],
                              price: Optional[str], user_tier: str,
                              user_email: str, video_hash: Optional[str] = None,
                              job_title: Optional[str] = None,
@@ -260,7 +254,7 @@ async def process_upload_job(job_id: str, video_bytes: bytes, product: Optional[
                 return
 
         analysis_jobs.update_stage(job_id, "vision")
-        result = await _run_upload_pipeline(video_bytes, product, price, user_tier, user_role)
+        result = await _run_upload_pipeline(video_path, product, price, user_tier, user_role)
         result["from_cache"] = False
 
         if can_cache and cache_key:
@@ -278,3 +272,8 @@ async def process_upload_job(job_id: str, video_bytes: bytes, product: Optional[
         err_msg = str(e)[:500]
         analysis_jobs.mark_error(job_id, err_msg)
         _send_error_email(user_email, err_msg, job_id, title=job_title)
+    finally:
+        # Cache-hit / erreur avant le pipeline : le tmpfile n'a pas encore été
+        # supprimé par _run_upload_pipeline. Double unlink = no-op silencieux.
+        try: os.unlink(video_path)
+        except Exception: pass
