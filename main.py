@@ -1936,23 +1936,30 @@ async def jobs_create_upload(
         raise HTTPException(status_code=403, detail="L'analyse asynchrone est réservée aux plans Pro, Gold et Agency.")
     check_quota(user)
 
-    # Stream → bytes en mémoire (les vidéos TikTok font 5-30 MB, OK sous 512 MB
-    # Render pour le temps du job. Si problème, alternative = sauver d'abord en
-    # tmpfile puis passer le path au worker plutôt que les bytes).
+    # Stream → tmpfile sur disque, JAMAIS la vidéo entière en RAM (Render 512 MB :
+    # plusieurs jobs concurrents × 5-30 MB de bytes retenus pendant toute la durée
+    # du job = OOM). Le worker reçoit le path et supprime le fichier en fin de job.
     import hashlib
     hasher = hashlib.sha256()
-    chunks: list[bytes] = []
+    video_tmp_path: Optional[str] = None
     try:
-        while True:
-            chunk = await video.read(1024 * 1024)
-            if not chunk:
-                break
-            chunks.append(chunk)
-            hasher.update(chunk)
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            video_tmp_path = tmp.name
+            while True:
+                chunk = await video.read(1024 * 1024)
+                if not chunk:
+                    break
+                tmp.write(chunk)
+                hasher.update(chunk)
     except Exception as e:
+        if video_tmp_path:
+            try: os.unlink(video_tmp_path)
+            except Exception: pass
         raise HTTPException(status_code=400, detail=f"Lecture vidéo échouée : {str(e)[:200]}")
-    video_bytes = b"".join(chunks)
-    if not video_bytes:
+    if not video_tmp_path or os.path.getsize(video_tmp_path) == 0:
+        if video_tmp_path:
+            try: os.unlink(video_tmp_path)
+            except Exception: pass
         raise HTTPException(status_code=400, detail="Fichier vidéo vide.")
     video_hash = hasher.hexdigest()
 
@@ -1976,7 +1983,7 @@ async def jobs_create_upload(
         increment_usage(user["email"])
 
     asyncio.create_task(_runner.process_upload_job(
-        job_id=job_id, video_bytes=video_bytes, product=p, price=pr,
+        job_id=job_id, video_path=video_tmp_path, product=p, price=pr,
         user_tier=tier, user_email=user["email"], video_hash=video_hash,
         job_title=title, user_role=ur,
     ))
@@ -2563,7 +2570,7 @@ async def feed_radar_video_embed(request: Request, video_id: str):
     if not user.get("valid") or (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
     try:
-        r = supabase_client.table("feed_radar_videos").select("oembed_html,oembed_fetched_at") \
+        r = supabase_client.table("feed_radar_videos").select("oembed_html,oembed_fetched_at,video_url") \
             .eq("video_id", video_id).execute()
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
@@ -2696,6 +2703,12 @@ _IMG_PROXY_ALLOWED = ("tiktokcdn", "ibyteimg", "ttcdn", "byteimg", "muscdn",
                       "echosell-images", "volces.com", "byteplus")
 _IMG_CACHE: "dict[str, tuple[bytes, str]]" = {}   # url -> (bytes, content_type)
 _IMG_CACHE_MAX = 400
+# Budget RAM total du cache (Render 512 MB) : au-delà, on évince les plus
+# anciennes entrées. Les images > _IMG_CACHE_ITEM_MAX ne sont jamais cachées
+# (le navigateur les garde de toute façon via Cache-Control 24h).
+_IMG_CACHE_MAX_BYTES = 25_000_000
+_IMG_CACHE_ITEM_MAX = 400_000
+_IMG_CACHE_BYTES = 0
 
 
 @app.get("/api/img-proxy")
@@ -2728,11 +2741,19 @@ async def img_proxy(url: str = Query(...)):
     if "image" not in ct:
         ct = "image/jpeg"
     content = r.content
-    if len(content) <= 3_000_000:      # ne cache pas les images énormes
-        if len(_IMG_CACHE) >= _IMG_CACHE_MAX:
-            try: _IMG_CACHE.pop(next(iter(_IMG_CACHE)))
-            except Exception: _IMG_CACHE.clear()
+    if len(content) <= _IMG_CACHE_ITEM_MAX:   # ne cache pas les images lourdes
+        global _IMG_CACHE_BYTES
+        # Éviction FIFO (dict Python = ordre d'insertion) jusqu'à tenir dans
+        # le budget entrées ET octets.
+        while _IMG_CACHE and (len(_IMG_CACHE) >= _IMG_CACHE_MAX
+                              or _IMG_CACHE_BYTES + len(content) > _IMG_CACHE_MAX_BYTES):
+            try:
+                old, _old_ct = _IMG_CACHE.pop(next(iter(_IMG_CACHE)))
+                _IMG_CACHE_BYTES -= len(old)
+            except Exception:
+                _IMG_CACHE.clear(); _IMG_CACHE_BYTES = 0
         _IMG_CACHE[u] = (content, ct)
+        _IMG_CACHE_BYTES += len(content)
     return Response(content=content, media_type=ct,
                     headers={"Cache-Control": "public, max-age=86400"})
 

@@ -4949,7 +4949,7 @@ function renderRechercheResult(data) {
   const productsHtml = products.length
     ? products.map(pr => `
         <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px;width:100%;min-width:0;box-sizing:border-box">
-          <img src="${pr.image || ''}" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
+          <img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
           <div style="flex:1;min-width:0;overflow:hidden">
             <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || '')}</div>
             <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV total</div>
@@ -4959,7 +4959,7 @@ function renderRechercheResult(data) {
 
   box.innerHTML = `
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;max-width:100%;box-sizing:border-box">
-      <img src="${p.avatar || ''}" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2);flex-shrink:0">
+      <img src="${p.avatar ? escapeHtml(_imgProxy(p.avatar)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2);flex-shrink:0">
       <div style="flex:1;min-width:0;overflow:hidden">
         <div style="font-weight:800;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.nickname || p.unique_id || '')}</div>
         <div style="color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(p.unique_id || '')} · ${(p.followers || 0).toLocaleString()} abonnés</div>
@@ -4972,7 +4972,7 @@ function renderRechercheResult(data) {
         ${gmv.lifetime_gmv_fallback ? `<div style="font-size:22px;font-weight:900;margin-top:8px">$${gmv.lifetime_gmv_fallback.toLocaleString()}</div>
         <div style="font-size:12px;color:var(--muted)">GMV total historique connu (tous produits, toutes périodes confondues)</div>` : ''}
       ` : `
-        <div style="font-size:12px;color:var(--muted)">GMV estimé (30 derniers jours)</div>
+        <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
         <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
         <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
       `}
@@ -4981,8 +4981,51 @@ function renderRechercheResult(data) {
     <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
 }
 
+/* ── PLAYER TIKTOK IN-APP (modale iframe embed/v2, aucune redirection) ───── */
+function _tiktokVideoIdFromUrl(url) {
+  const m = /\/video\/(\d+)/.exec(url || '');
+  return m ? m[1] : null;
+}
+
+function openTikTokPlayer(videoId, fallbackUrl) {
+  closeTikTokPlayer();
+  const overlay = document.createElement('div');
+  overlay.id = 'tt-player-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeTikTokPlayer(); });
+  // Ratio 9/16 garanti : la largeur est bornée à la fois par la hauteur dispo
+  // et par le viewport (mobile étroit), puis la hauteur est recalculée.
+  const w = Math.min(Math.round(Math.min(window.innerHeight - 96, 720) * 9 / 16),
+                     Math.round(window.innerWidth * 0.94));
+  const maxH = Math.round(w * 16 / 9);
+  const fb = fallbackUrl ? `<a href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#fff;opacity:.75;text-decoration:none">Ouvrir sur TikTok ↗</a>` : '<span></span>';
+  overlay.innerHTML = `
+    <div style="width:${w}px;max-width:94vw">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        ${fb}
+        <button onclick="closeTikTokPlayer()" aria-label="Fermer" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:16px;width:34px;height:34px;border-radius:50%;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <div style="position:relative;width:100%;height:${maxH}px;border-radius:14px;overflow:hidden;background:#000">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">⏳ Chargement de la vidéo…</div>
+        <iframe src="https://www.tiktok.com/embed/v2/${encodeURIComponent(videoId)}?autoplay=1"
+                style="position:absolute;inset:0;width:100%;height:100%;border:0"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', _ttPlayerEsc);
+}
+
+function _ttPlayerEsc(e) { if (e.key === 'Escape') closeTikTokPlayer(); }
+
+function closeTikTokPlayer() {
+  document.getElementById('tt-player-overlay')?.remove();
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', _ttPlayerEsc);
+}
+
 /* ── FEED RADAR — feed de vidéos virales (thumbnail oEmbed, GMV estimé) ──── */
-let _tiktokEmbedJsLoaded = false;
 
 async function loadFeedRadarTab() {
   const grid = document.getElementById('feedradar-grid');
@@ -5029,7 +5072,12 @@ function renderFeedRadarCard(v) {
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
-      <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+      <div style="position:relative">
+        <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
+        </div>
+      </div>
       <div style="padding:8px 10px">
         <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}</div>
         <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div>
@@ -5039,23 +5087,15 @@ function renderFeedRadarCard(v) {
 }
 
 async function hydrateFeedRadarCard(videoId, cardEl) {
-  // Tap-to-hydrate : embed.js n'est JAMAIS chargé au scroll, uniquement ici,
-  // et une seule fois par page quel que soit le nombre de cartes tapées.
+  // Tap-to-play : vérifie l'accès (Gold+) puis ouvre le player in-app.
   const token = localStorage.getItem('tts_token');
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
   try {
     const res = await fetch(`/api/feed-radar/${encodeURIComponent(videoId)}/embed`, { headers });
     const data = await res.json().catch(() => ({}));
     if (res.status === 403) { switchTab('pricing'); return; }
-    if (!res.ok || !data.ok || !data.oembed_html) { showToast('Vidéo indisponible.'); return; }
-
-    cardEl.innerHTML = data.oembed_html;
-    if (!_tiktokEmbedJsLoaded) {
-      const s = document.createElement('script');
-      s.src = 'https://www.tiktok.com/embed.js';
-      document.body.appendChild(s);
-      _tiktokEmbedJsLoaded = true;
-    }
+    if (!res.ok || !data.ok) { showToast('Vidéo indisponible.'); return; }
+    openTikTokPlayer(videoId, data.video_url || '');
   } catch (e) {
     showToast('Erreur réseau.');
   }
@@ -5159,13 +5199,23 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
     if (vids.length) {
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px">';
       vids.forEach(v => {
-        html += `<a href="${escapeHtml(v.url || profileUrl)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        const vUrl = v.url || profileUrl;
+        const vId = _tiktokVideoIdFromUrl(v.url);
+        const open = vId
+          ? `onclick="openTikTokPlayer('${vId}','${escapeHtml(vUrl)}')" style="cursor:pointer"`
+          : `onclick="window.open('${escapeHtml(vUrl)}','_blank','noopener')" style="cursor:pointer"`;
+        html += `<div ${open}>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${v.cover ? `<img src="${escapeHtml(_imgProxy(v.cover))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111">` : ''}
+            <div style="position:relative">
+              ${v.cover ? `<img src="${escapeHtml(_imgProxy(v.cover))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+                <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;padding-left:3px">▶</div>
+              </div>
+            </div>
             <div style="padding:8px;font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px">
               <span>👁 ${_cfmt(v.views)}</span><span>❤️ ${_cfmt(v.likes)}</span><span>💬 ${_cfmt(v.comments)}</span>
             </div>
-          </div></a>`;
+          </div></div>`;
       });
       html += '</div>';
     } else {
