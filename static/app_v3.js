@@ -4979,8 +4979,8 @@ function renderRechercheResult(data) {
         <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
       `}
     </div>
-    <h3 style="font-size:15px;margin-bottom:6px">🛍️ Produits mis en avant par ce compte</h3>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Ventes et GMV = performance globale du produit sur TikTok Shop (tous créateurs confondus), pas celle de ce compte.</p>
+    <h3 style="font-size:15px;margin-bottom:6px">🛍️ Vitrine actuelle du compte</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Les produits que ce compte met en avant en ce moment (ordre de sa vitrine TikTok). Ventes et GMV = performance globale du produit, tous créateurs confondus — pas celle de ce compte.</p>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
 }
 

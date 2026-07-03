@@ -670,19 +670,25 @@ async def get_creator_prior_activity(uid: str, days_back: int = 90, skip_recent:
 
 
 async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
-    """Étape 3 : uid → produits de la vitrine du créateur, triés par GMV desc.
+    """Étape 3 : uid → produits de la VITRINE du créateur, dans l'ordre natif
+    renvoyé par KeyAPI (= ordre de sa vitrine TikTok, ce qu'il met en avant
+    en ce moment — les récents/featured en tête).
+
+    ⚠️ On NE re-trie PLUS par GMV : le tri GMV faisait remonter les
+    best-sellers de toujours, alors qu'on veut les produits actuels du compte.
+    Vérifié en live 2026-07-03 : KeyAPI n'expose AUCUNE date de publication
+    produit (pas de champ date, params de tri ignorés, tags produit des vidéos
+    vides) → l'ordre natif de la vitrine est le meilleur proxy disponible pour
+    "produits récents". On préserve donc l'ordre tel quel.
 
     ⚠️ `total_sale_gmv_amt`/`total_sale_cnt` (→ champs `gmv`/`sales` de
-    _clean_product) sont le GMV/ventes GLOBAUX du produit, TOUS vendeurs
-    confondus — PAS la part de ce créateur. Vérifié en live 2026-07-03 (cf.
-    _flag_unreliable_gmv). À présenter côté UI comme "performance du produit",
-    jamais comme les ventes du créateur."""
+    _clean_product) restent le GMV/ventes GLOBAUX du produit, TOUS vendeurs
+    confondus — PAS la part de ce créateur. À présenter côté UI comme
+    "performance du produit", jamais comme les ventes du créateur."""
     data = await _get("/v1/tiktok/influencer/products/analytics",
                       {"user_id": uid, "page_num": 1, "page_size": 10})
     rows = data if isinstance(data, list) else []
-    cleaned = [_clean_product(p) for p in rows]
-    cleaned.sort(key=lambda p: p.get("gmv") or 0, reverse=True)
-    return cleaned[:limit]
+    return [_clean_product(p) for p in rows][:limit]
 
 
 async def _enrich_zero_gmv(uid: str, gmv_data: dict, products: list) -> dict:
