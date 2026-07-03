@@ -975,6 +975,7 @@ function fetchUserInfo() {
         // Onglet « Recherche » retiré du front public — visible uniquement en admin.
         const rechTab = document.getElementById('tab-recherche');
         if (rechTab) rechTab.style.display = (tier === 'admin') ? 'inline-block' : 'none';
+        loadFavorites();   // pré-charge l'état des cœurs (favoris de l'utilisateur)
       } catch (e) {}
       return data;
     })
@@ -1110,7 +1111,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'favoris', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -1122,6 +1123,7 @@ function switchTab(tab) {
   if (tab === 'creators') loadCreatorsTab();
   if (tab === 'recherche') initRechercheTab();
   if (tab === 'feedradar') loadFeedRadarTab();
+  if (tab === 'favoris') loadFavoritesTab();
   if (tab === 'photoslide') initPhotoSlideTab();
   if (tab === 'promptstudio') initPromptStudioTab();
   if (tab === 'credits') initCreditsTab();
@@ -5102,9 +5104,11 @@ function renderFeedRadarCard(v) {
     ? `<div style="position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">🖼️ Carrousel${v.image_count ? ' · ' + v.image_count : ''}</div>`
     : '';
   const centerIcon = v.is_carousel ? '🖼️' : '▶';
+  const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url, is_carousel: v.is_carousel });
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
+      ${heart}
       <div style="position:relative">
         <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
         ${carBadge}
@@ -5191,8 +5195,10 @@ async function loadCreatorsTab() {
 function renderCreatorCard(c, locked) {
   const blur = locked ? 'filter:blur(5px);pointer-events:none;user-select:none' : '';
   const onclick = locked ? '' : `onclick="openCreatorDetail('${encodeURIComponent(c.unique_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname||'').replace(/'/g,''))}')"`;
+  const heart = locked ? '' : favBtn('creator', c.unique_id, { nickname: c.nickname, user_id: c.user_id, unique_id: c.unique_id, followers: c.followers, sales: c.sales, gmv: c.gmv });
   return `
-    <div ${onclick} style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
+    <div ${onclick} style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
+      ${heart}
       <div style="margin:0 auto 8px;width:64px">${_avatarBadge(c.nickname || c.unique_id, 64)}</div>
       <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || '')}</div>
       <div style="font-size:11px;color:var(--muted)">@${escapeHtml(c.unique_id || '')}</div>
@@ -5267,7 +5273,9 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
         const recBtn = pUrl
           ? `<button onclick="event.stopPropagation();openCarouselFor('${encodeURIComponent(pUrl)}','${encodeURIComponent((p.name || '').replace(/'/g, ''))}')" style="width:100%;border:none;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-weight:700;font-size:12px;padding:8px;cursor:pointer">🎨 Recréer ce carrousel</button>`
           : '';
-        html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        const pHeart = favBtn('product', p.id || pUrl, { name: p.name, url: pUrl, image: p.image, price: p.price, sales: p.sales });
+        html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${pHeart}
             <a href="${escapeHtml(pUrl || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
               ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
               <div style="padding:8px">
@@ -5303,6 +5311,115 @@ function openCarouselFor(urlEnc, nameEnc) {
   if (u) q.set('url', u);
   if (n) q.set('name', n);
   window.open('/carousel?' + q.toString(), '_blank', 'noopener');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FAVORIS — sauvegarde créateurs / produits gagnants (cœur sur les cartes)
+// ════════════════════════════════════════════════════════════════════════════
+function isFav(type, id) { return !!(window.__favSet && window.__favSet.has(type + ':' + id)); }
+
+async function loadFavorites() {
+  if (!localStorage.getItem('tts_token')) return;
+  try {
+    const r = await fetch('/api/favorites', { headers: _AUTH_HEADER() });
+    const d = await r.json();
+    window.__favData = (d && d.items) || [];
+    window.__favSet = new Set(window.__favData.map(it => it.item_type + ':' + it.item_id));
+    document.querySelectorAll('[data-fav]').forEach(b => { b.textContent = window.__favSet.has(b.dataset.fav) ? '❤️' : '🤍'; });
+  } catch (e) { /* table pas migrée → pas de favoris, silencieux */ }
+}
+
+// Bouton cœur positionné en overlay (le parent doit être position:relative).
+function favBtn(type, id, payload) {
+  const on = isFav(type, id);
+  const p = btoa(unescape(encodeURIComponent(JSON.stringify(payload || {}))));
+  return `<button data-fav="${type}:${escapeHtml(String(id))}" onclick="event.stopPropagation();event.preventDefault();toggleFavorite('${type}','${escapeHtml(String(id))}','${p}',this)"
+    title="${on ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+    style="position:absolute;top:6px;right:6px;z-index:3;width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:15px;cursor:pointer;line-height:1;padding:0">${on ? '❤️' : '🤍'}</button>`;
+}
+
+async function toggleFavorite(type, id, payloadB64, btn) {
+  if (!localStorage.getItem('tts_token')) { if (typeof openAuthModal === 'function') openAuthModal(); else showToast('Connecte-toi pour sauvegarder.'); return; }
+  if (!window.__favSet) window.__favSet = new Set();
+  const key = type + ':' + id, on = window.__favSet.has(key);
+  try {
+    if (on) {
+      await fetch(`/api/favorites?item_type=${encodeURIComponent(type)}&item_id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: _AUTH_HEADER() });
+      window.__favSet.delete(key);
+      if (btn) { btn.textContent = '🤍'; btn.title = 'Ajouter aux favoris'; }
+    } else {
+      let payload = {}; try { payload = JSON.parse(decodeURIComponent(escape(atob(payloadB64)))); } catch (e) {}
+      const res = await fetch('/api/favorites', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, _AUTH_HEADER()), body: JSON.stringify({ item_type: type, item_id: id, payload }) });
+      if (!res.ok) { showToast('Favoris indisponible (base à migrer).'); return; }
+      window.__favSet.add(key);
+      if (btn) { btn.textContent = '❤️'; btn.title = 'Retirer des favoris'; }
+    }
+  } catch (e) { showToast('Action impossible.'); }
+}
+
+async function loadFavoritesTab() {
+  const box = document.getElementById('favoris-body');
+  if (!box) return;
+  if (!localStorage.getItem('tts_token')) {
+    box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">Connecte-toi pour retrouver tes favoris.</div>';
+    return;
+  }
+  box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">⏳ Chargement…</div>';
+  await loadFavorites();
+  const items = window.__favData || [];
+  if (!items.length) {
+    box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">Aucun favori pour l\'instant.<br>Touche le 🤍 sur un créateur ou un produit pour le sauvegarder ici.</div>';
+    return;
+  }
+  const prods = items.filter(i => i.item_type === 'product');
+  const creators = items.filter(i => i.item_type === 'creator');
+  const videos = items.filter(i => i.item_type === 'video');
+  let html = '';
+  if (prods.length) {
+    html += `<h3 style="font-size:14px;margin:4px 0 10px">🛍️ Produits (${prods.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px">`;
+    prods.forEach(it => {
+      const p = it.payload || {};
+      html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        ${favBtn('product', it.item_id, p)}
+        <a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
+          ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+          <div style="padding:8px"><div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
+          <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div></div>
+        </a>
+        ${p.url ? `<button onclick="openCarouselFor('${encodeURIComponent(p.url)}','${encodeURIComponent((p.name || '').replace(/'/g, ''))}')" style="width:100%;border:none;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-weight:700;font-size:12px;padding:8px;cursor:pointer">🎨 Recréer</button>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (creators.length) {
+    html += `<h3 style="font-size:14px;margin:4px 0 10px">👤 Créateurs (${creators.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">`;
+    creators.forEach(it => {
+      const c = it.payload || {};
+      html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer"
+        onclick="openCreatorDetail('${encodeURIComponent(it.item_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname || '').replace(/'/g, ''))}')">
+        ${favBtn('creator', it.item_id, c)}
+        <div style="margin:0 auto 8px;width:64px">${_avatarBadge(c.nickname || it.item_id, 64)}</div>
+        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || it.item_id)}</div>
+        <div style="font-size:11px;color:var(--muted)">@${escapeHtml(it.item_id)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (videos.length) {
+    html += `<h3 style="font-size:14px;margin:18px 0 10px">📡 Posts (${videos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">`;
+    videos.forEach(it => {
+      const v = it.payload || {};
+      html += `<div style="position:relative;border-radius:12px;overflow:hidden;background:var(--surface2);cursor:pointer"
+        onclick="openTikTokPlayer('${escapeHtml(it.item_id)}','${escapeHtml(v.video_url || '')}')">
+        ${favBtn('video', it.item_id, v)}
+        ${v.thumb ? `<img src="${escapeHtml(v.thumb)}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+        <div style="padding:8px"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(v.creator || '')}</div>
+        <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues${v.is_carousel ? ' · 🖼️' : ''}</div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  box.innerHTML = html;
 }
 
 

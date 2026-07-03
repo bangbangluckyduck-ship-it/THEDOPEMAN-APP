@@ -3729,6 +3729,64 @@ async def carousel_history(request: Request):
         return {"ok": True, "items": []}
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# FAVORIS — créateurs / produits / posts gagnants sauvegardés par l'utilisateur
+# (dégrade proprement si la table user_favorites n'est pas encore migrée)
+# ════════════════════════════════════════════════════════════════════════════
+_FAV_TYPES = {"creator", "product", "video"}
+
+
+@app.get("/api/favorites")
+async def favorites_list(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        r = (supabase_client.table("user_favorites")
+             .select("item_type,item_id,payload,created_at")
+             .eq("email", user["email"]).order("created_at", desc=True).limit(200).execute())
+        return {"ok": True, "items": r.data or []}
+    except Exception as e:
+        print(f"/api/favorites list warn (table migrée ?): {e}")
+        return {"ok": True, "items": []}   # table absente → vide, jamais de crash
+
+
+@app.post("/api/favorites")
+async def favorites_add(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    body = await request.json()
+    item_type = (body.get("item_type") or "").strip().lower()
+    item_id = str(body.get("item_id") or "").strip()
+    if item_type not in _FAV_TYPES or not item_id:
+        raise HTTPException(status_code=400, detail="Favori invalide.")
+    payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+    row = {"email": user["email"], "item_type": item_type, "item_id": item_id, "payload": payload}
+    try:
+        supabase_client.table("user_favorites").upsert(
+            row, on_conflict="email,item_type,item_id").execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"/api/favorites add error: {e}")
+        return JSONResponse({"ok": False, "error": "unavailable"}, status_code=503)
+
+
+@app.delete("/api/favorites")
+async def favorites_remove(request: Request, item_type: str = Query(...), item_id: str = Query(...)):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        (supabase_client.table("user_favorites").delete()
+         .eq("email", user["email"]).eq("item_type", item_type.lower())
+         .eq("item_id", item_id).execute())
+        return {"ok": True}
+    except Exception as e:
+        print(f"/api/favorites remove error: {e}")
+        return JSONResponse({"ok": False}, status_code=503)
+
+
 @app.post("/api/carousel/pay")
 async def carousel_pay(request: Request):
     # Stripe différé (société non créée) → stub.
