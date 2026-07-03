@@ -972,6 +972,10 @@ function fetchUserInfo() {
         if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
         const uploadAsync = document.getElementById('analyze-upload-async-btn');
         if (uploadAsync) uploadAsync.style.display = isPaid ? 'block' : 'none';
+        // Onglet « Recherche » retiré du front public — visible uniquement en admin.
+        const rechTab = document.getElementById('tab-recherche');
+        if (rechTab) rechTab.style.display = (tier === 'admin') ? 'inline-block' : 'none';
+        loadFavorites();   // pré-charge l'état des cœurs (favoris de l'utilisateur)
       } catch (e) {}
       return data;
     })
@@ -1005,6 +1009,21 @@ let deferredPrompt = null;
 
 // ── INITIALIZATION ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Retour d'auth Google : token passé en fragment (#gauth=…). On l'enregistre
+  // AVANT d'initialiser la session, puis on nettoie l'URL (le token ne doit pas
+  // rester visible ni dans l'historique). ?gauth=error → message d'échec.
+  try {
+    const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const gtok = h.get('gauth');
+    if (gtok) {
+      localStorage.setItem('tts_token', gtok);
+      try { localStorage.setItem('tts_email', atob(gtok.split('.')[0])); } catch (e) {}
+      history.replaceState(null, '', location.pathname + location.search);
+    } else if (new URLSearchParams(location.search).get('gauth') === 'error') {
+      setTimeout(() => { try { showToast('Connexion Google impossible. Réessaie ou utilise ton e-mail.'); } catch (e) {} }, 400);
+    }
+  } catch (e) {}
+
   // Initialize session from localStorage
   initSessionState();
 
@@ -1092,7 +1111,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'favoris', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -1104,6 +1123,7 @@ function switchTab(tab) {
   if (tab === 'creators') loadCreatorsTab();
   if (tab === 'recherche') initRechercheTab();
   if (tab === 'feedradar') loadFeedRadarTab();
+  if (tab === 'favoris') loadFavoritesTab();
   if (tab === 'photoslide') initPhotoSlideTab();
   if (tab === 'promptstudio') initPromptStudioTab();
   if (tab === 'credits') initCreditsTab();
@@ -5047,7 +5067,8 @@ async function loadFeedRadarTab() {
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const res = await fetch(`/api/feed-radar?region=${_userRegion()}`, { headers });
+    const carOnly = document.getElementById('feedradar-carousel-only')?.checked ? '&carousel_only=true' : '';
+    const res = await fetch(`/api/feed-radar?region=${_userRegion()}${carOnly}`, { headers });
     const data = await res.json().catch(() => ({}));
     loading.style.display = 'none';
 
@@ -5078,13 +5099,21 @@ async function loadFeedRadarTab() {
 
 function renderFeedRadarCard(v) {
   const gmv = v.gmv_estimated || 0;
+  // Post photo-carrousel (même format que ce que l'user génère) → badge distinctif.
+  const carBadge = v.is_carousel
+    ? `<div style="position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">🖼️ Carrousel${v.image_count ? ' · ' + v.image_count : ''}</div>`
+    : '';
+  const centerIcon = v.is_carousel ? '🖼️' : '▶';
+  const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url, is_carousel: v.is_carousel });
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
+      ${heart}
       <div style="position:relative">
         <img src="${v.oembed_thumbnail_url || ''}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+        ${carBadge}
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">${centerIcon}</div>
         </div>
       </div>
       <div style="padding:8px 10px">
@@ -5166,8 +5195,10 @@ async function loadCreatorsTab() {
 function renderCreatorCard(c, locked) {
   const blur = locked ? 'filter:blur(5px);pointer-events:none;user-select:none' : '';
   const onclick = locked ? '' : `onclick="openCreatorDetail('${encodeURIComponent(c.unique_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname||'').replace(/'/g,''))}')"`;
+  const heart = locked ? '' : favBtn('creator', c.unique_id, { nickname: c.nickname, user_id: c.user_id, unique_id: c.unique_id, followers: c.followers, sales: c.sales, gmv: c.gmv });
   return `
-    <div ${onclick} style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
+    <div ${onclick} style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:${locked?'default':'pointer'};${blur}">
+      ${heart}
       <div style="margin:0 auto 8px;width:64px">${_avatarBadge(c.nickname || c.unique_id, 64)}</div>
       <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || '')}</div>
       <div style="font-size:11px;color:var(--muted)">@${escapeHtml(c.unique_id || '')}</div>
@@ -5237,15 +5268,23 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
     if (prods.length) {
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
       prods.forEach(p => {
-        html += `<a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
-            <div style="padding:8px">
-              <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
-              <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
-              <div style="font-size:11px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
-            </div>
-          </div></a>`;
+        const pUrl = p.url || '';
+        // « Recréer » = ferme la boucle : produit gagnant → créateur de carrousel pré-rempli.
+        const recBtn = pUrl
+          ? `<button onclick="event.stopPropagation();openCarouselFor('${encodeURIComponent(pUrl)}','${encodeURIComponent((p.name || '').replace(/'/g, ''))}')" style="width:100%;border:none;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-weight:700;font-size:12px;padding:8px;cursor:pointer">🎨 Recréer ce carrousel</button>`
+          : '';
+        const pHeart = favBtn('product', p.id || pUrl, { name: p.name, url: pUrl, image: p.image, price: p.price, sales: p.sales });
+        html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            ${pHeart}
+            <a href="${escapeHtml(pUrl || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
+              ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+              <div style="padding:8px">
+                <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
+                <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div>
+                <div style="font-size:11px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
+              </div>
+            </a>${recBtn}
+          </div>`;
       });
       html += '</div>';
     } else {
@@ -5262,6 +5301,125 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
 function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return String(text == null ? '' : text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// « Recréer » : ouvre le créateur de carrousel pré-rempli avec un produit gagnant
+// (Feed Radar / Créateurs Gagnants → /carousel?url=…&name=… → auto-remplissage).
+function openCarouselFor(urlEnc, nameEnc) {
+  const u = decodeURIComponent(urlEnc || ''), n = decodeURIComponent(nameEnc || '');
+  const q = new URLSearchParams();
+  if (u) q.set('url', u);
+  if (n) q.set('name', n);
+  window.open('/carousel?' + q.toString(), '_blank', 'noopener');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FAVORIS — sauvegarde créateurs / produits gagnants (cœur sur les cartes)
+// ════════════════════════════════════════════════════════════════════════════
+function isFav(type, id) { return !!(window.__favSet && window.__favSet.has(type + ':' + id)); }
+
+async function loadFavorites() {
+  if (!localStorage.getItem('tts_token')) return;
+  try {
+    const r = await fetch('/api/favorites', { headers: _AUTH_HEADER() });
+    const d = await r.json();
+    window.__favData = (d && d.items) || [];
+    window.__favSet = new Set(window.__favData.map(it => it.item_type + ':' + it.item_id));
+    document.querySelectorAll('[data-fav]').forEach(b => { b.textContent = window.__favSet.has(b.dataset.fav) ? '❤️' : '🤍'; });
+  } catch (e) { /* table pas migrée → pas de favoris, silencieux */ }
+}
+
+// Bouton cœur positionné en overlay (le parent doit être position:relative).
+function favBtn(type, id, payload) {
+  const on = isFav(type, id);
+  const p = btoa(unescape(encodeURIComponent(JSON.stringify(payload || {}))));
+  return `<button data-fav="${type}:${escapeHtml(String(id))}" onclick="event.stopPropagation();event.preventDefault();toggleFavorite('${type}','${escapeHtml(String(id))}','${p}',this)"
+    title="${on ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+    style="position:absolute;top:6px;right:6px;z-index:3;width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:15px;cursor:pointer;line-height:1;padding:0">${on ? '❤️' : '🤍'}</button>`;
+}
+
+async function toggleFavorite(type, id, payloadB64, btn) {
+  if (!localStorage.getItem('tts_token')) { if (typeof openAuthModal === 'function') openAuthModal(); else showToast('Connecte-toi pour sauvegarder.'); return; }
+  if (!window.__favSet) window.__favSet = new Set();
+  const key = type + ':' + id, on = window.__favSet.has(key);
+  try {
+    if (on) {
+      await fetch(`/api/favorites?item_type=${encodeURIComponent(type)}&item_id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: _AUTH_HEADER() });
+      window.__favSet.delete(key);
+      if (btn) { btn.textContent = '🤍'; btn.title = 'Ajouter aux favoris'; }
+    } else {
+      let payload = {}; try { payload = JSON.parse(decodeURIComponent(escape(atob(payloadB64)))); } catch (e) {}
+      const res = await fetch('/api/favorites', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, _AUTH_HEADER()), body: JSON.stringify({ item_type: type, item_id: id, payload }) });
+      if (!res.ok) { showToast('Favoris indisponible (base à migrer).'); return; }
+      window.__favSet.add(key);
+      if (btn) { btn.textContent = '❤️'; btn.title = 'Retirer des favoris'; }
+    }
+  } catch (e) { showToast('Action impossible.'); }
+}
+
+async function loadFavoritesTab() {
+  const box = document.getElementById('favoris-body');
+  if (!box) return;
+  if (!localStorage.getItem('tts_token')) {
+    box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">Connecte-toi pour retrouver tes favoris.</div>';
+    return;
+  }
+  box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">⏳ Chargement…</div>';
+  await loadFavorites();
+  const items = window.__favData || [];
+  if (!items.length) {
+    box.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">Aucun favori pour l\'instant.<br>Touche le 🤍 sur un créateur ou un produit pour le sauvegarder ici.</div>';
+    return;
+  }
+  const prods = items.filter(i => i.item_type === 'product');
+  const creators = items.filter(i => i.item_type === 'creator');
+  const videos = items.filter(i => i.item_type === 'video');
+  let html = '';
+  if (prods.length) {
+    html += `<h3 style="font-size:14px;margin:4px 0 10px">🛍️ Produits (${prods.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px">`;
+    prods.forEach(it => {
+      const p = it.payload || {};
+      html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        ${favBtn('product', it.item_id, p)}
+        <a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
+          ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:120px;object-fit:cover">` : ''}
+          <div style="padding:8px"><div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name || 'Produit')}</div>
+          <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px">$${escapeHtml(String(p.price || '—'))}</div></div>
+        </a>
+        ${p.url ? `<button onclick="openCarouselFor('${encodeURIComponent(p.url)}','${encodeURIComponent((p.name || '').replace(/'/g, ''))}')" style="width:100%;border:none;background:linear-gradient(135deg,#D4AF37,#2563EB);color:#fff;font-weight:700;font-size:12px;padding:8px;cursor:pointer">🎨 Recréer</button>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (creators.length) {
+    html += `<h3 style="font-size:14px;margin:4px 0 10px">👤 Créateurs (${creators.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">`;
+    creators.forEach(it => {
+      const c = it.payload || {};
+      html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer"
+        onclick="openCreatorDetail('${encodeURIComponent(it.item_id)}','${encodeURIComponent(c.user_id || '')}','${escapeHtml((c.nickname || '').replace(/'/g, ''))}')">
+        ${favBtn('creator', it.item_id, c)}
+        <div style="margin:0 auto 8px;width:64px">${_avatarBadge(c.nickname || it.item_id, 64)}</div>
+        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(c.nickname || it.item_id)}</div>
+        <div style="font-size:11px;color:var(--muted)">@${escapeHtml(it.item_id)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (videos.length) {
+    html += `<h3 style="font-size:14px;margin:18px 0 10px">📡 Posts (${videos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">`;
+    videos.forEach(it => {
+      const v = it.payload || {};
+      html += `<div style="position:relative;border-radius:12px;overflow:hidden;background:var(--surface2);cursor:pointer"
+        onclick="openTikTokPlayer('${escapeHtml(it.item_id)}','${escapeHtml(v.video_url || '')}')">
+        ${favBtn('video', it.item_id, v)}
+        ${v.thumb ? `<img src="${escapeHtml(v.thumb)}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+        <div style="padding:8px"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(v.creator || '')}</div>
+        <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues${v.is_carousel ? ' · 🖼️' : ''}</div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  box.innerHTML = html;
 }
 
 

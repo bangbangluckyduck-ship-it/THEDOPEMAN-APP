@@ -27,6 +27,7 @@ from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
 from insights_store import save_insight, build_winning_payload
 import tiktok_oauth
+import google_oauth
 import market_creators
 import recherche_quota
 import photo_slide
@@ -2137,6 +2138,42 @@ async def stripe_webhook_v1(request: Request):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# OAUTH GOOGLE — connexion « Continuer avec Google » (login / inscription)
+# ════════════════════════════════════════════════════════════════════════════
+@app.get("/api/auth/google/login")
+async def google_login():
+    """Démarre le flux Google et redirige vers l'écran de consentement."""
+    if not google_oauth.is_configured():
+        raise HTTPException(status_code=503,
+                            detail="Connexion Google indisponible (configuration manquante).")
+    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state()))
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(request: Request, code: Optional[str] = Query(None),
+                          state: Optional[str] = Query(None)):
+    """Callback Google : vérifie le state → email vérifié → user + token → /app."""
+    app_url = google_oauth.APP_PUBLIC_URL
+    if not code or not state or not google_oauth.verify_state(state):
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    try:
+        email = await google_oauth.exchange_code_for_email(code)
+    except Exception as e:
+        print(f"❌ Google OAuth failed: {e}")
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    if not email:
+        return RedirectResponse(f"{app_url}/app?gauth=error")
+    try:
+        from supabase_client import get_or_create_user
+        get_or_create_user(email)          # crée le compte s'il n'existe pas (tier free)
+    except Exception as e:
+        print(f"google_callback get_or_create_user warn: {e}")
+    token = create_access_token(email)
+    # Token en FRAGMENT (#) : jamais envoyé au serveur ni journalisé (contrairement à ?).
+    return RedirectResponse(f"{app_url}/app#gauth={token}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # OAUTH TIKTOK — 2 providers : "display" (vidéos+perfs) & "business" (audience)
 # ════════════════════════════════════════════════════════════════════════════
 _TIKTOK_PROVIDERS = {"display", "business"}
@@ -2541,22 +2578,35 @@ async def recherche_profile(request: Request, handle: str = Query(...)):
 # "Créateurs Gagnants" : Gold/Agency/Beta/Admin complet, Free/Pro = aperçu 3.
 # ════════════════════════════════════════════════════════════════════════════
 @app.get("/api/feed-radar")
-async def feed_radar_list(request: Request, region: str = Query("US"), limit: int = Query(24)):
+async def feed_radar_list(request: Request, region: str = Query("US"), limit: int = Query(24),
+                          carousel_only: bool = Query(False)):
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
+    _base_cols = ("video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
+                  "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
+                  "gmv_estimated,gmv_estimation_method,collected_at")
     try:
-        q = (supabase_client.table("feed_radar_videos").select(
-                "video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
-                "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
-                "gmv_estimated,gmv_estimation_method,collected_at")
+        q = (supabase_client.table("feed_radar_videos")
+             .select(_base_cols + ",is_carousel,image_count")
              .eq("region", region).order("views", desc=True).limit(limit))
+        if carousel_only:
+            q = q.eq("is_carousel", True)   # carrousels photo à fortes vues uniquement
         rows = q.execute().data or []
     except Exception as e:
-        print(f"/api/feed-radar error: {e}")
-        return JSONResponse({"ok": False, "error": str(e), "videos": []}, status_code=502)
+        # Migration supabase_migrations_feed_radar_carousel.sql pas encore appliquée :
+        # colonnes is_carousel/image_count absentes → on retombe sur l'ancien schéma
+        # pour ne jamais casser le Feed Radar. Le filtre carrousel est alors inopérant.
+        print(f"/api/feed-radar carousel-cols fallback: {e}")
+        try:
+            rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
+                    .eq("region", region).order("views", desc=True).limit(limit)
+                    .execute().data or [])
+        except Exception as e2:
+            print(f"/api/feed-radar error: {e2}")
+            return JSONResponse({"ok": False, "error": str(e2), "videos": []}, status_code=502)
 
     if not premium:
         return {"ok": True, "preview": True, "videos": rows[:3]}
@@ -3462,6 +3512,21 @@ async def carousel_providers():
     return {"ok": True, "providers": image_gen.IMAGE_PROVIDERS}
 
 
+@app.get("/api/carousel/product-info")
+async def carousel_product_info(url: str = Query(...), region: Optional[str] = Query(None)):
+    """Pré-remplissage du créateur de carrousel : lien TikTok Shop → fiche produit
+    officielle (nom, catégorie, prix, image HD). Sert aussi la boucle « Recréer »
+    depuis Feed Radar / Créateurs Gagnants. Best-effort, jamais bloquant."""
+    if not url or "tiktok" not in url.lower():
+        return {"ok": False}
+    try:
+        name, niche, price, image = await _enrich_from_product_url(url, None, None, None, region)
+    except Exception:
+        return {"ok": False}
+    return {"ok": bool(name or price or image), "name": name, "niche": niche,
+            "price": price, "image": image}
+
+
 @app.get("/api/_admin/product-detail-selftest")
 async def product_detail_selftest(request: Request, token: Optional[str] = Query(None),
                                   url: str = Query(...)):
@@ -3662,6 +3727,64 @@ async def carousel_history(request: Request):
         return {"ok": True, "items": r.data or []}
     except Exception:
         return {"ok": True, "items": []}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# FAVORIS — créateurs / produits / posts gagnants sauvegardés par l'utilisateur
+# (dégrade proprement si la table user_favorites n'est pas encore migrée)
+# ════════════════════════════════════════════════════════════════════════════
+_FAV_TYPES = {"creator", "product", "video"}
+
+
+@app.get("/api/favorites")
+async def favorites_list(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        r = (supabase_client.table("user_favorites")
+             .select("item_type,item_id,payload,created_at")
+             .eq("email", user["email"]).order("created_at", desc=True).limit(200).execute())
+        return {"ok": True, "items": r.data or []}
+    except Exception as e:
+        print(f"/api/favorites list warn (table migrée ?): {e}")
+        return {"ok": True, "items": []}   # table absente → vide, jamais de crash
+
+
+@app.post("/api/favorites")
+async def favorites_add(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    body = await request.json()
+    item_type = (body.get("item_type") or "").strip().lower()
+    item_id = str(body.get("item_id") or "").strip()
+    if item_type not in _FAV_TYPES or not item_id:
+        raise HTTPException(status_code=400, detail="Favori invalide.")
+    payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+    row = {"email": user["email"], "item_type": item_type, "item_id": item_id, "payload": payload}
+    try:
+        supabase_client.table("user_favorites").upsert(
+            row, on_conflict="email,item_type,item_id").execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"/api/favorites add error: {e}")
+        return JSONResponse({"ok": False, "error": "unavailable"}, status_code=503)
+
+
+@app.delete("/api/favorites")
+async def favorites_remove(request: Request, item_type: str = Query(...), item_id: str = Query(...)):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        (supabase_client.table("user_favorites").delete()
+         .eq("email", user["email"]).eq("item_type", item_type.lower())
+         .eq("item_id", item_id).execute())
+        return {"ok": True}
+    except Exception as e:
+        print(f"/api/favorites remove error: {e}")
+        return JSONResponse({"ok": False}, status_code=503)
 
 
 @app.post("/api/carousel/pay")

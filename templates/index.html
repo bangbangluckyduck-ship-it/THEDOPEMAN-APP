@@ -1345,9 +1345,10 @@
   <div class="tabs">
     <button class="tab active" id="tab-analyze"  onclick="switchTab('analyze')"  data-i18n="tab_analyze">🎬 Analyser</button>
     <button class="tab"        id="tab-feedradar" onclick="switchTab('feedradar')">📡 Feed Radar</button>
+    <button class="tab"        id="tab-favoris" onclick="switchTab('favoris')">❤️ Favoris</button>
     <button class="tab"        id="tab-creators" onclick="switchTab('creators')">🔥 Créateurs Gagnants</button>
-    <button class="tab"        id="tab-recherche" onclick="switchTab('recherche')">🔍 Recherche</button>
-    <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">📸 Photo Slide</button>
+    <button class="tab"        id="tab-recherche" onclick="switchTab('recherche')" style="display:none">🔍 Recherche</button>
+    <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">✨ Créer un carrousel</button>
     <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
     <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
     <button class="tab"        id="tab-pricing" onclick="switchTab('pricing')">💎 Tarifs</button>
@@ -1918,6 +1919,11 @@
     <div class="section" style="max-width:640px;margin:0 auto 16px">
       <h2>Questions fréquentes</h2>
       <div style="display:flex;flex-direction:column;gap:14px">
+        <div><strong style="font-size:14px">🤔 C'est quoi Qeerah exactement ?</strong><br><span style="font-size:13px;color:var(--muted)">Qeerah analyse les vidéos et produits qui <strong>vendent le plus sur TikTok Shop</strong>, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit.</span></div>
+        <div><strong style="font-size:14px">🆓 Je peux tester sans payer ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui : <strong>3 carrousels/mois gratuits</strong> et l'analyse de vidéos en accès test, sans carte bancaire. Tu passes à un plan payant seulement quand tu veux plus de volume ou les images IA.</span></div>
+        <div><strong style="font-size:14px">💎 Comment fonctionnent les crédits ?</strong><br><span style="font-size:13px;color:var(--muted)">Un pot unique de crédits IA partagé entre <strong>AI Prompt Studio</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton Compte.</span></div>
+        <div><strong style="font-size:14px">📊 D'où viennent vos données TikTok Shop ?</strong><br><span style="font-size:13px;color:var(--muted)">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</span></div>
+        <div><strong style="font-size:14px">🔒 Mes produits et générations sont-ils privés ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui. Tes générations sont rattachées à ton compte et ne sont jamais partagées. Hébergement conforme RGPD.</span></div>
         <div><strong style="font-size:14px">💰 Mensuel ou annuel ?</strong><br><span style="font-size:13px;color:var(--muted)">En choisissant l'annuel, tu profites de <strong>2 mois offerts</strong> (tu ne paies que 10 mois sur 12) sur Pro, Gold et Agency.</span></div>
         <div><strong style="font-size:14px">📅 Puis-je annuler à tout moment ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, sans engagement. L'annulation prend effet à la fin de la période en cours.</span></div>
         <div><strong style="font-size:14px">💳 Quels moyens de paiement ?</strong><br><span style="font-size:13px;color:var(--muted)">CB Visa/Mastercard, Apple Pay, Google Pay — via Stripe (100% sécurisé).</span></div>
@@ -1959,10 +1965,22 @@
   <div id="tab-feedradar-content" style="display:none">
     <div class="section">
       <h2>📡 Feed Radar</h2>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Les vidéos TikTok Shop qui cartonnent en ce moment — GMV estimé, tendance du créateur.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Les posts TikTok Shop qui cartonnent en ce moment — vidéos <strong>et carrousels photo</strong>, GMV estimé, tendance du créateur.</p>
+      <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="feedradar-carousel-only" onchange="loadFeedRadarTab()" style="width:auto;margin:0"> 🖼️ Carrousels uniquement
+      </label>
       <div id="feedradar-loading" style="text-align:center;padding:24px;color:var(--muted)">⏳ Chargement…</div>
       <div id="feedradar-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px"></div>
       <div id="feedradar-upsell" style="display:none;margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- ── ONGLET FAVORIS ── -->
+  <div id="tab-favoris-content" style="display:none">
+    <div class="section">
+      <h2>❤️ Mes Favoris</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Les créateurs et produits gagnants que tu as sauvegardés. Sur un produit, <strong>Recréer</strong> lance un carrousel pré-rempli.</p>
+      <div id="favoris-body"><div style="color:var(--muted);padding:20px;text-align:center">⏳ Chargement…</div></div>
     </div>
   </div>
 
@@ -2174,6 +2192,14 @@
   <div class="modal-content">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <h2 data-i18n="auth_title">Se connecter</h2>
+    <button type="button" onclick="window.location.href='/api/auth/google/login'"
+            style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continuer avec Google
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--muted);font-size:12px">
+      <span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>ou par e-mail<span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>
+    </div>
     <form id="auth-form" onsubmit="handleAuthSubmit(event)">
       <div class="input-group">
         <label data-i18n="auth_email_lbl">Adresse e-mail</label>
