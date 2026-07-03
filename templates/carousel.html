@@ -64,8 +64,8 @@
   <div class="card" id="cc-form">
     <!-- Lien produit TikTok Shop (OBLIGATOIRE) -->
     <label class="fld">Lien du produit TikTok Shop <span style="color:var(--err)">*</span></label>
-    <input id="cc-url" type="url" inputmode="url" placeholder="https://www.tiktok.com/view/product/...">
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">⭐ Obligatoire — pour une génération de slides parfaitement optimisée pour TikTok Shop.</div>
+    <input id="cc-url" type="url" inputmode="url" placeholder="https://www.tiktok.com/view/product/..." onblur="ccPrefillFromUrl()" onchange="ccPrefillFromUrl()">
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">⭐ Colle le lien : l'IA récupère automatiquement le nom, le prix et l'image du produit. <span id="cc-autofill" style="font-weight:600"></span></div>
 
     <!-- Produit (image facultative en complément) -->
     <div class="drop" id="cc-drop" style="margin-top:12px">
@@ -73,16 +73,19 @@
       <div id="cc-drop-empty"><div style="font-size:28px">🖼️</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Image produit (optionnel — en complément du lien)</div></div>
       <img id="cc-preview" style="display:none">
     </div>
-    <label class="fld">Nom du produit <span style="color:var(--err)">*</span></label>
-    <input id="cc-name" maxlength="100" placeholder="Ex: Lampe selfie LED à clip">
-    <label class="fld">Description courte <span style="color:var(--err)">*</span></label>
+    <label class="fld">Nom du produit <span style="color:var(--muted)">(auto — modifiable)</span></label>
+    <input id="cc-name" maxlength="100" placeholder="Rempli automatiquement depuis le lien…">
+    <label class="fld">Description courte <span style="color:var(--muted)">(optionnel — précise l'angle)</span></label>
     <textarea id="cc-desc" rows="2" maxlength="300" placeholder="Ce que fait le produit, pour qui, son bénéfice principal…"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label class="fld">Prix <span style="color:var(--err)">*</span></label><input id="cc-price" placeholder="ex: 29€"></div>
+      <div><label class="fld">Prix <span style="color:var(--muted)">(auto)</span></label><input id="cc-price" placeholder="auto"></div>
       <div><label class="fld">Niche</label>
         <select id="cc-niche"><option value="">—</option><option>Cosmétique/Beauté</option><option>Santé/Bien-être</option><option>Mode/Vêtements</option><option>Maison/Déco</option><option>Tech/Gadgets</option><option>Fitness/Sport</option><option>Cuisine/Alimentation</option><option>Autre</option></select>
       </div>
     </div>
+    <label class="fld" style="margin-top:14px">🎯 Angle du carrousel <span style="color:var(--muted)">(optionnel — structure l'accroche)</span></label>
+    <div class="pills" id="cc-angles"></div>
+
     <label class="fld">💡 Ton idée (optionnel) — l'IA optimise pour TikTok Shop</label>
     <input id="cc-idea" maxlength="200" placeholder="Ex: ambiance matinale, avant/après, ton humoristique…">
 
@@ -115,10 +118,19 @@
   </div>
 
   <div id="cc-result"></div>
+
+  <!-- Mes générations (rétention + réutilisation) — visible si connecté -->
+  <div id="cc-history-wrap" class="card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <strong style="font-size:14px">🗂️ Mes générations</strong>
+      <button class="btn-sec" onclick="ccLoadHistory()">↻</button>
+    </div>
+    <div id="cc-history" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <script>
-const CC = { mode:'prompts', style:'', img:null, providers:null, provider:'auto' };
+const CC = { mode:'prompts', style:'', angle:'', img:null, providers:null, provider:'auto' };
 function ccCookie(){ let c=localStorage.getItem('cc_cookie'); if(!c){c='cc_'+Math.random().toString(36).slice(2)+Date.now(); localStorage.setItem('cc_cookie',c);} return c; }
 // Détecte le PAYS de l'utilisateur (fuseau horaire > langue) → région TikTok Shop à essayer en 1er.
 function ccRegion(){
@@ -146,6 +158,18 @@ const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&
 const STYLES=[['fond_blanc','Fond Blanc'],['quad_photo','Quad Photo'],['ia_cartoon','IA/Cartoon']];
 document.getElementById('cc-styles').innerHTML = STYLES.map(([v,l])=>`<span class="pill" data-s="${v}" onclick="ccPickStyle('${v}')">${l}</span>`).join('');
 function ccPickStyle(v){ CC.style=(CC.style===v?'':v); document.querySelectorAll('#cc-styles .pill').forEach(p=>p.classList.toggle('on',p.dataset.s===CC.style)); }
+
+// Angles de carrousel pré-packagés : suppriment la page blanche et structurent l'accroche (slide 1 + fil narratif).
+const ANGLES=[
+  ['erreurs','❌ Erreurs à éviter',"Structure le carrousel autour des erreurs courantes que font les gens avec ce type de produit, puis présente le produit comme la bonne solution."],
+  ['secret','🤫 Le secret',"Adopte un angle 'révélation' : dévoile une astuce ou un secret peu connu que ce produit rend possible."],
+  ['probleme','🔴 Problème → Solution',"Structure en problème → agitation → solution : expose le point de douleur, amplifie-le, puis présente le produit comme la résolution."],
+  ['top','🏆 Top raisons',"Structure en 'Top raisons' d'adopter ce produit : une raison forte et concrète par slide."],
+  ['avant_apres','⚡ Avant / Après',"Mets en scène une transformation avant/après grâce au produit : la situation frustrante avant, le résultat après."],
+];
+document.getElementById('cc-angles').innerHTML = ANGLES.map(([v,l])=>`<span class="pill" data-a="${v}" onclick="ccPickAngle('${v}')">${l}</span>`).join('');
+function ccPickAngle(v){ CC.angle=(CC.angle===v?'':v); document.querySelectorAll('#cc-angles .pill').forEach(p=>p.classList.toggle('on',p.dataset.a===CC.angle)); }
+function ccAngleDirective(){ const a=ANGLES.find(x=>x[0]===CC.angle); return a?a[2]:''; }
 
 document.querySelectorAll('#cc-modes .mode').forEach(m=>m.onclick=()=>{ CC.mode=m.dataset.mode; document.querySelectorAll('#cc-modes .mode').forEach(x=>x.classList.toggle('on',x===m)); /* cc-ai sélecteur masqué en dur — provider forcé à 'flux' */ renderAI(); });
 function renderAI(){
@@ -188,12 +212,10 @@ async function ccGenerate(){
   const url0=document.getElementById('cc-url').value.trim();
   if(!url0){alert('⭐ Le lien du produit TikTok Shop est obligatoire');document.getElementById('cc-url').focus();return;}
   if(!/tiktok\.com|tiktokshop|vt\.tiktok|vm\.tiktok/i.test(url0)){alert('Colle un lien TikTok Shop valide (ex: https://www.tiktok.com/view/product/...)');document.getElementById('cc-url').focus();return;}
+  // Nom / description / prix sont désormais OPTIONNELS côté client : le backend
+  // (_enrich_from_product_url) récupère la fiche officielle depuis le lien. On
+  // laisse juste l'utilisateur ajuster s'il le souhaite.
   const name=document.getElementById('cc-name').value.trim();
-  if(!name){alert('⭐ Le nom du produit est obligatoire');document.getElementById('cc-name').focus();return;}
-  const desc0=document.getElementById('cc-desc').value.trim();
-  if(!desc0){alert('⭐ La description courte est obligatoire — elle guide l\'IA pour des slides précises');document.getElementById('cc-desc').focus();return;}
-  const price0=document.getElementById('cc-price').value.trim();
-  if(!price0){alert('⭐ Le prix est obligatoire');document.getElementById('cc-price').focus();return;}
   const out=document.getElementById('cc-result'), btn=document.getElementById('cc-go');
   btn.disabled=true;btn.textContent='⏳ Génération…';
   out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">📸 Génération du carrousel…</div>';
@@ -201,7 +223,9 @@ async function ccGenerate(){
   fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider',CC.provider||'auto');
   fd.append('product_name',name); fd.append('description',document.getElementById('cc-desc').value);
   fd.append('price',document.getElementById('cc-price').value); fd.append('niche',document.getElementById('cc-niche').value);
-  fd.append('user_idea',document.getElementById('cc-idea').value);
+  // Angle choisi (directive structurante) + idée libre de l'utilisateur → un seul champ user_idea consommé par le backend.
+  const _angleDir=ccAngleDirective(), _userIdea=document.getElementById('cc-idea').value.trim();
+  fd.append('user_idea',[_angleDir,_userIdea].filter(Boolean).join(' | '));
   fd.append('product_url',url0);
   fd.append('user_region',ccRegion());
   const av=ccGetAvoid(url0); if(av) fd.append('avoid',av);   // jamais 2x le même hook/titre/description
@@ -286,10 +310,62 @@ function ccRender(r){
   out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-// Statut + prix images
+// ── Auto-remplissage produit depuis le lien TikTok Shop ───────────────────
+let _ccLastPrefilled='';
+async function ccPrefillFromUrl(){
+  const u=(document.getElementById('cc-url').value||'').trim();
+  const st=document.getElementById('cc-autofill');
+  if(!u || !/tiktok/i.test(u)){ if(st)st.textContent=''; return; }
+  if(u===_ccLastPrefilled) return;                 // blur + change → un seul appel
+  _ccLastPrefilled=u;
+  if(st){st.style.color='var(--muted)';st.textContent='⏳ récupération du produit…';}
+  try{
+    const r=await fetch('/api/carousel/product-info?region='+encodeURIComponent(ccRegion())+'&url='+encodeURIComponent(u));
+    const d=await r.json();
+    if(!d||!d.ok){ if(st)st.textContent=''; return; }
+    const setIf=(id,val)=>{const el=document.getElementById(id); if(el&&val&&!el.value.trim()) el.value=val;};
+    setIf('cc-name',d.name); setIf('cc-price',d.price);
+    if(d.niche){ const sel=document.getElementById('cc-niche'); if(sel&&!sel.value){ const nl=d.niche.toLowerCase();
+      for(const o of sel.options){ const ov=(o.value||'').toLowerCase(); if(ov&&(ov.includes(nl)||nl.includes(ov.split('/')[0]))){o.selected=true;break;} } } }
+    if(d.image&&!CC.img){ const pv=document.getElementById('cc-preview'); if(pv){ pv.src=d.image; pv.style.display='block'; document.getElementById('cc-drop-empty').style.display='none'; } }
+    if(st){st.style.color='var(--success)';st.textContent='✓ produit récupéré';}
+  }catch(e){ if(st)st.textContent=''; }
+}
+
+// ── Mes générations (historique) ──────────────────────────────────────────
+async function ccLoadHistory(){
+  if(!token()) return;
+  const wrap=document.getElementById('cc-history-wrap'), box=document.getElementById('cc-history');
+  wrap.style.display='block'; box.innerHTML='<div style="font-size:12px;color:var(--muted)">⏳ Chargement…</div>';
+  try{
+    const r=await fetch('/api/carousel/history',{headers:{'Authorization':'Bearer '+token()}});
+    const d=await r.json(); const items=(d&&d.items)||[];
+    if(!items.length){ box.innerHTML='<div style="font-size:12px;color:var(--muted)">Aucune génération pour l\'instant — crée ton premier carrousel ci-dessus.</div>'; return; }
+    CC.history=items;
+    box.innerHTML=items.map((it,i)=>{
+      const dt=it.created_at?new Date(it.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'';
+      const mode=it.generation_mode==='images'?'🎨 Images':'📝 Prompts';
+      return `<div onclick="ccOpenHistory(${i})" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);cursor:pointer">
+        <div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.product_name||'Carrousel')}</div>
+        <div style="font-size:11px;color:var(--muted)">${mode} · ${esc(dt)}</div></div>
+        <span style="font-size:12px;color:var(--primary);white-space:nowrap">Revoir →</span></div>`;
+    }).join('');
+  }catch(e){ box.innerHTML='<div style="font-size:12px;color:var(--err)">Erreur de chargement.</div>'; }
+}
+function ccOpenHistory(i){ const it=(CC.history||[])[i]; if(!it||!it.generated_data) return;
+  let data=it.generated_data; if(typeof data==='string'){ try{data=JSON.parse(data);}catch(e){return;} }
+  ccRender(data); }
+
+// Statut + prix images + prefill éventuel via ?url= (boucle « Recréer ») + historique
 (async()=>{
-  if(token()) document.getElementById('cc-status').textContent='Connecté — crédits selon ton plan.';
+  if(token()){ document.getElementById('cc-status').textContent='Connecté — crédits selon ton plan.'; ccLoadHistory(); }
   try{ const r=await fetch('/api/carousel/providers'); const d=await r.json(); CC.providers=d.providers; renderAI(); }catch(e){}
+  try{
+    const qp=new URLSearchParams(location.search);
+    const purl=qp.get('url'), pname=qp.get('name');
+    if(pname){ const n=document.getElementById('cc-name'); if(n) n.value=pname; }
+    if(purl){ const uEl=document.getElementById('cc-url'); if(uEl){ uEl.value=purl; ccPrefillFromUrl(); uEl.scrollIntoView({behavior:'smooth',block:'center'}); } }
+  }catch(e){}
 })();
 </script>
 </body>

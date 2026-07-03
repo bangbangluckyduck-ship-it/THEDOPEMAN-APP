@@ -260,6 +260,8 @@ async def _collect_region(region: str, supabase) -> dict:
             "creator_unique_id": v.get("creator_unique_id"),
             "creator_nickname": v.get("creator_nickname"),
             "region": v.get("region"),
+            "is_carousel": bool(v.get("is_carousel")),
+            "image_count": v.get("image_count") or 0,
             "views": v.get("views") or 0,
             "likes": v.get("likes") or 0,
             "comments": v.get("comments") or 0,
@@ -287,6 +289,13 @@ async def _collect_region(region: str, supabase) -> dict:
         try:
             supabase.table("feed_radar_videos").upsert(row, on_conflict="video_id").execute()
         except Exception as e:
-            print(f"_collect_region({region}) upsert error ({video_id}): {e}")
+            # Migration carrousel pas encore appliquée → retente sans les nouvelles
+            # colonnes pour ne pas perdre la ligne (le flag carrousel sera renseigné
+            # à la prochaine collecte, une fois la migration passée).
+            try:
+                row2 = {k: v for k, v in row.items() if k not in ("is_carousel", "image_count")}
+                supabase.table("feed_radar_videos").upsert(row2, on_conflict="video_id").execute()
+            except Exception as e2:
+                print(f"_collect_region({region}) upsert error ({video_id}): {e2}")
 
     return {"found": found, "new": new_count, "updated": updated_count}
