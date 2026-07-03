@@ -151,6 +151,10 @@ def _clean_video(v: dict) -> dict:
         if ul:
             cover = ul[0]
             break
+    # Post photo-carrousel TikTok (photo mode) : présence de image_post_info.
+    # Feed Radar veut les mettre en avant (même format que ce que l'user génère).
+    img_post = v.get("image_post_info") if isinstance(v.get("image_post_info"), dict) else None
+    carousel_images = (img_post or {}).get("images") or []
     return {
         "id": vid,
         "desc": (v.get("desc") or "")[:150],
@@ -160,6 +164,8 @@ def _clean_video(v: dict) -> dict:
         "likes": stats.get("digg_count") or 0,
         "comments": stats.get("comment_count") or 0,
         "shares": stats.get("share_count") or 0,
+        "is_carousel": bool(carousel_images),
+        "image_count": len(carousel_images),
     }
 
 

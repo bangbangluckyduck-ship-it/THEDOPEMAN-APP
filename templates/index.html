@@ -1347,7 +1347,7 @@
     <button class="tab"        id="tab-feedradar" onclick="switchTab('feedradar')">📡 Feed Radar</button>
     <button class="tab"        id="tab-creators" onclick="switchTab('creators')">🔥 Créateurs Gagnants</button>
     <button class="tab"        id="tab-recherche" onclick="switchTab('recherche')">🔍 Recherche</button>
-    <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">📸 Photo Slide</button>
+    <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">✨ Créer un carrousel</button>
     <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
     <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
     <button class="tab"        id="tab-pricing" onclick="switchTab('pricing')">💎 Tarifs</button>
@@ -1964,7 +1964,10 @@
   <div id="tab-feedradar-content" style="display:none">
     <div class="section">
       <h2>📡 Feed Radar</h2>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Les vidéos TikTok Shop qui cartonnent en ce moment — GMV estimé, tendance du créateur.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Les posts TikTok Shop qui cartonnent en ce moment — vidéos <strong>et carrousels photo</strong>, GMV estimé, tendance du créateur.</p>
+      <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="feedradar-carousel-only" onchange="loadFeedRadarTab()" style="width:auto;margin:0"> 🖼️ Carrousels uniquement
+      </label>
       <div id="feedradar-loading" style="text-align:center;padding:24px;color:var(--muted)">⏳ Chargement…</div>
       <div id="feedradar-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px"></div>
       <div id="feedradar-upsell" style="display:none;margin-top:16px"></div>
