@@ -4971,8 +4971,8 @@ function renderRechercheResult(data) {
         <div style="font-size:13px;color:var(--muted)">Aucune donnée de ventes trouvée sur les 90 derniers jours pour ce compte — soit il ne vend pas via TikTok Shop, soit il n'est pas couvert par notre source de données. Ça ne veut pas forcément dire zéro vente.</div>
       ` : gmv.last_sale_date ? `
         <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
-        <div style="font-size:32px;font-weight:900">$0</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:6px">Pas de ventes détectées sur les 30 derniers jours. Dernières ventes suivies : <strong>${escapeHtml(_frDate(gmv.last_sale_date))}</strong>${gmv.gmv_prior_90d ? ` · $${Math.round(gmv.gmv_prior_90d).toLocaleString()} de GMV sur les 2 mois précédents` : ''}.</div>
+        <div style="font-size:32px;font-weight:900">n/d</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:8px">⚠️ Notre source de données ne remonte plus de ventes pour ce compte depuis le <strong>${escapeHtml(_frDate(gmv.last_sale_date))}</strong>. Ce <strong>n'est pas</strong> forcément un arrêt réel des ventes — c'est une limite de la source sur ce type de compte. Dernières données fiables : $${Math.round(gmv.gmv_prior_90d || 0).toLocaleString()} de GMV sur le mois précédant cette date.</div>
       ` : `
         <div style="font-size:12px;color:var(--muted)">GMV — 30 derniers jours</div>
         <div style="font-size:32px;font-weight:900">$${(gmv.gmv_30d || 0).toLocaleString()}</div>
