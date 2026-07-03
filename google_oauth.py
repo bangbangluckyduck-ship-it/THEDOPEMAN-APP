@@ -66,10 +66,10 @@ def verify_state(state: str) -> bool:
 
 
 # ── URL d'autorisation ───────────────────────────────────────────────────────
-def build_authorize_url(state: str) -> str:
+def build_authorize_url(state: str, redirect_uri: Optional[str] = None) -> str:
     params = {
         "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri or REDIRECT_URI,
         "response_type": "code",
         "scope": SCOPES,
         "state": state,
@@ -81,15 +81,16 @@ def build_authorize_url(state: str) -> str:
 
 
 # ── Échange code → email Google vérifié ──────────────────────────────────────
-async def exchange_code_for_email(code: str) -> Optional[str]:
+async def exchange_code_for_email(code: str, redirect_uri: Optional[str] = None) -> Optional[str]:
     """Échange le code contre un access_token puis lit l'email Google VÉRIFIÉ.
-    Retourne l'email en minuscules, ou None si échec / email non vérifié."""
+    redirect_uri DOIT être identique à celui utilisé à l'autorisation (même host,
+    sinon Google refuse l'échange). Retourne l'email en minuscules, ou None."""
     async with httpx.AsyncClient(timeout=20.0) as client:
         tok = await client.post(TOKEN_URL, data={
             "code": code,
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": redirect_uri or REDIRECT_URI,
             "grant_type": "authorization_code",
         }, headers={"Accept": "application/json"})
         tok.raise_for_status()
