@@ -554,8 +554,7 @@ async function lookupRechercheGmv() {
       box.innerHTML = `
         <div style="font-size:14px;color:#e67e22;font-weight:700">⚠️ GMV 30j indisponible (compte hors classement actif KeyAPI)</div>
         <div style="color:var(--muted,#6b7280);margin-top:4px">@${data.unique_id || ''} · ${data.nickname || ''}</div>
-        ${data.lifetime_gmv_fallback ? `<div style="font-size:22px;font-weight:900;margin-top:8px">$${data.lifetime_gmv_fallback.toLocaleString()}</div>
-        <div style="color:var(--muted,#6b7280)">GMV total historique connu</div>` : ''}`;
+        <div style="color:var(--muted,#6b7280);margin-top:6px;font-size:12px">Pas de fallback chiffré : le "GMV lifetime" des produits KeyAPI est le GMV global du produit (tous vendeurs), pas celui du compte.</div>`;
     } else {
       box.innerHTML = `
         <div style="font-size:28px;font-weight:900">$${(data.gmv_30d || 0).toLocaleString()}</div>

@@ -633,7 +633,13 @@ async def get_creator_gmv_30d(uid: str, days: int = 30) -> dict:
 
 
 async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
-    """Étape 3 : uid → produits vendus (cumulé lifetime), triés par GMV desc."""
+    """Étape 3 : uid → produits de la vitrine du créateur, triés par GMV desc.
+
+    ⚠️ `total_sale_gmv_amt`/`total_sale_cnt` (→ champs `gmv`/`sales` de
+    _clean_product) sont le GMV/ventes GLOBAUX du produit, TOUS vendeurs
+    confondus — PAS la part de ce créateur. Vérifié en live 2026-07-03 (cf.
+    _flag_unreliable_gmv). À présenter côté UI comme "performance du produit",
+    jamais comme les ventes du créateur."""
     data = await _get("/v1/tiktok/influencer/products/analytics",
                       {"user_id": uid, "page_num": 1, "page_size": 10})
     rows = data if isinstance(data, list) else []
@@ -645,15 +651,19 @@ async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
 def _flag_unreliable_gmv(gmv_data: dict, products: list) -> dict:
     """KeyAPI ne semble alimenter le suivi quotidien ventes/GMV (utilisé pour
     gmv_30d) que pour les comptes qu'il classe activement — confirmé en test
-    (2026-07) sur un vrai compte avec 600k€+ de GMV lifetime réel (best_sellers)
-    mais gmv_30d=0 systématique, alors que d'autres comptes classés donnent des
-    chiffres réels cohérents. Si gmv_30d=0 ET qu'il existe du GMV lifetime
-    substantiel, on marque explicitement "non fiable" plutôt que de laisser
-    afficher un 0€ qui donnerait l'illusion trompeuse de zéro vente réelle."""
-    lifetime_gmv = sum((p.get("gmv") or 0) for p in (products or []))
-    unreliable = (gmv_data.get("gmv_30d") or 0) == 0 and lifetime_gmv > 0
+    (2026-07). Si gmv_30d=0 alors que le compte a des produits en vitrine, on
+    marque "non fiable" plutôt que de laisser afficher un 0€ qui donnerait
+    l'illusion trompeuse de zéro vente réelle.
+
+    ⚠️ PAS de fallback chiffré possible : `total_sale_gmv_amt` de
+    /influencer/products/analytics est le GMV GLOBAL du produit (tous vendeurs
+    confondus), pas la part du créateur — vérifié en live 2026-07-03 :
+    @thedopeman99 "598k$" incluait 216k$ d'un produit à 1 seule vidéo, et
+    @hannaholala sommait à 3,55M$ pour ~211k$/30j réels. Le champ d'attribution
+    `total_video_sale_gmv_amt` est à 0 partout (inexploitable). On ne renvoie
+    donc AUCUN montant lifetime — juste le drapeau."""
+    unreliable = (gmv_data.get("gmv_30d") or 0) == 0 and bool(products)
     gmv_data["reliable"] = not unreliable
-    gmv_data["lifetime_gmv_fallback"] = lifetime_gmv if unreliable else None
     return gmv_data
 
 
@@ -701,12 +711,10 @@ async def get_creator_gmv_only(handle: str) -> Optional[dict]:
         gmv_data = _flag_unreliable_gmv(gmv_data, products)
     else:
         gmv_data["reliable"] = True
-        gmv_data["lifetime_gmv_fallback"] = None
     return {
         "unique_id": profile.get("unique_id"),
         "nickname": profile.get("nickname"),
         "gmv_30d": gmv_data.get("gmv_30d"),
         "sales_30d": gmv_data.get("sales_30d"),
         "reliable": gmv_data.get("reliable", True),
-        "lifetime_gmv_fallback": gmv_data.get("lifetime_gmv_fallback"),
     }
