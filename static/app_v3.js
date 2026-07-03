@@ -972,6 +972,9 @@ function fetchUserInfo() {
         if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
         const uploadAsync = document.getElementById('analyze-upload-async-btn');
         if (uploadAsync) uploadAsync.style.display = isPaid ? 'block' : 'none';
+        // Onglet « Recherche » retiré du front public — visible uniquement en admin.
+        const rechTab = document.getElementById('tab-recherche');
+        if (rechTab) rechTab.style.display = (tier === 'admin') ? 'inline-block' : 'none';
       } catch (e) {}
       return data;
     })
@@ -1005,6 +1008,21 @@ let deferredPrompt = null;
 
 // ── INITIALIZATION ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Retour d'auth Google : token passé en fragment (#gauth=…). On l'enregistre
+  // AVANT d'initialiser la session, puis on nettoie l'URL (le token ne doit pas
+  // rester visible ni dans l'historique). ?gauth=error → message d'échec.
+  try {
+    const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const gtok = h.get('gauth');
+    if (gtok) {
+      localStorage.setItem('tts_token', gtok);
+      try { localStorage.setItem('tts_email', atob(gtok.split('.')[0])); } catch (e) {}
+      history.replaceState(null, '', location.pathname + location.search);
+    } else if (new URLSearchParams(location.search).get('gauth') === 'error') {
+      setTimeout(() => { try { showToast('Connexion Google impossible. Réessaie ou utilise ton e-mail.'); } catch (e) {} }, 400);
+    }
+  } catch (e) {}
+
   // Initialize session from localStorage
   initSessionState();
 
