@@ -200,9 +200,63 @@ class CanonicalHostRedirect:
         await self.app(scope, receive, send)
 
 
+# ── En-têtes de sécurité HTTP (injectés sur TOUTES les réponses) ──────────────
+# ASGI pur (pas de BaseHTTPMiddleware) pour ne pas bufferiser le SSE (analyse vidéo,
+# Photo Slide). On n'ajoute un en-tête que s'il n'est pas déjà présent, pour laisser
+# une éventuelle route surcharger une valeur au cas par cas.
+# La CSP est volontairement PERMISSIVE au départ (autorise https:, inline, eval) afin
+# de ne rien casser sur la homepage (styles/scripts inline, Turnstile, Stripe, TikTok).
+# À durcir progressivement ensuite (retirer 'unsafe-inline'/'unsafe-eval', lister les
+# domaines précis) une fois le comportement validé en prod.
+_CSP_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+    "style-src 'self' 'unsafe-inline' https:; "
+    "img-src 'self' data: blob: https:; "
+    "font-src 'self' data: https:; "
+    "connect-src 'self' https:; "
+    "frame-src 'self' https:; "
+    "media-src 'self' blob: https:; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'self'"
+)
+_SECURITY_HEADERS = [
+    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
+    (b"content-security-policy", _CSP_POLICY.encode("latin-1")),
+    (b"x-frame-options", b"SAMEORIGIN"),
+    (b"x-content-type-options", b"nosniff"),
+    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), browsing-topics=()"),
+]
+
+
+class SecurityHeaders:
+    """Middleware ASGI pur : ajoute les 6 en-têtes de sécurité manquants à chaque réponse."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_headers(message):
+            if message.get("type") == "http.response.start":
+                headers = message.setdefault("headers", [])
+                present = {k.lower() for k, _ in headers}
+                for name, value in _SECURITY_HEADERS:
+                    if name not in present:
+                        headers.append((name, value))
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
 app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)
 app.add_middleware(CanonicalHostRedirect,
                    canonical_host=os.getenv("CANONICAL_HOST", "qeerah.com"))
+app.add_middleware(SecurityHeaders)
 app.middleware("http")(rate_limit_middleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)
@@ -219,10 +273,23 @@ def _asset_version() -> str:
 _ASSET_V = _asset_version()
 
 def _bust(html: str) -> str:
+    """Ajoute ?v=<mtime> aux assets /static/*.js|css (cache-busting) ET bascule
+    automatiquement vers la version minifiée `<name>.min.js` quand elle existe
+    (générée par build_assets.py). Si le .min.js est absent, on sert l'original :
+    la minification est donc totalement optionnelle et sans risque de casse."""
     import re
+
+    def _repl(m):
+        path = m.group(1)  # ex: /static/app_v3.js
+        if path.endswith(".js") and not path.endswith(".min.js"):
+            min_path = path[:-3] + ".min.js"
+            if (Path("static") / Path(min_path).name).exists():
+                path = min_path
+        return f"{path}?v={_ASSET_V}"
+
     return re.sub(
         r'(/static/[^"\'?\s>]+\.(?:js|css))(?=["\'\s>])',
-        lambda m: f"{m.group(1)}?v={_ASSET_V}",
+        _repl,
         html,
     )
 
@@ -406,6 +473,64 @@ async def contact(): return HTMLResponse(_CONTACT_HTML)
 
 @app.get("/about", response_class=HTMLResponse)
 async def about(): return HTMLResponse(_ABOUT_HTML)
+
+
+# ── SEO : robots.txt + sitemap.xml ────────────────────────────────────────────
+def _seo_base_url() -> str:
+    """URL canonique publique (sans slash final) pour les liens du sitemap."""
+    host = (os.getenv("CANONICAL_HOST", "qeerah.com") or "qeerah.com").strip().rstrip("/")
+    if host.startswith("http://") or host.startswith("https://"):
+        return host.rstrip("/")
+    return f"https://{host}"
+
+# Pages publiques indexables (chemin canonique unique par page).
+_SITEMAP_PATHS = [
+    "/",
+    "/app",
+    "/pricing",
+    "/pricing/compare",
+    "/credits",
+    "/temoignages",
+    "/avis",
+    "/about",
+    "/contact",
+    "/blog",
+    "/blog/histoire-tiktok-shop",
+    "/blog/createurs-millionnaires",
+    "/blog/tendances-2026",
+    "/blog/guide-complet",
+    "/privacy",
+    "/terms",
+    "/cgv",
+]
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    base = _seo_base_url()
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        # Espaces privés / techniques : inutiles pour l'indexation.
+        "Disallow: /api/\n"
+        "Disallow: /dope-admin\n"
+        f"\nSitemap: {base}/sitemap.xml\n"
+    )
+    return Response(content=body, media_type="text/plain")
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    base = _seo_base_url()
+    urls = "".join(
+        f"  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq></url>\n"
+        for p in _SITEMAP_PATHS
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{urls}"
+        "</urlset>\n"
+    )
+    return Response(content=xml, media_type="application/xml")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -676,27 +801,69 @@ async def user_info(request: Request):
         "usage": usage_info(user),
     }
 
-# 2. MODIFICATION : Génération et distribution du Token sur /register
+# Création de compte SÉCURISÉE.
+# ⚠️ CORRECTIF SÉCURITÉ : cette route délivrait auparavant un token de session valide
+# pour N'IMPORTE QUEL email, sans mot de passe ni preuve de possession de l'adresse
+# (usurpation de compte triviale). Elle exige désormais un mot de passe, hache celui-ci
+# avec bcrypt et ne renvoie un token qu'après création effective du compte — exactement
+# comme la branche « nouveau compte » de /api/login. Un CAPTCHA anti-bot (Turnstile) est
+# également exigé quand il est configuré.
 @app.post("/api/register")
 async def register(request: Request):
+    import bcrypt
+    from supabase_client import supabase_service as supabase
+    from auth import create_access_token
+
     try:
         body = await request.json()
-        email = body.get("email", "").lower().strip()
     except Exception:
         raise HTTPException(status_code=400, detail="Corps de requête invalide")
-        
+
+    email = body.get("email", "").lower().strip() if isinstance(body, dict) else ""
+    password = body.get("password", "") if isinstance(body, dict) else ""
+
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Email invalide")
+    if not password or len(password) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe min 6 caractères")
 
-    from auth import _user_tiers, set_user_tier, get_user_tier, create_access_token
+    if not supabase:
+        raise HTTPException(status_code=500, detail="BD non disponible")
+
+    # Anti-bot AVANT toute écriture / envoi d'email (no-op si Turnstile non configuré).
+    cf_token = body.get("cf_turnstile_token", "")
+    remote_ip = request.client.host if request.client else ""
+    if not await verify_turnstile(cf_token, remote_ip):
+        raise HTTPException(status_code=400, detail="Vérification anti-robot échouée. Merci de réessayer.")
+
+    # Compte déjà existant → on ne délivre pas de token (il faut passer par /api/login).
+    try:
+        existing = supabase.table("users").select("id").eq("email", email).execute()
+        if existing and existing.data:
+            raise HTTPException(status_code=409, detail="Un compte existe déjà pour cet email. Connecte-toi.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[register] vérification email existant impossible : {e}")
+        raise HTTPException(status_code=500, detail="BD non disponible")
+
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    try:
+        supabase.table("users").insert(
+            {"email": email, "tier": "free", "password": password_hash}
+        ).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
+
+    # Email de bienvenue best-effort (un échec ne bloque jamais l'inscription).
+    try:
+        from email_service import email_service
+        await email_service.send_welcome_email(email)
+    except Exception as mail_err:
+        print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
+
     token = create_access_token(email)
-    tier = get_user_tier(email)
-    
-    if tier == "free" and email not in _user_tiers:
-        set_user_tier(email, "free")
-        return {"ok": True, "email": email, "tier": "free", "created": True, "token": token}
-
-    return {"ok": True, "email": email, "tier": tier, "created": False, "token": token}
+    return {"ok": True, "email": email, "tier": "free", "created": True, "token": token}
 
 # 3. MODIFICATION : Génération et distribution du Token sur /login
 @app.post("/api/login")

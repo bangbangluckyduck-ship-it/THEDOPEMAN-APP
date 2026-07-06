@@ -76,15 +76,30 @@ class SecurityLogger:
 security_logger = SecurityLogger()
 rate_limiter    = RateLimiter(requests_per_minute=10)
 
+# Limiteur dédié aux routes d'authentification (login / register / forgot-password).
+# Plus strict que /analyze pour freiner le bruteforce de mots de passe et le spam
+# d'emails : 8 requêtes/minute/IP.
+auth_rate_limiter = RateLimiter(requests_per_minute=8)
+_AUTH_PROTECTED_PATHS = {"/api/login", "/api/register", "/api/forgot-password"}
+
 
 async def rate_limit_middleware(request: Request, call_next):
-    """Applique le rate limiting uniquement sur /analyze."""
-    if request.url.path == "/analyze":
-        ip = request.client.host if request.client else "unknown"
+    """Rate limiting : /analyze (10/min) + routes d'auth sensibles (8/min)."""
+    path = request.url.path
+    ip = request.client.host if request.client else "unknown"
+
+    if path == "/analyze":
         if not rate_limiter.is_allowed(ip):
             security_logger.rate_limit_exceeded(ip)
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Trop de requêtes. Attends 1 minute avant de réessayer."},
+            )
+    elif path in _AUTH_PROTECTED_PATHS:
+        if not auth_rate_limiter.is_allowed(ip):
+            security_logger.rate_limit_exceeded(ip)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Trop de tentatives. Attends 1 minute avant de réessayer."},
             )
     return await call_next(request)
