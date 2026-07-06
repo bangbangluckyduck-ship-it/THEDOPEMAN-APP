@@ -223,7 +223,10 @@ _CSP_POLICY = (
 )
 _SECURITY_HEADERS = [
     (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
-    (b"content-security-policy", _CSP_POLICY.encode("latin-1")),
+    # Temporairement en Report-Only (n'bloque RIEN, remonte juste les violations)
+    # le temps de confirmer qu'aucune intégration (Google login, etc.) n'est cassée.
+    # Repasser à "content-security-policy" (bloquant) une fois validé en navigateur.
+    (b"content-security-policy-report-only", _CSP_POLICY.encode("latin-1")),
     (b"x-frame-options", b"SAMEORIGIN"),
     (b"x-content-type-options", b"nosniff"),
     (b"referrer-policy", b"strict-origin-when-cross-origin"),
@@ -273,23 +276,13 @@ def _asset_version() -> str:
 _ASSET_V = _asset_version()
 
 def _bust(html: str) -> str:
-    """Ajoute ?v=<mtime> aux assets /static/*.js|css (cache-busting) ET bascule
-    automatiquement vers la version minifiée `<name>.min.js` quand elle existe
-    (générée par build_assets.py). Si le .min.js est absent, on sert l'original :
-    la minification est donc totalement optionnelle et sans risque de casse."""
+    # NOTE (rollback point 6) : le basculement automatique vers les .min.js a été
+    # temporairement retiré (suspicion de régression sur /app). On sert de nouveau
+    # les fichiers .js d'origine. À réintroduire après validation en navigateur.
     import re
-
-    def _repl(m):
-        path = m.group(1)  # ex: /static/app_v3.js
-        if path.endswith(".js") and not path.endswith(".min.js"):
-            min_path = path[:-3] + ".min.js"
-            if (Path("static") / Path(min_path).name).exists():
-                path = min_path
-        return f"{path}?v={_ASSET_V}"
-
     return re.sub(
         r'(/static/[^"\'?\s>]+\.(?:js|css))(?=["\'\s>])',
-        _repl,
+        lambda m: f"{m.group(1)}?v={_ASSET_V}",
         html,
     )
 
