@@ -2221,6 +2221,57 @@
   </div>
 </div>
 
+<!-- LOGIN OVERLAY — accès /app réservé aux membres connectés.
+     Restaure le verrou « login obligatoire » (l'élément avait disparu de la page,
+     le JS le cherchait dans le vide). Écran de connexion plein écran, bloquant,
+     autonome (z-index au-dessus de toute l'app pour éviter les conflits d'empilement).
+     Affiché/masqué par updateSessionUI() ; un mini-script inline le montre immédiatement
+     si aucun token n'est présent (fail-closed, sans clignotement pour les connectés). -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:10050;background:linear-gradient(160deg,#0b1220,#111a2e);align-items:center;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:var(--surface,#fff);border-radius:20px;padding:30px 26px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.35)">
+    <div style="text-align:center;margin-bottom:22px">
+      <img src="/static/qeerah-logo.png" alt="Qeerah" style="width:56px;height:56px;border-radius:14px;object-fit:contain;margin-bottom:12px">
+      <h2 style="font-size:21px;font-weight:800;color:var(--text,#0b1220);margin:0">Connecte-toi pour accéder à l'app</h2>
+      <p style="font-size:14px;color:var(--muted,#6b7280);margin-top:6px">Ton espace Qeerah est réservé aux membres. Les essais gratuits, eux, se font sur la page d'accueil.</p>
+    </div>
+    <button type="button" onclick="window.location.href='/api/auth/google/login'"
+            style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continuer avec Google
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--muted,#6b7280);font-size:12px">
+      <span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>ou par e-mail<span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>
+    </div>
+    <form onsubmit="submitLoginOverlay(event)">
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)">Adresse e-mail</label>
+        <input type="email" id="lo-email" placeholder="toi@exemple.com" required autocomplete="email"
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:15px;outline:none;background:var(--bg,#fff)">
+      </div>
+      <div style="margin-bottom:6px">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)">Mot de passe</label>
+        <input type="password" id="lo-password" placeholder="Min. 6 caractères" required minlength="6" autocomplete="current-password"
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:15px;outline:none;background:var(--bg,#fff)">
+      </div>
+      <div style="text-align:right;margin:8px 0 14px">
+        <a href="/" style="font-size:12px;color:var(--muted,#6b7280)">Mot de passe oublié ? (page d'accueil)</a>
+      </div>
+      <button type="submit" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy,#0b1220),var(--accent,#6d5efc));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Se connecter / Créer mon compte</button>
+    </form>
+    <p style="font-size:12px;color:var(--muted,#6b7280);margin-top:14px;text-align:center;line-height:1.5">Pas encore de compte ? Entre ton e-mail et un mot de passe : ton compte est créé automatiquement.</p>
+  </div>
+</div>
+<script>
+  // Fail-closed : montre l'écran de connexion tout de suite si aucun token n'est
+  // présent, SAUF pendant le retour d'auth Google (#gauth=…) où le JS principal va
+  // enregistrer le token puis masquer l'overlay via updateSessionUI().
+  (function(){try{
+    if(!localStorage.getItem('tts_token') && (String(location.hash||'').indexOf('gauth')===-1)){
+      var o=document.getElementById('login-overlay'); if(o){ o.style.display='flex'; }
+    }
+  }catch(e){}})();
+</script>
+
 <!-- AUTH MODAL -->
 <div class="modal" id="auth-modal">
   <div class="modal-content">

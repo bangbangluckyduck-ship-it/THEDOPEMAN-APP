@@ -3966,6 +3966,38 @@ async function handleAuthSubmit(event) {
   }
 }
 
+// Connexion depuis l'écran de garde #login-overlay (accès /app réservé aux membres).
+// Réplique la logique éprouvée de handleAuthSubmit ; saveSession() met à jour l'UI et
+// masque l'overlay (updateSessionUI passe en état « connecté »).
+async function submitLoginOverlay(event) {
+  event.preventDefault();
+  const emailEl = document.getElementById('lo-email');
+  const pwdEl = document.getElementById('lo-password');
+  const email = (emailEl?.value || '').trim().toLowerCase();
+  const password = (pwdEl?.value || '').trim();
+  if (!email || !password) { showToast('Veuillez remplir tous les champs'); return; }
+  try {
+    const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
+      ? (window.turnstile.getResponse() || '') : '';
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      showToast('❌ ' + (error.detail || 'Erreur connexion'));
+      return;
+    }
+    const data = await response.json();
+    saveSession(email, email, data.token); // met à jour l'UI et masque #login-overlay
+    if (emailEl) emailEl.value = '';
+    if (pwdEl) pwdEl.value = '';
+  } catch (err) {
+    showToast('❌ Erreur: ' + err.message);
+  }
+}
+
 // ── ADMIN ────────────────────────────────────────────────────
 // Le back-office d'administration est désormais isolé sur la route /dope-admin
 // (template templates/dope_admin.html + static/admin.js). Aucune logique admin
