@@ -15,15 +15,15 @@ import bcrypt
 
 # Initialize Supabase with env vars
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ SUPABASE_URL or SUPABASE_KEY not configured")
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    print("❌ SUPABASE_URL or SUPABASE_ANON_KEY not configured")
     print(f"   SUPABASE_URL: {bool(SUPABASE_URL)}")
-    print(f"   SUPABASE_KEY: {bool(SUPABASE_KEY)}")
+    print(f"   SUPABASE_ANON_KEY: {bool(SUPABASE_ANON_KEY)}")
     sys.exit(1)
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # Bot definitions
 BOTS = {

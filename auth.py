@@ -38,8 +38,18 @@ except (ImportError, Exception):
     SUPABASE_ENABLED = False
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").lower().strip()
-# Clé secrète pour signer les tokens (utilise la clé Supabase ou un fallback)
-SECRET_KEY = os.getenv("SUPABASE_ANON_KEY", "fallback-secret-for-dev-only").encode()
+# Clé secrète pour signer les tokens de session (HMAC).
+# Aucune valeur par défaut : un secret par défaut connu permettrait à quiconque de
+# forger des tokens valides. Si la variable n'est pas configurée, l'app refuse de
+# démarrer (fail-fast au boot) plutôt que de tourner avec un secret prévisible.
+_SECRET_KEY_RAW = os.getenv("SUPABASE_ANON_KEY", "").strip()
+if not _SECRET_KEY_RAW:
+    raise RuntimeError(
+        "SUPABASE_ANON_KEY manquant : cette variable sert de secret de signature des "
+        "tokens de session. Configure-la dans l'environnement (.env / Render) avant de "
+        "démarrer l'application. Aucun secret par défaut n'est autorisé."
+    )
+SECRET_KEY = _SECRET_KEY_RAW.encode()
 
 # ── CONFIGURATION DES TIERS ───────────────────────────────────
 TIER_CONFIG: dict[str, dict] = {
