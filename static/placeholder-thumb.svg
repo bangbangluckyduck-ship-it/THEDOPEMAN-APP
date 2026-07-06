@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="270" height="480" viewBox="0 0 270 480">
+  <rect width="270" height="480" fill="#f1f3f5"/>
+  <g fill="#c4c9d1">
+    <circle cx="135" cy="210" r="46"/>
+    <path d="M120 190v40l34-20z" fill="#f1f3f5"/>
+  </g>
+  <text x="135" y="300" font-family="system-ui,-apple-system,sans-serif" font-size="16" fill="#9aa1ad" text-anchor="middle">Aperçu indisponible</text>
+</svg>
