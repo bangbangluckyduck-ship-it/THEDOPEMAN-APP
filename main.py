@@ -204,29 +204,29 @@ class CanonicalHostRedirect:
 # ASGI pur (pas de BaseHTTPMiddleware) pour ne pas bufferiser le SSE (analyse vidéo,
 # Photo Slide). On n'ajoute un en-tête que s'il n'est pas déjà présent, pour laisser
 # une éventuelle route surcharger une valeur au cas par cas.
-# La CSP est volontairement PERMISSIVE au départ (autorise https:, inline, eval) afin
-# de ne rien casser sur la homepage (styles/scripts inline, Turnstile, Stripe, TikTok).
-# À durcir progressivement ensuite (retirer 'unsafe-inline'/'unsafe-eval', lister les
-# domaines précis) une fois le comportement validé en prod.
+# CSP permissive mais ACTIVE (bloquante). Autorise https:, l'inline, eval et blob:
+# (couvre styles/scripts inline, Turnstile, Stripe, TikTok, cdnjs, gtag, workers/exports
+# blob:) tout en bloquant le http://, les objets et l'inclusion en iframe tierce.
+# Durcissement futur : retirer 'unsafe-inline'/'unsafe-eval' + lister les domaines.
 _CSP_POLICY = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; "
     "style-src 'self' 'unsafe-inline' https:; "
     "img-src 'self' data: blob: https:; "
     "font-src 'self' data: https:; "
     "connect-src 'self' https:; "
     "frame-src 'self' https:; "
     "media-src 'self' blob: https:; "
+    "worker-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "frame-ancestors 'self'"
 )
 _SECURITY_HEADERS = [
     (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
-    # Temporairement en Report-Only (n'bloque RIEN, remonte juste les violations)
-    # le temps de confirmer qu'aucune intégration (Google login, etc.) n'est cassée.
-    # Repasser à "content-security-policy" (bloquant) une fois validé en navigateur.
-    (b"content-security-policy-report-only", _CSP_POLICY.encode("latin-1")),
+    # CSP BLOQUANTE. Pour diagnostiquer sans bloquer, repasser temporairement en
+    # "content-security-policy-report-only".
+    (b"content-security-policy", _CSP_POLICY.encode("latin-1")),
     (b"x-frame-options", b"SAMEORIGIN"),
     (b"x-content-type-options", b"nosniff"),
     (b"referrer-policy", b"strict-origin-when-cross-origin"),
