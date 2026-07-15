@@ -2812,6 +2812,72 @@ async def feed_radar_video_embed(request: Request, video_id: str):
     return {"ok": True, **r.data[0]}
 
 
+# ── Vignettes Feed Radar : re-résolution des thumbnails TikTok expirés ────────
+# Les URLs de vignette oEmbed de TikTok sont signées et EXPIRENT (quelques heures) →
+# stocker une URL stable est impossible, d'où les vignettes grises. Cet endpoint
+# re-résout une vignette FRAÎCHE via l'API oEmbed officielle (à partir du video_url
+# qu'on a déjà stocké), sert l'image (cache mémoire + TTL), et retombe sur le
+# placeholder local en cas d'échec. Public (une balise <img> n'envoie pas de header
+# Authorization) MAIS borné aux vidéos de notre table → aucun proxy ouvert / SSRF.
+_FEED_THUMB_CACHE: "dict[str, tuple[bytes, str, float]]" = {}   # video_id -> (bytes, ct, monotonic)
+_FEED_THUMB_TTL = 2 * 60 * 60          # 2h (< durée de validité d'une URL signée TikTok)
+_FEED_THUMB_CACHE_MAX = 600
+
+@app.get("/api/feed-radar/{video_id}/thumb", include_in_schema=False)
+async def feed_radar_thumb(video_id: str):
+    import time as _t
+    now = _t.monotonic()
+    cached = _FEED_THUMB_CACHE.get(video_id)
+    if cached and (now - cached[2]) < _FEED_THUMB_TTL:
+        return Response(content=cached[0], media_type=cached[1],
+                        headers={"Cache-Control": "public, max-age=3600"})
+
+    # 1) Retrouver le video_url stocké (borne l'endpoint à NOS vidéos → pas de SSRF).
+    video_url = None
+    try:
+        r = (supabase_client.table("feed_radar_videos")
+             .select("video_url").eq("video_id", video_id).limit(1).execute())
+        if r.data:
+            video_url = r.data[0].get("video_url")
+    except Exception:
+        video_url = None
+    if not video_url:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+
+    # 2) Re-résoudre une vignette fraîche via oEmbed officiel TikTok.
+    try:
+        import feed_radar
+        oe = await feed_radar.fetch_oembed(video_url)
+        thumb_url = (oe or {}).get("thumbnail_url")
+    except Exception:
+        thumb_url = None
+    if not thumb_url:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+
+    # 3) Télécharger l'image côté serveur (sans Referer, comme /api/img-proxy).
+    try:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            ir = await client.get(thumb_url, headers={
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+                "Referer": "",
+            })
+        if not ir.is_success or "image" not in ir.headers.get("content-type", ""):
+            return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+        content = ir.content
+        ct = ir.headers.get("content-type", "image/jpeg")
+    except Exception:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+
+    # 4) Cache mémoire (éviction FIFO simple).
+    if content and len(content) <= _IMG_CACHE_ITEM_MAX:
+        while _FEED_THUMB_CACHE and len(_FEED_THUMB_CACHE) >= _FEED_THUMB_CACHE_MAX:
+            try: _FEED_THUMB_CACHE.pop(next(iter(_FEED_THUMB_CACHE)))
+            except Exception: _FEED_THUMB_CACHE.clear()
+        _FEED_THUMB_CACHE[video_id] = (content, ct, now)
+    return Response(content=content, media_type=ct,
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/api/feed-radar/teaser")
 async def feed_radar_teaser(region: Optional[str] = Query(None)):
     """3 vidéos top pour la homepage publique. Pas d'auth. Cache 6h.
