@@ -829,6 +829,30 @@ async function startCheckout(plan) {
   }
 }
 
+// Retour depuis Stripe Checkout.
+// ⚠️ Correctif d'un bug PRÉ-EXISTANT : cette fonction était appelée à l'init
+// (DOMContentLoaded, ~ligne 1040) mais n'avait jamais été définie → ReferenceError
+// qui interrompait la fin de l'initialisation (pricing dynamique, indicateur de
+// crédits, graphe de progression, PWA). Implémentation défensive, sans toucher au
+// backend Stripe : nettoie l'éventuel paramètre ?checkout=… et rafraîchit l'UI.
+function handleCheckoutReturn() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const co = params.get('checkout');
+    if (!co) return;
+    params.delete('checkout');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    if (co === 'success') {
+      try { showToast('✅ Paiement confirmé, merci !'); } catch (e) {}
+      try { fetchUserInfo(); } catch (e) {}
+      try { updateCreditIndicator(); } catch (e) {}
+    } else if (co === 'cancel') {
+      try { showToast('Paiement annulé — aucun montant débité.'); } catch (e) {}
+    }
+  } catch (e) { /* jamais bloquant pour l'init */ }
+}
+
 // Show auth menu (account dropdown)
 function showAuthMenu(e) {
   e?.stopPropagation?.();
