@@ -204,32 +204,29 @@ class CanonicalHostRedirect:
 # ASGI pur (pas de BaseHTTPMiddleware) pour ne pas bufferiser le SSE (analyse vidéo,
 # Photo Slide). On n'ajoute un en-tête que s'il n'est pas déjà présent, pour laisser
 # une éventuelle route surcharger une valeur au cas par cas.
-# CSP permissive mais ACTIVE (bloquante). Elle autorise https:, l'inline et eval —
-# ce qui couvre styles/scripts inline, Turnstile, Stripe, TikTok, cdnjs, gtag — tout
-# en bloquant le http:, les objets, et l'inclusion en iframe tierce. `blob:` est
-# autorisé pour les scripts/workers/téléchargements générés côté client (exports).
-# Durcissement futur possible : retirer 'unsafe-inline'/'unsafe-eval' et lister les
-# domaines précis (nécessite de passer les handlers inline en addEventListener).
+# La CSP est volontairement PERMISSIVE au départ (autorise https:, inline, eval) afin
+# de ne rien casser sur la homepage (styles/scripts inline, Turnstile, Stripe, TikTok).
+# À durcir progressivement ensuite (retirer 'unsafe-inline'/'unsafe-eval', lister les
+# domaines précis) une fois le comportement validé en prod.
 _CSP_POLICY = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
     "style-src 'self' 'unsafe-inline' https:; "
     "img-src 'self' data: blob: https:; "
     "font-src 'self' data: https:; "
     "connect-src 'self' https:; "
     "frame-src 'self' https:; "
     "media-src 'self' blob: https:; "
-    "worker-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "frame-ancestors 'self'"
 )
 _SECURITY_HEADERS = [
     (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
-    # CSP bloquante (validée en navigateur : Google login, homepage, /app OK).
-    # Pour diagnostiquer sans bloquer, repasser temporairement en
-    # "content-security-policy-report-only".
-    (b"content-security-policy", _CSP_POLICY.encode("latin-1")),
+    # Temporairement en Report-Only (n'bloque RIEN, remonte juste les violations)
+    # le temps de confirmer qu'aucune intégration (Google login, etc.) n'est cassée.
+    # Repasser à "content-security-policy" (bloquant) une fois validé en navigateur.
+    (b"content-security-policy-report-only", _CSP_POLICY.encode("latin-1")),
     (b"x-frame-options", b"SAMEORIGIN"),
     (b"x-content-type-options", b"nosniff"),
     (b"referrer-policy", b"strict-origin-when-cross-origin"),
@@ -279,23 +276,13 @@ def _asset_version() -> str:
 _ASSET_V = _asset_version()
 
 def _bust(html: str) -> str:
-    """Ajoute ?v=<mtime> aux assets /static/*.js|css (cache-busting) ET bascule
-    automatiquement vers la version minifiée `<name>.min.js` quand elle existe
-    (générée par build_assets.py). Si le .min.js est absent, on sert l'original :
-    la minification est donc optionnelle et sans risque de casse (fallback)."""
+    # NOTE (rollback point 6) : le basculement automatique vers les .min.js a été
+    # temporairement retiré (suspicion de régression sur /app). On sert de nouveau
+    # les fichiers .js d'origine. À réintroduire après validation en navigateur.
     import re
-
-    def _repl(m):
-        path = m.group(1)  # ex: /static/app_v3.js
-        if path.endswith(".js") and not path.endswith(".min.js"):
-            min_path = path[:-3] + ".min.js"
-            if (Path("static") / Path(min_path).name).exists():
-                path = min_path
-        return f"{path}?v={_ASSET_V}"
-
     return re.sub(
         r'(/static/[^"\'?\s>]+\.(?:js|css))(?=["\'\s>])',
-        _repl,
+        lambda m: f"{m.group(1)}?v={_ASSET_V}",
         html,
     )
 
