@@ -234,8 +234,30 @@ _SECURITY_HEADERS = [
 ]
 
 
+# Extensions cache pour lesquelles un cache long+immutable est sûr sur /static.
+_STATIC_LONG_CACHE_EXT = (".js", ".css", ".png", ".jpg", ".jpeg", ".webp",
+                          ".avif", ".svg", ".ico", ".gif", ".woff", ".woff2")
+
+
+def _static_cache_control(path: str, query: bytes) -> "bytes | None":
+    """Politique de cache pour /static :
+      - sw.js (service worker) → no-cache (doit toujours revalider pour se mettre à jour).
+      - assets versionnés (?v=…) ou fichiers immuables (js/css/images/fonts) → 1 an immutable.
+        Sûr car les JS/CSS sont cache-bustés par ?v=<mtime> (nouvelle version = nouvelle URL)
+        et les images optimisées portent un nom de fichier dédié.
+      - le reste → 1h."""
+    if not path.startswith("/static/"):
+        return None
+    if path.endswith("/sw.js"):
+        return b"no-cache"
+    if (b"v=" in query) or path.endswith(_STATIC_LONG_CACHE_EXT):
+        return b"public, max-age=31536000, immutable"
+    return b"public, max-age=3600"
+
+
 class SecurityHeaders:
-    """Middleware ASGI pur : ajoute les 6 en-têtes de sécurité manquants à chaque réponse."""
+    """Middleware ASGI pur : ajoute les 6 en-têtes de sécurité manquants à chaque
+    réponse, et pose un Cache-Control agressif sur les assets /static (perf)."""
     def __init__(self, app):
         self.app = app
 
@@ -244,6 +266,9 @@ class SecurityHeaders:
             await self.app(scope, receive, send)
             return
 
+        cache_value = _static_cache_control(scope.get("path") or "",
+                                            scope.get("query_string") or b"")
+
         async def send_with_headers(message):
             if message.get("type") == "http.response.start":
                 headers = message.setdefault("headers", [])
@@ -251,6 +276,10 @@ class SecurityHeaders:
                 for name, value in _SECURITY_HEADERS:
                     if name not in present:
                         headers.append((name, value))
+                if cache_value is not None:
+                    # On REMPLACE le Cache-Control (StaticFiles n'en pose pas de long).
+                    headers[:] = [(k, v) for (k, v) in headers if k.lower() != b"cache-control"]
+                    headers.append((b"cache-control", cache_value))
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
