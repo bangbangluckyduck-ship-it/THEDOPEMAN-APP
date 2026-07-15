@@ -32,45 +32,45 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import set_user_tier, get_customer_id, revoke_by_customer
+from feature_flags import is_enabled
 
 router = APIRouter(tags=["stripe"])
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
-# Dates de transition tarifaire
-_PRO_999_END    = _date(2026, 8, 20)   # PRO passe à 11,99 €
-_PRO_1199_END   = _date(2026, 9, 16)   # PRO passe à 12,99 €
-_GOLD_PROMO_END = _date(2026, 10, 15)  # GOLD passe à 99 €
-
-# Prix PRO progressifs
-_PRO_999  = {"month": os.getenv("STRIPE_PRICE_PRO_999", ""),  "year": os.getenv("STRIPE_PRICE_PRO_999_YEAR", "")}
-_PRO_1199 = {"month": os.getenv("STRIPE_PRICE_PRO_1199", ""), "year": os.getenv("STRIPE_PRICE_PRO_1199_YEAR", "")}
-_PRO      = {"month": os.getenv("STRIPE_PRICE_PRO", ""),      "year": os.getenv("STRIPE_PRICE_PRO_YEAR", "")}
-
-# Prix GOLD lancement puis normal
-_GOLD_LAUNCH = {"month": os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),      "year": os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", "")}
-_GOLD        = {"month": os.getenv("STRIPE_PRICE_GOLD", ""),              "year": os.getenv("STRIPE_PRICE_GOLD_YEAR", "")}
-
-# AGENCY (prix fixe)
-_AGENCY = {"month": os.getenv("STRIPE_PRICE_AGENCY", ""), "year": os.getenv("STRIPE_PRICE_AGENCY_YEAR", "")}
+# Lancement progressif par PALIERS DE PRIX (roadmap feature_flags.py) :
+# PRO 9,99€ → 11,99€ → 12,99€ ; GOLD 79€ (launch) → 99€ (normal).
+_PRO_999    = {"month": os.getenv("STRIPE_PRICE_PRO_999", ""),         "year": os.getenv("STRIPE_PRICE_PRO_999_YEAR", "")}
+_PRO_1199   = {"month": os.getenv("STRIPE_PRICE_PRO_1199", ""),        "year": os.getenv("STRIPE_PRICE_PRO_1199_YEAR", "")}
+_PRO        = {"month": os.getenv("STRIPE_PRICE_PRO", ""),             "year": os.getenv("STRIPE_PRICE_PRO_YEAR", "")}
+_GOLD_LAUNCH = {"month": os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),    "year": os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", "")}
+_GOLD       = {"month": os.getenv("STRIPE_PRICE_GOLD", ""),            "year": os.getenv("STRIPE_PRICE_GOLD_YEAR", "")}
+_AGENCY     = {"month": os.getenv("STRIPE_PRICE_AGENCY", ""),          "year": os.getenv("STRIPE_PRICE_AGENCY_YEAR", "")}
 
 
 def get_price_id(plan: str, billing: str = "month") -> str:
-    """Retourne le price_id Stripe selon le plan, la période et la date du jour."""
+    """Retourne le price_id Stripe selon le plan, la période (mois/an) et le
+    palier de prix en vigueur aujourd'hui (roadmap feature_flags.py)."""
     b = "year" if (billing or "month").lower().startswith("year") else "month"
-    today = _date.today()
 
     if plan == "pro":
-        if today < _PRO_999_END:
-            return _PRO_999[b]
-        elif today < _PRO_1199_END:
-            return _PRO_1199[b]
+        if is_enabled("pro_price_12_99"):
+            tier = _PRO
+        elif is_enabled("pro_price_11_99"):
+            tier = _PRO_1199
         else:
-            return _PRO[b]
-    elif plan == "gold":
-        return _GOLD_LAUNCH[b] if today < _GOLD_PROMO_END else _GOLD[b]
-    elif plan == "agency":
-        return _AGENCY[b]
+            tier = _PRO_999
+        # Filet de sécurité : si le palier courant n'a pas de price_id configuré,
+        # on retombe sur le prix final (toujours censé être configuré).
+        return tier.get(b, "") or _PRO.get(b, "")
+
+    if plan == "gold":
+        tier = _GOLD if is_enabled("gold_price_normal") else _GOLD_LAUNCH
+        return tier.get(b, "") or _GOLD.get(b, "")
+
+    if plan == "agency":
+        return _AGENCY.get(b, "")
+
     return ""
 
 
@@ -106,23 +106,40 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
 
     base = str(request.base_url).rstrip("/")
 
+    params: dict = {
+        "mode":         "subscription",
+        "line_items":   [{"price": price_id, "quantity": 1}],
+        "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url":   f"{base}/?checkout=cancel",
+        "metadata":     {"plan": body.plan, "billing": billing},
+    }
+    if body.email:
+        params["customer_email"] = body.email
+
+    # Promo de lancement (variante B) : si STRIPE_LAUNCH_COUPON est défini, la remise
+    # est appliquée AUTOMATIQUEMENT (le client ne tape rien). Sinon, on autorise la
+    # saisie d'un code promo. Stripe interdit d'avoir les deux à la fois.
+    coupon = os.getenv("STRIPE_LAUNCH_COUPON", "").strip()
+    if coupon:
+        params["discounts"] = [{"coupon": coupon}]
+    else:
+        params["allow_promotion_codes"] = True
+
     try:
-        params: dict = {
-            "mode":         "subscription",
-            "line_items":   [{"price": price_id, "quantity": 1}],
-            "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-            "cancel_url":   f"{base}/?checkout=cancel",
-            "metadata":     {"plan": body.plan, "billing": billing},
-            "allow_promotion_codes": True,
-        }
-        if body.email:
-            params["customer_email"] = body.email
-
         session = stripe.checkout.Session.create(**params)
-        return {"url": session.url}
-
     except stripe.error.StripeError as e:
-        raise HTTPException(500, detail=str(e.user_message or e))
+        # Coupon expiré/invalide → on ne bloque JAMAIS le paiement : on retente au
+        # plein tarif (avec saisie de code promo possible).
+        if params.get("discounts"):
+            params.pop("discounts", None)
+            params["allow_promotion_codes"] = True
+            try:
+                session = stripe.checkout.Session.create(**params)
+            except stripe.error.StripeError as e2:
+                raise HTTPException(500, detail=str(e2.user_message or e2))
+        else:
+            raise HTTPException(500, detail=str(e.user_message or e))
+    return {"url": session.url}
 
 
 # ── CUSTOMER PORTAL ───────────────────────────────────────────

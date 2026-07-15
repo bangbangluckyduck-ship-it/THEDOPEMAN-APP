@@ -27,6 +27,7 @@ ROADMAP: dict[str, date] = {
     "pro_price_11_99":  date(2026, 8, 20),   # PRO → 11,99 €
     "pro_price_12_99":  date(2026, 9, 16),   # PRO → 12,99 € (prix final)
     "gold_available":   date(2026, 9, 16),
+    "gold_price_normal": date(2026, 10, 15),  # GOLD launch (79€) → prix normal (99€)
     "agency_available": date(2026, 9, 16),
     "ltd_available":    date(2026, 10, 15),
 }
