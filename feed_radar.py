@@ -7,11 +7,19 @@ Découverte CRÉATEUR-CENTRIQUE (pas d'endpoint "vidéos tendance" générique) 
 top créateurs (ranking déjà utilisé par market_creators.get_top_creators) →
 leurs vidéos (/influencer/videos) → filtre vues.
 
-GMV et tendance au niveau CRÉATEUR, pas vidéo : les endpoints KeyAPI
-vidéo→produit (video/products/analytics) et vidéo→trend (video/trends/analytics)
-renvoient systématiquement vide en pratique (testé sur 10 vraies vidéos,
-dont une explicitement shop-taguée) — confirmé en direct, pas une supposition.
-Le GMV par vidéo est donc un CALCUL, jamais une donnée API brute :
+GMV RÉEL par vidéo (depuis mi-2026) via /video/detail/analytics (batché,
+≤10 video_ids/appel) : KeyAPI a corrigé le champ total_video_sale_gmv_amt,
+qui renvoyait systématiquement 0 auparavant (confirmé mort sur ~10 vraies
+vidéos testées avant correction) — il renvoie désormais du réel, confirmé en
+direct sur un compte FR (@thedopeman99, GMV non-nul). Ce même appel fournit
+aussi les IDs produits tagués (video_products, nouvelle donnée) et le flag
+is_ad. Les endpoints /video/products/analytics et /video/trends/analytics,
+eux, restent non testés/inutilisés depuis cette correction — ne pas supposer
+qu'ils marchent aussi.
+
+Quand le GMV réel n'est pas disponible pour une vidéo (échec KeyAPI ponctuel,
+vidéo absente du batch), fallback sur l'ancien CALCUL (jamais une donnée API
+brute, toujours labellisé "GMV estimé" côté UI) :
 
     GMV_estimé = vues × CTOR (taux de conversion) × prix moyen des produits
                  vendus par le créateur
@@ -21,7 +29,7 @@ réelles fournies par Aimeric, juin 2026) : pour les vidéos ≥ ~100k vues
 (la population exacte de Feed Radar), le ratio articles-vendus/vues tourne
 autour de 0.03-0.06%, moyenne ≈ 0.04% — PAS 1-2% comme un CTOR "clic→achat"
 classique le laisserait penser (la quasi-totalité des vues ne cliquent
-jamais). Toujours labellisé "GMV estimé" côté UI (jamais "GMV" nu).
+jamais).
 
 Volumes amplifiés le 2026-07-02 (crédits KeyAPI à écouler avant expiration) :
 seuil de vues abaissé (50k), 7 passes de découverte par région (6 catégories
@@ -68,9 +76,10 @@ _TIKTOK_OEMBED_URL = "https://www.tiktok.com/oembed"
 
 def estimate_video_gmv(views: int, avg_product_price: float,
                        ctor: float = FEED_RADAR_DEFAULT_CTOR) -> float:
-    """GMV_estimé = vues × CTOR × prix moyen produit. Aucune donnée API réelle
-    de conversion par vidéo n'étant exposée par KeyAPI, c'est un calcul
-    indicatif — toujours affiché "GMV estimé" côté UI."""
+    """GMV_estimé = vues × CTOR × prix moyen produit — calcul de FALLBACK utilisé
+    uniquement quand le GMV réel (/video/detail/analytics, cf. get_videos_detail
+    dans market_creators.py) n'est pas disponible pour cette vidéo. Toujours
+    affiché "GMV estimé" côté UI, jamais confondu avec le réel."""
     if not views or not avg_product_price:
         return 0.0
     orders_estimated = views * ctor
@@ -204,6 +213,14 @@ async def _collect_region(region: str, supabase) -> dict:
     new_count = 0
     updated_count = 0
 
+    # GMV/ventes RÉELS par vidéo (endpoint KeyAPI corrigé mi-2026, confirmé non-zéro en live).
+    # Batché en un seul passage sur tous les candidats de la région avant la boucle principale.
+    try:
+        detail_map = await mc.get_videos_detail([c["id"] for c in candidates if c.get("id")])
+    except Exception as e:
+        print(f"_collect_region({region}) get_videos_detail error: {e}")
+        detail_map = {}
+
     # Vidéos déjà connues (pour éviter un re-fetch oEmbed inutile).
     existing_ids: set = set()
     try:
@@ -254,6 +271,17 @@ async def _collect_region(region: str, supabase) -> dict:
         if ctx["gmv_30d"]:
             gmv_estimated = min(gmv_estimated, ctx["gmv_30d"])
 
+        # GMV réel si disponible pour cette vidéo (endpoint /video/detail/analytics), sinon
+        # fallback sur l'estimation CTOR ci-dessus. Un gmv_real=0 avec detail présent reste
+        # "real_attribution" (zéro réel ≠ donnée indisponible) — seule l'ABSENCE de la vidéo
+        # dans detail_map déclenche le fallback.
+        detail = detail_map.get(str(video_id))
+        gmv_source = "real_attribution" if detail is not None else "calculated_ctor"
+        gmv_real = detail["gmv_real"] if detail is not None else None
+        sales_real = detail["sales_real"] if detail is not None else None
+        video_products = detail["video_products"] if detail is not None else []
+        is_ad = detail["is_ad"] if detail is not None else False
+
         row = {
             "video_id": video_id,
             "video_url": v.get("url"),
@@ -272,6 +300,11 @@ async def _collect_region(region: str, supabase) -> dict:
             "ctor_used": FEED_RADAR_DEFAULT_CTOR,
             "avg_product_price": ctx["avg_price"],
             "view_threshold_used": FEED_RADAR_VIEW_THRESHOLD,
+            "gmv_real": gmv_real,
+            "sales_real": sales_real,
+            "gmv_source": gmv_source,
+            "video_products": video_products,
+            "is_ad": is_ad,
         }
 
         if is_new:
@@ -289,11 +322,14 @@ async def _collect_region(region: str, supabase) -> dict:
         try:
             supabase.table("feed_radar_videos").upsert(row, on_conflict="video_id").execute()
         except Exception as e:
-            # Migration carrousel pas encore appliquée → retente sans les nouvelles
-            # colonnes pour ne pas perdre la ligne (le flag carrousel sera renseigné
-            # à la prochaine collecte, une fois la migration passée).
+            # Migration(s) pas encore appliquée(s) → retente sans les colonnes récentes pour
+            # ne pas perdre la ligne (les colonnes manquantes seront renseignées à la
+            # prochaine collecte, une fois la migration passée).
             try:
-                row2 = {k: v for k, v in row.items() if k not in ("is_carousel", "image_count")}
+                row2 = {k: v for k, v in row.items() if k not in (
+                    "is_carousel", "image_count",
+                    "gmv_real", "sales_real", "gmv_source", "video_products", "is_ad",
+                )}
                 supabase.table("feed_radar_videos").upsert(row2, on_conflict="video_id").execute()
             except Exception as e2:
                 print(f"_collect_region({region}) upsert error ({video_id}): {e2}")

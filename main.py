@@ -2497,8 +2497,10 @@ _MARKET_PREMIUM_TIERS = {"gold", "agency", "beta", "admin"}
 
 # Version du cache marché : on l'incrémente pour invalider TOUTES les entrées d'un
 # coup quand la logique KeyAPI change (params, filtres…). v2 = filtre category_id +
-# product_rank_field + ventes période + avatars echosell.
-_MARKET_CACHE_VER = "v2"
+# product_rank_field + ventes période + avatars echosell. v3 = attribution vidéo réelle
+# (Recherche) + momentum produit/catégorie (Créateurs Gagnants) — nouveaux champs dans
+# les payloads catov::/recherche::.
+_MARKET_CACHE_VER = "v3"
 
 
 def _market_cache_get(key: str):
@@ -2585,6 +2587,33 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
                 "products": (ov.get("products") or [])[:2]}
     return {"ok": True, "preview": False,
             "creators": ov.get("creators") or [], "products": ov.get("products") or []}
+
+
+@app.get("/api/market/category-momentum")
+async def market_category_momentum(request: Request, region: str = Query("US")):
+    """Momentum GMV 7j par catégorie (endpoint category/trend/analytics) — signal
+    "quelle catégorie explose en ce moment" pour l'onglet Créateurs Gagnants.
+    Gold/Agency = complet ; free/pro = aperçu partiel (preview=True)."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+
+    cache_key = f"catmom::{region}"
+    momentum = _market_cache_get(cache_key)
+    if momentum is None:
+        try:
+            momentum = await market_creators.get_category_momentum(region)
+        except Exception as e:
+            print(f"/api/market/category-momentum error: {e}")
+            return JSONResponse({"ok": False, "error": str(e), "categories": []}, status_code=502)
+        if momentum:
+            _market_cache_set(cache_key, momentum, hours=24)
+
+    momentum = momentum or []
+    if not premium:
+        return {"ok": True, "preview": True, "categories": momentum[:1]}
+    return {"ok": True, "preview": False, "categories": momentum}
 
 
 @app.get("/api/market/creator/{unique_id}")
@@ -2795,29 +2824,43 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
     _base_cols = ("video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
                   "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
                   "gmv_estimated,gmv_estimation_method,collected_at")
+    _real_gmv_cols = ",gmv_real,sales_real,gmv_source,video_products,is_ad"
     # On récupère un POOL plus large des meilleures vues, puis on en tire un
     # échantillon aléatoire → variété à chaque visite tout en restant sur des
     # posts performants (l'utilisateur voyait toujours les mêmes 24 sinon).
     pool = max(limit * 5, 80)
     try:
         q = (supabase_client.table("feed_radar_videos")
-             .select(_base_cols + ",is_carousel,image_count")
+             .select(_base_cols + ",is_carousel,image_count" + _real_gmv_cols)
              .eq("region", region).order("views", desc=True).limit(pool))
         if carousel_only:
             q = q.eq("is_carousel", True)   # carrousels photo à fortes vues uniquement
         rows = q.execute().data or []
     except Exception as e:
-        # Migration supabase_migrations_feed_radar_carousel.sql pas encore appliquée :
-        # colonnes is_carousel/image_count absentes → on retombe sur l'ancien schéma
-        # pour ne jamais casser le Feed Radar. Le filtre carrousel est alors inopérant.
-        print(f"/api/feed-radar carousel-cols fallback: {e}")
+        # Migration supabase_migrations_feed_radar_real_gmv.sql pas encore appliquée :
+        # colonnes gmv_real/sales_real/... absentes → on retombe sur le schéma carrousel
+        # seul pour ne jamais casser le Feed Radar (le GMV réel est alors indisponible,
+        # l'UI retombe automatiquement sur le GMV estimé).
+        print(f"/api/feed-radar real-gmv-cols fallback: {e}")
         try:
-            rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
-                    .eq("region", region).order("views", desc=True).limit(pool)
-                    .execute().data or [])
+            q = (supabase_client.table("feed_radar_videos")
+                 .select(_base_cols + ",is_carousel,image_count")
+                 .eq("region", region).order("views", desc=True).limit(pool))
+            if carousel_only:
+                q = q.eq("is_carousel", True)
+            rows = q.execute().data or []
         except Exception as e2:
-            print(f"/api/feed-radar error: {e2}")
-            return JSONResponse({"ok": False, "error": str(e2), "videos": []}, status_code=502)
+            # Migration supabase_migrations_feed_radar_carousel.sql pas non plus appliquée :
+            # colonnes is_carousel/image_count absentes → on retombe sur l'ancien schéma
+            # pour ne jamais casser le Feed Radar. Le filtre carrousel est alors inopérant.
+            print(f"/api/feed-radar carousel-cols fallback: {e2}")
+            try:
+                rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
+                        .eq("region", region).order("views", desc=True).limit(pool)
+                        .execute().data or [])
+            except Exception as e3:
+                print(f"/api/feed-radar error: {e3}")
+                return JSONResponse({"ok": False, "error": str(e3), "videos": []}, status_code=502)
 
     random.shuffle(rows)
     if not premium:
@@ -2916,19 +2959,30 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     cache_key = f"feedradar::teaser::{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
-        try:
-            cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
-            teaser = []
+        cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
+        fallback_cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
+
+        def _fetch(cols_to_use: str) -> list:
+            rows: list = []
             if region:
-                teaser = (supabase_client.table("feed_radar_videos").select(cols)
-                          .eq("region", region).order("views", desc=True).limit(3)
-                          .execute().data or [])
-            if not teaser:
-                teaser = (supabase_client.table("feed_radar_videos").select(cols)
-                          .order("views", desc=True).limit(3).execute().data or [])
+                rows = (supabase_client.table("feed_radar_videos").select(cols_to_use)
+                        .eq("region", region).order("views", desc=True).limit(3)
+                        .execute().data or [])
+            if not rows:
+                rows = (supabase_client.table("feed_radar_videos").select(cols_to_use)
+                        .order("views", desc=True).limit(3).execute().data or [])
+            return rows
+
+        try:
+            teaser = _fetch(cols)
         except Exception as e:
-            print(f"/api/feed-radar/teaser error: {e}")
-            teaser = []
+            # Migration supabase_migrations_feed_radar_real_gmv.sql pas encore appliquée.
+            print(f"/api/feed-radar/teaser real-gmv-cols fallback: {e}")
+            try:
+                teaser = _fetch(fallback_cols)
+            except Exception as e2:
+                print(f"/api/feed-radar/teaser error: {e2}")
+                teaser = []
         _market_cache_set(cache_key, teaser, hours=6)
     return {"ok": True, "videos": teaser or []}
 
