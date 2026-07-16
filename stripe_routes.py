@@ -23,6 +23,12 @@ Variables d'environnement Render à configurer :
   AGENCY :
   STRIPE_PRICE_AGENCY            price_...   (299 €/mois)
   STRIPE_PRICE_AGENCY_YEAR       price_...   (2990 €/an)
+
+  PACKS DE CRÉDITS (paiement one-time, PAS des abonnements — cf. credits.py) :
+  STRIPE_PRICE_CREDITS_DECOUVERTE  price_...   (9 €   → 150 crédits)
+  STRIPE_PRICE_CREDITS_STANDARD    price_...   (15 €  → 300 crédits)
+  STRIPE_PRICE_CREDITS_PRO         price_...   (49 €  → 1200 crédits)
+  STRIPE_PRICE_CREDITS_AGENCY      price_...   (129 € → 3300 crédits)
 """
 from __future__ import annotations
 import os
@@ -139,6 +145,60 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
                 raise HTTPException(500, detail=str(e2.user_message or e2))
         else:
             raise HTTPException(500, detail=str(e.user_message or e))
+    return {"url": session.url}
+
+
+# ── PACKS DE CRÉDITS (paiement one-time) ───────────────────────
+_CREDIT_PACK_PRICE_ENV = {
+    "decouverte": "STRIPE_PRICE_CREDITS_DECOUVERTE",
+    "standard":   "STRIPE_PRICE_CREDITS_STANDARD",
+    "pro":        "STRIPE_PRICE_CREDITS_PRO",
+    "agency":     "STRIPE_PRICE_CREDITS_AGENCY",
+}
+
+
+class CreditsCheckoutRequest(BaseModel):
+    pack:  str                    # "decouverte" | "standard" | "pro" | "agency"
+    email: Optional[str] = None
+
+
+@router.post("/create-credits-checkout-session")
+async def create_credits_checkout_session(body: CreditsCheckoutRequest, request: Request):
+    """Crée une session Stripe Checkout pour un pack de crédits — paiement
+    UNIQUE (mode='payment'), jamais un abonnement. Le webhook crédite le
+    compte via credits.add_purchase() sur checkout.session.completed
+    (metadata.type == 'credit_pack')."""
+    if not stripe.api_key:
+        raise HTTPException(503, detail="Stripe non configuré (STRIPE_SECRET_KEY manquant).")
+
+    import credits as credits_mod
+    pack_info = credits_mod.CREDIT_PACKS.get(body.pack)
+    if not pack_info:
+        raise HTTPException(400, detail=f"Pack '{body.pack}' inconnu.")
+
+    env_var = _CREDIT_PACK_PRICE_ENV.get(body.pack, "")
+    price_id = os.getenv(env_var, "") if env_var else ""
+    if not price_id:
+        raise HTTPException(
+            400,
+            detail=f"Pack '{body.pack}' : {env_var} non configuré.",
+        )
+
+    base = str(request.base_url).rstrip("/")
+    params: dict = {
+        "mode":         "payment",
+        "line_items":   [{"price": price_id, "quantity": 1}],
+        "success_url":  f"{base}/?credits=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url":   f"{base}/?credits=cancel",
+        "metadata":     {"type": "credit_pack", "pack": body.pack},
+    }
+    if body.email:
+        params["customer_email"] = body.email
+
+    try:
+        session = stripe.checkout.Session.create(**params)
+    except stripe.error.StripeError as e:
+        raise HTTPException(500, detail=str(e.user_message or e))
     return {"url": session.url}
 
 

@@ -2281,13 +2281,25 @@ async def stripe_webhook_v1(request: Request):
     etype = event.get("type", "")
     obj = event.get("data", {}).get("object", {})
 
-    # ── Paiement réussi → activer le plan ──
+    # ── Paiement réussi → activer le plan (ou créditer un pack) ──
     if etype == "checkout.session.completed":
         # 1) Email de l'acheteur
         email = (obj.get("customer_details") or {}).get("email") or obj.get("customer_email")
         client_ref = obj.get("client_reference_id")  # peut contenir l'email/ID interne
         if not email and client_ref and "@" in str(client_ref):
             email = client_ref
+
+        # 0) Achat de pack de crédits (paiement one-time, PAS un abonnement) —
+        # branche distincte, on ne touche jamais au tier utilisateur ici.
+        meta = obj.get("metadata") or {}
+        if meta.get("type") == "credit_pack":
+            pack = meta.get("pack")
+            if email and pack:
+                import credits as credits_mod
+                ok = credits_mod.add_purchase(supabase_client, email.lower().strip(), pack)
+                if not ok:
+                    print(f"stripe_webhook_v1: échec crédit pack '{pack}' pour {email}")
+            return {"ok": True}
 
         cust_id = obj.get("customer")
         sub_id = obj.get("subscription")
@@ -3949,7 +3961,7 @@ async def carousel_anon_generate(
         img = img.split(",", 1)[1]
 
     def _gen():
-        res = carousel.generate_carousel(img or None, "prompts", style, "flux",
+        res = carousel.generate_carousel(img or None, "prompts", style, "nanobanana",
                                          product_name, description, price, currency, niche, user_idea,
                                          product_image_url=product_image_url, avoid=avoid)
         try:
@@ -4010,9 +4022,10 @@ async def carousel_generate(
 
     cost = 0
     payment_method = "free"
-    # L'image est toujours générée en flux → on facture le coût réel de flux
-    # (cohérence : pas de décalage entre prix affiché et IA utilisée).
-    gen_provider = "flux"
+    # Un seul fournisseur IA réel (Gemini/Nano Banana, cf. image_gen.txt2img_model) —
+    # le paramètre `provider` reçu du front n'a plus d'effet sur le modèle, gardé
+    # pour compat d'appel. Coût fixe : cf. image_gen.IMAGE_PROVIDERS.
+    gen_provider = "nanobanana"
     if mode == "images":
         cost = image_gen.provider_credits(gen_provider)
         bal = credits_mod.get_balance(supabase_client, email, tier)

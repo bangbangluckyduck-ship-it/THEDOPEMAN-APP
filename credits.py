@@ -28,12 +28,15 @@ PLAN_CREDITS = {
 # Coût d'une génération par niveau (1→5).
 LEVEL_COST = {1: 1, 2: 2, 3: 3, 4: 5, 5: 10}
 
-# Packs achetables (validité 1 mois). Prix indicatifs (Stripe à brancher).
+# Packs achetables (validité 1 mois). Calibrés sur le coût réel Gemini (carrousel
+# 4 images ≈ 0,16-0,20€, prompt vidéo ≈ 0,013€) pour une marge ~50-60% — cf. mémoire
+# projet. Volume dégressif : marge plus large sur le petit pack, resserrée (mais
+# toujours >50%) sur le gros pack.
 CREDIT_PACKS = {
-    "decouverte": {"label": "Pack Découverte", "credits": 20, "price": 9},
-    "standard":   {"label": "Pack Standard", "credits": 50, "price": 19, "best": True},
-    "pro":        {"label": "Pack Pro", "credits": 150, "price": 49},
-    "agency":     {"label": "Pack Agency", "credits": 500, "price": 129},
+    "decouverte": {"label": "Pack Découverte", "credits": 150, "price": 9},
+    "standard":   {"label": "Pack Standard", "credits": 300, "price": 15, "best": True},
+    "pro":        {"label": "Pack Pro", "credits": 1200, "price": 49},
+    "agency":     {"label": "Pack Agency", "credits": 3300, "price": 129},
 }
 
 
@@ -148,6 +151,29 @@ def get_balance(supabase, email: str, tier: str) -> dict:
         "purchased": {"remaining": purchased_remaining, "next_expiry": next_expiry},
         "total_available": sub_remaining + purchased_remaining,
     }
+
+
+def add_purchase(supabase, email: str, pack: str, days_valid: int = 30) -> bool:
+    """Crédite un achat réel (webhook Stripe checkout.session.completed, mode
+    'payment'). Insère une ligne credit_purchases — jamais un upsert : chaque
+    achat est une ligne distincte, consommée en FIFO par expiration (cf. debit())."""
+    pack_info = CREDIT_PACKS.get(pack)
+    if not pack_info or not supabase or not email:
+        return False
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(days=days_valid)
+    try:
+        supabase.table("credit_purchases").insert({
+            "email": email,
+            "pack_name": pack,
+            "credits_remaining": pack_info["credits"],
+            "expires_at": expires.isoformat(),
+            "is_expired": False,
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"credits.add_purchase error: {e}")
+        return False
 
 
 def has_credits(supabase, email: str, tier: str, amount: int) -> bool:
