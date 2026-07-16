@@ -1144,11 +1144,13 @@
     var sec=document.getElementById('feedradar-teaser-section'); var g=document.getElementById('feedradar-teaser-grid');
     g.innerHTML=items.map(function(v){
       var thumb=v.video_id?('<img src="/api/feed-radar/'+encodeURIComponent(v.video_id)+'/thumb" alt="Miniature vidéo TikTok de @'+esc(v.oembed_author_name||'')+'" loading="lazy" onerror="this.onerror=null;this.src=\'/static/placeholder-thumb.svg\'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">'):'';
-      var gmv=(v.gmv_estimated||0).toLocaleString();
+      var isReal=v.gmv_source==='real_attribution' && v.gmv_real!=null;
+      var gmv=(isReal?v.gmv_real:(v.gmv_estimated||0)).toLocaleString();
+      var gmvLabel=isReal?'💰 GMV réel':'💰 GMV estimé (approx.)';
       return '<div style="border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--border,#e5e7eb)">'+thumb+
         '<div style="padding:8px 10px;font-size:12px"><div style="font-weight:700">@'+esc(v.oembed_author_name||'')+'</div>'+
         '<div style="color:var(--muted,#6b7280)">'+ (v.views||0).toLocaleString() +' vues</div>'+
-        '<div style="color:var(--muted,#6b7280)">💰 GMV estimé : $'+gmv+'</div></div></div>';
+        '<div style="color:var(--muted,#6b7280)">'+gmvLabel+' : $'+gmv+'</div></div></div>';
     }).join('');
     sec.style.display='block';
   }).catch(function(){});

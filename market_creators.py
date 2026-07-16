@@ -16,7 +16,7 @@ import json
 import os
 import re
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 from urllib.parse import quote
 
@@ -55,8 +55,8 @@ CATEGORY_ID_MAP: dict[str, str] = {
     "mode": "601152", "fashion": "601152",
     "tech": "601739", "electronique": "601739",
     "fitness": "603014", "sport": "603014",
-    "sante": "700645", "santé": "700645",
-    "maison": "600942",
+    "sante": "700645", "santé": "700645", "complement_sante": "700645",
+    "maison": "600942", "electromenager": "600942",
 }
 
 
@@ -250,10 +250,83 @@ async def get_top_products(category: Optional[str] = None, region: str = "US", l
     return [_clean_rank_product(r) for r in rows][:limit]
 
 
+def _trend_pct_change(rows: list[dict]) -> Optional[float]:
+    """Delta % entre le jour le plus ancien et le plus récent d'une série de snapshots
+    quotidiens triés ou non (clé `dt`, valeur `total_sale_gmv_1d_amt`). `None` explicite
+    si la série est trop courte ou si le jour de référence est à 0 (jamais de chiffre
+    inventé par division par zéro)."""
+    if not rows or len(rows) < 2:
+        return None
+    ordered = sorted(rows, key=lambda r: r.get("dt") or "")
+    first = ordered[0].get("total_sale_gmv_1d_amt") or 0
+    last = ordered[-1].get("total_sale_gmv_1d_amt") or 0
+    if not first:
+        return None
+    return round((last - first) / first * 100, 1)
+
+
+async def get_product_momentum(product_id: str, days: int = 14) -> Optional[dict]:
+    """Momentum GMV d'un produit sur `days` jours (endpoint /product/trends/analytics,
+    corrigé mi-2026 en même temps que le GMV vidéo). 1 appel, page_size=10. Les snapshots
+    quotidiens sont ÉPARS en pratique (vérifié en live : 3 jours de données sur une fenêtre
+    de 14, pas un point par jour) — fenêtre élargie à 14j (vs. 7j initialement prévu) pour
+    avoir une chance raisonnable de capter ≥2 points de comparaison."""
+    if not product_id:
+        return None
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    try:
+        rows = await _get("/v1/tiktok/product/trends/analytics", {
+            "product_id": str(product_id),
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "page_num": 1,
+            "page_size": 10,
+        })
+    except Exception as e:
+        print(f"get_product_momentum({product_id}) error: {e}")
+        return None
+    rows = rows if isinstance(rows, list) else []
+    pct = _trend_pct_change(rows)
+    if pct is None:
+        return {"pct_change": None, "direction": None, "days_covered": len(rows)}
+    direction = "up" if pct > 0 else ("down" if pct < 0 else "flat")
+    return {"pct_change": pct, "direction": direction, "days_covered": len(rows)}
+
+
+async def enrich_products_momentum(products: list[dict], region: str) -> list[dict]:
+    """Attache un `momentum` (delta GMV 7j) à chaque produit d'une liste déjà bornée
+    (~8 max, comme affiché côté UI) — jamais crash sur un échec individuel."""
+    async def _one(p: dict) -> dict:
+        try:
+            mom = await get_product_momentum(p.get("id"))
+        except Exception as e:
+            print(f"enrich_products_momentum({p.get('id')}) error: {e}")
+            mom = None
+        return {**p, "momentum": mom}
+    return list(await asyncio.gather(*(_one(p) for p in products)))
+
+
+async def get_category_momentum(region: str = "US") -> list[dict]:
+    """DÉSACTIVÉ — vérifié en live 2026-07 : /category/trend/analytics ne se comporte PAS
+    comme documenté quand on interroge un category_id de niveau 1 seul (sans
+    category_l2_id/category_l3_id) : au lieu d'une série temporelle multi-jours, il
+    renvoie une VENTILATION PAR SOUS-CATÉGORIE sur un seul jour (page_num pagine les
+    sous-catégories, pas les dates — confirmé : page 1 et page 2 renvoient toutes les
+    deux dt=même jour, avec des category_l2_id/l3_id différents). Une vraie série
+    temporelle n'apparaît qu'en scopant sur UN category_l2_id + category_l3_id précis
+    — mais le nombre de sous-catégories par catégorie canonique n'est pas connu, donc
+    impossible d'agréger un delta L1 fiable sans un fan-out de cardinalité inconnue
+    (violerait la règle "jamais de troncature silencieuse"). Retourne [] tant que ce
+    n'est pas correctement rebâti — mieux vaut une fonctionnalité absente qu'un signal
+    structurellement biaisé affiché comme fiable."""
+    return []
+
+
 async def get_category_overview(category: Optional[str], region: str = "US") -> dict:
-    """Vue catégorie : top créateurs (mensuel) + VRAI top produits (classement 30j).
-    Fallback : si le classement produit échoue, on retombe sur les produits portés
-    par les meilleurs créateurs (avec images, mais ventes cumulées)."""
+    """Vue catégorie : top créateurs (mensuel) + VRAI top produits (classement 30j, enrichis
+    d'un momentum GMV 7j). Fallback : si le classement produit échoue, on retombe sur les
+    produits portés par les meilleurs créateurs (avec images, mais ventes cumulées)."""
     creators = await get_top_creators(category, region, limit=6)
 
     products: list = []
@@ -280,6 +353,11 @@ async def get_category_overview(category: Optional[str], region: str = "US") -> 
                 print(f"category_overview fallback product error: {e}")
         products.sort(key=lambda p: p.get("sales") or 0, reverse=True)
         products = products[:8]
+
+    try:
+        products = await enrich_products_momentum(products, region)
+    except Exception as e:
+        print(f"category_overview momentum error: {e}")
 
     return {"creators": creators, "products": products}
 
@@ -529,6 +607,83 @@ async def get_video_products(video_id: str, region: Optional[str] = None) -> lis
     return [_clean_video_product(r) for r in rows if r.get("product_id")]
 
 
+def _chunks(items: list, n: int = 10) -> list[list]:
+    """Découpe une liste en lots de taille ≤ n (KeyAPI plafonne video_ids à 10/appel)."""
+    return [items[i:i + n] for i in range(0, len(items), n)]
+
+
+def _parse_maybe_json_list(v) -> list[str]:
+    """Certains champs KeyAPI (video_products, product_category_list) reviennent tantôt en
+    JSON natif (list), tantôt en chaîne JSON-encodée (str), tantôt absents (None) — jamais
+    supposer un seul type. Chaque élément est casté en str : les IDs produit TikTok font
+    ~19 chiffres, au-delà de Number.MAX_SAFE_INTEGER côté navigateur (JSON.parse arrondirait
+    silencieusement un entier brut)."""
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return [str(x) for x in v if x is not None]
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+        except Exception:
+            return []
+        if isinstance(parsed, list):
+            return [str(x) for x in parsed if x is not None]
+    return []
+
+
+def _clean_video_detail(r: dict) -> dict:
+    """Parse une entrée de /v1/tiktok/video/detail/analytics (GMV/ventes RÉELS attribués à
+    cette vidéo — endpoint corrigé par KeyAPI mi-2026, confirmé non-zéro en live sur un compte
+    FR réel). video_products = produits tagués dans la vidéo (nouvelle donnée, absente avant)."""
+    vid = r.get("video_id")
+    products = _parse_maybe_json_list(r.get("video_products"))
+    return {
+        "video_id": str(vid) if vid is not None else None,
+        "gmv_real": r.get("total_video_sale_gmv_amt") or 0,
+        "sales_real": r.get("total_video_sale_cnt") or 0,
+        "video_products": products,
+        "product_category_list": _parse_maybe_json_list(r.get("product_category_list")),
+        "is_ad": bool(r.get("is_ad")),
+        "create_time": r.get("create_time"),
+        "region": r.get("region"),
+    }
+
+
+async def get_videos_detail(video_ids: list[str]) -> dict[str, dict]:
+    """GMV/ventes RÉELS par vidéo, batché (≤10 video_ids/appel, 1 crédit/appel). Renvoie un
+    dict {video_id: detail_nettoyé} pour lookup direct — les IDs absents du résultat (échec
+    KeyAPI sur leur lot, ou vidéo non couverte) sont simplement absents du dict, jamais une
+    valeur fictive : à l'appelant de gérer le fallback (cf. feed_radar._collect_region)."""
+    ids = [str(v) for v in dict.fromkeys(video_ids) if v]  # dédup en préservant l'ordre
+    if not ids:
+        return {}
+    sem = asyncio.Semaphore(5)
+
+    async def _fetch_chunk(chunk: list[str]) -> list[dict]:
+        async with sem:
+            try:
+                data = await _get("/v1/tiktok/video/detail/analytics",
+                                  {"video_ids": ",".join(chunk)})
+            except Exception as e:
+                print(f"get_videos_detail chunk error ({len(chunk)} ids): {e}")
+                return []
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
+
+    chunk_results = await asyncio.gather(*(_fetch_chunk(c) for c in _chunks(ids, 10)))
+    out: dict[str, dict] = {}
+    for rows in chunk_results:
+        for r in rows:
+            detail = _clean_video_detail(r)
+            if detail["video_id"]:
+                out[detail["video_id"]] = detail
+    return out
+
+
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
     videos: list = []
     products: list = []
@@ -697,6 +852,83 @@ async def get_creator_best_sellers(uid: str, limit: int = 10) -> list[dict]:
     return [_clean_product(p) for p in rows][:limit]
 
 
+async def get_creator_video_attribution(unique_id: str, user_id: str,
+                                        limit_videos: int = 20, limit_products: int = 8) -> dict:
+    """Attribution RÉELLE de GMV/ventes par produit pour CE créateur, calculée à partir de
+    ses `limit_videos` dernières vidéos (endpoint /video/detail/analytics, corrigé mi-2026 —
+    cf. get_videos_detail). Complémentaire de `get_creator_best_sellers` (vitrine, ordre natif,
+    chiffres GLOBAUX tous vendeurs) : ici, chiffres RÉELS mais bornés à une fenêtre de vidéos
+    récentes, jamais un total lifetime.
+
+    ⚠️ Une vidéo qui tague plusieurs produits attribue la TOTALITÉ de son GMV à CHACUN
+    (KeyAPI ne fournit pas de répartition par produit dans une même vidéo) — les totaux
+    sommés sur plusieurs produits peuvent donc dépasser le vrai total combiné. À rappeler
+    explicitement côté UI, jamais présenté comme une répartition exacte."""
+    empty = {"products": [], "videos_analyzed": 0, "video_count": 0, "window_label": None}
+    if not unique_id:
+        return empty
+    try:
+        vdata = await _get("/v1/tiktok/influencer/videos",
+                           {"unique_id": unique_id, "page_num": 1, "page_size": limit_videos})
+        aweme = (vdata or {}).get("aweme_list") if isinstance(vdata, dict) else None
+        videos = [_clean_video(v) for v in (aweme or [])]
+    except Exception as e:
+        print(f"get_creator_video_attribution({unique_id}) videos error: {e}")
+        return empty
+
+    video_ids = [str(v["id"]) for v in videos if v.get("id")]
+    if not video_ids:
+        return empty
+
+    try:
+        detail_map = await get_videos_detail(video_ids)
+    except Exception as e:
+        print(f"get_creator_video_attribution({unique_id}) detail error: {e}")
+        return {**empty, "video_count": len(videos)}
+
+    by_product: dict[str, dict] = {}
+    create_times: list = []
+    region_hint = "US"
+    for detail in detail_map.values():
+        if detail.get("create_time"):
+            create_times.append(detail["create_time"])
+        if detail.get("region"):
+            region_hint = detail["region"]
+        for pid in detail.get("video_products") or []:
+            entry = by_product.setdefault(pid, {"product_id": pid, "gmv_real": 0,
+                                                 "sales_real": 0, "video_count": 0})
+            entry["gmv_real"] += detail.get("gmv_real") or 0
+            entry["sales_real"] += detail.get("sales_real") or 0
+            entry["video_count"] += 1
+
+    top = sorted(by_product.values(), key=lambda p: p["gmv_real"], reverse=True)[:limit_products]
+
+    enriched: list[dict] = []
+    for entry in top:
+        try:
+            detail_prod = await get_product_detail(entry["product_id"], region_hint)
+        except Exception as e:
+            print(f"get_creator_video_attribution product_detail({entry['product_id']}) error: {e}")
+            detail_prod = None
+        base = detail_prod or {"id": entry["product_id"], "name": "", "image": None, "url":
+                               f"https://www.tiktok.com/view/product/{entry['product_id']}"}
+        enriched.append({**base, "gmv_real": entry["gmv_real"], "sales_real": entry["sales_real"],
+                         "video_count": entry["video_count"]})
+
+    window_label = None
+    if create_times:
+        try:
+            lo, hi = min(create_times), max(create_times)
+            lo_d = datetime.fromtimestamp(int(lo)).strftime("%d/%m/%Y")
+            hi_d = datetime.fromtimestamp(int(hi)).strftime("%d/%m/%Y")
+            window_label = f"{len(detail_map)} dernières vidéos, {lo_d} → {hi_d}"
+        except Exception:
+            window_label = f"{len(detail_map)} dernières vidéos"
+
+    return {"products": enriched, "videos_analyzed": len(detail_map),
+           "video_count": len(videos), "window_label": window_label}
+
+
 async def _enrich_zero_gmv(uid: str, gmv_data: dict, products: list) -> dict:
     """Qualifie un gmv_30d=0 (vérifié en live 2026-07-03, cf.
     get_creator_prior_activity) en sondant la fenêtre J-90 → J-30 :
@@ -707,7 +939,9 @@ async def _enrich_zero_gmv(uid: str, gmv_data: dict, products: list) -> dict:
       produits (`total_sale_gmv_amt`) est le GMV GLOBAL du produit tous
       vendeurs confondus, pas la part du créateur (598k$ trompeurs sur
       @thedopeman99, 3,55M$ sur @hannaholala pour ~211k$/30j réels ; le champ
-      d'attribution `total_video_sale_gmv_amt` est à 0 partout).
+      d'attribution `total_video_sale_gmv_amt` était à 0 partout — CONFIRMÉ CORRIGÉ
+      mi-2026 côté /video/detail/analytics, cf. get_creator_video_attribution, mais
+      cette fonction-ci ne consomme PAS ce champ : elle reste inchangée).
     - rien nulle part et pas de produits → 0 affiché tel quel."""
     if (gmv_data.get("gmv_30d") or 0) > 0:
         gmv_data["reliable"] = True
@@ -729,11 +963,14 @@ async def _enrich_zero_gmv(uid: str, gmv_data: dict, products: list) -> dict:
 
 async def search_creator_profile(handle: str) -> Optional[dict]:
     """Orchestration complète de la Recherche de profil : profil + GMV 30j réel +
-    meilleures ventes. ~5 appels KeyAPI. None si le handle n'existe pas."""
+    meilleures ventes (vitrine) + attribution vidéo réelle par produit.
+    ~7-13 appels KeyAPI (la plupart des enrichissements produit sont amortis par
+    le cache 7j de get_product_detail). None si le handle n'existe pas."""
     profile = await get_influencer_profile(handle)
     if not profile or not profile.get("uid"):
         return None
     uid = profile["uid"]
+    unique_id = profile.get("unique_id") or handle
 
     async def _safe_gmv():
         try:
@@ -749,9 +986,18 @@ async def search_creator_profile(handle: str) -> Optional[dict]:
             print(f"search_creator_profile products error: {e}")
             return []
 
-    gmv_data, products = await asyncio.gather(_safe_gmv(), _safe_products())
+    async def _safe_attribution():
+        try:
+            return await get_creator_video_attribution(unique_id, uid)
+        except Exception as e:
+            print(f"search_creator_profile attribution error: {e}")
+            return {"products": [], "videos_analyzed": 0, "video_count": 0, "window_label": None}
+
+    gmv_data, products, attribution = await asyncio.gather(
+        _safe_gmv(), _safe_products(), _safe_attribution())
     gmv_data = await _enrich_zero_gmv(uid, gmv_data, products)
-    return {"profile": profile, "gmv": gmv_data, "best_sellers": products}
+    return {"profile": profile, "gmv": gmv_data, "best_sellers": products,
+           "video_attribution": attribution}
 
 
 async def get_creator_gmv_only(handle: str) -> Optional[dict]:

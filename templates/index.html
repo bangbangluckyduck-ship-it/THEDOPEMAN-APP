@@ -1971,6 +1971,19 @@
     <div class="section">
       <h2>🔥 Créateurs Gagnants</h2>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px">📅 Classement des <strong>30 derniers jours</strong> — les créateurs qui vendent le plus sur TikTok Shop, par pays.</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <label style="font-size:13px;color:var(--muted)">Catégorie :</label>
+        <select id="creators-category" onchange="loadCreatorsTab()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit">
+          <option value="">Toutes catégories</option>
+          <option value="beaute">💄 Beauté</option>
+          <option value="mode">👗 Mode</option>
+          <option value="tech">📱 Tech &amp; Gadgets</option>
+          <option value="fitness">💪 Fitness</option>
+          <option value="sante">🌿 Santé</option>
+          <option value="maison">🏠 Maison</option>
+        </select>
+      </div>
+      <div id="creators-momentum-banner" style="display:none;margin-bottom:14px"></div>
       <div id="creators-loading" style="text-align:center;padding:24px;color:var(--muted)">⏳ Chargement…</div>
       <div id="creators-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px"></div>
       <div id="creators-upsell" style="display:none;margin-top:16px"></div>

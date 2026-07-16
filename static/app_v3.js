@@ -647,7 +647,7 @@ function installPwa() {
 }
 
 // ⚠️ Passe à true une fois les produits/prix Stripe créés en production.
-const CHECKOUT_ENABLED = false;
+const CHECKOUT_ENABLED = true;
 
 // Période de facturation choisie dans la grille tarifaire ("month" | "year")
 let BILLING_PERIOD = 'month';
@@ -821,8 +821,11 @@ async function startCheckout(plan) {
     }
 
     const data = await res.json();
-    if (data.checkout_url) {
-      window.location.href = data.checkout_url;
+    const checkoutUrl = data.url || data.checkout_url;   // le back renvoie {"url": …}
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      showToast('❌ Paiement indisponible pour le moment.');
     }
   } catch (err) {
     showToast('❌ Erreur: ' + err.message);
@@ -4205,6 +4208,10 @@ function renderMarketForCategory(d) {
           const locked = preview && i >= 1;
           const blur = locked ? 'filter:blur(5px);pointer-events:none' : '';
           const link = locked ? '#' : (p.url || '#');
+          const pct = p.momentum && p.momentum.pct_change;
+          const momentumHtml = (pct != null)
+            ? `<div style="font-size:10px;color:${pct >= 0 ? '#059669' : 'var(--muted)'}">${pct >= 0 ? '📈' : '📉'} ${pct >= 0 ? '+' : ''}${pct}% cette semaine</div>`
+            : '';
           html += `<a href="${escapeHtml(link)}" ${locked?'':'target="_blank" rel="noopener"'} style="text-decoration:none;color:inherit;${blur}">
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
               ${p.image ? `<img src="${escapeHtml(_imgProxy(p.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;height:110px;object-fit:cover">` : ''}
@@ -4212,6 +4219,7 @@ function renderMarketForCategory(d) {
                 <div style="font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(p.name||'Produit')}</div>
                 <div style="font-size:12px;color:var(--primary);font-weight:700;margin-top:3px">$${escapeHtml(String(p.price||'—'))}</div>
                 <div style="font-size:10px;color:#059669">📦 ${_cfmt(p.sales)} ventes</div>
+                ${momentumHtml}
               </div>
             </div></a>`;
         });
@@ -5022,6 +5030,8 @@ function renderRechercheResult(data) {
   const p = data.profile || {};
   const gmv = data.gmv || {};
   const products = data.best_sellers || [];
+  const attribution = data.video_attribution || {};
+  const attrProducts = attribution.products || [];
   const box = document.getElementById('recherche-result');
 
   const productsHtml = products.length
@@ -5034,6 +5044,24 @@ function renderRechercheResult(data) {
           </div>
         </div>`).join('')
     : '<p style="color:var(--muted);font-size:13px">Aucun produit vendu détecté.</p>';
+
+  const attrProductsHtml = attrProducts.length
+    ? attrProducts.map(pr => `
+        <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px;width:100%;min-width:0;box-sizing:border-box">
+          <img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
+          <div style="flex:1;min-width:0;overflow:hidden">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || pr.id || '')}</div>
+            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales_real || 0).toLocaleString()} ventes · $${(pr.gmv_real || 0).toLocaleString()} GMV — attribution vidéo réelle</div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--muted);font-size:13px">Aucune vente attribuée trouvée sur les vidéos récentes de ce compte.</p>';
+
+  const attrSectionHtml = attribution.videos_analyzed
+    ? `
+    <h3 style="font-size:15px;margin-bottom:6px">📈 Ce qu'il a vraiment vendu (attribution vidéo)</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">GMV réel, tagué par vidéo — sur ${escapeHtml(attribution.window_label || `${attribution.videos_analyzed} dernières vidéos`)}. Un produit co-tagué avec d'autres dans la même vidéo affiche le GMV total de cette vidéo (non réparti entre les produits).</p>
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${attrProductsHtml}</div>`
+    : '';
 
   box.innerHTML = `
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;max-width:100%;box-sizing:border-box">
@@ -5059,7 +5087,8 @@ function renderRechercheResult(data) {
     </div>
     <h3 style="font-size:15px;margin-bottom:6px">🛍️ Vitrine actuelle du compte</h3>
     <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Les produits que ce compte met en avant en ce moment (ordre de sa vitrine TikTok). Ventes et GMV = performance globale du produit, tous créateurs confondus — pas celle de ce compte.</p>
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0">${productsHtml}</div>`;
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${productsHtml}</div>
+    ${attrSectionHtml}`;
 }
 
 function _frDate(iso) {
@@ -5163,9 +5192,23 @@ async function loadFeedRadarTab() {
   }
 }
 
+function _feedRadarGmvDisplay(v) {
+  // GMV réel (endpoint KeyAPI /video/detail/analytics) prioritaire ; fallback sur
+  // l'estimation CTOR quand cette vidéo n'a pas de donnée réelle disponible.
+  if (v.gmv_source === 'real_attribution' && v.gmv_real != null) {
+    return { amount: v.gmv_real, label: '💰 GMV réel' };
+  }
+  return { amount: v.gmv_estimated || 0, label: '💰 GMV estimé (approx.)' };
+}
+
 function renderFeedRadarCard(v) {
-  const gmv = v.gmv_estimated || 0;
+  const gmvInfo = _feedRadarGmvDisplay(v);
+  const gmv = gmvInfo.amount;
   const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url });
+  const firstProductId = Array.isArray(v.video_products) && v.video_products.length ? v.video_products[0] : null;
+  const productLink = firstProductId
+    ? `<a href="https://www.tiktok.com/view/product/${encodeURIComponent(firstProductId)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent,#0ea5e9);text-decoration:none">🛍️ voir le produit</a>`
+    : '';
   return `
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
@@ -5179,7 +5222,8 @@ function renderFeedRadarCard(v) {
       <div style="padding:8px 10px">
         <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}</div>
         <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div>
-        <div style="font-size:11px;color:var(--muted)">💰 GMV estimé : $${gmv.toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--muted)">${gmvInfo.label} : $${gmv.toLocaleString()}</div>
+        ${productLink}
       </div>
     </div>`;
 }
@@ -5199,6 +5243,24 @@ async function hydrateFeedRadarCard(videoId, cardEl) {
   }
 }
 
+function _loadCreatorsMomentumBanner(token) {
+  const banner = document.getElementById('creators-momentum-banner');
+  if (!banner) return;
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+  const catLabels = { beaute: 'Beauté', mode: 'Mode', tech: 'Tech & Gadgets', fitness: 'Fitness', sante: 'Santé', maison: 'Maison' };
+  fetch(`/api/market/category-momentum?region=${_userRegion()}`, { headers })
+    .then(r => r.json()).catch(() => null)
+    .then(data => {
+      const top = data && data.ok && data.categories && data.categories[0];
+      if (!top || top.pct_change == null || top.pct_change < 15) { banner.style.display = 'none'; return; }
+      const label = catLabels[top.category] || top.category;
+      banner.style.display = 'block';
+      banner.innerHTML = `<div onclick="document.getElementById('creators-category').value='${top.category}';loadCreatorsTab()" style="cursor:pointer;background:rgba(5,150,105,.10);border:1px dashed rgba(5,150,105,.5);border-radius:10px;padding:10px 14px;font-size:13px">
+        🔥 <strong>${escapeHtml(label)}</strong> en forte hausse cette semaine (+${top.pct_change}%) — voir →
+      </div>`;
+    });
+}
+
 async function loadCreatorsTab() {
   const grid = document.getElementById('creators-grid');
   const loading = document.getElementById('creators-loading');
@@ -5210,6 +5272,7 @@ async function loadCreatorsTab() {
 
   const token = localStorage.getItem('tts_token');
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+  _loadCreatorsMomentumBanner(token);
   const cat = document.getElementById('creators-category')?.value || '';
   // Pays de l'utilisateur en premier, puis les principaux marchés (top 5 par pays).
   const countries = _orderedCountries().slice(0, 5);
