@@ -653,12 +653,15 @@ async def cron_upsell_j3(key: str = Query("")):
 
 @app.get("/api/_cron/feed-radar-collect")
 async def cron_feed_radar_collect(key: str = Query(""), region: Optional[str] = Query(None)):
-    """Tâche planifiée (cron ~6h) : collecte Feed Radar (découverte créateurs
-    → vidéos ≥ seuil de vues → GMV estimé + tendance créateur → oEmbed) sur
-    tous les marchés de FEED_RADAR_REGIONS (mêmes marchés que "Créateurs
-    Gagnants") — précise ?region=XX pour un déclenchement manuel ciblé.
-    Protégé par CRON_SECRET. À appeler via Render Cron Job / pinger externe —
-    aucun scheduler n'existe dans ce repo, cf. mémoire projet."""
+    """Tâche planifiée : collecte Feed Radar (découverte créateurs → vidéos ≥
+    seuil de vues → GMV réel/estimé + tendance créateur → oEmbed) sur tous les
+    marchés de FEED_RADAR_REGIONS (mêmes marchés que "Créateurs Gagnants") —
+    précise ?region=XX pour un déclenchement manuel ciblé.
+    Protégé par CRON_SECRET. Appelée par le Render Cron Job `feed-radar-collect`
+    (schedule "30 1,4 * * *" — 2x/jour en heures creuses FR, ~3h30 et 6h30
+    heure de Paris, pour ne pas dégrader les requêtes utilisateur pendant la
+    collecte). Aucun scheduler ne vit dans ce repo — la planification est
+    entièrement côté Render."""
     cron_secret = os.getenv("CRON_SECRET", "")
     if not cron_secret or key != cron_secret:
         raise HTTPException(status_code=403, detail="Clé cron invalide.")
