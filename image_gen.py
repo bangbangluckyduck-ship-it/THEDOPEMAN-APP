@@ -70,38 +70,30 @@ def _style_key(style: Optional[str]) -> str:
 
 
 def txt2img_model(style: Optional[str] = None) -> str:
-    """Modèle TEXT-TO-IMAGE (slide 1, sans produit) ROUTÉ PAR STYLE.
-    - Cartoon/anime → Nano Banana (Gemini Flash Image) : fait du vrai cartoon.
-    - Sinon (fond blanc / quad) → FLUX photoréaliste.
-    FLUX refuse le cartoon → on route ailleurs pour le style cartoon."""
-    if _style_key(style) == "ia_cartoon":
-        return os.getenv("IMAGE_CARTOON_MODEL", "google/gemini-2.5-flash-image")
-    return os.getenv("IMAGE_REALISM_MODEL", "flux-pro/v1.1")
+    """Modèle TEXT-TO-IMAGE (slide 1, sans produit) — Gemini (Nano Banana) pour
+    TOUS les styles. Décision produit : un seul fournisseur, pas de choix
+    utilisateur (le sélecteur multi-IA était coûteux à maintenir pour un gain
+    qualité marginal, et cassait la lisibilité du prix). `style` gardé en
+    paramètre pour compat d'appel, plus utilisé pour router le modèle."""
+    return os.getenv("IMAGE_MODEL", "google/gemini-2.5-flash-image")
 
 
 def edit_model(style: Optional[str] = None) -> str:
-    """Modèle d'IMAGE-TO-IMAGE (img2img) ROUTÉ PAR STYLE — reproduit fidèlement le produit.
-    - Cartoon/anime → Nano Banana Edit (Gemini Flash Image Edit) : référence + style cartoon.
-    - Sinon (fond blanc / quad) → FLUX.2 Pro Edit (photoréalisme + fidélité, meilleur 2026).
-    Configurable via env IMAGE_CARTOON_EDIT_MODEL / IMAGE_EDIT_MODEL."""
-    if _style_key(style) == "ia_cartoon":
-        return os.getenv("IMAGE_CARTOON_EDIT_MODEL", "google/gemini-2.5-flash-image-edit")
-    return os.getenv("IMAGE_EDIT_MODEL", "blackforestlabs/flux-2-pro-edit")
+    """Modèle d'IMAGE-TO-IMAGE (img2img) — Gemini (Nano Banana Edit) pour TOUS
+    les styles, même décision que txt2img_model ci-dessus."""
+    return os.getenv("IMAGE_EDIT_MODEL", "google/gemini-2.5-flash-image-edit")
 
 
 # Compat (certains affichages lisent MODEL_BY_NEED) → reflète le mode courant.
 MODEL_BY_NEED = {k: need_model(k) for k in _PROD_MODEL_BY_NEED}
 
-# Choix explicites proposés à l'utilisateur (label + coût crédits + prix one-time €).
-# "auto" = routage intelligent (recommandé).
+# Un seul fournisseur réel (Gemini/Nano Banana, cf. txt2img_model/edit_model) —
+# plus de faux choix multi-IA (le param `provider` des endpoints carrousel est
+# gardé pour compat d'appel mais n'affecte plus le modèle utilisé). Coût aligné
+# sur credits.CREDIT_PACKS : 10 crédits/carrousel (4 slides), marge cible 50-60%
+# sur le coût réel Gemini (~0,16-0,20€ les 4 images).
 IMAGE_PROVIDERS = {
-    "auto":       {"label": "Auto (meilleure IA)",   "credits": 8,  "price": 7.99, "recommended": True},
-    "nanobanana": {"label": "Nano Banana (fidèle)",  "credits": 8,  "price": 7.99},
-    "flux":       {"label": "FLUX (réalisme)",       "credits": 10, "price": 9.99},
-    "imagen":     {"label": "Imagen (premium)",      "credits": 8,  "price": 7.99},
-    "dalle3":     {"label": "DALL-E 3 (créatif)",    "credits": 10, "price": 9.99},
-    "recraft":    {"label": "Recraft (texte/design)", "credits": 10, "price": 9.99},
-    "multi":      {"label": "Multi-IA (compare 3)",  "credits": 30, "price": 24.99},
+    "auto": {"label": "Génération IA (Gemini)", "credits": 10, "recommended": True},
 }
 
 # ⬇️ ZONE ÉDITABLE — description des styles (rendu visuel) ⬇️
@@ -189,12 +181,11 @@ def _build_prompt(slide_idx: int, phase: str, style: Optional[str], product_name
             f"No collage effect. No text on image.")
 
 
-def provider_credits(provider: str) -> int:
-    return IMAGE_PROVIDERS.get(provider, {}).get("credits", 10)
-
-
-def provider_price(provider: str) -> float:
-    return IMAGE_PROVIDERS.get(provider, {}).get("price", 9.99)
+def provider_credits(provider: str = "auto") -> int:
+    """Coût en crédits d'un carrousel (4 slides) — fixe, un seul fournisseur
+    réel (cf. IMAGE_PROVIDERS). `provider` gardé en paramètre pour compat
+    d'appel (main.py), n'a plus d'effet sur le coût."""
+    return IMAGE_PROVIDERS["auto"]["credits"]
 
 
 def has_image_key() -> bool:
