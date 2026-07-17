@@ -136,6 +136,7 @@ function showView(view) {
   if (view === 'hooks') initHooksView();
   if (view === 'temoignages') loadTemoignages();
   if (view === 'notifs') initNotifsView();
+  if (view === 'affiliates') loadAffiliates();
 }
 
 /* ── NOTIFICATIONS — broadcast (admin) ────────────────────────────────── */
@@ -568,6 +569,69 @@ async function lookupRechercheGmv() {
   } catch (e) {
     box.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
   }
+}
+
+/* ── AFFILIÉS ──────────────────────────────────────────────────────────── */
+async function loadAffiliates() {
+  const list = document.getElementById('affiliates-list');
+  if (!list) return;
+  list.innerHTML = '<div class="empty">Chargement…</div>';
+  try {
+    const res = await fetch('/admin/affiliates', { headers: authHeaders() });
+    if (!res.ok) { if (res.status === 403) { showLogin(); return; } list.innerHTML = '<div class="empty">❌ Erreur</div>'; return; }
+    const data = await res.json();
+    const rows = data.affiliates || [];
+    if (!rows.length) { list.innerHTML = '<div class="empty">Aucun affilié pour le moment.</div>'; return; }
+    const badge = s => s === 'approved' ? '🟢 Approuvé' : s === 'pending' ? '🟡 En attente'
+                     : s === 'disabled' ? '⚫ Désactivé' : '🔴 Rejeté';
+    list.innerHTML = rows.map(a => {
+      const em = esc(a.email);
+      return `
+      <div class="user-card">
+        <div style="font-size:11px;font-weight:700;color:var(--muted)">${badge(a.status)}${a.code ? ' · code <code>' + esc(a.code) + '</code>' : ''}</div>
+        <div style="font-weight:700;margin:4px 0">${em}</div>
+        <div style="font-size:13px;margin-bottom:6px">👥 <strong>${a.signups || 0}</strong> inscrit(s) via ce lien</div>
+        <div class="actions">
+          ${a.status !== 'approved' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','approved')">✅ Approuver</button>` : ''}
+          ${a.status === 'approved' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','disabled')">🚫 Désactiver</button>` : ''}
+          ${a.status === 'pending' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','rejected')">🗑️ Rejeter</button>` : ''}
+          ${a.status === 'disabled' || a.status === 'rejected' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','approved')">♻️ Réactiver</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) { list.innerHTML = '<div class="empty">❌ Erreur réseau</div>'; }
+}
+
+async function createAffiliate() {
+  const input = document.getElementById('aff-email');
+  const email = (input.value || '').trim().toLowerCase();
+  if (!email || email.indexOf('@') < 0) { showToast('Email invalide'); return; }
+  try {
+    const res = await fetch('/admin/affiliates', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (data.detail || 'Échec')); return; }
+    input.value = '';
+    showToast('✅ Affilié créé');
+    loadAffiliates();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function setAffiliateStatus(email, status) {
+  try {
+    const res = await fetch('/admin/affiliates/status', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ email, status }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (data.detail || 'Échec')); return; }
+    showToast('✅ Mis à jour');
+    loadAffiliates();
+  } catch (e) { showToast('❌ Erreur réseau'); }
 }
 
 /* ── INITIALISATION ───────────────────────────────────────────────────── */

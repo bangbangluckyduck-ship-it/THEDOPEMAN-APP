@@ -792,6 +792,18 @@
 </head>
 <body>
 
+<!-- Capture du parrainage : qeerah.com/?ref=CODE → cookie 90 j, lu à l'inscription. -->
+<script>
+(function () {
+  try {
+    var ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref && /^[a-z0-9]{4,16}$/i.test(ref)) {
+      document.cookie = 'qeerah_ref=' + encodeURIComponent(ref) + ';path=/;max-age=' + (60 * 60 * 24 * 90) + ';SameSite=Lax';
+    }
+  } catch (e) {}
+})();
+</script>
+
 <!-- ════════════════════ HEADER ════════════════════ -->
 <header>
   <a href="/" class="logo">
@@ -1320,6 +1332,7 @@
       <a href="/about">À propos</a>
       <a href="/blog">Blog</a>
       <a href="/contact">Contact</a>
+      <a href="/app#affiliate">Devenir affilié</a>
     </div>
 
     <div class="footer-section">

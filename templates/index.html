@@ -1279,6 +1279,33 @@
       });
     } catch (e) { /* no-op */ }
   })();
+
+  // Parrainage : capture /app?ref=CODE (le lien principal reste /?ref= sur l'accueil).
+  (function() {
+    try {
+      var ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref && /^[a-z0-9]{4,16}$/i.test(ref)) {
+        document.cookie = 'qeerah_ref=' + encodeURIComponent(ref) + ';path=/;max-age=' + (60 * 60 * 24 * 90) + ';SameSite=Lax';
+      }
+    } catch (e) {}
+  })();
+
+  // Deep-link "Devenir affilié" : /app#affiliate → ouvre l'onglet compte et
+  // scrolle vers la carte affiliation une fois l'app initialisée.
+  (function() {
+    if (location.hash !== '#affiliate') return;
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        try {
+          if (typeof switchTab === 'function') switchTab('account');
+          setTimeout(function() {
+            var el = document.getElementById('affiliate-card');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 350);
+        } catch (e) {}
+      }, 400);
+    });
+  })();
 </script>
 
 <!-- HEADER -->
@@ -2166,6 +2193,7 @@
       <a href="/about">À propos</a>
       <a href="/blog">Blog</a>
       <a href="/contact">Contact</a>
+      <a href="#" onclick="switchTab('account');setTimeout(function(){var e=document.getElementById('affiliate-card');if(e)e.scrollIntoView({behavior:'smooth',block:'center'});},350);return false;">Devenir affilié</a>
     </div>
 
     <div class="footer-section">
