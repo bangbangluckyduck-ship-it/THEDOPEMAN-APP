@@ -392,3 +392,46 @@ async def admin_recherche_gmv(request: Request, handle: str):
     if not result:
         raise HTTPException(status_code=404, detail="Profil introuvable.")
     return {"ok": True, **result}
+
+
+# ── PROGRAMME D'AFFILIATION ──────────────────────────────────
+class AffiliateEmailBody(BaseModel):
+    email: str
+
+class AffiliateStatusBody(BaseModel):
+    email: str
+    status: str          # pending | approved | rejected | disabled
+
+
+@router.get("/affiliates")
+async def admin_list_affiliates(request: Request):
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    return {"ok": True, "affiliates": aff.list_all(supabase_service)}
+
+
+@router.post("/affiliates")
+async def admin_create_affiliate(body: AffiliateEmailBody, request: Request):
+    """Crée un affilié déjà approuvé (avec code) directement depuis l'admin."""
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    res = aff.create_approved(supabase_service, body.email)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Échec création."))
+    return {"ok": True, "affiliate": res.get("affiliate")}
+
+
+@router.post("/affiliates/status")
+async def admin_set_affiliate_status(body: AffiliateStatusBody, request: Request):
+    """Approuve (génère le code), rejette, désactive ou remet en attente un affilié."""
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    res = aff.set_status(supabase_service, body.email, body.status)
+    if not res.get("ok"):
+        code = res.get("error", "")
+        status = 404 if code == "not_found" else 400
+        raise HTTPException(status_code=status, detail=code or "Échec.")
+    return {"ok": True, "affiliate": res.get("affiliate")}

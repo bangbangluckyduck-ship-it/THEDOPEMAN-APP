@@ -3381,6 +3381,13 @@ function renderAccountPage() {
         <div id="acc-credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
       </div>`;
 
+  // 🤝 Programme d'affiliation — lien perso + nombre d'inscrits
+  html += `
+      <div id="affiliate-card" style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">🤝 Programme d'affiliation</div>
+        <div id="affiliate-body" style="font-size:13px;color:var(--muted)">Chargement…</div>
+      </div>`;
+
   // 🔔 Notifications (opt-in Web Push)
   html += `
       <div id="push-card" style="display:none;background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
@@ -3416,6 +3423,76 @@ function renderAccountPage() {
   loadTikTokShopStatus();
   initPushUI();              // opt-in notifications
   renderAccountCredits();    // balance + packs crédits
+  renderAffiliate();         // 🤝 programme d'affiliation
+}
+
+/* ── 🤝 PROGRAMME D'AFFILIATION (espace client) ─────────────────────────── */
+function _affAuthHeaders(extra) {
+  const tok = localStorage.getItem('tts_token') || '';
+  return Object.assign(tok ? { 'Authorization': 'Bearer ' + tok } : {}, extra || {});
+}
+
+async function renderAffiliate() {
+  const box = document.getElementById('affiliate-body');
+  if (!box) return;
+  try {
+    const res = await fetch('/api/affiliate/me', { headers: _affAuthHeaders() });
+    if (!res.ok) { box.innerHTML = 'Indisponible pour le moment.'; return; }
+    const d = await res.json();
+
+    if (!d.is_affiliate) {
+      box.innerHTML = `
+        <div style="margin-bottom:10px">Recommande Qeerah et suis le nombre d'inscrits via ton lien personnel. Ta demande est validée manuellement par l'équipe.</div>
+        <button class="btn btn-primary" id="aff-apply-btn" onclick="applyAffiliate()" style="font-size:13px">🚀 Devenir affilié</button>`;
+      return;
+    }
+    if (d.status === 'pending') {
+      box.innerHTML = `<div style="color:var(--text)">⏳ Ta demande est <strong>en cours de validation</strong>. Tu recevras ton lien une fois approuvée.</div>`;
+      return;
+    }
+    if (d.status === 'approved' && d.link) {
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="font-size:26px;font-weight:800;color:var(--navy)">${d.signups || 0}</div>
+          <div style="font-size:12px;color:var(--muted)">inscription(s)<br>via ton lien</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Ton lien d'affiliation</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="aff-link" type="text" readonly value="${d.link}" onclick="this.select()"
+            style="flex:1;min-width:200px;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text)">
+          <button class="btn btn-primary" onclick="copyAffiliateLink()" style="font-size:13px">📋 Copier</button>
+        </div>`;
+      return;
+    }
+    // disabled / rejected
+    box.innerHTML = `<div style="color:var(--muted)">Ton accès affilié est actuellement inactif. Contacte-nous à contact@qeerah.com si besoin.</div>`;
+  } catch (e) {
+    box.innerHTML = 'Erreur réseau.';
+  }
+}
+
+async function applyAffiliate() {
+  const btn = document.getElementById('aff-apply-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const res = await fetch('/api/affiliate/apply', { method: 'POST', headers: _affAuthHeaders() });
+    if (!res.ok) { showToast('❌ Impossible d\'envoyer la demande.'); if (btn) { btn.disabled = false; btn.textContent = '🚀 Devenir affilié'; } return; }
+    showToast('✅ Demande envoyée !');
+    renderAffiliate();
+  } catch (e) {
+    showToast('❌ Erreur réseau.');
+    if (btn) { btn.disabled = false; btn.textContent = '🚀 Devenir affilié'; }
+  }
+}
+
+function copyAffiliateLink() {
+  const inp = document.getElementById('aff-link');
+  if (!inp) return;
+  inp.select();
+  navigator.clipboard.writeText(inp.value).then(
+    () => showToast('📋 Lien copié !'),
+    () => { try { document.execCommand('copy'); showToast('📋 Lien copié !'); } catch (e) { showToast('Copie impossible'); } }
+  );
 }
 
 /* ── FEATURE 3 — Graphe de progression (client-side, depuis localStorage) ── */

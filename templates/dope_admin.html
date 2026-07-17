@@ -433,6 +433,24 @@
           <button class="btn btn-primary" id="push-send-btn" onclick="sendBroadcast()">📤 Envoyer à tous</button>
         </div>
       </section>
+
+      <!-- ── VUE AFFILIÉS ── -->
+      <section id="view-affiliates" class="view">
+        <h1 class="view-title">🤝 Affiliés</h1>
+        <p class="view-sub">Approuve les candidatures ou crée un affilié directement. Chaque affilié approuvé obtient un lien et voit ses inscrits.</p>
+
+        <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px;margin-bottom:18px">
+          <label style="font-size:12px;font-weight:700">Créer un affilié (déjà approuvé)</label>
+          <div style="display:flex;gap:10px;margin-top:6px">
+            <input id="aff-email" type="email" placeholder="email@exemple.com" style="flex:1;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px" onkeydown="if(event.key==='Enter')createAffiliate()">
+            <button class="btn btn-primary" onclick="createAffiliate()">➕ Créer</button>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Le compte doit déjà exister. Un code d'affiliation est généré automatiquement.</div>
+        </div>
+
+        <div class="toolbar"><button class="btn btn-ghost" onclick="loadAffiliates()">🔄 Rafraîchir</button></div>
+        <div id="affiliates-list"><div class="empty">Chargement…</div></div>
+      </section>
     </main>
 
     <!-- ── NAVIGATION BAS ── -->
@@ -454,6 +472,9 @@
       </button>
       <button class="nav-item" data-view="notifs" onclick="showView('notifs')">
         <span class="ic">🔔</span>Notifs
+      </button>
+      <button class="nav-item" data-view="affiliates" onclick="showView('affiliates')">
+        <span class="ic">🤝</span>Affil.
       </button>
     </nav>
   </div>

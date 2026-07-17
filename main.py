@@ -880,6 +880,16 @@ async def register(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
 
+    # Attribution affiliation (best-effort) : cookie qeerah_ref posé au clic sur
+    # un lien qeerah.com/?ref=CODE. No-op si absent/inconnu/auto-parrainage.
+    try:
+        ref_code = (request.cookies.get("qeerah_ref") or "").strip()
+        if ref_code:
+            import affiliates as _aff
+            _aff.attribute_signup(supabase, email, ref_code)
+    except Exception as _ref_err:
+        print(f"[register] attribution affiliation ignorée : {_ref_err}")
+
     # Email de bienvenue best-effort (un échec ne bloque jamais l'inscription).
     try:
         from email_service import email_service
@@ -2384,11 +2394,24 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
         return RedirectResponse(f"{app_url}/app?gauth=error&reason=exchange")
     if not email:
         return RedirectResponse(f"{app_url}/app?gauth=error&reason=email")
+    is_new_account = False
     try:
-        from supabase_client import get_or_create_user
+        from supabase_client import get_or_create_user, supabase_service
+        if supabase_service:
+            _existing = supabase_service.table("users").select("id").eq("email", email).execute()
+            is_new_account = not (_existing and _existing.data)
         get_or_create_user(email)          # crée le compte s'il n'existe pas (tier free)
     except Exception as e:
         print(f"google_callback get_or_create_user warn: {e}")
+    # Attribution affiliation — UNIQUEMENT si le compte vient d'être créé.
+    if is_new_account:
+        try:
+            ref_code = (request.cookies.get("qeerah_ref") or "").strip()
+            if ref_code:
+                import affiliates as _aff
+                _aff.attribute_signup(supabase_client, email, ref_code)
+        except Exception as _ref_err:
+            print(f"[google_callback] attribution affiliation ignorée : {_ref_err}")
     token = create_access_token(email)
     # Token en FRAGMENT (#) : jamais envoyé au serveur ni journalisé (contrairement à ?).
     return RedirectResponse(f"{app_url}/app#gauth={token}")
@@ -3453,6 +3476,34 @@ async def credits_balance(request: Request):
 @app.get("/api/credits/packs")
 async def credits_packs():
     return {"ok": True, "packs": credits_mod.CREDIT_PACKS, "level_cost": credits_mod.LEVEL_COST}
+
+
+# ── Programme d'affiliation (espace client) ──────────────────────────────────
+import affiliates as affiliates_mod
+
+
+@app.get("/api/affiliate/me")
+async def affiliate_me(request: Request):
+    """État d'affiliation du user connecté : statut, lien, nombre d'inscrits."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    base = _google_host_base(request) or "https://qeerah.com"
+    return {"ok": True, **affiliates_mod.get_for_user(supabase_client, user["email"], base)}
+
+
+@app.post("/api/affiliate/apply")
+async def affiliate_apply(request: Request):
+    """Candidature au programme d'affiliation (user connecté). Idempotent."""
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    res = affiliates_mod.apply(supabase_client, user["email"])
+    if not res.get("ok"):
+        raise HTTPException(status_code=500, detail="Impossible d'enregistrer la demande.")
+    base = _google_host_base(request) or "https://qeerah.com"
+    return {"ok": True, "already": res.get("already", False),
+            **affiliates_mod.get_for_user(supabase_client, user["email"], base)}
 
 
 # ── Plans & prix dynamiques (pilotés par la roadmap, 100 % serveur) ──────────
