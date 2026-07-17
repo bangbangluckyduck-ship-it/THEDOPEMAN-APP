@@ -3663,13 +3663,6 @@ async def push_unsubscribe(request: Request):
     return {"ok": True}
 
 
-@app.post("/api/credits/purchase")
-async def credits_purchase(request: Request):
-    # Paiement Stripe DIFFÉRÉ (société non créée) → stub jusqu'à mise en prod.
-    raise HTTPException(status_code=503,
-                        detail="L'achat de crédits sera disponible très bientôt (paiement en cours d'activation).")
-
-
 @app.get("/api/video-prompt/history")
 async def video_prompt_history(request: Request):
     user = get_user_from_request(request)
