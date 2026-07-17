@@ -41,6 +41,7 @@ runs plutôt que de se fier à une estimation.
 """
 from __future__ import annotations
 
+import gc
 import os
 from datetime import date, timedelta
 from typing import Optional
@@ -201,6 +202,9 @@ async def _run_collection(region: Optional[str], supabase) -> dict:
         totals["found"] += res["found"]
         totals["new"] += res["new"]
         totals["updated"] += res["updated"]
+        # Run long (~2h, 9 régions) sur une petite instance : on force la collecte
+        # du GC entre chaque région pour rendre la RAM à l'OS et limiter le pic.
+        gc.collect()
 
     return {"ok": True, **totals, "by_region": by_region}
 
