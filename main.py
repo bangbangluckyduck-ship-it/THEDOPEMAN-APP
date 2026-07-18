@@ -3008,15 +3008,17 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
-    import random
+    import random, hashlib
+    from datetime import date as _date
     _base_cols = ("video_id,video_url,creator_unique_id,creator_nickname,region,views,likes,"
                   "comments,shares,oembed_thumbnail_url,oembed_author_name,trend_snapshot,"
                   "gmv_estimated,gmv_estimation_method,collected_at")
     _real_gmv_cols = ",gmv_real,sales_real,gmv_source,video_products,is_ad"
-    # On récupère un POOL plus large des meilleures vues, puis on en tire un
-    # échantillon aléatoire → variété à chaque visite tout en restant sur des
-    # posts performants (l'utilisateur voyait toujours les mêmes 24 sinon).
-    pool = max(limit * 5, 80)
+    # Pool large du catalogue régional (meilleures vues), puis rotation quotidienne
+    # seedée ci-dessous → l'utilisateur voit des vidéos DIFFÉRENTES chaque jour, pas
+    # seulement un reshuffle des mêmes 24. Pool généreux car (a) on filtre ensuite les
+    # non-Shop, (b) on veut faire tourner tout le catalogue et pas juste le top figé.
+    pool = max(limit * 10, 300)
     try:
         q = (supabase_client.table("feed_radar_videos")
              .select(_base_cols + ",is_carousel,image_count" + _real_gmv_cols)
@@ -3050,7 +3052,22 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
                 print(f"/api/feed-radar error: {e3}")
                 return JSONResponse({"ok": False, "error": str(e3), "videos": []}, status_code=502)
 
-    random.shuffle(rows)
+    # ── FILTRE SHOP au service ───────────────────────────────────────────────
+    # Ne montrer QUE les vraies vidéos TikTok Shop (produit taggé → bouton « voir le
+    # produit »). La collecte filtre déjà à la source, mais la table peut encore
+    # contenir d'anciennes vidéos non-Shop tant qu'une recollecte complète n'a pas
+    # tourné : ce filtre les cache immédiatement. On ne filtre que si la colonne est
+    # présente (sinon = migration real_gmv non appliquée → on ne casse pas le feed).
+    if rows and "video_products" in rows[0]:
+        rows = [r for r in rows if r.get("video_products")]
+
+    # ── ROTATION QUOTIDIENNE ─────────────────────────────────────────────────
+    # Ordre pseudo-aléatoire seedé par (jour + région + utilisateur) : STABLE dans la
+    # journée (pas de saut désagréable à chaque refresh), DIFFÉRENT chaque jour, et
+    # propre à chaque compte (deux utilisateurs ne voient pas le même feed le même jour).
+    seed = f"{_date.today().isoformat()}::{region}::{user.get('email', '')}"
+    random.Random(hashlib.sha256(seed.encode()).hexdigest()).shuffle(rows)
+
     if not premium:
         return {"ok": True, "preview": True, "region": region, "videos": rows[:3]}
     return {"ok": True, "preview": False, "region": region, "videos": rows[:limit]}
@@ -3129,6 +3146,56 @@ async def feed_radar_thumb(video_id: str):
         return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
 
     # 4) Cache mémoire (éviction FIFO simple).
+    if content and len(content) <= _IMG_CACHE_ITEM_MAX:
+        while _FEED_THUMB_CACHE and len(_FEED_THUMB_CACHE) >= _FEED_THUMB_CACHE_MAX:
+            try: _FEED_THUMB_CACHE.pop(next(iter(_FEED_THUMB_CACHE)))
+            except Exception: _FEED_THUMB_CACHE.clear()
+        _FEED_THUMB_CACHE[video_id] = (content, ct, now)
+    return Response(content=content, media_type=ct,
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+import re as _re_thumb
+_TT_VIDEO_URL_RE = _re_thumb.compile(r"^https://(?:www\.)?tiktok\.com/@[\w.\-]+/video/(\d+)")
+
+@app.get("/api/tt-thumb", include_in_schema=False)
+async def tt_thumb(u: str = Query(...)):
+    """Vignette oEmbed FRAÎCHE pour une vidéo TikTok arbitraire (Créateurs Gagnants,
+    Recherche…). Même principe que /api/feed-radar/{id}/thumb mais borné par une regex
+    STRICTE sur l'URL (uniquement https://www.tiktok.com/@handle/video/<id>) : l'oEmbed
+    ne peut interroger que TikTok et la vignette vient du CDN TikTok → aucun proxy ouvert
+    (pas de SSRF). Les covers renvoyées par KeyAPI expirent / sont sur bucket privé, d'où
+    les 'boîtes noires' ; ici on re-résout une vignette valide à la demande."""
+    m = _TT_VIDEO_URL_RE.match(u or "")
+    if not m:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+    video_id = m.group(1)
+    import time as _t
+    now = _t.monotonic()
+    cached = _FEED_THUMB_CACHE.get(video_id)
+    if cached and (now - cached[2]) < _FEED_THUMB_TTL:
+        return Response(content=cached[0], media_type=cached[1],
+                        headers={"Cache-Control": "public, max-age=3600"})
+    try:
+        import feed_radar
+        oe = await feed_radar.fetch_oembed(u)
+        thumb_url = (oe or {}).get("thumbnail_url")
+    except Exception:
+        thumb_url = None
+    if not thumb_url:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+    try:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            ir = await client.get(thumb_url, headers={
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+                "Referer": "",
+            })
+        if not ir.is_success or "image" not in ir.headers.get("content-type", ""):
+            return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+        content = ir.content
+        ct = ir.headers.get("content-type", "image/jpeg")
+    except Exception:
+        return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
     if content and len(content) <= _IMG_CACHE_ITEM_MAX:
         while _FEED_THUMB_CACHE and len(_FEED_THUMB_CACHE) >= _FEED_THUMB_CACHE_MAX:
             try: _FEED_THUMB_CACHE.pop(next(iter(_FEED_THUMB_CACHE)))

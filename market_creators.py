@@ -886,20 +886,34 @@ async def get_creator_video_attribution(unique_id: str, user_id: str,
         print(f"get_creator_video_attribution({unique_id}) detail error: {e}")
         return {**empty, "video_count": len(videos)}
 
+    # Lookup video_id → métadonnées (url/cover) pour rattacher une vidéo à chaque produit.
+    vid_meta = {str(v["id"]): v for v in videos if v.get("id")}
+
     by_product: dict[str, dict] = {}
     create_times: list = []
     region_hint = "US"
-    for detail in detail_map.values():
+    for vid_key, detail in detail_map.items():
         if detail.get("create_time"):
             create_times.append(detail["create_time"])
         if detail.get("region"):
             region_hint = detail["region"]
+        d_gmv = detail.get("gmv_real") or 0
+        meta = vid_meta.get(str(detail.get("video_id") or vid_key)) or {}
         for pid in detail.get("video_products") or []:
             entry = by_product.setdefault(pid, {"product_id": pid, "gmv_real": 0,
-                                                 "sales_real": 0, "video_count": 0})
-            entry["gmv_real"] += detail.get("gmv_real") or 0
+                                                 "sales_real": 0, "video_count": 0,
+                                                 "_top_video_gmv": -1, "video_id": None,
+                                                 "video_url": None, "video_cover": None})
+            entry["gmv_real"] += d_gmv
             entry["sales_real"] += detail.get("sales_real") or 0
             entry["video_count"] += 1
+            # Vidéo représentative = celle qui a généré le plus de GMV pour CE produit
+            # (c'est elle qu'on affiche à côté du produit côté Recherche).
+            if d_gmv >= entry["_top_video_gmv"]:
+                entry["_top_video_gmv"] = d_gmv
+                entry["video_id"] = str(detail.get("video_id") or vid_key)
+                entry["video_url"] = meta.get("url")
+                entry["video_cover"] = meta.get("cover")
 
     top = sorted(by_product.values(), key=lambda p: p["gmv_real"], reverse=True)[:limit_products]
 
@@ -913,7 +927,8 @@ async def get_creator_video_attribution(unique_id: str, user_id: str,
         base = detail_prod or {"id": entry["product_id"], "name": "", "image": None, "url":
                                f"https://www.tiktok.com/view/product/{entry['product_id']}"}
         enriched.append({**base, "gmv_real": entry["gmv_real"], "sales_real": entry["sales_real"],
-                         "video_count": entry["video_count"]})
+                         "video_count": entry["video_count"], "video_id": entry.get("video_id"),
+                         "video_url": entry.get("video_url"), "video_cover": entry.get("video_cover")})
 
     window_label = None
     if create_times:
