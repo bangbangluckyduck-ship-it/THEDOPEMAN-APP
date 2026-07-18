@@ -1614,20 +1614,53 @@ def _assert_safe_tiktok_url(url: str) -> None:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# GÉNÉRATEUR MULTI-ANGLES (Pro+) — 1 produit → 3-5 scripts, formules différentes.
-# Matérialise la stratégie de VOLUME/recyclage des top comptes deals.
+# GÉNÉRATEUR MULTI-ANGLES — 1 produit → 3-5 scripts, formules différentes.
+# Modèle quota aligné sur le carrousel : 3 gratuits/mois pour les free (compteur
+# DÉDIÉ `script_generations`, séparé du quota d'analyses), illimité pour Pro+.
 # ════════════════════════════════════════════════════════════════════════════
+_SCRIPTS_FREE_MONTHLY = 3
+
+
+def _scripts_month_count(email: str):
+    """Nombre de scripts générés ce mois-ci par cet email. Retourne un int, ou
+    None si le compteur est indisponible (Supabase absent / table non migrée)."""
+    if not supabase_client:
+        return None
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+        month_start = _dt.now(_tz.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        cnt = (supabase_client.table("script_generations")
+               .select("id", count="exact").eq("email", email)
+               .gte("created_at", month_start).execute())
+        return cnt.count if cnt.count is not None else len(cnt.data or [])
+    except Exception:
+        return None
+
+
+def _record_script_generation(email, product, price, user_role, tier, n):
+    """Enregistre une génération (compteur dédié). Jamais bloquant."""
+    if not supabase_client:
+        return
+    try:
+        supabase_client.table("script_generations").insert({
+            "email": email, "product_name": (product or "")[:120], "price": price,
+            "user_role": user_role, "tier": tier, "n_scripts": n,
+        }).execute()
+    except Exception:
+        pass
+
+
 @app.post("/api/scripts/multi-angle")
 async def scripts_multi_angle(request: Request):
-    """Génère 3 à 5 scripts (formules différentes) pour un produit donné. Réservé Pro+."""
+    """Génère 3 à 5 scripts (formules différentes) pour un produit.
+    Free : 3/mois (compteur dédié). Pro/Gold/Agency : illimité."""
     user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    email = user["email"]
     tier = (user.get("tier") or "free").lower()
-    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
-        raise HTTPException(
-            status_code=403,
-            detail="Le générateur multi-angles est réservé aux plans Pro, Gold et Agency.",
-        )
-    check_quota(user)
+    is_paid = tier in _URL_ANALYSIS_TIERS or user.get("is_admin")
+
     body = await request.json()
     product = (body.get("product") or "").strip()
     if not product:
@@ -1640,6 +1673,22 @@ async def scripts_multi_angle(request: Request):
     except (TypeError, ValueError):
         n = 5
 
+    # ── Quota FREE = 3/mois via compteur dédié (n'entame PAS le quota d'analyses) ──
+    if not is_paid:
+        used = _scripts_month_count(email)
+        if used is None:
+            # Compteur indisponible (table non migrée / Supabase KO) → fail-closed :
+            # on retombe sur le comportement réservé Pro+ pour éviter tout abus gratuit.
+            raise HTTPException(
+                status_code=403,
+                detail="Le générateur multi-angles est momentanément réservé aux plans Pro, Gold et Agency.",
+            )
+        if used >= _SCRIPTS_FREE_MONTHLY:
+            raise HTTPException(
+                status_code=402,
+                detail=f"{_SCRIPTS_FREE_MONTHLY} générations gratuites/mois atteintes. Passe Pro pour l'illimité.",
+            )
+
     import script_studio
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
@@ -1650,12 +1699,19 @@ async def scripts_multi_angle(request: Request):
     )
     if not result.get("ok"):
         raise HTTPException(status_code=502, detail=result.get("error", "Génération indisponible."))
-    if user.get("valid") and user.get("email"):
-        try:
-            increment_usage(user["email"])
-        except Exception:
-            pass
-    result["usage"] = usage_info(user)
+
+    # Comptage dédié (pour tous) — remplace l'ancien increment_usage sur les analyses.
+    _record_script_generation(email, product, price, user_role, tier, len(result.get("scripts") or []))
+
+    used_after = _scripts_month_count(email)
+    result["quota"] = {
+        "tier": tier,
+        "is_paid": bool(is_paid),
+        "free_monthly": _SCRIPTS_FREE_MONTHLY,
+        "used_this_month": used_after,
+        "remaining": (None if is_paid or used_after is None
+                      else max(0, _SCRIPTS_FREE_MONTHLY - used_after)),
+    }
     return JSONResponse(result)
 
 

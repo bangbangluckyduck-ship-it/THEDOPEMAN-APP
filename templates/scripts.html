@@ -83,7 +83,7 @@
     <select id="sp-n"><option value="5">5 angles (recommandé)</option><option value="4">4 angles</option><option value="3">3 angles</option></select>
 
     <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">✨ Générer mes scripts</button>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">Réservé aux plans Pro, Gold et Agency. Décompté de ton quota d'analyses.</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">3 générations gratuites/mois — puis illimité avec un plan Pro.</div>
   </div>
 
   <div id="sp-out"></div>
@@ -114,6 +114,7 @@ function renderResult(d){
     +   '<div style="font-size:12px;color:var(--muted);margin-top:8px">Potentiel produit : <strong>'+esc(d.potentiel_produit)+'/100</strong> — '+esc(d.categorie_produit||'')+'</div>'
     +   '<div class="meter"><span style="width:'+Math.max(0,Math.min(100,parseInt(d.potentiel_produit)||0))+'%"></span></div>';
   if(d.mention_pub){ head += '<div class="banner warn" style="margin-top:12px">⚖️ '+esc(d.mention_pub)+'</div>'; }
+  if(d.quota && d.quota.remaining!=null){ head += '<div style="font-size:11px;color:var(--muted);margin-top:10px">🎁 Générations gratuites restantes ce mois : <strong>'+esc(d.quota.remaining)+'</strong> / '+esc(d.quota.free_monthly)+'</div>'; }
   head += '</div>';
 
   var cards = scripts.map(function(s,i){
@@ -161,7 +162,8 @@ async function generate(){
       })
     });
     if(res.status===401){ out.innerHTML='<div class="upsell"><strong>Session expirée</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Reconnecte-toi pour continuer.</div><a class="btn btn-gold" href="/">Se reconnecter</a></div>'; return; }
-    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>🔒 Fonctionnalité Pro</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur multi-angles est réservé aux plans Pro, Gold et Agency.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>🎁 Tes 3 générations gratuites du mois sont épuisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à un plan Pro pour générer des scripts en illimité.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>🔒 Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est momentanément réservé aux plans Pro. Réessaie dans un instant.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
     var d = await res.json().catch(function(){return {};});
     if(!res.ok || d.ok===false){ out.innerHTML='<div class="banner err">'+esc((d && (d.detail||d.error))||'Génération indisponible pour le moment. Réessaie dans un instant.')+'</div>'; return; }
     if(!d.scripts || !d.scripts.length){ out.innerHTML='<div class="banner err">Aucun script généré. Réessaie avec un nom de produit plus précis.</div>'; return; }
