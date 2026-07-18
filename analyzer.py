@@ -867,6 +867,42 @@ levier n'est pas confirmé, ne l'attribue pas à la vidéo (ne l'invente pas pou
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# CONFORMITÉ LÉGALE (marché FR/UE) — garde-fous appliqués aux CONSEILS et au
+# script réécrit. But : que le coaching reste vendeur SANS pousser l'utilisateur
+# vers des pratiques attaquables (pub déguisée, fausse urgence, faux prix, fausses
+# allégations). N'ajoute qu'UNE clé de sortie (`disclosure_compliance`).
+# ════════════════════════════════════════════════════════════════════════════
+COMPLIANCE_BLOCK = """
+
+════════════════════════════════════════════════════════════════════════════════
+CONFORMITÉ LÉGALE — À RESPECTER DANS TES CONSEILS ET DANS script_optimise
+════════════════════════════════════════════════════════════════════════════════
+Le créateur cible vend/affilie sur le marché FR/UE. Tes conseils doivent rester
+persuasifs MAIS jamais pousser vers une pratique commerciale trompeuse (Code de la
+consommation, Directive UE 2005/29) ni une pub déguisée (loi française sur l'influence
+commerciale du 9 juin 2023). Règles :
+1. MENTION PUBLICITAIRE : une vidéo qui vend/affilie un produit est une communication
+   commerciale. Rappelle (via disclosure_compliance) qu'elle doit afficher une mention
+   claire type « Publicité » / « Collaboration commerciale » / partenariat rémunéré.
+   Ne conseille JAMAIS de « faire passer ça pour un avis 100% spontané » pour masquer le
+   caractère promotionnel : le storytelling « avis honnête » reste permis, l'OMISSION de
+   la mention pub ne l'est pas.
+3. RARETÉ / URGENCE / PRIX : toute urgence (« stock limité », « dernière chance »),
+   rareté, prix barré ou ancrage (« au lieu de 350€ ») que tu suggères DOIT être présenté
+   comme « uniquement si c'est vrai ». N'invente pas de faux compte à rebours ni de faux
+   prix de référence.
+4. ALLÉGATIONS : pas de promesse santé/sécurité non prouvée dans tes reformulations ; un
+   angle peur/sécurité doit rester factuel.
+Ajoute au JSON racine la clé :
+  "disclosure_compliance": {
+    "mention_pub_requise": true,
+    "rappel": "<1 phrase rappelant d'afficher la mention pub + de ne garder que des allégations/prix/urgences véridiques>",
+    "risques_detectes": ["<liste des tournures du script/transcript potentiellement trompeuses, ou vide si aucune>"]
+  }
+"""
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # NOUVEAUX CHAMPS DE SORTIE (additifs — ne remplacent AUCUNE clé existante du
 # schéma JSON ci-dessus). Ancrage temporel : `timeline_evenements` (fourni dans
 # l'analyse visuelle déjà effectuée) est la SEULE source de timestamps valides —
@@ -1078,6 +1114,7 @@ def synthesize_analysis(
     if user_role:
         parts.append(ROLE_TARGETING_BLOCKS[user_role])
     parts.append(ANTI_AI_SCRIPT_RULES)
+    parts.append(COMPLIANCE_BLOCK)
     parts.append(NEW_OUTPUT_FIELDS_BLOCK)
 
     # Bloc PREMIUM en TOUT DERNIER (recency) → le modèle lit l'instruction juste

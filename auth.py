@@ -15,6 +15,7 @@ import os
 import hmac
 import hashlib
 import base64
+from time import time
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException, Request
@@ -173,23 +174,62 @@ def _increment_daily(email: str) -> int:
 
 # ── TOKEN / UTILISATEUR (SÉCURISÉ HMAC) ───────────────────────
 
+def _session_ttl_seconds() -> int:
+    """Durée de vie d'un token de session, en secondes (0 = pas d'expiration).
+    Configurable via SESSION_TTL_DAYS (défaut : 30 jours)."""
+    try:
+        days = float(os.getenv("SESSION_TTL_DAYS", "30"))
+    except (TypeError, ValueError):
+        days = 30.0
+    return int(days * 86400) if days > 0 else 0
+
+
 def create_access_token(email: str) -> str:
-    """Crée un token sécurisé pour l'utilisateur avec HMAC."""
+    """Crée un token de session signé HMAC, horodaté et à durée de vie limitée.
+
+    Format v2 : base64(email).timestamp.signature  où
+    signature = HMAC(SECRET_KEY, "email|timestamp"). Le timestamp permet
+    d'expirer le token (cf. SESSION_TTL_DAYS) — un token volé n'est plus valable
+    indéfiniment. Les anciens tokens (format v1 sans horodatage) restent acceptés
+    en vérification pour ne pas déconnecter brutalement les sessions en cours ;
+    ils disparaissent à la reconnexion (nouveau token v2) ou lors d'une rotation
+    de APP_SIGNING_SECRET."""
+    ts = str(int(time()))
     email_b64 = base64.b64encode(email.encode()).decode()
-    signature = hmac.new(SECRET_KEY, email.encode(), hashlib.sha256).hexdigest()
-    return f"{email_b64}.{signature}"
+    payload = f"{email}|{ts}"
+    signature = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
+    return f"{email_b64}.{ts}.{signature}"
 
 def verify_access_token(token: str) -> Optional[str]:
-    """Vérifie la signature cryptographique du token et retourne l'email."""
+    """Vérifie la signature cryptographique du token et retourne l'email.
+    Rejette les tokens v2 expirés. compare_digest empêche les attaques temporelles."""
     try:
-        if "." not in token:
+        if not token or "." not in token:
             return None
-        email_b64, signature = token.split(".", 1)
-        email = base64.b64decode(email_b64).decode()
-        expected = hmac.new(SECRET_KEY, email.encode(), hashlib.sha256).hexdigest()
-        # Compare_digest empêche les attaques temporelles
-        if hmac.compare_digest(signature, expected):
+        parts = token.split(".")
+        if len(parts) == 3:
+            # ── Format v2 : email_b64 . ts . signature ──
+            email_b64, ts_str, signature = parts
+            email = base64.b64decode(email_b64).decode()
+            expected = hmac.new(SECRET_KEY, f"{email}|{ts_str}".encode(), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(signature, expected):
+                return None
+            ttl = _session_ttl_seconds()
+            if ttl > 0:
+                try:
+                    issued = int(ts_str)
+                except (TypeError, ValueError):
+                    return None
+                if time() - issued > ttl:
+                    return None  # token expiré
             return email
+        if len(parts) == 2:
+            # ── Format v1 (legacy, sans horodatage) : accepté en rétro-compat ──
+            email_b64, signature = parts
+            email = base64.b64decode(email_b64).decode()
+            expected = hmac.new(SECRET_KEY, email.encode(), hashlib.sha256).hexdigest()
+            if hmac.compare_digest(signature, expected):
+                return email
     except Exception:
         pass
     return None

@@ -1566,6 +1566,46 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 # ════════════════════════════════════════════════════════════════════════════
 _URL_ANALYSIS_TIERS = {"pro", "gold", "agency", "beta", "admin"}
 
+# Anti-SSRF : l'analyse par lien télécharge l'URL fournie (yt-dlp). On restreint
+# donc aux liens TikTok en https, ET on vérifie que l'hôte ne résout pas vers une
+# IP interne (défense en profondeur contre les tentatives d'accès au réseau privé /
+# aux endpoints de métadonnées cloud type 169.254.169.254).
+_ALLOWED_TIKTOK_HOSTS = {"tiktok.com"}
+_ALLOWED_TIKTOK_SUFFIXES = (
+    ".tiktok.com", ".tiktokcdn.com", ".tiktokv.com",
+    ".byteoversea.com", ".ibytedtos.com", ".muscdn.com",
+)
+
+
+def _assert_safe_tiktok_url(url: str) -> None:
+    """Valide qu'une URL est un lien TikTok public sûr à télécharger.
+    Lève HTTPException(400) si le schéma n'est pas https, si l'hôte n'est pas TikTok,
+    ou s'il résout vers une adresse non publique (anti-SSRF)."""
+    import socket
+    import ipaddress
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise HTTPException(status_code=400, detail="URL invalide.")
+    if parsed.scheme != "https":
+        raise HTTPException(status_code=400, detail="Seuls les liens https sont acceptés.")
+    host = (parsed.hostname or "").lower()
+    if not host or not (host in _ALLOWED_TIKTOK_HOSTS or host.endswith(_ALLOWED_TIKTOK_SUFFIXES)):
+        raise HTTPException(status_code=400, detail="Seuls les liens TikTok sont autorisés pour l'analyse par lien.")
+    try:
+        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Hôte TikTok introuvable.")
+    for info in infos:
+        try:
+            addr = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            continue
+        if (addr.is_private or addr.is_loopback or addr.is_link_local
+                or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
+            raise HTTPException(status_code=400, detail="Résolution d'hôte non autorisée.")
+
 
 def _extract_frames_opencv(video_path: str, n_frames: int = 9) -> list[str]:
     """Extrait n_frames échantillonnées en TEMPS RÉEL (pas en fractions) pour
@@ -1672,6 +1712,7 @@ async def analyze_url(request: Request):
     performance = body.get("performance") if isinstance(body.get("performance"), dict) else None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+    _assert_safe_tiktok_url(url)  # anti-SSRF
     # Multi-liens (batch) = analyse de patterns → produit/prix facultatifs.
 
     # ── CACHE LOOKUP : URL identique déjà analysée ? ──
@@ -1854,6 +1895,7 @@ async def analyze_url_stream(request: Request):
         user_role = None
     if not url or not url.lower().startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="URL TikTok invalide.")
+    _assert_safe_tiktok_url(url)  # anti-SSRF
     if not product or not price:
         raise HTTPException(status_code=422, detail="Le nom du produit et le prix sont obligatoires pour l'analyse par lien.")
 
