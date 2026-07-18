@@ -1479,6 +1479,18 @@ async function analyzeVideo() {
   document.getElementById('analysis-preview')?.remove();   // reset aperçu progressif
   setLoadingText(t('loading_extract'));
 
+  // ── CHEMIN ASYNC (comptes payants) ───────────────────────────────────────
+  // La vidéo native (pipeline Pro) peut dépasser 100s → l'ancien fetch streaming
+  // s'abort (« network error » → l'utilisateur devait relancer). On passe par un
+  // JOB asynchrone + polling court : plus de connexion longue fragile, l'analyse
+  // survit à une coupure réseau, et elle continue en arrière-plan (backup email +
+  // « Mes analyses »). On garde le chemin synchrone pour les comptes gratuits
+  // (l'async est réservé Pro+ côté serveur, et leur pipeline léger tient dans le délai).
+  const _tierNow = (window.__userInfo?.tier || 'free').toLowerCase();
+  if (selectedFile && ['pro', 'gold', 'agency', 'beta', 'admin'].includes(_tierNow)) {
+    return runUploadAnalysisAsyncInline();
+  }
+
   if (!serverReady) {
     setLoadingText(t('loading_server'));
     for (let i = 0; i < 15 && !serverReady; i++)
@@ -2513,10 +2525,10 @@ function showResults(d) {
     document.getElementById('prix-conversion-section').style.display = 'none';
   }
 
-  if (d.transcript) {
-    document.getElementById('transcript-section').style.display = 'block';
-    document.getElementById('transcript-text').textContent = d.transcript;
-  }
+  // Transcription audio volontairement masquée : elle réécrit mot pour mot la
+  // vidéo sans valeur ajoutée pour le créateur. On garde d.transcript côté data
+  // (export PDF, prompts internes) mais on n'affiche plus l'encart.
+  document.getElementById('transcript-section').style.display = 'none';
 
   if (d.verdict) {
     document.getElementById('verdict-section').style.display = 'block';
@@ -2915,14 +2927,13 @@ function renderPremiumStrategy(d) {
         ${persona.psychologie ? `<p><strong>Psychologie :</strong> ${escapeHtml(persona.psychologie)}</p>` : ''}
         ${declencheurs ? `<p><strong>Déclencheurs d'achat :</strong></p><ul class="premium-list">${declencheurs}</ul>` : ''}
       </div>
-
-      <div class="premium-block">
-        <h3>🎬 Script TikTok clé en main</h3>
-        ${script.hook_0_3s ? `<p><span class="premium-tag">Hook 0-3s</span> ${escapeHtml(script.hook_0_3s)}</p>` : ''}
-        ${script.demonstration_organique ? `<p><span class="premium-tag">Démonstration</span> ${escapeHtml(script.demonstration_organique)}</p>` : ''}
-        ${script.call_to_action ? `<p><span class="premium-tag">CTA Shop</span> ${escapeHtml(script.call_to_action)}</p>` : ''}
-      </div>
+      <p class="premium-script-pointer" style="font-size:13px;color:var(--muted);margin-top:4px">📝 Ton script prêt à tourner (adapté à ce persona) est dans l'encart <strong>« Script réécrit »</strong> ci-dessus.</p>
     `;
+    // NOTE : on n'affiche plus le sous-bloc « Script TikTok clé en main » ici — il
+    // reprenait mot pour mot le script déjà rendu dans #script-optimise-section
+    // (« Script réécrit »), d'où l'impression de deux scripts identiques. La
+    // Stratégie de Conversion premium ne garde que sa valeur propre : le persona.
+    void script;
     resultsSection.appendChild(sec);
     return;
   }
@@ -5129,39 +5140,47 @@ async function runRechercheSearch() {
 function renderRechercheResult(data) {
   const p = data.profile || {};
   const gmv = data.gmv || {};
-  const products = data.best_sellers || [];
   const attribution = data.video_attribution || {};
   const attrProducts = attribution.products || [];
   const box = document.getElementById('recherche-result');
 
-  const productsHtml = products.length
-    ? products.map(pr => `
-        <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px;width:100%;min-width:0;box-sizing:border-box">
-          <img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
-          <div style="flex:1;min-width:0;overflow:hidden">
-            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || '')}</div>
-            <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales || 0).toLocaleString()} ventes · $${(pr.gmv || 0).toLocaleString()} GMV — produit, tous créateurs</div>
-          </div>
-        </div>`).join('')
-    : '<p style="color:var(--muted);font-size:13px">Aucun produit vendu détecté.</p>';
-
   const attrProductsHtml = attrProducts.length
-    ? attrProducts.map(pr => `
+    ? attrProducts.map(pr => {
+        const vId = pr.video_id ? String(pr.video_id) : '';
+        const vUrl = pr.video_url || '';
+        // Vignette oEmbed fraîche (comme Feed Radar) plutôt que la cover KeyAPI qui expire.
+        const thumbSrc = vId && p.unique_id
+          ? ('/api/tt-thumb?u=' + encodeURIComponent('https://www.tiktok.com/@' + p.unique_id + '/video/' + vId))
+          : (pr.video_cover || pr.image ? _imgProxy(pr.video_cover || pr.image) : '');
+        // Vignette vidéo cliquable (ouvre le player in-app) — la vidéo qui a
+        // généré le plus de GMV pour ce produit.
+        const videoCell = vId
+          ? `<div onclick="openTikTokPlayer('${escapeHtml(vId)}','${escapeHtml(vUrl)}')" title="Voir la vidéo" style="position:relative;width:52px;height:68px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;background:#111">
+               ${thumbSrc ? `<img src="${escapeHtml(thumbSrc)}" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'" style="width:100%;height:100%;object-fit:cover">` : ''}
+               <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;text-shadow:0 1px 4px rgba(0,0,0,.6)">▶</div>
+             </div>`
+          : `<img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">`;
+        const prodLink = pr.url
+          ? `<a href="${escapeHtml(pr.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:3px;font-size:12px;color:var(--accent);text-decoration:none">🔗 Voir le produit ↗</a>`
+          : '';
+        return `
         <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:10px;width:100%;min-width:0;box-sizing:border-box">
-          <img src="${pr.image ? escapeHtml(_imgProxy(pr.image)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">
+          ${videoCell}
           <div style="flex:1;min-width:0;overflow:hidden">
             <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.name || pr.id || '')}</div>
             <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(pr.sales_real || 0).toLocaleString()} ventes · $${(pr.gmv_real || 0).toLocaleString()} GMV — attribution vidéo réelle</div>
+            ${prodLink}
           </div>
-        </div>`).join('')
+        </div>`;
+      }).join('')
     : '<p style="color:var(--muted);font-size:13px">Aucune vente attribuée trouvée sur les vidéos récentes de ce compte.</p>';
 
-  const attrSectionHtml = attribution.videos_analyzed
-    ? `
+  const attrSectionHtml = `
     <h3 style="font-size:15px;margin-bottom:6px">📈 Ce qu'il a vraiment vendu (attribution vidéo)</h3>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">GMV réel, tagué par vidéo — sur ${escapeHtml(attribution.window_label || `${attribution.videos_analyzed} dernières vidéos`)}. Un produit co-tagué avec d'autres dans la même vidéo affiche le GMV total de cette vidéo (non réparti entre les produits).</p>
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${attrProductsHtml}</div>`
-    : '';
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">${attribution.videos_analyzed
+      ? `GMV réel, tagué par vidéo — sur ${escapeHtml(attribution.window_label || `${attribution.videos_analyzed} dernières vidéos`)}. Clique une vignette pour voir la vidéo. Un produit co-tagué avec d'autres dans la même vidéo affiche le GMV total de cette vidéo (non réparti entre les produits).`
+      : `Aucune vidéo TikTok Shop récente avec produit taggé sur ce compte — on ne peut donc pas attribuer de vente à une vidéo précise. Ça n'exclut pas d'autres ventes hors de cette fenêtre.`}</p>
+    ${attribution.videos_analyzed ? `<div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${attrProductsHtml}</div>` : ''}`;
 
   box.innerHTML = `
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;max-width:100%;box-sizing:border-box">
@@ -5185,9 +5204,6 @@ function renderRechercheResult(data) {
         <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
       `}
     </div>
-    <h3 style="font-size:15px;margin-bottom:6px">🛍️ Vitrine actuelle du compte</h3>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Les produits que ce compte met en avant en ce moment (ordre de sa vitrine TikTok). Ventes et GMV = performance globale du produit, tous créateurs confondus — pas celle de ce compte.</p>
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${productsHtml}</div>
     ${attrSectionHtml}`;
 }
 
@@ -5467,10 +5483,16 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
         const open = vId
           ? `onclick="openTikTokPlayer('${vId}','${escapeHtml(vUrl)}')" style="cursor:pointer"`
           : `onclick="window.open('${escapeHtml(vUrl)}','_blank','noopener')" style="cursor:pointer"`;
+        // Vignette : on re-résout une image oEmbed FRAÎCHE (comme Feed Radar) au lieu
+        // de la cover KeyAPI qui expire / est sur bucket privé (d'où l'ancienne boîte
+        // noire avec juste le ▶). Repli : cover proxifiée, puis placeholder.
+        const thumbSrc = vId
+          ? ('/api/tt-thumb?u=' + encodeURIComponent('https://www.tiktok.com/@' + uniqueId + '/video/' + vId))
+          : (v.cover ? _imgProxy(v.cover) : '');
         html += `<div ${open}>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
             <div style="position:relative">
-              ${v.cover ? `<img src="${escapeHtml(_imgProxy(v.cover))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+              ${thumbSrc ? `<img src="${escapeHtml(thumbSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
               <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
                 <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;padding-left:3px">▶</div>
               </div>
@@ -5716,6 +5738,74 @@ async function analyzeUploadAsync() {
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
+}
+
+// ── Analyse upload ASYNC mais avec RENDU INLINE (comptes payants) ─────────
+// Même robustesse que « Mes analyses » (job + polling court, survit aux coupures
+// réseau) mais l'utilisateur reste sur l'écran de chargement et voit le résultat
+// sur place — plus de connexion longue qui « network error » et oblige à relancer.
+// La modale « Mes analyses » (+ email de fin) reste le backup automatique s'il quitte.
+async function runUploadAnalysisAsyncInline() {
+  try {
+    setLoadingText(t('loading_ai'));
+    setLoadingInfo("Analyse en cours — reste ici, le résultat s'affiche dès qu'il est prêt. Elle tourne aussi en arrière-plan : tu la retrouveras dans « Mes analyses » et on t'envoie un email à la fin.");
+    const fd = new FormData();
+    fd.append('video', selectedFile, selectedFile.name || 'video.mp4');
+    const productInput = document.getElementById('product-input');
+    if (productInput && productInput.value.trim()) fd.append('product', productInput.value.trim());
+    const priceInput = document.getElementById('price-input');
+    if (priceInput && priceInput.value.trim()) fd.append('price', priceInput.value.trim());
+    fd.append('user_role', getUserRole());
+
+    const res = await fetch('/api/jobs/create-upload', { method: 'POST', headers: _AUTH_HEADER(), body: fd });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); msg = j.detail || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const { job_id } = await res.json();
+    const result = await _pollJobInline(job_id);
+    setLoadingInfo(null);
+    document.getElementById('loading-section').style.display = 'none';
+    if (typeof showResults === 'function') showResults(result);
+    setTimeout(() => {
+      const target = document.getElementById('results-section');
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  } catch (e) {
+    setLoadingInfo(null);
+    document.getElementById('loading-section').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'block';
+    showError(e.message || 'Analyse échouée. Réessaie.');
+  }
+}
+
+// Polling court d'un job jusqu'à done/error. Tolère les coupures réseau (le job
+// continue côté serveur), borne l'attente, et met à jour le texte de chargement
+// avec l'étape courante renvoyée par le serveur.
+async function _pollJobInline(jobId) {
+  try { localStorage.setItem('tts_last_job_id', jobId); } catch (_) {}
+  const startedAt = Date.now();
+  const MAX_MS = 8 * 60 * 1000;   // garde-fou 8 min
+  let netFails = 0;
+  while (Date.now() - startedAt < MAX_MS) {
+    await new Promise(r => setTimeout(r, 3000));
+    let job;
+    try {
+      const res = await fetch('/api/jobs/' + encodeURIComponent(jobId), { headers: _AUTH_HEADER() });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      job = await res.json();
+      netFails = 0;
+    } catch (e) {
+      if (++netFails >= 10)
+        throw new Error("Connexion instable. Ton analyse continue en arrière-plan — retrouve-la dans « Mes analyses ».");
+      continue;   // coupure ponctuelle : on retente, rien n'est perdu
+    }
+    if (job.progress_stage) setLoadingText(job.progress_stage);
+    if (job.status === 'done' && job.result) return job.result;
+    if (job.status === 'error') throw new Error(job.error_message || 'Analyse échouée.');
+  }
+  throw new Error("Analyse plus longue que prévu — elle continue en arrière-plan, retrouve-la dans « Mes analyses ».");
 }
 
 // ── Modal "job lancé" : rassure l'utilisateur ────────────────────────────

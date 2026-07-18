@@ -63,6 +63,12 @@ FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison",
 # d'elle-même dès qu'une page revient vide (pas de gaspillage si le classement
 # KeyAPI a moins de créateurs que ça pour une catégorie/région donnée).
 FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "10"))
+# Nb de pages de vidéos récupérées PAR créateur (20 vidéos/page). La découverte est
+# créateur-centrée et seules ~1 vidéo sur 5 d'un créateur est une vraie vidéo Shop
+# (le reste = contenu organique, écarté par le filtre Shop). Paginer plus loin dans
+# leurs vidéos augmente donc le rendement en vidéos Shop réelles. La boucle s'arrête
+# dès qu'une page revient vide. Override via env pour arbitrer rendement ↔ coût KeyAPI.
+FEED_RADAR_VIDEO_PAGES = int(os.getenv("FEED_RADAR_VIDEO_PAGES", "2"))
 # Mêmes régions que MARKET_COUNTRIES (static/app_v3.js) — marchés déjà
 # confirmés couverts par KeyAPI pour "Créateurs Gagnants". Override possible
 # via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
@@ -137,10 +143,15 @@ async def discover_candidate_videos(region: str = "US",
                 continue
             seen_creators.add(unique_id)
             try:
-                vdata = await mc._get("/v1/tiktok/influencer/videos",
-                                      {"unique_id": unique_id, "page_num": 1, "page_size": 20})
-                aweme = (vdata or {}).get("aweme_list") if isinstance(vdata, dict) else None
-                videos = [mc._clean_video(v) for v in (aweme or [])]
+                aweme: list = []
+                for vpage in range(1, FEED_RADAR_VIDEO_PAGES + 1):
+                    vdata = await mc._get("/v1/tiktok/influencer/videos",
+                                          {"unique_id": unique_id, "page_num": vpage, "page_size": 20})
+                    page_aweme = (vdata or {}).get("aweme_list") if isinstance(vdata, dict) else None
+                    if not page_aweme:
+                        break  # plus de vidéos pour ce créateur → on arrête (pas de gaspillage)
+                    aweme.extend(page_aweme)
+                videos = [mc._clean_video(v) for v in aweme]
             except Exception as e:
                 print(f"discover_candidate_videos videos({unique_id}) error: {e}")
                 continue
@@ -206,7 +217,60 @@ async def _run_collection(region: Optional[str], supabase) -> dict:
         # du GC entre chaque région pour rendre la RAM à l'OS et limiter le pic.
         gc.collect()
 
+    # Purge des anciennes vidéos non-Shop (produit non taggé) laissées par les
+    # collectes d'avant le filtre Shop. Best-effort : ne fait jamais échouer la collecte.
+    try:
+        totals["purged_non_shop"] = cleanup_non_shop_rows(supabase)
+    except Exception as e:
+        print(f"cleanup_non_shop_rows error: {e}")
+
     return {"ok": True, **totals, "by_region": by_region}
+
+
+def cleanup_non_shop_rows(supabase, max_delete: int = 3000) -> int:
+    """Supprime de feed_radar_videos les lignes SANS produit taggé (video_products vide
+    ou nul) — vestiges des collectes d'avant le filtre Shop. Le feed les cache déjà au
+    service, ce nettoyage libère juste la table. Borné à `max_delete` lignes/run (il
+    converge sur quelques jours), delete par lots de video_id. Nécessite le client
+    service_role (bypass RLS) ; no-op silencieux si indisponible."""
+    if not supabase:
+        return 0
+    # 1) Récupère les video_id des lignes à supprimer (pagination, filtre en Python
+    #    car le filtre jsonb "tableau vide" de PostgREST est peu fiable selon les versions).
+    to_delete: list = []
+    page_size = 1000
+    offset = 0
+    while len(to_delete) < max_delete:
+        try:
+            rows = (supabase.table("feed_radar_videos")
+                    .select("video_id,video_products")
+                    .range(offset, offset + page_size - 1).execute().data or [])
+        except Exception as e:
+            print(f"cleanup_non_shop_rows fetch error: {e}")
+            break
+        if not rows:
+            break
+        for r in rows:
+            if not r.get("video_products"):
+                to_delete.append(r["video_id"])
+                if len(to_delete) >= max_delete:
+                    break
+        if len(rows) < page_size:
+            break
+        offset += page_size
+    # 2) Delete par lots.
+    deleted = 0
+    for i in range(0, len(to_delete), 200):
+        batch = to_delete[i:i + 200]
+        try:
+            supabase.table("feed_radar_videos").delete().in_("video_id", batch).execute()
+            deleted += len(batch)
+        except Exception as e:
+            print(f"cleanup_non_shop_rows delete error: {e}")
+            break
+    if deleted:
+        print(f"cleanup_non_shop_rows : {deleted} vidéos non-Shop purgées")
+    return deleted
 
 
 async def _collect_region(region: str, supabase) -> dict:
@@ -224,6 +288,23 @@ async def _collect_region(region: str, supabase) -> dict:
     except Exception as e:
         print(f"_collect_region({region}) get_videos_detail error: {e}")
         detail_map = {}
+
+    # ── FILTRE SHOP ────────────────────────────────────────────────────────────
+    # Une vidéo Feed Radar DOIT être une vraie vidéo TikTok Shop, avec un produit
+    # taggé (sinon pas de bouton « voir le produit », et ça pollue le feed). La
+    # découverte est créateur-centrée : elle aspire AUSSI le contenu non-Shop des
+    # créateurs. /video/detail/analytics ne renvoie un/des produit(s) QUE pour les
+    # vidéos réellement taguées Shop → on l'utilise comme filtre : on ne garde que
+    # les candidats dont le détail contient au moins un produit. Placé AVANT la
+    # boucle d'enrichissement → on économise aussi les appels KeyAPI par créateur
+    # pour les vidéos qu'on allait jeter.
+    shop_candidates = [c for c in candidates
+                       if (detail_map.get(str(c.get("id"))) or {}).get("video_products")]
+    skipped_non_shop = found - len(shop_candidates)
+    candidates = shop_candidates
+    if skipped_non_shop:
+        print(f"_collect_region({region}) filtre Shop : {len(candidates)} gardées / "
+              f"{skipped_non_shop} non-Shop écartées ({found} découvertes)")
 
     # Vidéos déjà connues (pour éviter un re-fetch oEmbed inutile).
     existing_ids: set = set()
@@ -338,4 +419,5 @@ async def _collect_region(region: str, supabase) -> dict:
             except Exception as e2:
                 print(f"_collect_region({region}) upsert error ({video_id}): {e2}")
 
-    return {"found": found, "new": new_count, "updated": updated_count}
+    return {"found": found, "kept": len(candidates), "skipped_non_shop": skipped_non_shop,
+            "new": new_count, "updated": updated_count}
