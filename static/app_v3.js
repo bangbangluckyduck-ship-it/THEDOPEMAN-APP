@@ -1140,7 +1140,7 @@ async function openCustomerPortal() {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'favoris', 'photoslide', 'promptstudio', 'credits', 'hooks'].forEach(t => {
+  ['analyze', 'pricing', 'history', 'account', 'creators', 'recherche', 'feedradar', 'favoris', 'photoslide', 'promptstudio', 'credits', 'hooks', 'scripts'].forEach(t => {
     const content = document.getElementById(`tab-${t}-content`);
     const btn     = document.getElementById(`tab-${t}`);
     if (content) content.style.display = t === tab ? 'block' : 'none';
