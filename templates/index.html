@@ -1396,6 +1396,7 @@
         <button class="tab active" id="tab-analyze"  onclick="switchTab('analyze')"  data-i18n="tab_analyze">🎬 Analyser</button>
         <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">✨ Créer un carrousel</button>
         <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
+        <button class="tab"        id="tab-scripts" onclick="switchTab('scripts')">✍️ Scripts multi-angles</button>
         <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
         <button class="tab"        id="tab-favoris" onclick="switchTab('favoris')">❤️ Favoris</button>
       </div>
@@ -2073,19 +2074,34 @@
         </div>
       </a>
 
-      <a href="/scripts" style="display:block;text-decoration:none;color:inherit;margin-top:12px">
-        <div style="background:linear-gradient(135deg,rgba(31,58,112,.12),rgba(37,99,235,.10));border:1px solid rgba(31,58,112,.35);border-radius:16px;padding:22px;text-align:center">
-          <div style="font-size:34px">🎬</div>
-          <div style="font-size:17px;font-weight:800;margin:6px 0 4px">Générateur de scripts multi-angles <span style="font-size:10px;background:#D4AF37;color:#1a1a1a;padding:2px 8px;border-radius:999px;vertical-align:middle">NEW</span></div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Un produit → 5 scripts prêts à tourner, chacun dans un angle différent (confessionnel, skit, deal, astuce…). Réservé Pro+.</div>
-          <span class="btn btn-primary" style="font-size:15px;padding:12px 28px">✨ Générer →</span>
-        </div>
-      </a>
 
       <ul style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px;font-size:13.5px;color:var(--text)">
         <li>✅ <strong>Mode A — Prompts</strong> : plan complet (titre, accroche, hashtags, musique). Gratuit 3/mois, illimité dès PRO.</li>
         <li>✅ <strong>Mode B — Images IA</strong> : 4 slides générées + conseils pour tes photos 5-7. Coûte des crédits (~8-10 / carrousel).</li>
         <li>✅ Identification fiable du produit via le lien TikTok Shop officiel.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── ONGLET SCRIPTS MULTI-ANGLES (PRO+) ── -->
+  <div id="tab-scripts-content" style="display:none">
+    <div class="section">
+      <h2>✍️ Générateur de scripts multi-angles</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Un produit → jusqu'à 5 scripts prêts à tourner, chacun dans un <strong>angle différent</strong> (confessionnel « pas-parce-que », skit dialogué, deal frontal, astuce sans perçage…). C'est la stratégie de volume des top comptes : recycler un produit gagnant sous plusieurs angles.</p>
+
+      <a href="/scripts" style="display:block;text-decoration:none;color:inherit">
+        <div style="background:linear-gradient(135deg,rgba(31,58,112,.12),rgba(37,99,235,.10));border:1px solid rgba(31,58,112,.35);border-radius:16px;padding:22px;text-align:center">
+          <div style="font-size:34px">🎬</div>
+          <div style="font-size:17px;font-weight:800;margin:6px 0 4px">Ouvre le générateur de scripts</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Formule adaptée au produit · hook + script complet + CTA · bouton copier · rappel conformité</div>
+          <span class="btn btn-primary" style="font-size:15px;padding:12px 28px">✨ Générer →</span>
+        </div>
+      </a>
+
+      <ul style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px;font-size:13.5px;color:var(--text)">
+        <li>✅ <strong>8 formules décodées</strong> sur ~180 vidéos deals réelles (US + FR).</li>
+        <li>✅ Chaque script dans une formule <strong>différente</strong> (anti-répétition) — idéal pour tester plusieurs angles.</li>
+        <li>✅ Réservé aux plans <strong>Pro, Gold et Agency</strong> · décompté de ton quota d'analyses.</li>
       </ul>
     </div>
   </div>
