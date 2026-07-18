@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "last_updated": "2024-05-16",
+  "version": "2.0",
+  "last_updated": "2026-07-18",
 
   "categories": [
     {
@@ -151,6 +151,97 @@
         "[challenge TikTok adapté au produit]",
         "[transition tendance + produit]"
       ]
+    },
+    {
+      "id": "confessionnel",
+      "nom": "Confessionnel « pas-parce-que »",
+      "description": "Aveu/regret 1re personne → « mais pas parce que X, ni Y… » (chaîne de bénéfices niés qui tient la curiosité) → vraie raison = j'ai payé plein pot → deal. LE gabarit-roi des comptes deals US/FR (cartons 9M Ty, 8,4M Eric, 1,7M Melen).",
+      "performance_score": 0.19,
+      "best_for_prices": ["15-40", "40-100", "100+"],
+      "best_for_categories": ["home", "tech", "electromenager"],
+      "warning": "Le « pas parce que X/Y » EST le hook (boucle de curiosité) : n'ouvre JAMAIS sur la promo. La vraie raison doit être démontrée à l'écran, jamais seulement dite.",
+      "examples": [
+        "je ne referai plus jamais [corvée]… et au début j'ai cru avoir fait une erreur",
+        "j'aurais aimé ne pas l'acheter — mais pas parce que…",
+        "j'ai fait une grosse erreur avec ça, et c'est pas ce que tu crois",
+        "la vraie erreur, c'est de l'avoir payé plein tarif",
+        "fais pas la même erreur que moi"
+      ]
+    },
+    {
+      "id": "skit_dialogue",
+      "nom": "Skit dialogué (2 persos)",
+      "description": "Mini-scène jouée à 2 voix : un perso a un problème/s'étonne, l'autre dégaine le produit + le deal. Démo pendant l'échange, chute « tu l'as trouvé où ? ». Format le PLUS viral observé (13,4M FR Clem, 22,9M US Trending).",
+      "performance_score": 0.17,
+      "best_for_prices": ["<15", "15-40", "40-100", "100+"],
+      "best_for_categories": ["home", "tech", "electromenager", "mobilite"],
+      "warning": "Watch-time élevé mais le reach reste porté par le produit. Écrire en répliques (— A / — B), garder < 35 s, finir par le deal frontal.",
+      "examples": [
+        "— qu'est-ce que tu fais ? — je refais du granité — attends t'as la machine ?!",
+        "— t'as mis le budget vacances là-dedans ?! — pas du tout, y'avait -50%",
+        "— vous l'avez trouvé où ? — sur le panier orange, la marque vient d'arriver",
+        "— babe, ce truc est nul — c'est pas pour moi, c'est pour garder la voiture au frais"
+      ]
+    },
+    {
+      "id": "comparatif",
+      "nom": "Comparatif « lequel acheter » (A vs B)",
+      "description": "« A ou B ? la différence va te surprendre » → points communs puis LE différenciateur → verdict → prix des deux + deal sur le gagnant. Aide à la décision, watch-time long.",
+      "performance_score": 0.15,
+      "best_for_prices": ["40-100", "100+"],
+      "best_for_categories": ["tech", "electromenager", "home"],
+      "warning": "Format le plus long (60-85 s). Ne marche que si l'audience hésite réellement entre 2 modèles existants.",
+      "examples": [
+        "tu prendrais le [A] ou le [B] ? la différence va te surprendre",
+        "les deux font X et Y… mais un seul a [le différenciateur]",
+        "y'a un gagnant évident, et c'est pas celui qu'on croit",
+        "lequel est le meilleur pour ce prix ?"
+      ]
+    },
+    {
+      "id": "deal_frontal",
+      "nom": "Deal frontal (prix en ouverture)",
+      "description": "Ouvre directement sur le prix/la promo : « j'aurais jamais cru le voir si cheap » → démo valeur + specs chiffrées → coupon explicite (-X€) → rush. Signature Eric (US) et des comptes FR.",
+      "performance_score": 0.16,
+      "best_for_prices": ["15-40", "40-100"],
+      "best_for_categories": ["electromenager", "tech", "home"],
+      "warning": "Doit reposer sur une VRAIE promo/coupon (sinon perte de confiance + risque juridique). En FR, conclure par le rituel « panier orange / livraison offerte / garantie 2 ans ».",
+      "examples": [
+        "je n'ai jamais vu ce [produit] aussi cheap",
+        "au lieu de 350€, là il est à 180€",
+        "la marque vient d'arriver, ils font des offres de lancement de fou",
+        "regarde sur le panier orange, -40% en ce moment"
+      ]
+    },
+    {
+      "id": "astuce_hack",
+      "nom": "Astuce maline « sans bricolage »",
+      "description": "Découverte d'une solution ingénieuse à un agacement domestique précis, SANS perçage/collage/découpe. On vend la malice + la praticité. Format FR le plus partageable (Meldeco : moustiquaire volet roulant 1,9M).",
+      "performance_score": 0.14,
+      "best_for_prices": ["<15", "15-40", "40-100"],
+      "best_for_categories": ["home", "maison_deco_fr"],
+      "warning": "Marche sur un problème maison universel + une astuce vraiment non-évidente. « sans perçage / sans trous » est le déclencheur de partage.",
+      "examples": [
+        "regarde la pépite que j'ai trouvée pour [problème maison]",
+        "sans perçage, sans collage, sans bricolage",
+        "tu connaissais cette astuce pour [agacement quotidien] ?",
+        "cacher ton vis-à-vis sans faire de trous chez toi"
+      ]
+    },
+    {
+      "id": "securite_peur",
+      "nom": "Éducatif / peur-sécurité",
+      "description": "« La plupart des gens ignorent que [X] peut causer [danger] » → démo choc avant/après → « ça vaut le coup pour être tranquille » → lien. Les 4 plus gros cartons de Trending (anti-feu sèche-linge : 14,7M / 13,7M / 12,1M / 15,5M).",
+      "performance_score": 0.15,
+      "best_for_prices": ["<15", "15-40", "40-100"],
+      "best_for_categories": ["home", "tech"],
+      "warning": "RISQUÉ : le danger doit être RÉEL et non exagéré (risque juridique pratiques commerciales trompeuses + perte de confiance si mensonge). Rester strictement factuel.",
+      "examples": [
+        "la plupart des gens ne savent pas que ça peut causer un incendie",
+        "ceci est ton rappel mensuel pour éviter [danger]",
+        "worth the peace of mind vs le coût de la réparation",
+        "un seul détail évite [conséquence grave]"
+      ]
     }
   ],
 
@@ -162,16 +253,28 @@
       "notes": "Authenticité CRITIQUE. Éviter peur excessive."
     },
     "electromenager": {
-      "names": ["air fryer", "robot", "table pliante", "cafetière", "aspirateur", "friteuse", "mixeur"],
-      "recommended_hooks": ["controverse_douce", "urgence_tarifaire", "cas_usage"],
+      "names": ["air fryer", "robot", "table pliante", "cafetière", "aspirateur", "friteuse", "mixeur", "machine à glace", "slushi", "blender", "plancha"],
+      "recommended_hooks": ["confessionnel", "deal_frontal", "comparatif", "skit_dialogue", "cas_usage"],
       "price_range": "25-300",
-      "notes": "Montrer le produit. Démo visuelle importante."
+      "notes": "Montrer le produit, démo visuelle du mécanisme. Marques connues (Ninja/Shark/Moulinex/Philips) rassurent. Le confessionnel 'pas-parce-que' et le skit dialogué dominent les cartons."
     },
     "tech": {
-      "names": ["drone", "montre", "chargeur", "câble", "batterie", "ecouteurs", "téléphone", "smartwatch"],
-      "recommended_hooks": ["curiosite", "cas_usage", "controverse_douce"],
+      "names": ["drone", "montre", "chargeur", "câble", "batterie", "ecouteurs", "téléphone", "smartwatch", "carplay", "power bank"],
+      "recommended_hooks": ["curiosite", "skit_dialogue", "cas_usage", "controverse_douce"],
       "price_range": "20-200",
-      "notes": "Innovation + facilité d'utilisation. Specs moins importants."
+      "notes": "Innovation + facilité d'utilisation. Specs moins importants. Le skit dialogué (produit qui sauve une situation) cartonne (power banks Trending)."
+    },
+    "maison_deco_fr": {
+      "names": ["moustiquaire", "store", "voilage", "rideau", "piscine", "parasol", "salon de jardin", "refroidisseur", "caméra surveillance"],
+      "recommended_hooks": ["astuce_hack", "securite_peur", "deal_frontal", "cas_usage"],
+      "price_range": "10-200",
+      "notes": "Marché FR : astuce 'sans perçage' très partageable. Saisonnier été fort. Rituel panier orange + garantie 2 ans."
+    },
+    "mobilite": {
+      "names": ["trottinette", "vélo électrique", "gonfleur", "démarreur", "batterie voiture"],
+      "recommended_hooks": ["skit_dialogue", "deal_frontal", "comparatif"],
+      "price_range": "100-800",
+      "notes": "Produits chers : proposer le paiement en plusieurs fois (Klarna/Paypal), ancrer le prix retail, légitimité marque."
     },
     "fitness": {
       "names": ["barre traction", "tapis", "haltères", "kettlebell", "élastique", "corde", "musculation"],
@@ -220,5 +323,46 @@
       "viral_multiplier": 0.7,
       "note": "Objection majeure. Positionnement + preuve critique."
     }
+  },
+
+  "script_formulas": {
+    "_note": "Architectures de script complètes (hook → corps → chute) décodées sur ~180 vidéos deals TikTok Shop (6 comptes US+FR). Sers-t'en pour structurer script_optimise et plan_reproduction. Choisis la formule SELON LE PRODUIT, jamais par défaut ni deux fois la même dans une série.",
+    "A_confessionnel": "Aveu+produit → « pas parce que X, ni Y, ni Z » (4-6 bénéfices empilés niés) → vraie erreur = payé plein pot → coupon + rush. Gabarit-roi, presque toujours applicable.",
+    "B_comparatif": "« A ou B ? » → points communs → LE différenciateur → verdict → prix des deux + deal sur le gagnant. Si le produit a des variantes/concurrents.",
+    "C_curiosite": "Affirmation intrigante → « y'a un truc dont personne ne parle » → chaîne de négation qui tient le mystère → révélation = le deal. Si bénéfice surprenant.",
+    "D_deal_frontal": "Ouvre sur le prix → démo valeur + specs chiffrées → coupon explicite → rush fort. Si VRAIE promo.",
+    "E_demo_solution": "Hook problème→solution → démo du mécanisme étape par étape → preuve+specs+prix → deal. Si mécanisme visuel satisfaisant.",
+    "F_skit_dialogue": "Mini-scène 2 persos : problème relatable → l'autre dégaine le produit → démo dans l'échange → « tu l'as trouvé où ? » → deal. Watch-time max, très viral.",
+    "G_educatif_securite": "« la plupart ignorent que X cause [danger] » → démo choc → « peace of mind » → lien. Produits sécurité/entretien. Danger réel uniquement.",
+    "H_astuce_hack": "Problème maison courant → solution maline SANS bricolage (« sans perçage ») → démo → « ça vaut le coup, panier orange ». Très FR, très partageable.",
+    "regle_multi_angles": "Pour UN produit gagnant, sortir 3-5 scripts, chacun une formule DIFFÉRENTE (anti-répétition). Recycler le produit gagnant sous plusieurs angles = stratégie de volume n°1 des top comptes.",
+    "invariants_adn": [
+      "1) plan-matière/problème en ouverture — le hook VISUEL précède le hook verbal",
+      "2) n'ouvre JAMAIS sur la promo (sauf formule D)",
+      "3) produit nommé tôt",
+      "4) chaîne de 4-6 bénéfices empilés (connecteurs variés)",
+      "5) le prix/deal est la CHUTE, pas l'ouverture",
+      "6) rush/rareté seulement en SORTIE, et seulement si stock/promo réel",
+      "7) preuve MONTRÉE à l'écran, jamais seulement promise",
+      "8) 25-50 s, monologue ou dialogue fluide"
+    ]
+  },
+
+  "fr_deals_playbook": {
+    "_note": "Spécificités du marché FR décodées sur 3 comptes FR (melenclaquettes, _meldeco, clembonplan) dont le plus gros carton FR (13,4M). À appliquer quand la cible est la France.",
+    "duree_optimale_s": "25-40 (les comptes FR sont plus courts que les US : Clem ~28s, Melen ~32s, Meldeco ~33s)",
+    "rituel_deal": "Conclure par : « regarde sur le panier orange en bas de la vidéo » + « la marque officielle qui te l'envoie » + « garantie 2 ans » + « livraison offerte ».",
+    "boosters_conversion": [
+      "Preuve sociale chiffrée : « +50 000 / 130 000 commandes »",
+      "Ancrage prix anti-arnaque : « certains le vendent 100€, ne te fais pas avoir, le vrai prix c'est 20€ »",
+      "Ancrage prix retail : « 350€ en magasin → 150€ ici »",
+      "Paiement en plusieurs fois sans frais (Klarna/Paypal) pour les produits chers : « 40€/mois pendant 4 mois »",
+      "Légitimité marque : « la marque officielle vient d'arriver sur TikTok Shop, offres de lancement »",
+      "Engagement commentaires : « envoie-moi tes dimensions / ta taille en commentaire »"
+    ],
+    "marques_qui_rassurent": ["Ninja", "Shark", "Philips", "Moulinex", "Carrefour", "Kukirine"],
+    "produits_a_fort_potentiel": "satisfaisant · utile au quotidien · anxiogène/sécurité (ex : anti-feu) · astuce maline · prix waouh. Le PRODUIT porte le reach, plus que le script.",
+    "a_eviter_fr": "attelage/remorquage/sangles (hors marché FR), saisonnier trop daté, produits saturés.",
+    "calibration_critique": "VÉRIFIÉ SUR 6 COMPTES / ~180 VIDÉOS : le format/script est un PLANCHER de qualité, PAS le levier de viralité. Le même skit a fait 13,4M ET 689 vues. La variance vient du PRODUIT + de la 1re SECONDE VISUELLE + de la loterie algo + du VOLUME/recyclage. Ne survends jamais un bon script comme une garantie de vues : un score de script élevé = plancher pro atteint, pas succès assuré. Dans tes conseils, pondère le potentiel PRODUIT et la 1re seconde AU-DESSUS des dimensions purement textuelles."
   }
 }

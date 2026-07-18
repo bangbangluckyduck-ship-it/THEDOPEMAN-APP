@@ -344,6 +344,36 @@ def _load_hooks_context() -> str:
         for key, pf in db["price_factors"].items():
             lines.append(f"- {pf['range']}€: multiplicateur viral ×{pf['viral_multiplier']} — {pf['note']}")
 
+        # Architectures de script (v2.0) — décodées sur ~180 vidéos deals réelles.
+        formulas = db.get("script_formulas")
+        if isinstance(formulas, dict):
+            lines.append("\nFORMULES DE SCRIPT (architectures — choisis SELON LE PRODUIT):")
+            for k, v in formulas.items():
+                if k.startswith("_"):
+                    continue
+                if k == "invariants_adn" and isinstance(v, list):
+                    lines.append("- ADN commun (invariants à respecter): " + " ; ".join(v))
+                elif isinstance(v, str):
+                    lines.append(f"- {k}: {v}")
+
+        # Playbook marché FR (v2.0) — spécificités + calibration critique.
+        playbook = db.get("fr_deals_playbook")
+        if isinstance(playbook, dict):
+            lines.append("\nPLAYBOOK MARCHÉ FR (appliquer si la cible est la France):")
+            if playbook.get("duree_optimale_s"):
+                lines.append(f"- Durée optimale (s): {playbook['duree_optimale_s']}")
+            if playbook.get("rituel_deal"):
+                lines.append(f"- Rituel deal FR: {playbook['rituel_deal']}")
+            boosters = playbook.get("boosters_conversion")
+            if isinstance(boosters, list):
+                lines.append("- Boosters conversion FR: " + " ; ".join(boosters))
+            if playbook.get("produits_a_fort_potentiel"):
+                lines.append(f"- Produits à fort potentiel: {playbook['produits_a_fort_potentiel']}")
+            if playbook.get("a_eviter_fr"):
+                lines.append(f"- À éviter (FR): {playbook['a_eviter_fr']}")
+            if playbook.get("calibration_critique"):
+                lines.append(f"- ⚖️ CALIBRATION CRITIQUE: {playbook['calibration_critique']}")
+
         return "\n".join(lines)
     except Exception:
         return ""
@@ -691,6 +721,16 @@ EXIGENCES DE QUALITÉ — RESPECTE-LES POUR CHAQUE "feedback" / "commentaire" / 
 6. exemples_concrets / formulation / script : du texte RÉEL prêt à l'emploi, jamais des
    descriptions abstraites ("fais un hook accrocheur" est INTERDIT).
 7. Reste probabiliste ("semble", "tend à") mais PRÉCIS et utile. Zéro remplissage.
+8. CALIBRATION PRODUIT > SCRIPT : le script/format est un PLANCHER de qualité, pas une garantie
+   de vues (vérifié sur ~180 vidéos deals : même script = carton OU flop). Quand tu juges le
+   `viral_potential` et le `verdict`, pondère le POTENTIEL DU PRODUIT et la 1re SECONDE VISUELLE
+   au-dessus des dimensions purement textuelles. Ne promets jamais la viralité à partir d'un bon
+   script ; explique que le script sécurise le plancher, et que produit + 1re seconde + volume
+   décident du reste.
+9. NOMME LA FORMULE : dans `recommendations_hooks` et `plan_reproduction`, nomme explicitement
+   la formule recommandée (confessionnel « pas-parce-que », skit dialogué, comparatif, deal
+   frontal, astuce sans perçage, éducatif-sécurité…) et donne un exemple verbatim adapté AU
+   produit détecté. Si la cible est la France, applique le rituel deal FR et une durée 25-40 s.
 """
 
 
@@ -769,6 +809,15 @@ RÈGLES DE RÉÉCRITURE DU SCRIPT (`script_optimise`) — ANTI-IA
   ex : [Action Cut sur le produit], [gros plan visage], [texte à l'écran : "..."].
 - `script_optimise` doit être un texte RÉEL prêt à dire face caméra, jamais une description
   abstraite du script.
+- CHOIX DE FORMULE : structure `script_optimise` selon UNE des formules décodées (voir
+  "FORMULES DE SCRIPT" ci-dessus : A confessionnel, B comparatif, C curiosité, D deal frontal,
+  E démo/solution, F skit dialogué, G éducatif/sécurité, H astuce). Choisis-la selon le PRODUIT
+  détecté, pas par défaut, et respecte les 8 invariants d'ADN (plan-matière en ouverture,
+  produit nommé tôt, prix en chute, preuve montrée, rush seulement en sortie et seulement si réel).
+- VARIANTE SKIT DIALOGUÉ (formule F) : si tu choisis le skit, écris-le en répliques préfixées
+  « — » (2 personnages), ex : « — c'est quoi ce truc ? / — [le produit], je l'ai eu à -50%… ».
+  Les interdictions (aucune salutation, aucun emoji, 12 mots max/phrase, textes écran en
+  minuscules) restent valables ; le dialogue commence directement par la réplique-hook.
 """
 
 
