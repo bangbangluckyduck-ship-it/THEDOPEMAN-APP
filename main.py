@@ -1607,6 +1607,52 @@ def _assert_safe_tiktok_url(url: str) -> None:
             raise HTTPException(status_code=400, detail="Résolution d'hôte non autorisée.")
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# GÉNÉRATEUR MULTI-ANGLES (Pro+) — 1 produit → 3-5 scripts, formules différentes.
+# Matérialise la stratégie de VOLUME/recyclage des top comptes deals.
+# ════════════════════════════════════════════════════════════════════════════
+@app.post("/api/scripts/multi-angle")
+async def scripts_multi_angle(request: Request):
+    """Génère 3 à 5 scripts (formules différentes) pour un produit donné. Réservé Pro+."""
+    user = get_user_from_request(request)
+    tier = (user.get("tier") or "free").lower()
+    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+        raise HTTPException(
+            status_code=403,
+            detail="Le générateur multi-angles est réservé aux plans Pro, Gold et Agency.",
+        )
+    check_quota(user)
+    body = await request.json()
+    product = (body.get("product") or "").strip()
+    if not product:
+        raise HTTPException(status_code=422, detail="Le nom du produit est obligatoire.")
+    price = (body.get("price") or "").strip() or None
+    market = (body.get("market") or "fr").strip().lower()
+    user_role = (body.get("user_role") or "").strip().lower() or None
+    try:
+        n = int(body.get("n") or 5)
+    except (TypeError, ValueError):
+        n = 5
+
+    import script_studio
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        lambda: script_studio.generate_multi_angle_scripts(
+            product, price=price, market=market, user_role=user_role, n=n
+        ),
+    )
+    if not result.get("ok"):
+        raise HTTPException(status_code=502, detail=result.get("error", "Génération indisponible."))
+    if user.get("valid") and user.get("email"):
+        try:
+            increment_usage(user["email"])
+        except Exception:
+            pass
+    result["usage"] = usage_info(user)
+    return JSONResponse(result)
+
+
 def _extract_frames_opencv(video_path: str, n_frames: int = 9) -> list[str]:
     """Extrait n_frames échantillonnées en TEMPS RÉEL (pas en fractions) pour
     capturer le hook (0-3s), le milieu, et surtout le CTA des 2 dernières secondes.
