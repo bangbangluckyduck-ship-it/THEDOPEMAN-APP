@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Générateur de scripts multi-angles — Qeerah</title>
+<meta name="description" content="Un produit → 5 scripts TikTok Shop prêts à tourner, chacun dans un angle différent. Réservé aux plans Pro, Gold et Agency.">
+<style>
+  :root{--bg:#F5F7FA;--surface:#fff;--surface2:#f1f4f8;--text:#1A1A1A;--muted:#6B7280;--border:#e3e8ef;
+        --primary:#2563EB;--gold:#D4AF37;--navy:#1F3A70;--success:#059669;--err:#DC2626;--radius:14px}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:760px;margin:0 auto;padding:18px}
+  header.top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}
+  header.top a{color:var(--primary);text-decoration:none;font-size:13px;font-weight:600}
+  .logo{font-weight:800;font-size:15px}
+  h1{font-size:24px;margin:8px 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .badge{display:inline-block;background:var(--gold);color:#1a1a1a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:600px){.row{grid-template-columns:1fr}}
+  .btn{display:inline-block;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn-primary{background:var(--primary);color:#fff;width:100%}
+  .btn-primary:disabled{opacity:.55;cursor:not-allowed}
+  .btn-sec{background:var(--surface2);color:var(--text);font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer}
+  .btn-gold{background:var(--gold);color:#1a1a1a}
+  .fbadge{display:inline-block;background:var(--navy);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.2px}
+  .angle{font-weight:700;font-size:15px;margin:8px 0 2px}
+  .hook{background:rgba(37,99,235,.06);border-left:3px solid var(--primary);padding:9px 12px;border-radius:8px;font-weight:600;margin:8px 0}
+  .script-body{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;white-space:pre-wrap;font-size:13.5px;margin:8px 0}
+  .cta{font-size:13px;color:var(--success);font-weight:600;margin:6px 0}
+  .why{font-size:12px;color:var(--muted);font-style:italic;margin-top:6px}
+  .meter{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:6px}
+  .meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--gold))}
+  .banner{border-radius:12px;padding:12px 14px;font-size:13px;margin:10px 0}
+  .banner.warn{background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.45)}
+  .banner.err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.35);color:var(--err)}
+  .upsell{background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.4);border-radius:12px;padding:16px;margin-top:12px;text-align:center}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .foot{font-size:11px;color:var(--muted);text-align:center;margin:18px 0}
+</style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HR4QQJ52DT');
+</script>
+</head>
+<body>
+<header class="top">
+  <span class="logo">🎬 Qeerah</span>
+  <a href="/">← Accueil</a>
+</header>
+
+<div class="wrap">
+  <h1>Générateur de scripts multi-angles <span class="badge">NEW</span></h1>
+  <div class="sub">Un produit → jusqu'à 5 scripts prêts à tourner, chacun dans un <strong>angle différent</strong> (confessionnel, skit dialogué, deal frontal, astuce…). C'est la stratégie de volume des top comptes : recycler un produit gagnant sous plusieurs angles.</div>
+
+  <div class="card">
+    <label class="fld">Produit <span style="color:var(--err)">*</span></label>
+    <input id="sp-product" maxlength="120" placeholder="Ex : Ninja Slushi machine à granité">
+    <div class="row" style="margin-top:4px">
+      <div>
+        <label class="fld">Prix (optionnel)</label>
+        <input id="sp-price" maxlength="20" placeholder="Ex : 180€">
+      </div>
+      <div>
+        <label class="fld">Ton rôle</label>
+        <select id="sp-role">
+          <option value="">— (neutre)</option>
+          <option value="affilie">Affilié (je revends)</option>
+          <option value="vendeur">Vendeur (ma marque)</option>
+        </select>
+      </div>
+    </div>
+    <label class="fld" style="margin-top:4px">Nombre d'angles</label>
+    <select id="sp-n"><option value="5">5 angles (recommandé)</option><option value="4">4 angles</option><option value="3">3 angles</option></select>
+
+    <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">✨ Générer mes scripts</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">Réservé aux plans Pro, Gold et Agency. Décompté de ton quota d'analyses.</div>
+  </div>
+
+  <div id="sp-out"></div>
+
+  <div class="foot">⚖️ Rappel : une vidéo qui vend doit afficher une mention publicitaire (« Publicité » / « Collaboration commerciale »). Ne garde que des prix, promos et allégations véridiques.</div>
+</div>
+
+<script>
+function token(){ return localStorage.getItem('tts_token'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function el(id){ return document.getElementById(id); }
+
+function copyText(btn, txt){
+  navigator.clipboard.writeText(txt).then(function(){
+    var old=btn.textContent; btn.textContent='✅ Copié'; setTimeout(function(){btn.textContent=old;},1500);
+  }).catch(function(){});
+}
+
+function renderResult(d){
+  var out = el('sp-out');
+  var scripts = (d.scripts||[]);
+  var head = ''
+    + '<div class="card">'
+    +   '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+    +     '<strong style="font-size:16px">'+esc(d.produit||'')+'</strong>'
+    +     '<span class="fbadge">'+scripts.length+' angles</span>'
+    +   '</div>'
+    +   '<div style="font-size:12px;color:var(--muted);margin-top:8px">Potentiel produit : <strong>'+esc(d.potentiel_produit)+'/100</strong> — '+esc(d.categorie_produit||'')+'</div>'
+    +   '<div class="meter"><span style="width:'+Math.max(0,Math.min(100,parseInt(d.potentiel_produit)||0))+'%"></span></div>';
+  if(d.mention_pub){ head += '<div class="banner warn" style="margin-top:12px">⚖️ '+esc(d.mention_pub)+'</div>'; }
+  head += '</div>';
+
+  var cards = scripts.map(function(s,i){
+    var fullForCopy = (s.hook_0_3s? s.hook_0_3s+'\n\n':'') + (s.script||'') + (s.cta? '\n\n'+s.cta : '');
+    return ''
+    + '<div class="card">'
+    +   '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+    +     '<span class="fbadge">'+esc(s.formule||('angle '+(i+1)))+'</span>'
+    +     (s.duree_estimee_s? '<span style="font-size:11px;color:var(--muted)">≈ '+esc(s.duree_estimee_s)+'s</span>':'')
+    +   '</div>'
+    +   (s.angle? '<div class="angle">'+esc(s.angle)+'</div>':'')
+    +   (s.hook_0_3s? '<div class="hook">🎣 '+esc(s.hook_0_3s)+'</div>':'')
+    +   '<div class="script-body">'+esc(s.script||'')+'</div>'
+    +   (s.cta? '<div class="cta">📣 '+esc(s.cta)+'</div>':'')
+    +   (s.why_it_works? '<div class="why">💡 '+esc(s.why_it_works)+'</div>':'')
+    +   '<button class="btn-sec" style="margin-top:10px" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">📋 Copier le script</button>'
+    + '</div>';
+  }).join('');
+
+  out.innerHTML = head + cards;
+  out.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+async function generate(){
+  var product = (el('sp-product').value||'').trim();
+  var out = el('sp-out');
+  if(!product){ out.innerHTML='<div class="banner err">Indique d\'abord un nom de produit.</div>'; return; }
+  if(!token()){
+    out.innerHTML = '<div class="upsell"><strong>Connecte-toi pour générer</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est réservé aux membres Pro, Gold et Agency.</div><a class="btn btn-gold" href="/">Se connecter</a></div>';
+    return;
+  }
+  var btn = el('sp-go');
+  btn.disabled = true; var label = btn.textContent; btn.innerHTML = '<span class="spin"></span>Génération en cours…';
+  out.innerHTML = '';
+  try{
+    var res = await fetch('/api/scripts/multi-angle', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token(), 'Content-Type':'application/json'},
+      body: JSON.stringify({
+        product: product,
+        price: (el('sp-price').value||'').trim(),
+        user_role: el('sp-role').value || null,
+        market: 'fr',
+        n: parseInt(el('sp-n').value)||5
+      })
+    });
+    if(res.status===401){ out.innerHTML='<div class="upsell"><strong>Session expirée</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Reconnecte-toi pour continuer.</div><a class="btn btn-gold" href="/">Se reconnecter</a></div>'; return; }
+    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>🔒 Fonctionnalité Pro</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur multi-angles est réservé aux plans Pro, Gold et Agency.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    var d = await res.json().catch(function(){return {};});
+    if(!res.ok || d.ok===false){ out.innerHTML='<div class="banner err">'+esc((d && (d.detail||d.error))||'Génération indisponible pour le moment. Réessaie dans un instant.')+'</div>'; return; }
+    if(!d.scripts || !d.scripts.length){ out.innerHTML='<div class="banner err">Aucun script généré. Réessaie avec un nom de produit plus précis.</div>'; return; }
+    renderResult(d);
+  }catch(e){
+    out.innerHTML='<div class="banner err">Erreur réseau. Vérifie ta connexion et réessaie.</div>';
+  }finally{
+    btn.disabled=false; btn.textContent=label;
+  }
+}
+
+// Entrée clavier : Enter dans le champ produit lance la génération.
+document.addEventListener('DOMContentLoaded', function(){
+  var p = el('sp-product');
+  if(p){ p.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); generate(); } }); }
+});
+</script>
+</body>
+</html>
