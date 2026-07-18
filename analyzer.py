@@ -1075,6 +1075,15 @@ def synthesize_analysis(
     parts.append("Ce momentum prime sur ton intuition calendaire — c'est la SOURCE DE VÉRITÉ.")
     parts.append("████████████████████████████████████████████████████████████████████████████████")
 
+    # 🆕 INTELLIGENCE PRODUIT — signal déterministe (produit > script). Aligné sur
+    # le constat vérifié sur ~180 vidéos : le produit + la 1re seconde portent le
+    # reach, le script n'est qu'un plancher. Jamais bloquant.
+    try:
+        import product_intel
+        parts.append(product_intel.format_for_prompt(product_hint_for_momentum, price))
+    except Exception:
+        pass
+
     parts.append("\n\n================================================================================")
     parts.append("ANALYSE VISUELLE DÉJÀ EFFECTUÉE (réutilise ces scores tel quel) :")
     parts.append("================================================================================")
