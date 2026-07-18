@@ -318,6 +318,7 @@ def _bust(html: str) -> str:
 _HOMEPAGE_HTML = _bust(Path("templates/homepage.html").read_text(encoding="utf-8"))
 _APP_HTML = _bust(Path("templates/index.html").read_text(encoding="utf-8"))
 _CAROUSEL_PAGE_HTML = _bust(Path("templates/carousel.html").read_text(encoding="utf-8"))
+_SCRIPTS_PAGE_HTML = _bust(Path("templates/scripts.html").read_text(encoding="utf-8"))
 _BLOG_HTML = Path("templates/blog.html").read_text(encoding="utf-8")
 _BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="utf-8")
 _BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
@@ -424,6 +425,11 @@ async def app_page(request: Request):
 async def carousel_page(request: Request):
     await track_visitor("/carousel", request)
     return HTMLResponse(_CAROUSEL_PAGE_HTML)
+
+@app.get("/scripts", response_class=HTMLResponse)
+async def scripts_page(request: Request):
+    await track_visitor("/scripts", request)
+    return HTMLResponse(_SCRIPTS_PAGE_HTML)
 
 @app.get("/confidentialite", response_class=HTMLResponse)
 @app.get("/privacy", response_class=HTMLResponse)
