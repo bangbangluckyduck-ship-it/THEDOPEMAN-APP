@@ -40,14 +40,25 @@ except (ImportError, Exception):
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").lower().strip()
 # Clé secrète pour signer les tokens de session (HMAC).
 # Aucune valeur par défaut : un secret par défaut connu permettrait à quiconque de
-# forger des tokens valides. Si la variable n'est pas configurée, l'app refuse de
+# forger des tokens valides. Si aucun secret n'est configuré, l'app refuse de
 # démarrer (fail-fast au boot) plutôt que de tourner avec un secret prévisible.
-_SECRET_KEY_RAW = os.getenv("SUPABASE_ANON_KEY", "").strip()
+#
+# ⚠️ SÉCURITÉ (recommandé) : privilégie APP_SIGNING_SECRET, une valeur DÉDIÉE et
+# réellement secrète (ex. `python -c "import secrets; print(secrets.token_urlsafe(48))"`).
+# SUPABASE_ANON_KEY est conservé comme repli pour ne rien casser, MAIS la clé « anon »
+# de Supabase est conçue pour être PUBLIQUE (rôle anon, embarquée côté client) : si elle
+# fuite, un attaquant pourrait forger un token pour n'importe quel email — y compris
+# l'admin, identifié par simple égalité d'email. Définir APP_SIGNING_SECRET coupe ce
+# risque (les sessions existantes devront se reconnecter une fois la variable posée).
+_SECRET_KEY_RAW = (
+    os.getenv("APP_SIGNING_SECRET", "").strip()
+    or os.getenv("SUPABASE_ANON_KEY", "").strip()
+)
 if not _SECRET_KEY_RAW:
     raise RuntimeError(
-        "SUPABASE_ANON_KEY manquant : cette variable sert de secret de signature des "
-        "tokens de session. Configure-la dans l'environnement (.env / Render) avant de "
-        "démarrer l'application. Aucun secret par défaut n'est autorisé."
+        "Aucun secret de signature configuré : définis APP_SIGNING_SECRET (recommandé, "
+        "valeur dédiée et secrète) ou, à défaut, SUPABASE_ANON_KEY, dans l'environnement "
+        "(.env / Render) avant de démarrer. Aucun secret par défaut n'est autorisé."
     )
 SECRET_KEY = _SECRET_KEY_RAW.encode()
 
