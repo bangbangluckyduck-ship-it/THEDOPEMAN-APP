@@ -3,7 +3,10 @@ services:
     name: tiktok-shop-analyzer
     runtime: python
     buildCommand: apt-get install -y ffmpeg && pip install -r requirements.txt
-    startCommand: python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2
+    # 1 worker : l'instance a 1 CPU (2 workers se marcheraient dessus et doubleraient
+    # la RAM de base). L'app est async → la concurrence est préservée, et le worker
+    # unique dispose de toute la RAM pour le traitement vidéo (uploads jusqu'à 300 Mo).
+    startCommand: python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
