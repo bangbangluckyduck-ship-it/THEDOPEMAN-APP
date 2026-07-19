@@ -1477,6 +1477,8 @@ async function analyzeVideo() {
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
   document.getElementById('analysis-preview')?.remove();   // reset aperçu progressif
+  // Scanner d'analyse (couvre l'attente : upload synchrone ET job async Pro).
+  try { window.QeerahScanner && QeerahScanner.start(); QeerahScanner.setThumbFromFile(selectedFile); } catch (_) {}
   setLoadingText(t('loading_extract'));
 
   // ── CHEMIN ASYNC (comptes payants) ───────────────────────────────────────
@@ -1681,6 +1683,7 @@ async function analyzeSingleUrl() {
   document.getElementById('error-box').style.display      = 'none';
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
+  try { window.QeerahScanner && QeerahScanner.start(); QeerahScanner.setThumbUrl('/api/tt-thumb?u=' + encodeURIComponent(url)); } catch (_) {}
   setLoadingText('🔗 Analyse du lien…');
   setLoadingInfo("L'analyse Pro prend généralement 30 à 60 secondes — on traite ta vidéo (image + audio + détection CTA) pour une analyse fiable.");
 
@@ -1783,6 +1786,7 @@ async function analyzeUrls() {
   document.getElementById('error-box').style.display      = 'none';
   document.getElementById('upload-section').style.display  = 'none';
   document.getElementById('loading-section').style.display = 'block';
+  try { window.QeerahScanner && QeerahScanner.start(); if (urls[0]) QeerahScanner.setThumbUrl('/api/tt-thumb?u=' + encodeURIComponent(urls[0])); } catch (_) {}
 
   const total = urls.length;
   let lastData = null;
@@ -2058,6 +2062,8 @@ function renderContexteTemporel(ct) {
 
 function setLoadingText(txt) {
   const el = document.getElementById('loading-text');
+  // Reflète l'étape réelle dans le scanner s'il est actif (le spinner texte est masqué).
+  if (window.QeerahScanner && QeerahScanner.active) { try { QeerahScanner.setStatus(txt); } catch (_) {} }
   if (!el) return;
   el.style.whiteSpace = 'pre-line';  // permet les sauts de ligne via \n
   el.textContent = txt;
@@ -2255,11 +2261,24 @@ function showResults(d) {
   window._lastAnalysis = d;   // pour le partage du score (Feature 4)
   renderModerationAndScript(d);
   renderErrorTimeline(d);
-  document.getElementById('loading-section').style.display  = 'none';
-  document.getElementById('results-section').style.display  = 'block';
-
   console.log('[DEBUG] score_global value:', d.score_global);
-  document.getElementById('score-global').textContent = d.score_global ?? '—';
+  const _rs = document.getElementById('results-section');
+  const _sg = document.getElementById('score-global');
+  if (window.QeerahScanner && QeerahScanner.active) {
+    // Clôture animée : le scanner tient la note (cercle doré), puis révèle le rapport.
+    _rs.style.display = 'block';
+    _rs.classList.add('qs-pending');   // rapport prêt mais invisible pendant la clôture
+    QeerahScanner.finish(d.score_global, function () {
+      document.getElementById('loading-section').style.display = 'none';
+      _rs.classList.remove('qs-pending');
+      _rs.classList.add('qs-reveal');   // fondu + glissement vers le haut
+      _sg.textContent = d.score_global ?? '—';   // note déjà comptée dans le cercle
+    });
+  } else {
+    document.getElementById('loading-section').style.display  = 'none';
+    _rs.style.display  = 'block';
+    _sg.textContent = d.score_global ?? '—';
+  }
 
   const grid = document.getElementById('scores-grid');
   grid.innerHTML = '';

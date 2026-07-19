@@ -298,7 +298,11 @@ def _asset_version() -> str:
     try:
         v3 = int(Path("static/app_v3.js").stat().st_mtime)
         v2 = int(Path("static/app_v2.js").stat().st_mtime)
-        return str(max(v3, v2))
+        try:
+            vs = int(Path("static/qeerah-scanner.js").stat().st_mtime)
+        except Exception:
+            vs = 0
+        return str(max(v3, v2, vs))
     except Exception:
         return "1"
 

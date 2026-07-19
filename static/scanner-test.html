@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test — Scanner d'analyse Qeerah</title>
+<style>
+  /* Tokens du site (mêmes valeurs que app.css) pour un rendu fidèle */
+  :root{
+    --primary:#D4AF37;--primary-dk:#B8962E;--navy:#1F3A70;--accent:#2563EB;--accent-dk:#1D4ED8;
+    --bg:#F5F7FA;--surface:#FFFFFF;--surface2:#EEF0F6;--text:#1A1A1A;--muted:#6B7280;
+    --border:rgba(0,0,0,.08);--danger:#EF4444;--success:#059669;--glass:rgba(255,255,255,.96);
+    --shadow-lg:0 12px 48px rgba(0,0,0,.10),0 4px 16px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;flex-direction:column;align-items:center;gap:20px;padding:26px 16px 60px;}
+  h1{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);margin:0;}
+  .sub{font-size:13px;color:var(--muted);margin:0;text-align:center;max-width:420px;line-height:1.5;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{font-family:ui-monospace,monospace;font-size:13px;font-weight:600;color:#fff;background:var(--accent);
+    border:none;border-radius:10px;padding:11px 18px;cursor:pointer;}
+  button.g{background:var(--primary);color:#111;}
+  button.r{background:var(--danger);}
+  button:disabled{opacity:.5;cursor:default;}
+  /* Conteneurs attendus par le composant (comme dans l'app) */
+  #upload-section{display:none;}
+  #loading-section{display:none;width:100%;max-width:360px;text-align:center;padding:24px 0;}
+  #spinner-inline,#loading-text{display:none;}
+  #results-section{display:none;width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);
+    border-radius:18px;box-shadow:var(--shadow-lg);padding:22px;}
+  .score-global-box{text-align:center;}
+  .score-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  #score-global{font-size:42px;font-weight:800;color:var(--primary);}
+  .rows{display:flex;flex-direction:column;gap:8px;margin-top:14px;font-size:13px;font-family:ui-monospace,monospace;}
+  .rows div{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  .err{display:none;width:100%;max-width:360px;text-align:center;color:var(--danger);font-size:14px;
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;}
+</style>
+</head>
+<body>
+  <h1>Test — Scanner d'analyse</h1>
+  <p class="sub">Le vrai composant, tel qu'il tourne dans l'app. Simule une analyse de 5&nbsp;secondes.</p>
+  <div class="controls">
+    <button id="ok">▶ Analyse réussie (5&nbsp;s)</button>
+    <button id="err" class="r">Cas d'erreur serveur</button>
+  </div>
+
+  <!-- Conteneurs identiques à l'app -->
+  <div id="upload-section"></div>
+  <div id="loading-section">
+    <div id="spinner-inline"></div>
+    <div id="loading-text"></div>
+  </div>
+  <div id="results-section">
+    <div class="score-global-box">
+      <div class="score-label">Score global</div>
+      <div id="score-global">—</div>
+    </div>
+    <div class="rows">
+      <div><span>Accroche (0-3s)</span><span style="color:var(--success)">forte</span></div>
+      <div><span>Rétention estimée</span><span style="color:var(--danger)">41%</span></div>
+      <div><span>Appel à l'action</span><span style="color:var(--success)">présent</span></div>
+      <div><span>Prix affiché</span><span style="color:var(--primary-dk)">oui</span></div>
+    </div>
+  </div>
+  <div class="err" id="errbox"></div>
+
+  <script>document.write('<scr'+'ipt src="qeerah-scanner.js?t=' + Date.now() + '"></scr'+'ipt>');</script>
+  <script>
+    // Miniature de démo claire et colorée (comme le sont les vraies vignettes TikTok)
+    var THUMB = "data:image/svg+xml;utf8," + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' width='360' height='640'><defs>"+
+      "<linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ffd7a8'/>"+
+      "<stop offset='.5' stop-color='#ff9ec4'/><stop offset='1' stop-color='#b6e0ff'/></linearGradient></defs>"+
+      "<rect width='360' height='640' fill='url(#g)'/><circle cx='180' cy='232' r='68' fill='#ffe9d2'/>"+
+      "<circle cx='180' cy='214' r='30' fill='#f7c9a4'/><path d='M112 322 q68 -52 136 0 v110 h-136 z' fill='#ffffff' opacity='.85'/>"+
+      "<rect x='138' y='452' width='84' height='96' rx='16' fill='#ffffff' opacity='.9'/>"+
+      "<rect x='150' y='470' width='60' height='40' rx='6' fill='#ff7aa8'/>"+
+      "<text x='180' y='596' fill='#5a4632' font-family='monospace' font-size='20' text-anchor='middle'>0:14</text></svg>");
+
+    var ls = document.getElementById('loading-section');
+    var rs = document.getElementById('results-section');
+    var sg = document.getElementById('score-global');
+    var errbox = document.getElementById('errbox');
+    var okBtn = document.getElementById('ok');
+    var errBtn = document.getElementById('err');
+    var STEPS = ["🎬 Extraction des images…","⏳ Envoi au serveur…","🤖 Analyse IA en cours…","🧠 Détection des signaux…","📝 Synthèse…"];
+
+    function reset(){
+      rs.style.display='none'; rs.classList.remove('qs-reveal');
+      errbox.style.display='none'; sg.textContent='—';
+    }
+
+    // Reproduit exactement le flux de l'app (analyse -> showResults).
+    function launch(fail){
+      reset();
+      okBtn.disabled = errBtn.disabled = true;
+      ls.style.display='block';
+      QeerahScanner.start();
+      QeerahScanner.setThumbUrl(THUMB);
+
+      // messages de progression réalistes, comme les événements du serveur
+      var i=0; QeerahScanner.setStatus(STEPS[0]);
+      var stepTimer = setInterval(function(){ i++; if(i<STEPS.length) QeerahScanner.setStatus(STEPS[i]); }, 1000);
+
+      setTimeout(function(){
+        clearInterval(stepTimer);
+        if(fail){
+          // cas d'erreur : le scanner s'arrête proprement, message affiché
+          QeerahScanner.stop();
+          ls.style.display='none';
+          errbox.textContent = "❌ Le serveur d'analyse est momentanément indisponible. Réessaie dans un instant.";
+          errbox.style.display='block';
+          okBtn.disabled = errBtn.disabled = false;
+        } else {
+          // succès : clôture animée (cercle doré) puis révélation du rapport
+          var score = 78;
+          rs.style.display='block'; rs.classList.add('qs-pending');
+          QeerahScanner.finish(score, function(){
+            ls.style.display='none';
+            rs.classList.remove('qs-pending'); rs.classList.add('qs-reveal');
+            sg.textContent = score;
+            okBtn.disabled = errBtn.disabled = false;
+          });
+        }
+      }, 5000);
+    }
+
+    okBtn.addEventListener('click', function(){ launch(false); });
+    errBtn.addEventListener('click', function(){ launch(true); });
+  </script>
+</body>
+</html>
