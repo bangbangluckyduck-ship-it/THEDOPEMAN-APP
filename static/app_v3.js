@@ -1707,6 +1707,12 @@ async function analyzeSingleUrl() {
       if (ev === 'progress') {
         setLoadingText(o.message || '🔄 En cours…');
         if (o.info) setLoadingInfo(o.info);
+        // Le serveur a identifié la vidéo → vraie vignette dans le scanner.
+        // Indispensable pour les liens courts (vm./vt.tiktok.com) : /api/tt-thumb
+        // n'accepte que l'URL canonique, que seul le serveur sait résoudre.
+        if (o.canonical_url) {
+          try { QeerahScanner.setThumbUrl('/api/tt-thumb?u=' + encodeURIComponent(o.canonical_url)); } catch (_) {}
+        }
       }
       else if (ev === 'partial') renderAnalysisPreview(o);
       else if (ev === 'complete') { completeData = o; setLoadingText('✅ Analyse terminée!'); setLoadingInfo(null); }

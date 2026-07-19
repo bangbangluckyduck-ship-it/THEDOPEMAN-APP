@@ -285,7 +285,7 @@ class SecurityHeaders:
         await self.app(scope, receive, send_with_headers)
 
 
-app.add_middleware(LimitUploadSize, max_upload_size=100*1024*1024)
+app.add_middleware(LimitUploadSize, max_upload_size=300*1024*1024)
 app.add_middleware(CanonicalHostRedirect,
                    canonical_host=os.getenv("CANONICAL_HOST", "qeerah.com"))
 app.add_middleware(SecurityHeaders)
@@ -1859,7 +1859,7 @@ async def analyze_url(request: Request):
                 "quiet": True,
                 "no_warnings": True,
                 "noplaylist": True,
-                "max_filesize": 80 * 1024 * 1024,  # 80 Mo garde-fou
+                "max_filesize": 150 * 1024 * 1024,  # 150 Mo garde-fou (instance 2 Go)
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
@@ -2034,6 +2034,51 @@ async def analyze_url_stream(request: Request):
             import analysis_cache
             cache_key = None
 
+            # ── 0. SONDE RAPIDE (sans téléchargement) ──────────────────────────
+            # Identifie la vidéo AVANT de la télécharger. Double intérêt :
+            #  (a) on renvoie l'URL canonique → le front affiche la vraie vignette
+            #      pendant le scan, même quand l'utilisateur a collé un lien court
+            #      (vm./vt.tiktok.com), que /api/tt-thumb refuse par sa regex stricte ;
+            #  (b) on détecte tout de suite un lien qui ne résout pas vers la bonne
+            #      vidéo, sans gaspiller un téléchargement complet.
+            def _probe() -> dict:
+                import yt_dlp
+                with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True,
+                                       "noplaylist": True, "skip_download": True}) as ydl:
+                    i = ydl.extract_info(url, download=False)
+                    return {
+                        "id":            str(i.get("id") or ""),
+                        "uploader":      (i.get("uploader") or i.get("uploader_id") or "").lstrip("@"),
+                        "title":         (i.get("title") or "")[:120],
+                        "canonical_url": i.get("webpage_url") or "",
+                    }
+
+            probe: dict = {}
+            try:
+                probe = await asyncio.wait_for(loop.run_in_executor(None, _probe), timeout=20.0)
+            except Exception as e:
+                print(f"[analyze-url/stream] sonde échouée ({e}) — on continue sans preview")
+
+            import re as _re
+            _m = _re.search(r"/video/(\d+)", url)
+            _req_id, _probe_id = (_m.group(1) if _m else ""), probe.get("id", "")
+            print(f"[analyze-url/stream] demandé={url} | sonde id={_probe_id} "
+                  f"@{probe.get('uploader','')} — {probe.get('title','')[:80]}")
+            if _req_id and _probe_id and _req_id != _probe_id:
+                print(f"[analyze-url/stream] ⚠️ MISMATCH lien={_req_id} ≠ résolu={_probe_id} — analyse refusée")
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"error": "La vidéo trouvée ne correspond pas au lien fourni — analyse annulée pour ne pas te donner un faux résultat. Recopie le lien depuis TikTok et réessaie."})}\n\n'
+                return
+
+            if probe.get("canonical_url") or probe.get("title"):
+                _payload = {
+                    "message":       f"🎬 Vidéo : @{probe.get('uploader','')} — {probe.get('title','')[:60]}",
+                    "stage":         "resolved",
+                    "canonical_url": probe.get("canonical_url", ""),
+                }
+                yield 'event: progress\n'
+                yield f'data: {json.dumps(_payload)}\n\n'
+
             # 1. Téléchargement (keepalive pendant l'attente)
             yield 'event: progress\n'
             yield 'data: {"message": "\\u2b07\\ufe0f T\\u00e9l\\u00e9chargement de la vid\\u00e9o\\u2026", "stage": "download"}\n\n'
@@ -2047,7 +2092,7 @@ async def analyze_url_stream(request: Request):
                     "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
                     "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
                     "quiet": True, "no_warnings": True, "noplaylist": True,
-                    "max_filesize": 80 * 1024 * 1024,
+                    "max_filesize": 150 * 1024 * 1024,
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=True)
@@ -2082,26 +2127,17 @@ async def analyze_url_stream(request: Request):
                 yield 'data: {"error": "Vid\\u00e9o introuvable apr\\u00e8s t\\u00e9l\\u00e9chargement."}\n\n'
                 return
 
-            # ── GARDE-FOU : la vidéo téléchargée correspond-elle au lien demandé ? ──
-            # Sans ça, une résolution de lien qui part de travers livre silencieusement
-            # l'analyse d'une AUTRE vidéo (bug constaté en prod le 19/07/2026).
-            import re as _re
+            # ── GARDE-FOU, 2e ligne de défense : ce qui a été réellement téléchargé
+            # correspond-il toujours au lien demandé ? (la sonde ci-dessus filtre déjà
+            # la majorité des cas, ceci couvre une résolution qui changerait entre-temps)
             dl_info = dl_info or {}
-            _m = _re.search(r"/video/(\d+)", url)
-            _req_id, _got_id = (_m.group(1) if _m else ""), dl_info.get("id", "")
-            print(f"[analyze-url/stream] demandé={url} | récupéré id={_got_id} "
-                  f"@{dl_info.get('uploader','')} — {dl_info.get('title','')[:80]}")
-            if _req_id and _got_id and _req_id != _got_id:
-                print(f"[analyze-url/stream] ⚠️ MISMATCH lien={_req_id} ≠ téléchargé={_got_id} — analyse refusée")
+            _dl_id = dl_info.get("id", "")
+            if _req_id and _dl_id and _req_id != _dl_id:
+                print(f"[analyze-url/stream] ⚠️ MISMATCH après téléchargement "
+                      f"lien={_req_id} ≠ téléchargé={_dl_id} — analyse refusée")
                 yield 'event: error\n'
-                yield f'data: {json.dumps({"error": "La vidéo récupérée ne correspond pas au lien fourni — analyse annulée pour ne pas te donner un faux résultat. Recopie le lien depuis TikTok et réessaie."})}\n\n'
+                yield f'data: {json.dumps({"error": "La vidéo récupérée ne correspond pas au lien fourni — analyse annulée pour ne pas te donner un faux résultat."})}\n\n'
                 return
-
-            # Transparence : l'utilisateur voit quelle vidéo est réellement analysée
-            _who, _ttl = dl_info.get("uploader", "").strip(), dl_info.get("title", "").strip()
-            if _who or _ttl:
-                yield 'event: progress\n'
-                yield f'data: {json.dumps({"message": f"🎬 Vidéo : @{_who} — {_ttl[:60]}", "stage": "resolved"})}\n\n'
 
             await ANALYSIS_SEMAPHORE.acquire()
             semaphore_acquired = True
