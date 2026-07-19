@@ -2027,12 +2027,26 @@ async def analyze_url_stream(request: Request):
             yield 'data: {"message": "\\ud83d\\udd0d Analyse approfondie en cours\\u2026", "stage": "init", "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
 
             # ── 0. Cache lookup ──
-            # Sur /analyze-url/stream, product et price sont OBLIGATOIRES (gate
-            # en amont). Donc le résultat dépend de ces inputs, pas seulement
-            # de la vidéo : on désactive le cache pour éviter qu'un user reçoive
-            # le résultat d'un autre user qui avait fourni d'autres inputs.
-            import analysis_cache
-            cache_key = None
+            # Le résultat dépend de la vidéo ET des entrées de l'utilisateur
+            # (produit, prix, rôle, tier). On les intègre donc TOUTES à la clé,
+            # au lieu de désactiver le cache : deux analyses aux entrées
+            # différentes ne peuvent jamais se télescoper, et re-lancer la même
+            # vidéo avec le même produit répond instantanément.
+            import analysis_cache, hashlib as _hl
+            _inputs = (f"{(product or '').strip().lower()}|{(price or '').strip()}"
+                       f"|{user_role or 'none'}|{tier}")
+            cache_key = (f"{analysis_cache.hash_video_url(url)}"
+                         f":{_hl.sha256(_inputs.encode()).hexdigest()[:16]}")
+            _cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+            if _cached:
+                print(f"[analyze-url/stream] cache HIT — réponse immédiate ({url})")
+                _cached["usage"] = usage_info(user)
+                _cached["source"] = "url"
+                _cached["source_url"] = url
+                _cached["from_cache"] = True
+                yield 'event: complete\n'
+                yield f'data: {json.dumps(_cached)}\n\n'
+                return
 
             # ── 0. SONDE RAPIDE (sans téléchargement) ──────────────────────────
             # Identifie la vidéo AVANT de la télécharger. Double intérêt :
@@ -2235,6 +2249,12 @@ async def analyze_url_stream(request: Request):
             result["source"] = "url"
             result["source_url"] = url
             result["from_cache"] = False
+            # Mise en cache : même vidéo + mêmes entrées → réponse immédiate ensuite.
+            if cache_key:
+                try:
+                    analysis_cache.store(cache_key, result, pipeline="pro")
+                except Exception as e:
+                    print(f"[analyze-url/stream] cache store error: {e}")
             # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
             _persist_sync_analysis(
                 user, result, source="url", source_url=url,
