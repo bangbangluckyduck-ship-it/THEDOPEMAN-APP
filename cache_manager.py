@@ -74,7 +74,7 @@ async def get_cached_analysis(video_url: str) -> Optional[dict]:
         # Query cache
         response = supabase.table("video_analyses_cache").select(
             "id, analysis_data, view_count, created_at"
-        ).eq("video_url", normalized_url).lt("expires_at", "now()").execute()
+        ).eq("video_url", normalized_url).gt("expires_at", "now()").execute()
 
         if not response.data:
             print(f"[CACHE] MISS: {normalized_url}")
