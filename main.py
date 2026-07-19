@@ -2038,7 +2038,10 @@ async def analyze_url_stream(request: Request):
             yield 'event: progress\n'
             yield 'data: {"message": "\\u2b07\\ufe0f T\\u00e9l\\u00e9chargement de la vid\\u00e9o\\u2026", "stage": "download"}\n\n'
 
-            def _download() -> str:
+            def _download():
+                """Renvoie (chemin, identité de la vidéo réellement récupérée).
+                L'identité sert de garde-fou : on refuse de livrer l'analyse d'une
+                vidéo qui ne correspond pas au lien demandé."""
                 import yt_dlp
                 ydl_opts = {
                     "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
@@ -2048,7 +2051,12 @@ async def analyze_url_stream(request: Request):
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=True)
-                    return ydl.prepare_filename(info)
+                    return ydl.prepare_filename(info), {
+                        "id":          str(info.get("id") or ""),
+                        "uploader":    (info.get("uploader") or info.get("uploader_id") or "").lstrip("@"),
+                        "title":       (info.get("title") or "")[:120],
+                        "webpage_url": info.get("webpage_url") or "",
+                    }
 
             dl_task = loop.run_in_executor(None, _download)
             _w = 0.0
@@ -2064,7 +2072,7 @@ async def analyze_url_stream(request: Request):
                     return
                 yield ': keepalive\n\n'
             try:
-                video_path = dl_task.result()
+                video_path, dl_info = dl_task.result()
             except Exception as e:
                 yield 'event: error\n'
                 yield f'data: {json.dumps({"error": f"Impossible de récupérer cette vidéo : {str(e)[:160]}"})}\n\n'
@@ -2073,6 +2081,27 @@ async def analyze_url_stream(request: Request):
                 yield 'event: error\n'
                 yield 'data: {"error": "Vid\\u00e9o introuvable apr\\u00e8s t\\u00e9l\\u00e9chargement."}\n\n'
                 return
+
+            # ── GARDE-FOU : la vidéo téléchargée correspond-elle au lien demandé ? ──
+            # Sans ça, une résolution de lien qui part de travers livre silencieusement
+            # l'analyse d'une AUTRE vidéo (bug constaté en prod le 19/07/2026).
+            import re as _re
+            dl_info = dl_info or {}
+            _m = _re.search(r"/video/(\d+)", url)
+            _req_id, _got_id = (_m.group(1) if _m else ""), dl_info.get("id", "")
+            print(f"[analyze-url/stream] demandé={url} | récupéré id={_got_id} "
+                  f"@{dl_info.get('uploader','')} — {dl_info.get('title','')[:80]}")
+            if _req_id and _got_id and _req_id != _got_id:
+                print(f"[analyze-url/stream] ⚠️ MISMATCH lien={_req_id} ≠ téléchargé={_got_id} — analyse refusée")
+                yield 'event: error\n'
+                yield f'data: {json.dumps({"error": "La vidéo récupérée ne correspond pas au lien fourni — analyse annulée pour ne pas te donner un faux résultat. Recopie le lien depuis TikTok et réessaie."})}\n\n'
+                return
+
+            # Transparence : l'utilisateur voit quelle vidéo est réellement analysée
+            _who, _ttl = dl_info.get("uploader", "").strip(), dl_info.get("title", "").strip()
+            if _who or _ttl:
+                yield 'event: progress\n'
+                yield f'data: {json.dumps({"message": f"🎬 Vidéo : @{_who} — {_ttl[:60]}", "stage": "resolved"})}\n\n'
 
             await ANALYSIS_SEMAPHORE.acquire()
             semaphore_acquired = True
