@@ -2812,6 +2812,61 @@ def _market_cache_get(key: str):
     return None
 
 
+def _market_cache_get_stale(key: str):
+    """Relit le cache SANS tenir compte de l'expiration → (payload, date de péremption).
+
+    Ces données ont déjà été payées en crédits fournisseur : quand le fournisseur
+    ne répond plus (quota épuisé, panne), les resservir même périmées vaut
+    infiniment mieux qu'afficher une page vide. Utilisé uniquement en secours.
+    """
+    if not supabase_client:
+        return None, None
+    k = f"{_MARKET_CACHE_VER}:{key}"
+    try:
+        r = supabase_client.table("market_cache").select("payload,expires_at").eq("cache_key", k).execute()
+        if r.data:
+            return r.data[0].get("payload"), r.data[0].get("expires_at")
+    except Exception:
+        pass
+    return None, None
+
+
+def _stale_or_502(key: str, err: Exception, route: str, empty_field: str = None):
+    """Réponse de secours : dernier cache connu (même périmé) sinon 502.
+
+    Renvoie None si aucun cache n'existe — l'appelant retombe alors sur son 502.
+    """
+    payload, expired_at = _market_cache_get_stale(key)
+    if payload is None:
+        return None
+    print(f"[market] {route} : fournisseur KO ({str(err)[:120]}) → cache périmé resservi")
+    body = {"ok": True, "stale": True, "cached_until": expired_at}
+    if empty_field:
+        body[empty_field] = payload
+    else:
+        body.update(payload if isinstance(payload, dict) else {"data": payload})
+    return JSONResponse(body)
+
+
+def _market_cache_get_stale(key: str):
+    """Relit le cache SANS tenir compte de l'expiration → (payload, date de péremption).
+
+    Ces données ont déjà été payées en crédits fournisseur : quand celui-ci ne
+    répond plus (quota épuisé, panne), les resservir même périmées vaut bien
+    mieux qu'une page vide. Réservé au secours.
+    """
+    if not supabase_client:
+        return None, None
+    k = f"{_MARKET_CACHE_VER}:{key}"
+    try:
+        r = supabase_client.table("market_cache").select("payload,expires_at").eq("cache_key", k).execute()
+        if r.data:
+            return r.data[0].get("payload"), r.data[0].get("expires_at")
+    except Exception:
+        pass
+    return None, None
+
+
 def _market_cache_set(key: str, payload, hours: int = 24):
     if not supabase_client:
         return
@@ -2837,12 +2892,20 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
     cache_key = f"creators::{(category or 'all').lower()}::{region}"
     creators = _market_cache_get(cache_key)
     if creators is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             creators = await market_creators.get_top_creators(category, region, limit=10)
         except Exception as e:
             print(f"/api/market/creators error: {e}")
-            return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
-        if creators:
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            creators, _stale_until = _market_cache_get_stale(cache_key)
+            if creators is None:
+                return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
+            print(f"/api/market/creators : cache périmé resservi (expiré le {_stale_until})")
+        if creators and not _stale_until:
             _market_cache_set(cache_key, creators, hours=24)  # 24h : URLs avatars TikTok signées expirent ~24h
 
     if not premium:
@@ -2862,12 +2925,20 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
     cache_key = f"catov::{(category or 'all').lower()}::{region}"
     ov = _market_cache_get(cache_key)
     if ov is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             ov = await market_creators.get_category_overview(category, region)
         except Exception as e:
             print(f"/api/market/category error: {e}")
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-        if ov and (ov.get("creators") or ov.get("products")):
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            ov, _stale_until = _market_cache_get_stale(cache_key)
+            if ov is None:
+                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            print(f"/api/market/category : cache périmé resservi (expiré le {_stale_until})")
+        if ov and not _stale_until and (ov.get("creators") or ov.get("products")):
             _market_cache_set(cache_key, ov, hours=24)  # 24h : contient avatars/images signés (expirent ~24h)
 
     ov = ov or {"creators": [], "products": []}
@@ -2892,12 +2963,20 @@ async def market_category_momentum(request: Request, region: str = Query("US")):
     cache_key = f"catmom::{region}"
     momentum = _market_cache_get(cache_key)
     if momentum is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             momentum = await market_creators.get_category_momentum(region)
         except Exception as e:
             print(f"/api/market/category-momentum error: {e}")
-            return JSONResponse({"ok": False, "error": str(e), "categories": []}, status_code=502)
-        if momentum:
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            momentum, _stale_until = _market_cache_get_stale(cache_key)
+            if momentum is None:
+                return JSONResponse({"ok": False, "error": str(e), "categories": []}, status_code=502)
+            print(f"/api/market/category-momentum : cache périmé resservi (expiré le {_stale_until})")
+        if momentum and not _stale_until:
             _market_cache_set(cache_key, momentum, hours=24)
 
     momentum = momentum or []
@@ -2918,12 +2997,21 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
     cache_key = f"creator::{unique_id}::{user_id}"
     detail = _market_cache_get(cache_key)
     if detail is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             detail = await market_creators.get_creator_detail(unique_id, user_id)
         except Exception as e:
             print(f"/api/market/creator error: {e}")
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-        _market_cache_set(cache_key, detail, hours=12)
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            detail, _stale_until = _market_cache_get_stale(cache_key)
+            if detail is None:
+                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            print(f"/api/market/creator : cache périmé resservi (expiré le {_stale_until})")
+        if not _stale_until:
+            _market_cache_set(cache_key, detail, hours=12)
     return {"ok": True, **(detail or {})}
 
 
@@ -2951,6 +3039,7 @@ async def market_video_products(request: Request, video_id: str = Query(...),
         products = await market_creators.get_video_products(video_id, region)
     except Exception as e:
         print(f"/api/market/video-products error: {e}")
+        # Cet endpoint n'utilise pas market_cache : aucun repli possible ici.
         return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
     return {"ok": True, "video_id": video_id, "count": len(products), "products": products}
 
@@ -2989,12 +3078,20 @@ async def market_category_creators(request: Request, category: Optional[str] = Q
     cache_key = f"catcr::{(category or 'all').lower()}::{region}"
     creators = _market_cache_get(cache_key)
     if creators is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             creators = await market_creators.get_category_creators(category, region, limit=8)
         except Exception as e:
             print(f"/api/market/category-creators error: {e}")
-            return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
-        if creators:
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            creators, _stale_until = _market_cache_get_stale(cache_key)
+            if creators is None:
+                return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
+            print(f"/api/market/category-creators : cache périmé resservi (expiré le {_stale_until})")
+        if creators and not _stale_until:
             _market_cache_set(cache_key, creators, hours=24)
 
     creators = creators or []
@@ -3015,12 +3112,20 @@ async def market_products_search(request: Request, keyword: str = Query(...), re
     cache_key = f"psearch::{keyword.lower().strip()}::{region}"
     products = _market_cache_get(cache_key)
     if products is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             products = await market_creators.search_products(keyword, region, limit=8)
         except Exception as e:
             print(f"/api/market/products/search error: {e}")
-            return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
-        if products:
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            products, _stale_until = _market_cache_get_stale(cache_key)
+            if products is None:
+                return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
+            print(f"/api/market/products/search : cache périmé resservi (expiré le {_stale_until})")
+        if products and not _stale_until:
             _market_cache_set(cache_key, products, hours=24)  # images produits signées (expirent ~24h)
 
     products = products or []
@@ -3041,12 +3146,20 @@ async def market_product_detail(request: Request, product_id: str, region: str =
     cache_key = f"pdetail::{product_id}::{region}"
     detail = _market_cache_get(cache_key)
     if detail is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             detail = await market_creators.get_product_detail(product_id, region)
         except Exception as e:
             print(f"/api/market/product error: {e}")
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-        if detail:
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            detail, _stale_until = _market_cache_get_stale(cache_key)
+            if detail is None:
+                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            print(f"/api/market/product : cache périmé resservi (expiré le {_stale_until})")
+        if detail and not _stale_until:
             _market_cache_set(cache_key, detail, hours=168)
     if not detail:
         return JSONResponse({"ok": False, "error": "introuvable"}, status_code=404)
@@ -3075,15 +3188,24 @@ async def recherche_profile(request: Request, handle: str = Query(...)):
     result = _market_cache_get(cache_key)
     is_fresh_fetch = result is None
     if result is None:
+        _stale_until = None   # renseigné si on retombe sur le cache périmé
         try:
             result = await market_creators.search_creator_profile(handle_clean)
         except Exception as e:
             print(f"/api/recherche/profile error: {e}")
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
+            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
+            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
+            # du flux s'applique normalement (notamment le contrôle premium).
+            result, _stale_until = _market_cache_get_stale(cache_key)
+            if result is None:
+                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            print(f"/api/recherche/profile : cache périmé resservi (expiré le {_stale_until})")
         if result is None:
             # Handle introuvable : jamais mis en cache (évite de figer une erreur transitoire).
             return JSONResponse({"ok": False, "error": "Profil introuvable."}, status_code=404)
-        _market_cache_set(cache_key, result, hours=8)  # 8h : compromis fraîcheur GMV / coût crédits
+        if not _stale_until:
+            _market_cache_set(cache_key, result, hours=8)  # 8h : compromis fraîcheur GMV / coût crédits
 
     tier = (user.get("tier") or "free").lower()
     quota_info = {"tier": tier, "remaining_today": None, "limit": None}
