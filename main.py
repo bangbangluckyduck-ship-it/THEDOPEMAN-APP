@@ -2815,42 +2815,6 @@ def _market_cache_get(key: str):
 def _market_cache_get_stale(key: str):
     """Relit le cache SANS tenir compte de l'expiration → (payload, date de péremption).
 
-    Ces données ont déjà été payées en crédits fournisseur : quand le fournisseur
-    ne répond plus (quota épuisé, panne), les resservir même périmées vaut
-    infiniment mieux qu'afficher une page vide. Utilisé uniquement en secours.
-    """
-    if not supabase_client:
-        return None, None
-    k = f"{_MARKET_CACHE_VER}:{key}"
-    try:
-        r = supabase_client.table("market_cache").select("payload,expires_at").eq("cache_key", k).execute()
-        if r.data:
-            return r.data[0].get("payload"), r.data[0].get("expires_at")
-    except Exception:
-        pass
-    return None, None
-
-
-def _stale_or_502(key: str, err: Exception, route: str, empty_field: str = None):
-    """Réponse de secours : dernier cache connu (même périmé) sinon 502.
-
-    Renvoie None si aucun cache n'existe — l'appelant retombe alors sur son 502.
-    """
-    payload, expired_at = _market_cache_get_stale(key)
-    if payload is None:
-        return None
-    print(f"[market] {route} : fournisseur KO ({str(err)[:120]}) → cache périmé resservi")
-    body = {"ok": True, "stale": True, "cached_until": expired_at}
-    if empty_field:
-        body[empty_field] = payload
-    else:
-        body.update(payload if isinstance(payload, dict) else {"data": payload})
-    return JSONResponse(body)
-
-
-def _market_cache_get_stale(key: str):
-    """Relit le cache SANS tenir compte de l'expiration → (payload, date de péremption).
-
     Ces données ont déjà été payées en crédits fournisseur : quand celui-ci ne
     répond plus (quota épuisé, panne), les resservir même périmées vaut bien
     mieux qu'une page vide. Réservé au secours.
@@ -2867,9 +2831,18 @@ def _market_cache_get_stale(key: str):
     return None, None
 
 
+# Multiplicateur des durées de vie du cache marché.
+# Depuis l'ajout du repli sur cache périmé, l'expiration ne SUPPRIME plus rien :
+# elle décide seulement à partir de quand on redépense des crédits fournisseur
+# pour rafraîchir. L'allonger = moins de crédits consommés, données toujours
+# affichées. Réglable sans redéploiement via la variable d'environnement.
+_MARKET_TTL_FACTOR = max(1.0, float(os.getenv("MARKET_CACHE_TTL_FACTOR", "4")))
+
+
 def _market_cache_set(key: str, payload, hours: int = 24):
     if not supabase_client:
         return
+    hours = hours * _MARKET_TTL_FACTOR   # cf. _MARKET_TTL_FACTOR : économise les crédits
     key = f"{_MARKET_CACHE_VER}:{key}"
     try:
         supabase_client.table("market_cache").upsert({
@@ -3462,7 +3435,10 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
             except Exception as e2:
                 print(f"/api/feed-radar/teaser error: {e2}")
                 teaser = []
-        _market_cache_set(cache_key, teaser, hours=6)
+        # Ne jamais mettre un résultat VIDE en cache : une lecture qui échoue
+        # momentanément gèlerait un teaser vide pour toute la durée de vie.
+        if teaser:
+            _market_cache_set(cache_key, teaser, hours=6)
     return {"ok": True, "videos": teaser or []}
 
 
