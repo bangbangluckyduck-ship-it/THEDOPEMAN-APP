@@ -118,6 +118,12 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url":   f"{base}/?checkout=cancel",
         "metadata":     {"plan": body.plan, "billing": billing},
+        # ── Facturation entreprise ────────────────────────────────────────
+        # Sans ces deux options, la facture d'abonnement générée par Stripe ne
+        # portait que l'e-mail : ni raison sociale, ni adresse, ni n° de TVA —
+        # donc inexploitable par la comptabilité d'une société.
+        "billing_address_collection": "required",
+        "tax_id_collection": {"enabled": True},
     }
     if body.email:
         params["customer_email"] = body.email
@@ -191,6 +197,15 @@ async def create_credits_checkout_session(body: CreditsCheckoutRequest, request:
         "success_url":  f"{base}/?credits=success&session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url":   f"{base}/?credits=cancel",
         "metadata":     {"type": "credit_pack", "pack": body.pack},
+        # ── Facturation entreprise ────────────────────────────────────────
+        # En mode 'payment', Stripe n'émet AUCUNE facture par défaut : l'acheteur
+        # ne recevait qu'un reçu de paiement, impossible à passer en comptabilité.
+        # invoice_creation génère une vraie facture PDF ; customer_creation
+        # garantit qu'un client Stripe existe pour la rattacher.
+        "invoice_creation": {"enabled": True},
+        "customer_creation": "always",
+        "billing_address_collection": "required",
+        "tax_id_collection": {"enabled": True},
     }
     if body.email:
         params["customer_email"] = body.email
