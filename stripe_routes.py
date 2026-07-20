@@ -42,6 +42,15 @@ from feature_flags import is_enabled
 
 router = APIRouter(tags=["stripe"])
 
+# Mention portée au pied des factures. En franchise en base de TVA, l'article
+# 293 B du CGI impose de l'indiquer. Réglable via STRIPE_INVOICE_FOOTER : le
+# régime change si le seuil de franchise est franchi, et le libellé doit alors
+# être adapté sans redéploiement. Variable vidée = aucune mention.
+INVOICE_FOOTER = os.getenv(
+    "STRIPE_INVOICE_FOOTER",
+    "TVA non applicable, article 293 B du CGI",
+).strip()
+
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
 # Lancement progressif par PALIERS DE PRIX (roadmap feature_flags.py) :
@@ -202,7 +211,13 @@ async def create_credits_checkout_session(body: CreditsCheckoutRequest, request:
         # ne recevait qu'un reçu de paiement, impossible à passer en comptabilité.
         # invoice_creation génère une vraie facture PDF ; customer_creation
         # garantit qu'un client Stripe existe pour la rattacher.
-        "invoice_creation": {"enabled": True},
+        # Le pied de page porte la mention d'exonération de TVA, obligatoire en
+        # franchise en base. Libellé réglable sans redéploiement (le régime peut
+        # changer si le seuil est franchi) ; vider la variable pour l'ôter.
+        "invoice_creation": {
+            "enabled": True,
+            "invoice_data": {"footer": INVOICE_FOOTER} if INVOICE_FOOTER else {},
+        },
         "customer_creation": "always",
         "billing_address_collection": "required",
         "tax_id_collection": {"enabled": True},
