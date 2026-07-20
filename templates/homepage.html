@@ -51,6 +51,12 @@
       --border:     rgba(0,0,0,0.08);
       --danger:     #EF4444;
       --success:    #059669;
+      /* Variantes de CONTRASTE (ce ne sont PAS des doublons) : employées pour
+         du texte, là où la couleur de base manque de lisibilité sur son fond. */
+      --danger-dk:    #DC2626;   /* rouge    — texte sur fond clair       */
+      --success-dk:   #16A34A;   /* vert     — texte sur fond clair       */
+      --gold-ink:     #8B6914;   /* or foncé — texte sur fond doré clair  */
+      --gold-on-dark: #FFD966;   /* or clair — texte sur carte sombre     */
       --shadow-sm:  0 1px 4px rgba(0,0,0,0.06);
       --shadow:     0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
       --shadow-lg:  0 12px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.05);
@@ -58,6 +64,11 @@
       --safe-top:    max(12px, env(safe-area-inset-top));
       --safe-bottom: max(12px, env(safe-area-inset-bottom));
     }
+
+    /* Couleur de lien par défaut : sans cette règle, tout lien non stylé
+       s'affichait en #0000EE (bleu par défaut du navigateur), hors charte.
+       Sélecteur volontairement peu spécifique : toute règle existante gagne. */
+    a { color: var(--navy); }
 
     html { scroll-behavior: smooth; }
 
@@ -690,7 +701,9 @@
       font-size: 13px;
       color: rgba(255,255,255,0.7);
       text-decoration: none;
-      margin-bottom: 8px;
+      /* Cible tactile : 21px de haut auparavant, sous le minimum WCAG 2.5.8. */
+      padding: 11px 0;
+      margin-bottom: 0;
       transition: color 0.3s;
     }
 
@@ -781,14 +794,7 @@
       }
     }
   </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-HR4QQJ52DT');
-</script>
+  <script src="/static/qeerah-consent.js" defer></script>
 </head>
 <body>
 
@@ -1344,6 +1350,7 @@
       <a href="/cgv">Conditions de vente (CGV)</a>
       <a href="/privacy">Confidentialité</a>
       <a href="/terms">Mentions légales</a>
+      <a href="#" onclick="event.preventDefault();QeerahConsent.revoke()">Gérer les cookies</a>
     </div>
 
     <div class="footer-section">
