@@ -2470,7 +2470,7 @@ function showResults(d) {
     document.getElementById('hook-type-propose').textContent = reco.hook_type_propose || '—';
     document.getElementById('hook-reason').textContent       = reco.raison || '';
     const exList = document.getElementById('hook-examples');
-    exList.innerHTML = (reco.exemples_concrets || []).map(e => `<li>${e}</li>`).join('');
+    exList.innerHTML = (reco.exemples_concrets || []).map(e => `<li>${escapeHtml(e)}</li>`).join('');
   }
 
   fillList('conseils-list', d.conseils_concrets, '', true);
@@ -3031,7 +3031,10 @@ function renderWinningStructures(d) {
 function fillList(id, items, icon, noIcon) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = (items || []).map(t => `<li>${noIcon ? '' : icon}${t}</li>`).join('');
+  // escapeHtml : ces listes affichent du texte produit par l'IA. Une vidéo
+  // analysée peut contenir une charge que le modèle recopie → sans échappement,
+  // elle s'exécuterait dans la page.
+  el.innerHTML = (items || []).map(t => `<li>${noIcon ? '' : icon}${escapeHtml(t)}</li>`).join('');
 }
 
 // ── RESET ────────────────────────────────────────────────────
@@ -5396,9 +5399,18 @@ function _loadCreatorsMomentumBanner(token) {
       if (!top || top.pct_change == null || top.pct_change < 15) { banner.style.display = 'none'; return; }
       const label = catLabels[top.category] || top.category;
       banner.style.display = 'block';
-      banner.innerHTML = `<div onclick="document.getElementById('creators-category').value='${top.category}';loadCreatorsTab()" style="cursor:pointer;background:rgba(5,150,105,.10);border:1px dashed rgba(5,150,105,.5);border-radius:10px;padding:10px 14px;font-size:13px">
-        🔥 <strong>${escapeHtml(label)}</strong> en forte hausse cette semaine (+${top.pct_change}%) — voir →
+      // La catégorie vient de l'API : l'injecter dans un attribut onclick entre
+      // apostrophes permettrait de casser le handler (ou d'y glisser du code).
+      // On la passe par un data-attribut et on attache l'écouteur en JS.
+      banner.innerHTML = `<div data-cat="${escapeHtml(top.category)}" style="cursor:pointer;background:rgba(5,150,105,.10);border:1px dashed rgba(5,150,105,.5);border-radius:10px;padding:10px 14px;font-size:13px">
+        🔥 <strong>${escapeHtml(label)}</strong> en forte hausse cette semaine (+${escapeHtml(String(top.pct_change))}%) — voir →
       </div>`;
+      const _hot = banner.querySelector('[data-cat]');
+      if (_hot) _hot.addEventListener('click', function () {
+        const sel = document.getElementById('creators-category');
+        if (sel) sel.value = this.dataset.cat;
+        loadCreatorsTab();
+      });
     });
 }
 

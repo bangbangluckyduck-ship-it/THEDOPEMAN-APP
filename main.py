@@ -220,6 +220,9 @@ _CSP_POLICY = (
     "worker-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
+    # Un formulaire injecté ne peut pas exfiltrer sa saisie vers un domaine tiers.
+    # Vérifié : aucun formulaire du site ne poste vers l'extérieur.
+    "form-action 'self'; "
     "frame-ancestors 'self'"
 )
 _SECURITY_HEADERS = [
