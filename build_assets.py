@@ -18,7 +18,7 @@ from pathlib import Path
 STATIC = Path(__file__).parent / "static"
 
 # JS à minifier (fichiers servis au navigateur). On garde l'original ; on écrit à côté.
-JS_TO_MINIFY = ["app_v3.js", "app_v2.js", "admin.js"]
+JS_TO_MINIFY = ["app_v3.js", "admin.js"]
 
 # Source haute qualité pour le favicon (logo carré 512×512).
 FAVICON_SOURCE = STATIC / "qeerah-logo.png"
