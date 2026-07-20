@@ -664,7 +664,9 @@
       font-size: 13px;
       color: rgba(255,255,255,0.7);
       text-decoration: none;
-      margin-bottom: 8px;
+      /* Cible tactile : 21px de haut auparavant, sous le minimum WCAG 2.5.8. */
+      padding: 11px 0;
+      margin-bottom: 0;
       transition: color 0.3s;
     }
 

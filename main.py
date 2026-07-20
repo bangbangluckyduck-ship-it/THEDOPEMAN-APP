@@ -598,8 +598,13 @@ async def _maybe_upsell_free_quota(user: dict) -> None:
 
 
 @app.get("/unsubscribe", response_class=HTMLResponse)
-async def unsubscribe(e: str = Query(...), s: str = Query(...)):
-    """Désinscription des emails promotionnels (lien signé dans les emails). RGPD."""
+async def unsubscribe(e: str = Query(""), s: str = Query("")):
+    """Désinscription des emails promotionnels (lien signé dans les emails). RGPD.
+
+    Paramètres volontairement OPTIONNELS : déclarés obligatoires, FastAPI
+    renvoyait un 422 JSON brut avant d'atteindre ce code. Or ce lien arrive par
+    e-mail et peut être tronqué par un client de messagerie — l'utilisateur
+    doit alors voir un message lisible, pas une erreur technique."""
     from auth import verify_unsubscribe_token
     email = (e or "").strip().lower()
     ok = bool(email) and verify_unsubscribe_token(email, s)
@@ -620,7 +625,7 @@ async def unsubscribe(e: str = Query(...), s: str = Query(...)):
         f"<div style='max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)'>"
         f"<div style='font-size:40px'>{'✅' if ok else '⚠️'}</div>"
         f"<p style='font-size:15px;color:#1a1a2e;line-height:1.6'>{msg}</p>"
-        f"<a href='{tiktok_oauth.APP_PUBLIC_URL}' style='color:#6c5ce7;text-decoration:none;font-weight:600'>← Retour au site</a>"
+        f"<a href='{tiktok_oauth.APP_PUBLIC_URL}' style='color:#1F3A70;text-decoration:none;font-weight:600'>← Retour au site</a>"
         f"</div></body></html>")
 
 

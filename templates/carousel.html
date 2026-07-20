@@ -42,14 +42,9 @@
   .imgs img{width:100%;height:100%;object-fit:cover}
   .upsell{background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.4);border-radius:12px;padding:16px;margin-top:16px;text-align:center}
 </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HR4QQJ52DT"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-HR4QQJ52DT');
-</script>
+  <script src="/static/qeerah-consent.js" defer></script>
+  <!-- jsPDF : export PDF du carrousel (bouton « Télécharger le PDF ») -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 </head>
 <body>
 <header class="top">
@@ -274,6 +269,69 @@ function ccPaywall(j){
 function ccCopyBlock(id,btn){const el=document.getElementById(id);navigator.clipboard.writeText(el.textContent||'').then(()=>{const o=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=o,1000);});}
 let _ccid=0;
 function block(title,text){if(!text)return'';const id='ccb'+(++_ccid);return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:13px">${esc(title)}</strong><button class="btn-sec" onclick="ccCopyBlock('${id}',this)">Copier</button></div><div class="res-block" id="${id}">${esc(text)}</div></div>`;}
+
+// ── Export PDF du carrousel ────────────────────────────────────────────────
+// Le bouton « Télécharger le PDF » appelait une fonction inexistante : le clic
+// ne produisait rien (ReferenceError). Implémenté ici à partir de CC.last.
+function ccExportPDF(){
+  const r = CC.last;
+  if(!r){ alert('Génère d\'abord un carrousel.'); return; }
+  const JsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){ alert('Export PDF indisponible : la librairie n\'a pas pu être chargée.'); return; }
+
+  const doc  = new JsPDF({ unit:'pt', format:'a4' });
+  const M    = 48;
+  const W    = doc.internal.pageSize.getWidth()  - M*2;
+  const BOT  = doc.internal.pageSize.getHeight() - M;
+  let y = M;
+
+  const need = h => { if(y + h > BOT){ doc.addPage(); y = M; } };
+  const h1 = (t, size=17) => { if(!t) return; need(size+16); doc.setFont('helvetica','bold');
+    doc.setFontSize(size); doc.setTextColor(31,58,112); doc.text(String(t), M, y); y += size+10; };
+  const h2 = t => { if(!t) return; need(26); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.setTextColor(184,150,46); doc.text(String(t), M, y); y += 18; };
+  const p  = (t, size=11) => { if(!t) return; doc.setFont('helvetica','normal'); doc.setFontSize(size);
+    doc.setTextColor(28,28,28);
+    doc.splitTextToSize(String(t), W).forEach(l => { need(size+6); doc.text(l, M, y); y += size+4; });
+    y += 7; };
+
+  const st = r.strategy || {};
+  h1('Carrousel TikTok Shop — Qeerah');
+  const meta = [st.style_label || st.chosen_style, st.detected_niche].filter(Boolean).join('  ·  ');
+  if(meta) p(meta, 10);
+  if(st.justification) p(st.justification, 10);
+  y += 4;
+
+  if(r.hook)           { h2('Hook (slide 1)');        p(r.hook, 13); }
+  if(r.carousel_title) { h2('Titre du carrousel');    p(r.carousel_title, 13); }
+  if(r.description)    { h2('Description optimisée'); p(r.description); }
+  if(Array.isArray(r.hashtags) && r.hashtags.length)
+    { h2('Hashtags'); p(r.hashtags.map(x => x[0]==='#' ? x : '#'+x).join(' ')); }
+
+  if(Array.isArray(r.next_slides_advice) && r.next_slides_advice.length){
+    h2('Photos à prendre (slides 5-7)');
+    r.next_slides_advice.forEach(s => {
+      p('Slide ' + (s.slide_number||'') + ' — ' + (s.title||''), 12);
+      if(s.photo_advice) p(s.photo_advice, 10);
+      if(Array.isArray(s.technical_tips) && s.technical_tips.length) p(s.technical_tips.join(' · '), 10);
+      if(s.text_overlay) p('Texte à l\'écran : « ' + s.text_overlay + ' »', 10);
+    });
+  }
+
+  if(Array.isArray(r.save_optimization_tips) && r.save_optimization_tips.length){
+    h2('Pourquoi ça va cartonner');
+    r.save_optimization_tips.forEach(s => p('•  ' + s, 10));
+  }
+
+  need(30);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+  doc.text('Généré par Qeerah — qeerah.com', M, BOT + 18);
+
+  const slug = String(r.carousel_title || 'carrousel').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50) || 'carrousel';
+  doc.save('qeerah-' + slug + '.pdf');
+}
 
 function ccRender(r){
   const out=document.getElementById('cc-result');
