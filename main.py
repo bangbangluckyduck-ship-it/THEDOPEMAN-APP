@@ -3255,8 +3255,28 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
     # contenir d'anciennes vidéos non-Shop tant qu'une recollecte complète n'a pas
     # tourné : ce filtre les cache immédiatement. On ne filtre que si la colonne est
     # présente (sinon = migration real_gmv non appliquée → on ne casse pas le feed).
+    # Repli région : si la région demandée n'a rien en base (collecte partielle,
+    # région récente…), on montre le catalogue global plutôt qu'un écran vide.
+    # Le teaser faisait déjà ce repli ; le feed complet ne le faisait pas — d'où
+    # un teaser rempli et un Feed Radar vide sur la même base.
+    if not rows:
+        try:
+            rows = (supabase_client.table("feed_radar_videos").select(_base_cols)
+                    .order("views", desc=True).limit(pool).execute().data or [])
+            if rows:
+                print(f"/api/feed-radar : aucune vidéo pour {region} → repli catalogue global")
+        except Exception as e:
+            print(f"/api/feed-radar repli global error: {e}")
+
     if rows and "video_products" in rows[0]:
-        rows = [r for r in rows if r.get("video_products")]
+        _shop_only = [r for r in rows if r.get("video_products")]
+        # Ne JAMAIS vider le feed avec ce filtre. video_products est renseigné par un
+        # appel au fournisseur : pendant une panne de quota, les vidéos collectées le
+        # gardent vide et ce filtre supprimait alors la totalité du feed. Mieux vaut
+        # afficher ce qui a été collecté que rien du tout.
+        if not _shop_only:
+            print(f"/api/feed-radar : filtre Shop écarte les {len(rows)} vidéos → affichage sans filtre")
+        rows = _shop_only or rows
 
     # ── ROTATION QUOTIDIENNE ─────────────────────────────────────────────────
     # Ordre pseudo-aléatoire seedé par (jour + région + utilisateur) : STABLE dans la
