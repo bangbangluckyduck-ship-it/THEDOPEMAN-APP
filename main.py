@@ -298,16 +298,21 @@ app.include_router(stripe_router)
 app.include_router(admin_router)
 
 def _asset_version() -> str:
-    try:
-        v3 = int(Path("static/app_v3.js").stat().st_mtime)
-        v2 = int(Path("static/app_v2.js").stat().st_mtime)
+    """Version des assets pour le cache-busting (?v=...) : date de modification
+    du fichier le plus récemment touché.
+
+    Chaque fichier est testé INDIVIDUELLEMENT : auparavant, un seul fichier
+    manquant faisait échouer tout le bloc et la fonction retombait sur "1" en
+    dur — le cache-busting cessait alors silencieusement de fonctionner et les
+    visiteurs conservaient d'anciennes versions du JS.
+    """
+    stamps = []
+    for name in ("app_v3.js", "qeerah-scanner.js", "qeerah-consent.js"):
         try:
-            vs = int(Path("static/qeerah-scanner.js").stat().st_mtime)
+            stamps.append(int(Path("static", name).stat().st_mtime))
         except Exception:
-            vs = 0
-        return str(max(v3, v2, vs))
-    except Exception:
-        return "1"
+            pass
+    return str(max(stamps)) if stamps else "1"
 
 _ASSET_V = _asset_version()
 
