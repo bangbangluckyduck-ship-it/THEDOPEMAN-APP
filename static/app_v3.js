@@ -5397,12 +5397,12 @@ async function hydrateFeedRadarCard(videoId, cardEl) {
   }
 }
 
-function _loadCreatorsMomentumBanner(token) {
+function _loadCreatorsMomentumBanner(token, refresh) {
   const banner = document.getElementById('creators-momentum-banner');
   if (!banner) return;
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
   const catLabels = { beaute: 'Beauté', mode: 'Mode', tech: 'Tech & Gadgets', fitness: 'Fitness', sante: 'Santé', maison: 'Maison' };
-  fetch(`/api/market/category-momentum?region=${_userRegion()}`, { headers })
+  fetch(`/api/market/category-momentum?region=${_userRegion()}${refresh ? '&refresh=true' : ''}`, { headers })
     .then(r => r.json()).catch(() => null)
     .then(data => {
       const top = data && data.ok && data.categories && data.categories[0];
@@ -5424,24 +5424,26 @@ function _loadCreatorsMomentumBanner(token) {
     });
 }
 
-async function loadCreatorsTab() {
+async function loadCreatorsTab(refresh) {
   const grid = document.getElementById('creators-grid');
   const loading = document.getElementById('creators-loading');
   const upsell = document.getElementById('creators-upsell');
   const detail = document.getElementById('creator-detail');
   if (!grid) return;
   if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
-  grid.innerHTML = ''; upsell.style.display = 'none'; loading.style.display = 'block';
+  grid.innerHTML = ''; upsell.style.display = 'none';
+  loading.style.display = 'block';
+  loading.textContent = refresh ? '⏳ Rafraîchissement…' : '⏳ Chargement…';
 
   const token = localStorage.getItem('tts_token');
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-  _loadCreatorsMomentumBanner(token);
+  _loadCreatorsMomentumBanner(token, refresh);
   const cat = document.getElementById('creators-category')?.value || '';
   // Pays de l'utilisateur en premier, puis les principaux marchés (top 5 par pays).
   const countries = _orderedCountries().slice(0, 5);
   try {
     const results = await Promise.all(countries.map(c =>
-      fetch(`/api/market/creators?region=${c.code}&category=${encodeURIComponent(cat)}`, { headers })
+      fetch(`/api/market/creators?region=${c.code}&category=${encodeURIComponent(cat)}${refresh ? '&refresh=true' : ''}`, { headers })
         .then(r => r.json()).catch(() => null)));
     loading.style.display = 'none';
     let html = ''; let any = false; let anyPreview = false;
@@ -5496,17 +5498,17 @@ function renderCreatorCard(c, locked) {
     </div>`;
 }
 
-async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
+async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname, refresh) {
   const uniqueId = decodeURIComponent(uniqueIdEnc);
   const userId = decodeURIComponent(userIdEnc || '');
   const box = document.getElementById('creator-detail');
   if (!box) return;
   box.style.display = 'block';
-  box.innerHTML = '<div class="section"><p style="color:var(--muted)">⏳ Chargement du créateur…</p></div>';
+  box.innerHTML = `<div class="section"><p style="color:var(--muted)">⏳ ${refresh ? 'Rafraîchissement…' : 'Chargement du créateur…'}</p></div>`;
   box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const token = localStorage.getItem('tts_token');
   try {
-    const res = await fetch(`/api/market/creator/${encodeURIComponent(uniqueId)}?user_id=${encodeURIComponent(userId)}`, {
+    const res = await fetch(`/api/market/creator/${encodeURIComponent(uniqueId)}?user_id=${encodeURIComponent(userId)}${refresh ? '&refresh=true' : ''}`, {
       headers: token ? { 'Authorization': 'Bearer ' + token } : {}
     });
     const d = await res.json();
@@ -5516,7 +5518,10 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname) {
     let html = `<div class="section">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <h2 style="margin:0">@${escapeHtml(uniqueId)}</h2>
-        <a href="${profileUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:13px">Voir le profil ↗</a>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="openCreatorDetail('${uniqueIdEnc}','${userIdEnc}','${escapeHtml((nickname||'').replace(/'/g,''))}',true)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);cursor:pointer">🔄 Rafraîchir</button>
+          <a href="${profileUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:13px">Voir le profil ↗</a>
+        </div>
       </div>`;
 
     // Vidéos
