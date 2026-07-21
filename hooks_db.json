@@ -364,5 +364,79 @@
     "produits_a_fort_potentiel": "satisfaisant · utile au quotidien · anxiogène/sécurité (ex : anti-feu) · astuce maline · prix waouh. Le PRODUIT porte le reach, plus que le script.",
     "a_eviter_fr": "attelage/remorquage/sangles (hors marché FR), saisonnier trop daté, produits saturés.",
     "calibration_critique": "VÉRIFIÉ SUR 6 COMPTES / ~180 VIDÉOS : le format/script est un PLANCHER de qualité, PAS le levier de viralité. Le même skit a fait 13,4M ET 689 vues. La variance vient du PRODUIT + de la 1re SECONDE VISUELLE + de la loterie algo + du VOLUME/recyclage. Ne survends jamais un bon script comme une garantie de vues : un score de script élevé = plancher pro atteint, pas succès assuré. Dans tes conseils, pondère le potentiel PRODUIT et la 1re seconde AU-DESSUS des dimensions purement textuelles."
+  },
+
+  "biais_cognitifs": {
+    "_note": "Banque de données master psychologie de vente (31 leviers au total : 8 biais + 3 techniques visuelles + 10 hooks verbaux + 5 frameworks narratifs + 5 stratégies carrousel). Utilise ces biais pour juger mecanismes_vente et conversion_shop.",
+    "cout_inaction": "Coût de l'inaction : au lieu d'insister sur un prix en promo, montrer ce que le client PERD (financièrement ou émotionnellement) s'il ne résout pas son problème.",
+    "aversion_perte": "Aversion à la perte : appuyer sur ce que le spectateur perd chaque jour plutôt que sur ce qu'il gagnerait en achetant.",
+    "culpabilite_transferee": "Culpabilité transférée : déplacer la culpabilité de l'achat vers la protection d'un tiers (famille, enfants, animaux).",
+    "desamorcage_objections": "Désamorçage des objections : mentionner délibérément un inconvénient mineur pour désarmer les défenses et gagner instantanément la confiance.",
+    "biais_negativite": "Biais de négativité / urgence par l'inconfort : révéler une réalité inquiétante liée aux habitudes de l'audience pour créer un stress dont le produit devient la sortie rassurante.",
+    "mimetisme_format": "Confiance subconsciente (mimétisme du format) : imiter les codes d'écriture natifs de la cible (incrustations en minuscules, sans ponctuation finale) pour contourner le détecteur de mensonges.",
+    "bs_detector_visuel": "BS Detector visuel : aligner décor, look et actions sur l'archétype exact de l'avatar client visé pour valider immédiatement l'appartenance (« il est l'un des nôtres »).",
+    "cadrage_sans_pression": "Cadrage sans pression (l'alliance) : ne pas recommander le produit directement — s'appuyer sur l'affirmation d'un tiers et adopter la posture du sceptique qui vient tester la promesse avec l'audience."
+  },
+
+  "techniques_visuelles": {
+    "von_restorff": "Effet von Restorff (colorimétrie) : vêtements très vifs ou décors fortement contrastés pour détacher visuellement le créateur du flux habituel et stopper le scroll.",
+    "action_cut": "Action Cut (hook visuel) : extraire l'extrait le plus court, intense ou intriguant du milieu ou de la fin de la vidéo et le placer dans les premières secondes sans contexte.",
+    "mouvements_dynamiques": "Mouvements dynamiques (quick cuts & shaky cam) : changements d'angles rapides, caméra inversée, going out effect ou mouvements instables pour maintenir un rythme visuel élevé."
+  },
+
+  "hooks_verbaux": {
+    "_note": "10 accroches verbales nommées, à varier selon la formule de script choisie.",
+    "phrase_magique": "« [Nom du produit] sur TikTok Shop pour ce prix-là en ce moment ?! »",
+    "surprise": "« Je n'arrive pas à croire qu'ils n'aient pas fabriqué ça plus tôt »",
+    "reaction_emotionnelle": "« Ceci pourrait bien vous faire ___ »",
+    "gratitude_sociale": "« Que Dieu BÉNISSE la personne qui a dit que ___ fonctionne mieux que ___ »",
+    "alternative_economique": "« J'étais À ÇA de dépenser des milliers d'euros en [solution coûteuse] et j'étais À ÇA de [votre solution] »",
+    "anti_vente": "« Ne faites JAMAIS confiance à un influenceur... »",
+    "recadrage_insecurite": "« Tu n'es pas [problème perçu], tu es juste [véritable cause] »",
+    "avertissement_interdit": "« Quoi que vous fassiez, ne [action habituelle avec le produit], parce que... »",
+    "fait_choquant": "« [Fait choquant sur un produit grand public] est littéralement en train d'empoisonner votre corps... »",
+    "desaccord_leger": "« Tout le monde dit que [croyance commune], ce que je n'ai jamais compris... »"
+  },
+
+  "frameworks_narratifs": {
+    "insider_details": "Spécificité de l'initié : énoncer le problème avec un niveau de détail si précis qu'il prouve l'expérience du créateur, sans effort de persuasion.",
+    "boucle_curiosite": "Boucle de curiosité : 1) Action Cut à haut niveau d'intensité en ouverture, 2) récit qui fait chercher la résolution de l'extrait initial, 3) explication livrée impérativement à la fin.",
+    "solution_par_la_peur": "Solution par la peur : 1) fait effrayant/vérité cachée sur une pratique répandue, 2) escalade de l'urgence (risques d'inaction), 3) produit introduit comme seule solution éthique et sécurisante.",
+    "rupture_de_motif": "Rupture de motif (closing) : recapter l'attention en fin de vidéo par une annonce contradictoire (« je vais retourner cet article ») avant d'empiler les bénéfices.",
+    "structure_ctr_eleve": "Structure CTR élevé : CTA initial dès les premières secondes → problématique → solution → urgence en conclusion."
+  },
+
+  "strategies_carrousel": {
+    "funnel_visuel": "Funnel visuel (5-7 images) : hook visuel → bénéfice principal → preuve sociale → zoom technique → CTA.",
+    "image_heros_lifestyle": "Image héros lifestyle : éliminer les photos fond blanc catalogue, montrer le produit en situation réelle d'utilisation.",
+    "minimalisme_textuel": "Minimalisme textuel : textes courts et contrastés, 1 à 3 bénéfices majeurs maximum par visuel.",
+    "desamorcage_visuel_objections": "Désamorçage visuel des objections : images centrales dédiées à la rassurance (avant/après, preuves d'efficacité, avis, guide de tailles).",
+    "audio_synchronise": "Stratégie audio synchronisée : associer le carrousel à un son/musique tendance pour maintenir le temps de visionnage pendant le défilement."
+  },
+
+  "matrice_geoculturelle": {
+    "_note": "6 marchés calibrés — adapter le ton, le rythme et les leviers dominants à la cible.",
+    "usa": "États-Unis : psychologie transactionnelle, très stimulée, réceptive au stress → biais de négativité, Action Cut, cadence rapide.",
+    "uk": "Royaume-Uni : sceptique, recherche d'authenticité, ton casual → cadrage sans pression (alliance), posture de testeur.",
+    "france": "France : achat impulsif, réceptif aux tendances et au LIVE shopping → effet von Restorff, incitation immédiate.",
+    "bresil": "Brésil : émotionnel, communautaire, sensible à la preuve sociale → storytelling intime, spécificité de l'initié.",
+    "allemagne": "Allemagne : analytique, méfiant, très sensible au prix et à la réassurance → désamorçage des objections, preuves factuelles.",
+    "italie_espagne": "Italie & Espagne : spontané, orienté divertissement et achat rapide → dynamisme visuel, quick cuts, rythme soutenu."
+  },
+
+  "regles_trust_safety_anti_ia": {
+    "_note": "À vérifier AVANT de noter ou générer un script — conformité et naturel du texte.",
+    "interdictions_trust_safety": [
+      "Aucune allégation médicale non prouvée ou mensongère",
+      "Aucune promesse financière irréaliste ou trompeuse",
+      "Respect des règles d'affiliation et chartes plateforme (pas de nudité, danger, haine)"
+    ],
+    "regles_anti_ia_script": [
+      "Interdiction des salutations (« salut tout le monde », « bonjour à tous ») — commencer directement par le hook",
+      "Interdiction des emojis dans les propositions de texte à l'écran",
+      "Pacing : phrases de 12 mots maximum pour une découpe fluide au montage",
+      "Incrustations à l'écran exclusivement en minuscules, sans ponctuation finale",
+      "Instructions de montage entre crochets (ex: [CUT: Zoom rapide produit])"
+    ]
   }
 }

@@ -30,6 +30,12 @@ def _load_kb() -> dict:
 
 _KB = _load_kb()
 
+# Marché passé par le frontend ("fr", "us"...) → clé de matrice_geoculturelle.
+_MARKET_GEO_KEY: dict[str, str] = {
+    "fr": "france", "us": "usa", "uk": "uk", "gb": "uk",
+    "br": "bresil", "de": "allemagne", "it": "italie_espagne", "es": "italie_espagne",
+}
+
 # Formules recommandées par catégorie produit (biais déterministe, aligné corpus).
 _FORMULAS_BY_CATEGORY: dict[str, list[str]] = {
     "anxiogene_securite": ["G_educatif_securite", "F_skit_dialogue", "A_confessionnel", "E_demo_solution", "D_deal_frontal"],
@@ -61,9 +67,55 @@ def _extract_json(raw: str) -> Optional[dict]:
     return None
 
 
+def _persuasion_block() -> str:
+    """Biais cognitifs + hooks verbaux + frameworks narratifs (banque de données
+    master, 31 leviers) — donne du grain aux scripts au-delà des 8 formules A-H."""
+    biais = _KB.get("biais_cognitifs", {})
+    hooks_v = _KB.get("hooks_verbaux", {})
+    frameworks = _KB.get("frameworks_narratifs", {})
+    if not (biais or hooks_v or frameworks):
+        return ""
+    lines = []
+    if biais:
+        lines.append("\nBIAIS COGNITIFS À TISSER DANS LE DISCOURS (pas tous, 1-2 par script) :")
+        lines += [f"- {v}" for k, v in biais.items() if not k.startswith("_")]
+    if hooks_v:
+        lines.append("\nRÉPERTOIRE DE HOOKS (inspire hook_0_3s, adapte au produit, ne recopie pas mot pour mot) :")
+        lines += [f"- {v}" for k, v in hooks_v.items() if not k.startswith("_")]
+    if frameworks:
+        lines.append("\nFRAMEWORKS DE NARRATION (structure alternative à piocher si pertinent pour l'angle) :")
+        lines += [f"- {v}" for v in frameworks.values()]
+    return "\n".join(lines)
+
+
+def _anti_ia_rules_block() -> str:
+    """Règles anti-IA + trust & safety — source unique (hooks_db.json), pour ne
+    pas les dupliquer en dur dans le prompt et risquer une dérive."""
+    safety = _KB.get("regles_trust_safety_anti_ia", {})
+    rules = safety.get("regles_anti_ia_script", [])
+    interdictions = safety.get("interdictions_trust_safety", [])
+    if not (rules or interdictions):
+        # Filet de sécurité si hooks_db.json est absent/corrompu.
+        return ("- Aucune salutation, aucun emoji. Commence direct par le hook. "
+                "12 mots max par phrase.")
+    lines = [f"- {r}" for r in rules] + [f"- {r}" for r in interdictions]
+    return "\n".join(lines)
+
+
+def _geo_block(market: str) -> str:
+    """Calibration ton/rythme/leviers dominants pour le marché ciblé (matrice
+    géoculturelle) — complète (ne remplace pas) le playbook FR détaillé."""
+    key = _MARKET_GEO_KEY.get((market or "fr").lower().strip())
+    geo = _KB.get("matrice_geoculturelle", {})
+    entry = geo.get(key) if key else None
+    if not entry:
+        return ""
+    return f"\nTON MARCHÉ ({market.upper()}) : {entry}\n"
+
+
 def _build_prompt(product: str, price: Optional[str], intel: dict,
                   formulas: list[str], n: int, market_fr: bool,
-                  user_role: Optional[str]) -> str:
+                  user_role: Optional[str], market: str = "fr") -> str:
     sf = _KB.get("script_formulas", {})
     formula_lines = []
     for fid in formulas:
@@ -88,6 +140,9 @@ def _build_prompt(product: str, price: Optional[str], intel: dict,
     elif user_role == "vendeur":
         role_block = "\nRÔLE : vendeur de sa marque → valeur + confiance, éviter le sur-hype.\n"
 
+    geo_block = _geo_block(market)
+    persuasion_block = _persuasion_block()
+
     return f"""Tu es scénariste TikTok Shop expert. Génère EXACTEMENT {n} scripts DIFFÉRENTS pour UN SEUL produit, chacun dans une FORMULE distincte. FRANÇAIS. JSON UNIQUEMENT.
 
 PRODUIT : « {product} »
@@ -99,10 +154,11 @@ FORMULES À UTILISER (une par script, jamais deux fois la même) :
 
 INVARIANTS D'ADN À RESPECTER dans CHAQUE script :
 {chr(10).join('- ' + i for i in invariants)}
-{fr_block}{role_block}
+{fr_block}{geo_block}{role_block}{persuasion_block}
+
 RÈGLES DE RÉDACTION (strictes) :
 - Chaque `script` est un texte RÉEL prêt à dire face caméra (jamais une description abstraite).
-- Aucune salutation, aucun emoji. Commence direct par le hook. 12 mots max par phrase.
+{_anti_ia_rules_block()}
 - Le prix/deal est la CHUTE (sauf formule D_deal_frontal qui ouvre dessus).
 - Rareté/urgence UNIQUEMENT en sortie et SEULEMENT si c'est vrai (jamais de fausse urgence).
 - Pour F_skit_dialogue : écris en répliques préfixées « — » (2 personnages).
@@ -150,7 +206,7 @@ def generate_multi_angle_scripts(
     intel = product_intel.score_product(product, price)
     formulas = _FORMULAS_BY_CATEGORY.get(intel["category_id"], _FORMULAS_BY_CATEGORY["generique"])[:n]
 
-    prompt = _build_prompt(product, price, intel, formulas, n, market_fr, user_role)
+    prompt = _build_prompt(product, price, intel, formulas, n, market_fr, user_role, market=market)
 
     try:
         raw = ai_providers.text_complete(prompt, timeout=timeout, max_tokens=4096, temperature=0.7)

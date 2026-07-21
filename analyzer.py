@@ -374,6 +374,54 @@ def _load_hooks_context() -> str:
             if playbook.get("calibration_critique"):
                 lines.append(f"- ⚖️ CALIBRATION CRITIQUE: {playbook['calibration_critique']}")
 
+        # Banque de données master (31 leviers) — biais cognitifs, hooks verbaux,
+        # frameworks narratifs, stratégies carrousel, matrice géoculturelle.
+        biais = db.get("biais_cognitifs")
+        if isinstance(biais, dict):
+            lines.append("\nBIAIS COGNITIFS (juge mecanismes_vente / conversion_shop sur ces leviers):")
+            for k, v in biais.items():
+                if not k.startswith("_"):
+                    lines.append(f"- {v}")
+
+        visuel = db.get("techniques_visuelles")
+        if isinstance(visuel, dict):
+            lines.append("\nTECHNIQUES VISUELLES (juge format_visuel):")
+            for v in visuel.values():
+                lines.append(f"- {v}")
+
+        hooks_v = db.get("hooks_verbaux")
+        if isinstance(hooks_v, dict):
+            lines.append("\nRÉPERTOIRE DE HOOKS VERBAUX (inspire recommendations_hooks / plan_reproduction):")
+            for k, v in hooks_v.items():
+                if not k.startswith("_"):
+                    lines.append(f"- {v}")
+
+        frameworks = db.get("frameworks_narratifs")
+        if isinstance(frameworks, dict):
+            lines.append("\nFRAMEWORKS DE NARRATION (structure hook/retention/algorithme):")
+            for v in frameworks.values():
+                lines.append(f"- {v}")
+
+        carrousel = db.get("strategies_carrousel")
+        if isinstance(carrousel, dict):
+            lines.append("\nSTRATÉGIES CARROUSEL (si angle_shop shoppable photos):")
+            for v in carrousel.values():
+                lines.append(f"- {v}")
+
+        geo = db.get("matrice_geoculturelle")
+        if isinstance(geo, dict):
+            lines.append("\nMATRICE GÉOCULTURELLE (adapte ton/rythme/leviers à la cible):")
+            for k, v in geo.items():
+                if not k.startswith("_"):
+                    lines.append(f"- {v}")
+
+        safety = db.get("regles_trust_safety_anti_ia")
+        if isinstance(safety, dict):
+            lines.append("\nRÈGLES TRUST & SAFETY / ANTI-IA (vérifier AVANT de noter ou générer):")
+            for group in ("interdictions_trust_safety", "regles_anti_ia_script"):
+                for rule in safety.get(group, []):
+                    lines.append(f"- {rule}")
+
         return "\n".join(lines)
     except Exception:
         return ""

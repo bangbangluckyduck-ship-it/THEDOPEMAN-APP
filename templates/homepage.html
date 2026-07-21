@@ -234,6 +234,8 @@
       z-index: 2;
     }
 
+    .hero-left { min-width: 0; }
+
     .hero-left h1 {
       font-size: 56px;
       font-weight: 800;
@@ -840,21 +842,120 @@
         <p>Créé par des créateurs, pour les créateurs TikTok Shop</p>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-header" onclick="scrollToTool()" style="flex:1;min-width:200px;padding:14px;font-size:16px;">
-          🚀 Analyser une vidéo
-        </button>
-        <a href="/carousel" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#D4AF37;color:#1a1a1a;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
-          📸 Créer un carrousel <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
-        </a>
-        <a href="/scripts" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#1F3A70;color:#fff;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
-          🎬 Générer des scripts <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
-        </a>
+      <!-- ════════════════════ AUTORITÉ (compact, sous la ligne social-proof) ════════════════════ -->
+      <style>
+        .authority-card{
+          background:var(--surface);
+          border:1px solid rgba(212,175,55,.35);
+          border-radius:18px;
+          padding:18px 20px;
+          box-shadow:var(--shadow);
+          position:relative;
+          margin:16px 0 20px;
+        }
+        .authority-card::before{
+          content:"";
+          position:absolute; top:0; left:18px; right:18px; height:3px;
+          border-radius:0 0 3px 3px;
+          background:linear-gradient(90deg,var(--primary),var(--accent));
+          pointer-events:none;
+        }
+        .authority-eyebrow{
+          display:inline-flex; align-items:center; gap:6px;
+          font-size:11px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+          color:var(--gold-ink,#8B6914);
+          background:rgba(212,175,55,.14);
+          border:1px solid rgba(212,175,55,.3);
+          padding:4px 10px; border-radius:999px; margin-bottom:10px;
+        }
+        .authority-sub{
+          font-size:13px; line-height:1.55; color:var(--muted); margin:0 0 16px;
+        }
+        .authority-stats{
+          display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px;
+        }
+        .authority-stat{
+          background:var(--bg); border:1px solid var(--border); border-radius:12px;
+          padding:12px 10px; text-align:center;
+        }
+        .authority-stat-num{
+          font-size:22px; font-weight:900;
+          background:linear-gradient(120deg,var(--navy),var(--accent));
+          -webkit-background-clip:text; background-clip:text; color:transparent;
+          font-variant-numeric:tabular-nums;
+        }
+        .authority-stat-prefix{
+          font-size:18px; font-weight:900;
+          background:linear-gradient(120deg,var(--navy),var(--accent));
+          -webkit-background-clip:text; background-clip:text; color:transparent;
+        }
+        .authority-stat-label{ font-size:11px; color:var(--muted); margin-top:2px; font-weight:600; line-height:1.3 }
+        .authority-marquee{
+          border-top:1px solid var(--border); padding-top:12px;
+          overflow:hidden; width:100%; min-width:0;
+          -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+        }
+        .authority-marquee-track{
+          display:flex; gap:20px; width:max-content;
+          animation:authorityScroll 22s linear infinite;
+        }
+        .authority-marquee-item{
+          display:inline-flex; align-items:center; gap:6px;
+          font-size:11.5px; font-weight:700; color:var(--text); white-space:nowrap;
+        }
+        @keyframes authorityScroll{
+          from{ transform:translateX(0); }
+          to{ transform:translateX(-50%); }
+        }
+        @media (max-width:380px){
+          .authority-stats{ grid-template-columns:1fr; }
+        }
+        @media (prefers-reduced-motion:reduce){
+          .authority-marquee-track{ animation:none; }
+        }
+      </style>
+      <div class="authority-card" id="authority">
+        <span class="authority-eyebrow">🛡️ Méthode éprouvée sur le terrain</span>
+        <p class="authority-sub">Créée grâce à l'expertise de plus de 10 créateurs TikTok Shop FR confirmés, et calibrée sur l'analyse de plus de 1000 vidéos parmi les meilleurs créateurs de plusieurs marchés — pas des suppositions marketing.</p>
+
+        <div class="authority-stats">
+          <div class="authority-stat">
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="1000">0</span></div>
+            <div class="authority-stat-label">top vidéos analysées</div>
+          </div>
+          <div class="authority-stat">
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="31">0</span></div>
+            <div class="authority-stat-label">leviers de vente décodés</div>
+          </div>
+          <div class="authority-stat">
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="10">0</span></div>
+            <div class="authority-stat-label">créateurs TikTok Shop FR ont mis leur expertise dans l'appli</div>
+          </div>
+          <div class="authority-stat">
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="6">0</span></div>
+            <div class="authority-stat-label">marchés analysés</div>
+          </div>
+        </div>
+
+        <div class="authority-marquee">
+          <div class="authority-marquee-track" id="authority-marquee-track">
+            <span class="authority-marquee-item">🇫🇷 France</span>
+            <span class="authority-marquee-item">🇺🇸 États-Unis</span>
+            <span class="authority-marquee-item">🇬🇧 Royaume-Uni</span>
+            <span class="authority-marquee-item">🇧🇷 Brésil</span>
+            <span class="authority-marquee-item">🇩🇪 Allemagne</span>
+            <span class="authority-marquee-item">🇮🇹🇪🇸 Italie & Espagne</span>
+            <span class="authority-marquee-item">🇫🇷 France</span>
+            <span class="authority-marquee-item">🇺🇸 États-Unis</span>
+            <span class="authority-marquee-item">🇬🇧 Royaume-Uni</span>
+            <span class="authority-marquee-item">🇧🇷 Brésil</span>
+            <span class="authority-marquee-item">🇩🇪 Allemagne</span>
+            <span class="authority-marquee-item">🇮🇹🇪🇸 Italie & Espagne</span>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-top:14px;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px">
-        <span style="font-size:14px">🇫🇷</span> Made in France
-      </div>
     </div>
 
     <div class="hero-right">
@@ -876,9 +977,51 @@
   </div>
 </section>
 
+<script>
+(function(){
+  var nums = document.querySelectorAll('.authority-stat-num');
+  if (!nums.length) return;
+  var done = new WeakSet();
+  function animate(el){
+    if (done.has(el)) return;
+    done.add(el);
+    var target = parseInt(el.getAttribute('data-target'), 10) || 0;
+    var start = null, duration = 1100;
+    function step(ts){
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(eased * target);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) animate(e.target); });
+    }, { threshold: 0.4 });
+    nums.forEach(function(el){ io.observe(el); });
+  } else {
+    nums.forEach(animate);
+  }
+})();
+</script>
+
 <!-- ════════════════════ TOOL ════════════════════ -->
 <section class="tool-section" id="tool">
   <div class="tool-container">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+      <button class="btn-header" onclick="scrollToTool()" style="flex:1;min-width:200px;padding:14px;font-size:16px;">
+        🚀 Analyser une vidéo
+      </button>
+      <a href="/carousel" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#D4AF37;color:#1a1a1a;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
+        📸 Créer un carrousel <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
+      </a>
+      <a href="/scripts" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#1F3A70;color:#fff;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
+        🎬 Générer des scripts <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
+      </a>
+    </div>
+
     <h2 class="tool-title">📹 Analyse ta vidéo maintenant</h2>
 
     <div class="error-message" id="error-message"></div>
