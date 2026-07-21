@@ -731,15 +731,17 @@ async def get_influencer_profile(handle: str) -> Optional[dict]:
     """Étape 1 : @handle (recherche libre) → profil + uid interne, requis pour
     les appels suivants. Renvoie None si le handle n'existe pas — l'API renvoie
     une erreur explicite ("unique_id is invalid", statut 200 + code non-zéro,
-    PAS un 404 HTTP classique) pour un handle inconnu, traitée ici comme "not found"."""
+    PAS un 404 HTTP classique) pour un handle inconnu, ce qui se traduit ici
+    par un `user` absent, sans exception.
+
+    Les erreurs fournisseur (quota épuisé, cooldown, panne réseau) NE sont PAS
+    avalées ici — elles remontent (exception) jusqu'à la route appelante, qui
+    sait retomber sur le cache périmé plutôt que d'afficher "introuvable" pour
+    un compte réel juste parce que KeyAPI est indisponible."""
     handle = (handle or "").lstrip("@").strip()
     if not handle:
         return None
-    try:
-        data = await _get("/v1/tiktok/influencer/detail", {"unique_id": handle})
-    except Exception as e:
-        print(f"get_influencer_profile({handle}) error: {e}")
-        return None
+    data = await _get("/v1/tiktok/influencer/detail", {"unique_id": handle})
     user = (data or {}).get("user") if isinstance(data, dict) else None
     if not user or not user.get("uid"):
         return None
