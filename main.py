@@ -2854,8 +2854,44 @@ def _market_cache_set(key: str, payload, hours: int = 24):
         pass
 
 
+async def _market_cache_fetch(cache_key: str, fetch, *, refresh: bool = False, log_label: str = "",
+                               is_empty=lambda v: not v):
+    """Cache quasi permanent pour les écrans marché (décision Aimeric 2026-07-21,
+    étendue de la Recherche de profil à tous les écrans marché KeyAPI) : une
+    donnée déjà obtenue une fois reste servie indéfiniment — on ignore
+    volontairement la péremption en lecture (`_market_cache_get_stale`, jamais
+    `_market_cache_get`). Un vrai appel fournisseur n'a lieu que si (a) rien
+    en cache, ou (b) `refresh=True` (bouton dédié côté UI). Si ce fetch échoue
+    OU renvoie un résultat vide/nul alors qu'on avait déjà mieux en cache, on
+    garde silencieusement l'ancienne donnée plutôt que d'écraser ce qui
+    marchait avec du vide. `is_empty` permet de définir "vide" pour un payload
+    dict (ex: {"creators": [], "products": []}) où la simple troncature Python
+    ne suffit pas (un dict non vide de listes vides reste truthy).
+
+    Retourne (result, is_fresh_fetch). `result` n'est vide (selon `is_empty`)
+    que si rien n'a JAMAIS été récupéré avec succès pour cette clé."""
+    cached, _ = _market_cache_get_stale(cache_key)
+    if not is_empty(cached) and not refresh:
+        return cached, False
+
+    try:
+        fetched = await fetch()
+    except Exception as e:
+        print(f"_market_cache_fetch({log_label or cache_key}) error: {e}")
+        fetched = None
+
+    if not is_empty(fetched):
+        _market_cache_set(cache_key, fetched, hours=24 * 3650)  # quasi permanent, seul refresh=true recharge
+        return fetched, True
+    if not is_empty(cached):
+        print(f"_market_cache_fetch({log_label or cache_key}) : {'refresh' if refresh else 'fetch initial'} vide/en échec, cache resservi")
+        return cached, False
+    return fetched, True   # rien nulle part : vide, mais vient bien d'un fetch frais (pas de quota à décompter ailleurs)
+
+
 @app.get("/api/market/creators")
-async def market_creators_list(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+async def market_creators_list(request: Request, category: Optional[str] = Query(None), region: str = Query("US"),
+                                refresh: bool = Query(False)):
     """Top créateurs (ventes). Gold/Agency = complet ; free/pro = aperçu partiel flouté."""
     user = get_user_from_request(request)
     if not user.get("valid"):
@@ -2863,23 +2899,9 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
     cache_key = f"creators::{(category or 'all').lower()}::{region}"
-    creators = _market_cache_get(cache_key)
-    if creators is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            creators = await market_creators.get_top_creators(category, region, limit=10)
-        except Exception as e:
-            print(f"/api/market/creators error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            creators, _stale_until = _market_cache_get_stale(cache_key)
-            if creators is None:
-                return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
-            print(f"/api/market/creators : cache périmé resservi (expiré le {_stale_until})")
-        if creators and not _stale_until:
-            _market_cache_set(cache_key, creators, hours=24)  # 24h : URLs avatars TikTok signées expirent ~24h
+    creators, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_top_creators(category, region, limit=10),
+        refresh=refresh, log_label="/api/market/creators")
 
     if not premium:
         return {"ok": True, "preview": True, "creators": (creators or [])[:2]}
@@ -2887,7 +2909,8 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
 
 
 @app.get("/api/market/category")
-async def market_category_overview(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+async def market_category_overview(request: Request, category: Optional[str] = Query(None), region: str = Query("US"),
+                                    refresh: bool = Query(False)):
     """Vue catégorie (créateurs + produits) pour la reco auto post-analyse.
     Gold/Agency = complet ; free/pro = aperçu partiel (preview=True)."""
     user = get_user_from_request(request)
@@ -2896,23 +2919,10 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
     cache_key = f"catov::{(category or 'all').lower()}::{region}"
-    ov = _market_cache_get(cache_key)
-    if ov is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            ov = await market_creators.get_category_overview(category, region)
-        except Exception as e:
-            print(f"/api/market/category error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            ov, _stale_until = _market_cache_get_stale(cache_key)
-            if ov is None:
-                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-            print(f"/api/market/category : cache périmé resservi (expiré le {_stale_until})")
-        if ov and not _stale_until and (ov.get("creators") or ov.get("products")):
-            _market_cache_set(cache_key, ov, hours=24)  # 24h : contient avatars/images signés (expirent ~24h)
+    ov, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_category_overview(category, region),
+        refresh=refresh, log_label="/api/market/category",
+        is_empty=lambda v: not v or not (v.get("creators") or v.get("products")))
 
     ov = ov or {"creators": [], "products": []}
     if not premium:
@@ -2924,7 +2934,7 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
 
 
 @app.get("/api/market/category-momentum")
-async def market_category_momentum(request: Request, region: str = Query("US")):
+async def market_category_momentum(request: Request, region: str = Query("US"), refresh: bool = Query(False)):
     """Momentum GMV 7j par catégorie (endpoint category/trend/analytics) — signal
     "quelle catégorie explose en ce moment" pour l'onglet Créateurs Gagnants.
     Gold/Agency = complet ; free/pro = aperçu partiel (preview=True)."""
@@ -2934,24 +2944,9 @@ async def market_category_momentum(request: Request, region: str = Query("US")):
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
     cache_key = f"catmom::{region}"
-    momentum = _market_cache_get(cache_key)
-    if momentum is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            momentum = await market_creators.get_category_momentum(region)
-        except Exception as e:
-            print(f"/api/market/category-momentum error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            momentum, _stale_until = _market_cache_get_stale(cache_key)
-            if momentum is None:
-                return JSONResponse({"ok": False, "error": str(e), "categories": []}, status_code=502)
-            print(f"/api/market/category-momentum : cache périmé resservi (expiré le {_stale_until})")
-        if momentum and not _stale_until:
-            _market_cache_set(cache_key, momentum, hours=24)
-
+    momentum, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_category_momentum(region),
+        refresh=refresh, log_label="/api/market/category-momentum")
     momentum = momentum or []
     if not premium:
         return {"ok": True, "preview": True, "categories": momentum[:1]}
@@ -2959,7 +2954,8 @@ async def market_category_momentum(request: Request, region: str = Query("US")):
 
 
 @app.get("/api/market/creator/{unique_id}")
-async def market_creator_detail(request: Request, unique_id: str, user_id: str = Query(...)):
+async def market_creator_detail(request: Request, unique_id: str, user_id: str = Query(...),
+                                 refresh: bool = Query(False)):
     """Vidéos + produits d'un créateur. Réservé Gold/Agency."""
     user = get_user_from_request(request)
     if not user.get("valid"):
@@ -2968,23 +2964,10 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
     cache_key = f"creator::{unique_id}::{user_id}"
-    detail = _market_cache_get(cache_key)
-    if detail is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            detail = await market_creators.get_creator_detail(unique_id, user_id)
-        except Exception as e:
-            print(f"/api/market/creator error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            detail, _stale_until = _market_cache_get_stale(cache_key)
-            if detail is None:
-                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-            print(f"/api/market/creator : cache périmé resservi (expiré le {_stale_until})")
-        if not _stale_until:
-            _market_cache_set(cache_key, detail, hours=12)
+    detail, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_creator_detail(unique_id, user_id),
+        refresh=refresh, log_label="/api/market/creator",
+        is_empty=lambda v: not v or not (v.get("videos") or v.get("products")))
     return {"ok": True, **(detail or {})}
 
 
@@ -3040,33 +3023,19 @@ async def market_popular(request: Request, category: Optional[str] = Query(None)
 
 
 @app.get("/api/market/category-creators")
-async def market_category_creators(request: Request, category: Optional[str] = Query(None), region: str = Query("US")):
+async def market_category_creators(request: Request, category: Optional[str] = Query(None), region: str = Query("US"),
+                                    refresh: bool = Query(False)):
     """Créateurs gagnants d'une catégorie (chaîne top produits → leurs créateurs).
-    Gold/Agency = complet ; free/pro = aperçu partiel. Cache 24h."""
+    Gold/Agency = complet ; free/pro = aperçu partiel. Cache quasi permanent."""
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")
 
     cache_key = f"catcr::{(category or 'all').lower()}::{region}"
-    creators = _market_cache_get(cache_key)
-    if creators is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            creators = await market_creators.get_category_creators(category, region, limit=8)
-        except Exception as e:
-            print(f"/api/market/category-creators error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            creators, _stale_until = _market_cache_get_stale(cache_key)
-            if creators is None:
-                return JSONResponse({"ok": False, "error": str(e), "creators": []}, status_code=502)
-            print(f"/api/market/category-creators : cache périmé resservi (expiré le {_stale_until})")
-        if creators and not _stale_until:
-            _market_cache_set(cache_key, creators, hours=24)
-
+    creators, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_category_creators(category, region, limit=8),
+        refresh=refresh, log_label="/api/market/category-creators")
     creators = creators or []
     if not premium:
         return {"ok": True, "preview": True, "creators": creators[:2]}
@@ -3074,33 +3043,19 @@ async def market_category_creators(request: Request, category: Optional[str] = Q
 
 
 @app.get("/api/market/products/search")
-async def market_products_search(request: Request, keyword: str = Query(...), region: str = Query("US")):
+async def market_products_search(request: Request, keyword: str = Query(...), region: str = Query("US"),
+                                  refresh: bool = Query(False)):
     """Produits tendance pour un mot-clé (reco « produits similaires en tendance »).
-    Gold/Agency = complet ; free/pro = aperçu partiel flouté. Cache 7j (realtime → on limite la conso)."""
+    Gold/Agency = complet ; free/pro = aperçu partiel flouté. Cache quasi permanent."""
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
 
     cache_key = f"psearch::{keyword.lower().strip()}::{region}"
-    products = _market_cache_get(cache_key)
-    if products is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            products = await market_creators.search_products(keyword, region, limit=8)
-        except Exception as e:
-            print(f"/api/market/products/search error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            products, _stale_until = _market_cache_get_stale(cache_key)
-            if products is None:
-                return JSONResponse({"ok": False, "error": str(e), "products": []}, status_code=502)
-            print(f"/api/market/products/search : cache périmé resservi (expiré le {_stale_until})")
-        if products and not _stale_until:
-            _market_cache_set(cache_key, products, hours=24)  # images produits signées (expirent ~24h)
-
+    products, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.search_products(keyword, region, limit=8),
+        refresh=refresh, log_label="/api/market/products/search")
     products = products or []
     if not premium:
         return {"ok": True, "preview": True, "products": products[:2]}
@@ -3108,8 +3063,9 @@ async def market_products_search(request: Request, keyword: str = Query(...), re
 
 
 @app.get("/api/market/product/{product_id}")
-async def market_product_detail(request: Request, product_id: str, region: str = Query("US")):
-    """Fiche produit réelle (titre, image, prix, ventes, VRAIE URL). Réservé Gold/Agency. Cache 7j."""
+async def market_product_detail(request: Request, product_id: str, region: str = Query("US"),
+                                 refresh: bool = Query(False)):
+    """Fiche produit réelle (titre, image, prix, ventes, VRAIE URL). Réservé Gold/Agency. Cache quasi permanent."""
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
@@ -3117,23 +3073,9 @@ async def market_product_detail(request: Request, product_id: str, region: str =
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
     cache_key = f"pdetail::{product_id}::{region}"
-    detail = _market_cache_get(cache_key)
-    if detail is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
-        try:
-            detail = await market_creators.get_product_detail(product_id, region)
-        except Exception as e:
-            print(f"/api/market/product error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            detail, _stale_until = _market_cache_get_stale(cache_key)
-            if detail is None:
-                return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-            print(f"/api/market/product : cache périmé resservi (expiré le {_stale_until})")
-        if detail and not _stale_until:
-            _market_cache_set(cache_key, detail, hours=168)
+    detail, _ = await _market_cache_fetch(
+        cache_key, lambda: market_creators.get_product_detail(product_id, region),
+        refresh=refresh, log_label="/api/market/product")
     if not detail:
         return JSONResponse({"ok": False, "error": "introuvable"}, status_code=404)
     return {"ok": True, "product": detail}
