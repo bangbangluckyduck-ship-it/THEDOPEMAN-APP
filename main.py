@@ -3173,6 +3173,7 @@ async def recherche_profile(request: Request, handle: str = Query(...)):
             result, _stale_until = _market_cache_get_stale(cache_key)
             if result is None:
                 return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
+            is_fresh_fetch = False  # cache périmé resservi : aucun appel KeyAPI réel, ne pas décompter le quota
             print(f"/api/recherche/profile : cache périmé resservi (expiré le {_stale_until})")
         if result is None:
             # Handle introuvable : jamais mis en cache (évite de figer une erreur transitoire).
