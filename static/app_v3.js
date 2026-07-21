@@ -5115,22 +5115,24 @@ function initRechercheTab() {
   }
 }
 
-async function runRechercheSearch() {
+async function runRechercheSearch(refresh) {
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
   if (tier === 'free') { switchTab('pricing'); return; }
 
   const input = document.getElementById('recherche-handle');
-  const handle = (input?.value || '').trim();
+  const handle = (input?.value || window.__rechercheLastHandle || '').trim();
   if (!handle) { showToast('Entre un @pseudo.'); return; }
+  window.__rechercheLastHandle = handle;
 
   const box = document.getElementById('recherche-result');
-  box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">⏳ Recherche…</div>';
+  box.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted)">⏳ ${refresh ? 'Rafraîchissement…' : 'Recherche…'}</div>`;
 
   const token = localStorage.getItem('tts_token');
   const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
 
   try {
-    const res = await fetch(`/api/recherche/profile?handle=${encodeURIComponent(handle)}`, { headers });
+    const url = `/api/recherche/profile?handle=${encodeURIComponent(handle)}${refresh ? '&refresh=true' : ''}`;
+    const res = await fetch(url, { headers });
     const data = await res.json().catch(() => ({}));
 
     if (res.status === 401) { switchTab('pricing'); return; }
@@ -5210,7 +5212,15 @@ function renderRechercheResult(data) {
       : `Aucune vidéo TikTok Shop récente avec produit taggé sur ce compte — on ne peut donc pas attribuer de vente à une vidéo précise. Ça n'exclut pas d'autres ventes hors de cette fenêtre.`}</p>
     ${attribution.videos_analyzed ? `<div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${attrProductsHtml}</div>` : ''}`;
 
+  const fetchedAt = data._fetched_at
+    ? new Date(data._fetched_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+    : null;
+
   box.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--muted)">
+      ${fetchedAt ? `<span>Mis à jour le ${fetchedAt}</span>` : ''}
+      <button onclick="runRechercheSearch(true)" style="background:var(--surface2);border:1px solid var(--border,#ddd);border-radius:8px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer">🔄 Rafraîchir</button>
+    </div>
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;max-width:100%;box-sizing:border-box">
       <img src="${p.avatar ? escapeHtml(_imgProxy(p.avatar)) : ''}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface2);flex-shrink:0">
       <div style="flex:1;min-width:0;overflow:hidden">

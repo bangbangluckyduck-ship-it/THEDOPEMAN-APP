@@ -3144,9 +3144,18 @@ async def market_product_detail(request: Request, product_id: str, region: str =
 # meilleures ventes). Pro (10/jour) / Gold+/Agency/Beta/Admin (illimité).
 # Free = bloqué. Distinct de "Créateurs Gagnants" (qui part d'un ranking) :
 # ici l'utilisateur tape n'importe quel handle, même hors ranking.
+#
+# Cache quasi permanent (décision Aimeric 2026-07-21) : un handle déjà cherché
+# reste affiché indéfiniment, SANS reconsommer de crédit KeyAPI à chaque
+# recherche — on ignore volontairement `_market_cache_get`/TTL en lecture et on
+# lit toujours via `_market_cache_get_stale` (qui ne regarde jamais la
+# péremption). Seul `?refresh=true` (bouton dédié côté UI) déclenche un vrai
+# rafraîchissement KeyAPI ; si ce rafraîchissement échoue (quota épuisé,
+# panne), on garde silencieusement la dernière donnée connue plutôt que
+# d'effacer ce qui marchait.
 # ════════════════════════════════════════════════════════════════════════════
 @app.get("/api/recherche/profile")
-async def recherche_profile(request: Request, handle: str = Query(...)):
+async def recherche_profile(request: Request, handle: str = Query(...), refresh: bool = Query(False)):
     """Profil + GMV réel 30 derniers jours + meilleures ventes pour un @handle."""
     user = get_user_from_request(request)
     if not user.get("valid"):
@@ -3158,33 +3167,36 @@ async def recherche_profile(request: Request, handle: str = Query(...)):
         raise HTTPException(status_code=422, detail="Handle manquant.")
 
     cache_key = f"recherche::{handle_clean}"
-    result = _market_cache_get(cache_key)
-    is_fresh_fetch = result is None
-    if result is None:
-        _stale_until = None   # renseigné si on retombe sur le cache périmé
+    cached, _ = _market_cache_get_stale(cache_key)  # ignore la péremption : cache quasi permanent
+    result = cached
+    is_fresh_fetch = False
+
+    if cached is None or refresh:
+        is_fresh_fetch = True
         try:
-            result = await market_creators.search_creator_profile(handle_clean)
+            fetched = await market_creators.search_creator_profile(handle_clean)
         except Exception as e:
             print(f"/api/recherche/profile error: {e}")
-            # Fournisseur indisponible (quota épuisé, panne) : on reprend la
-            # dernière donnée connue — elle a déjà été payée en crédits — au lieu
-            # de renvoyer du vide. On réinjecte dans la variable pour que la suite
-            # du flux s'applique normalement (notamment le contrôle premium).
-            result, _stale_until = _market_cache_get_stale(cache_key)
-            if result is None:
+            is_fresh_fetch = False
+            if cached is None:
                 return JSONResponse({"ok": False, "error": str(e)}, status_code=502)
-            is_fresh_fetch = False  # cache périmé resservi : aucun appel KeyAPI réel, ne pas décompter le quota
-            print(f"/api/recherche/profile : cache périmé resservi (expiré le {_stale_until})")
-        if result is None:
-            # Handle introuvable : jamais mis en cache (évite de figer une erreur transitoire).
-            return JSONResponse({"ok": False, "error": "Profil introuvable."}, status_code=404)
-        if not _stale_until:
-            _market_cache_set(cache_key, result, hours=8)  # 8h : compromis fraîcheur GMV / coût crédits
+            print(f"/api/recherche/profile : {'refresh' if refresh else 'recherche initiale'} en échec, cache resservi")
+        else:
+            if fetched is None:
+                # Handle introuvable : si on avait déjà une donnée (refresh sur un
+                # handle qui ne résout plus), on la garde plutôt que d'effacer.
+                is_fresh_fetch = False
+                if cached is None:
+                    return JSONResponse({"ok": False, "error": "Profil introuvable."}, status_code=404)
+            else:
+                result = fetched
+                result["_fetched_at"] = datetime.now().isoformat()
+                _market_cache_set(cache_key, result, hours=24 * 3650)  # quasi permanent, seul refresh=true recharge
 
     tier = (user.get("tier") or "free").lower()
     quota_info = {"tier": tier, "remaining_today": None, "limit": None}
     if tier == "pro":
-        # Le quota ne compte QUE les vrais appels KeyAPI, jamais un résultat déjà en cache.
+        # Le quota ne compte QUE les vrais appels KeyAPI réussis, jamais un résultat déjà en cache.
         if is_fresh_fetch:
             recherche_quota.increment_recherche_count(user["email"])
         remaining = max(0, recherche_quota.PRO_DAILY_LIMIT - recherche_quota.get_recherche_count_today(user["email"]))
