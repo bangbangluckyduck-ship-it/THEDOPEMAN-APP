@@ -34,6 +34,48 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png?v=qeerah2">
   <link rel="icon" href="/static/favicon.ico?v=qeerah2" sizes="any">
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://qeerah.com/#organization",
+        "name": "Qeerah",
+        "url": "https://qeerah.com/",
+        "logo": "https://qeerah.com/static/qeerah-logo.png",
+        "sameAs": [
+          "https://www.tiktok.com/@tiktokshop.analyzer"
+        ],
+        "parentOrganization": { "@type": "Organization", "name": "Dope Ventures" }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://qeerah.com/#website",
+        "url": "https://qeerah.com/",
+        "name": "Qeerah",
+        "inLanguage": "fr-FR",
+        "publisher": { "@id": "https://qeerah.com/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Qeerah",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://qeerah.com/",
+        "description": "Outil d'analyse de vidéos TikTok Shop par IA : analyse n'importe quelle vidéo et explique pourquoi elle fonctionne ou non, pour aider les créateurs et vendeurs à reproduire les méthodes gagnantes.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR",
+          "description": "3 analyses gratuites, puis forfaits PRO / GOLD / AGENCY"
+        },
+        "publisher": { "@id": "https://qeerah.com/#organization" }
+      }
+    ]
+  }
+  </script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
