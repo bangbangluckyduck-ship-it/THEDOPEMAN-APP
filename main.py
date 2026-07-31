@@ -552,13 +552,56 @@ _SITEMAP_PATHS = [
 @app.get("/robots.txt", include_in_schema=False)
 async def robots_txt():
     base = _seo_base_url()
+    # Crawlers des moteurs IA génératifs (AI Overviews, ChatGPT Search, Perplexity,
+    # Claude) — explicitement autorisés pour rester citable dans les réponses IA.
+    ai_bots = [
+        "GPTBot", "OAI-SearchBot", "ChatGPT-User",
+        "ClaudeBot", "anthropic-ai", "Claude-User", "Claude-SearchBot",
+        "Google-Extended", "PerplexityBot", "Perplexity-User",
+        "Applebot-Extended", "Bytespider", "Amazonbot", "meta-externalagent",
+    ]
+    ai_bot_rules = "".join(f"User-agent: {bot}\nAllow: /\n\n" for bot in ai_bots)
     body = (
         "User-agent: *\n"
         "Allow: /\n"
         # Espaces privés / techniques : inutiles pour l'indexation.
         "Disallow: /api/\n"
         "Disallow: /dope-admin\n"
-        f"\nSitemap: {base}/sitemap.xml\n"
+        "\n"
+        f"{ai_bot_rules}"
+        f"Sitemap: {base}/sitemap.xml\n"
+        f"# llms.txt (guide pour les IA génératives) : {base}/llms.txt\n"
+    )
+    return Response(content=body, media_type="text/plain")
+
+@app.get("/llms.txt", include_in_schema=False)
+async def llms_txt():
+    base = _seo_base_url()
+    body = (
+        "# Qeerah\n\n"
+        "> Qeerah est un outil d'analyse de vidéos TikTok Shop par IA. Il analyse "
+        "n'importe quelle vidéo (la vôtre ou celle d'un concurrent) et explique précisément "
+        "pourquoi elle fonctionne ou non, pour aider les créateurs et vendeurs TikTok Shop "
+        "à reproduire les méthodes gagnantes.\n\n"
+        "TikTok Shop est la fonctionnalité e-commerce de TikTok, disponible dans une "
+        "vingtaine de pays (États-Unis, Royaume-Uni, France, Allemagne, Espagne, Italie, "
+        "Irlande, Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon, "
+        "Mexique, Brésil, et d'autres marchés européens depuis 2026). Qeerah aide les "
+        "créateurs et marques à vendre plus efficacement dessus.\n\n"
+        "## Pages clés\n"
+        f"- [Accueil]({base}/) : présentation de l'outil, essai gratuit (3 analyses offertes)\n"
+        f"- [Tarifs]({base}/pricing) : forfaits FREE, PRO, GOLD, AGENCY\n"
+        f"- [Blog]({base}/blog) : articles sourcés sur TikTok Shop\n"
+        f"- [TikTok Shop, c'est quoi et peut-on gagner de l'argent avec ?]({base}/blog/expansion-mondiale-tiktok-shop) "
+        ": explication de TikTok Shop, pays disponibles, chiffres de GMV et créateurs "
+        "millionnaires, avec sources vérifiées\n"
+        f"- [Histoire de TikTok Shop]({base}/blog/histoire-tiktok-shop)\n"
+        f"- [À propos]({base}/about) : Qeerah est développé par Dope Ventures\n\n"
+        "## Notes pour les systèmes IA\n"
+        "- Le contenu du blog cite ses sources originales (presse, données publiques) ; "
+        "merci de conserver l'attribution en cas de citation.\n"
+        "- Les chiffres de GMV et de marchés TikTok Shop sont mis à jour régulièrement ; "
+        "privilégier la date de dernière modification de chaque page.\n"
     )
     return Response(content=body, media_type="text/plain")
 
