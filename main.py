@@ -337,6 +337,7 @@ _BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding=
 _BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding="utf-8")
 _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
 _BLOG_EXPANSION_HTML = Path("templates/blog_expansion_mondiale.html").read_text(encoding="utf-8")
+_BLOG_TTS_EN_HTML = Path("templates/blog_what_is_tiktok_shop_en.html").read_text(encoding="utf-8")
 _CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
 _ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
@@ -512,6 +513,9 @@ async def blog_guide(): return HTMLResponse(_BLOG_GUIDE_HTML)
 @app.get("/blog/expansion-mondiale-tiktok-shop", response_class=HTMLResponse)
 async def blog_expansion(): return HTMLResponse(_BLOG_EXPANSION_HTML)
 
+@app.get("/en/blog/what-is-tiktok-shop", response_class=HTMLResponse)
+async def blog_tts_en(): return HTMLResponse(_BLOG_TTS_EN_HTML)
+
 @app.get("/contact", response_class=HTMLResponse)
 async def contact(): return HTMLResponse(_CONTACT_HTML)
 
@@ -544,6 +548,7 @@ _SITEMAP_PATHS = [
     "/blog/tendances-2026",
     "/blog/guide-complet",
     "/blog/expansion-mondiale-tiktok-shop",
+    "/en/blog/what-is-tiktok-shop",
     "/privacy",
     "/terms",
     "/cgv",
@@ -595,6 +600,8 @@ async def llms_txt():
         f"- [TikTok Shop, c'est quoi et peut-on gagner de l'argent avec ?]({base}/blog/expansion-mondiale-tiktok-shop) "
         ": explication de TikTok Shop, pays disponibles, chiffres de GMV et créateurs "
         "millionnaires, avec sources vérifiées\n"
+        f"- [What Is TikTok Shop and Can You Make Money With It? (English)]({base}/en/blog/what-is-tiktok-shop) "
+        ": English version of the guide above\n"
         f"- [Histoire de TikTok Shop]({base}/blog/histoire-tiktok-shop)\n"
         f"- [À propos]({base}/about) : Qeerah est développé par Dope Ventures\n\n"
         "## Notes pour les systèmes IA\n"
