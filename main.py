@@ -336,6 +336,7 @@ _BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="u
 _BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
 _BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding="utf-8")
 _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
+_BLOG_EXPANSION_HTML = Path("templates/blog_expansion_mondiale.html").read_text(encoding="utf-8")
 _CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
 _ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
@@ -508,6 +509,9 @@ async def blog_tendances(): return HTMLResponse(_BLOG_TENDANCES_HTML)
 @app.get("/blog/guide-complet", response_class=HTMLResponse)
 async def blog_guide(): return HTMLResponse(_BLOG_GUIDE_HTML)
 
+@app.get("/blog/expansion-mondiale-tiktok-shop", response_class=HTMLResponse)
+async def blog_expansion(): return HTMLResponse(_BLOG_EXPANSION_HTML)
+
 @app.get("/contact", response_class=HTMLResponse)
 async def contact(): return HTMLResponse(_CONTACT_HTML)
 
@@ -539,6 +543,7 @@ _SITEMAP_PATHS = [
     "/blog/createurs-millionnaires",
     "/blog/tendances-2026",
     "/blog/guide-complet",
+    "/blog/expansion-mondiale-tiktok-shop",
     "/privacy",
     "/terms",
     "/cgv",
