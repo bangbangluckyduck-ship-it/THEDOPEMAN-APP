@@ -691,88 +691,10 @@ function _fmtEur(n) {
 }
 
 async function initDynamicPricing() {
-  let plans, prices, dates;
-  try {
-    const [a, p] = await Promise.all([
-      fetch('/api/plans/available').then(r => r.json()),
-      fetch('/api/plans/prices').then(r => r.json()),
-    ]);
-    plans = a.plans; dates = a.dates; prices = p.prices;
-  } catch (e) {
-    return; // En cas d'échec API on garde l'affichage statique (sûr).
-  }
-  if (!plans || !prices) return;
-
-  // 1) Prix PRO dynamique (9,99 → 11,99 → 12,99 selon la date)
-  const proEl = document.getElementById('pc-pro-month');
-  if (proEl && prices.pro) {
-    const cur = prices.pro.current;
-    const [intPart, decPart] = cur.toFixed(2).split('.');
-    const old = prices.pro.promo
-      ? `<span class="pc-old">${_fmtEur(prices.pro.original)}</span>` : '';
-    proEl.innerHTML = `${old}${intPart}<span style="font-size:18px">,${decPart} €</span>`;
-  }
-
-  // 2) « Tu économises X €/mois » (valeur réelle − prix actuel)
-  const REAL = { pro: 120, gold: 350, agency: 800 };
-  ['pro', 'gold', 'agency'].forEach(plan => {
-    const s = document.getElementById('pc-save-' + plan);
-    if (!s) return;
-    if (plans[plan] && prices[plan]) s.textContent = `→ tu économises ~${Math.round(REAL[plan] - prices[plan].current)} €/mois`;
-    else s.style.display = 'none';
-  });
-
-  // 3) Cartes non encore ouvertes → "🔜 bientôt + 🔔 me notifier"
-  ['pro', 'gold', 'agency'].forEach(plan => {
-    const card = document.querySelector(`.pricing-card[data-plan="${plan}"]`);
-    if (!card || plans[plan]) return;
-    _makeComingSoon(card, plan, dates[plan]);
-  });
-
-  // 4) Carte vedette : PRO jusqu'au 16 sept, puis GOLD (seulement si ouverte)
-  let featured = plans.gold ? 'gold' : 'pro';
-  if (!plans[featured]) featured = null;
-  if (featured) {
-    const fc = document.querySelector(`.pricing-card[data-plan="${featured}"]`);
-    if (fc) {
-      fc.classList.add('pricing-card-gold');
-      const fb = fc.querySelector('.pc-badge');
-      if (fb) { fb.textContent = '⭐ POPULAIRE · 🔥 LANCEMENT'; fb.className = 'pc-badge pc-badge-gold'; }
-    }
-  }
-
-  // 5) LTD masquée jusqu'au 15 oct → bannière de capture d'email à la place
-  const ltd = document.getElementById('ltd-section');
-  if (ltd && !plans.ltd) _ltdComingSoon(ltd, dates.ltd);
-}
-
-function _makeComingSoon(card, plan, dateStr) {
-  card.classList.add('pc-soon');
-  const badge = card.querySelector('.pc-badge');
-  if (badge) badge.textContent = '🔜 BIENTÔT';
-  card.querySelectorAll('.pc-price, .pc-period, .pc-value, .pc-save').forEach(n => n.style.display = 'none');
-  const info = document.createElement('div');
-  info.className = 'pc-soon-date';
-  info.innerHTML = `🔜 Disponible le<br><strong>${dateStr}</strong>`;
-  const feats = card.querySelector('.pc-features');
-  if (feats) card.insertBefore(info, feats); else card.appendChild(info);
-  const btn = card.querySelector('.pc-btn');
-  if (btn) {
-    btn.textContent = '🔔 Me notifier';
-    btn.disabled = false;
-    btn.classList.add('pc-btn-notify');
-    btn.onclick = () => notifyMe(plan);
-  }
-}
-
-function _ltdComingSoon(ltd, dateStr) {
-  ltd.innerHTML =
-    `<div style="text-align:center">
-       <span style="display:inline-block;background:var(--gold,#D4AF37);color:#1a1a1a;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px">💎 OFFRE À VIE</span>
-       <h3 style="margin:8px 0 2px;font-size:18px">Accès à vie en préparation</h3>
-       <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Paiement unique · 50 places au total · ouverture le <strong>${dateStr}</strong></p>
-       <button class="btn pc-btn pc-btn-notify" style="max-width:240px;margin:0 auto" onclick="notifyMe('ltd')">🔔 Préviens-moi de l'offre à vie</button>
-     </div>`;
+  // L'offre est unique et son prix est statique dans le HTML (29,99 €/mois,
+  // 299 €/an). Plus de paliers à révéler, plus de prix qui varie selon la
+  // date, plus de carte « bientôt disponible » : cette fonction ne fait donc
+  // plus rien. Elle est conservée car l'initialisation de l'app l'appelle.
 }
 
 async function notifyMe(plan) {
@@ -1015,7 +937,7 @@ function updateTierBadge(data) {
   const tierBadge = document.getElementById('user-tier-badge');
   if (!tierBadge || !data || !data.tier) return;
 
-  const labels = { free: 'FREE', pro: 'PRO', gold: 'GOLD ⭐', agency: 'AGENCY', beta: 'BETA 🎁', admin: 'ADMIN' };
+  const labels = { free: 'ESSAI', pro: 'QEERAH PRO', gold: 'QEERAH PRO', agency: 'QEERAH PRO', beta: 'BETA 🎁', admin: 'ADMIN' };
   const colors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
 
   tierBadge.textContent = labels[data.tier] || data.tier.toUpperCase();
@@ -1383,7 +1305,7 @@ function getUserRole() {
 
 document.getElementById('analyze-btn').addEventListener('click', analyzeVideo);
 
-// Analyse par liens TikTok (Pro / Gold / Agency)
+// Analyse par liens TikTok
 const _urlsBtn = document.getElementById('analyze-urls-btn');
 if (_urlsBtn) _urlsBtn.addEventListener('click', analyzeUrls);
 const _urlSingleBtn = document.getElementById('analyze-url-single-btn');
@@ -1655,7 +1577,7 @@ async function analyzeVideo() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ANALYSE PAR LIENS TIKTOK — Pro = 1 lien, Gold/Agency = batch séquentiel
+// ANALYSE PAR LIENS TIKTOK — batch séquentiel
 // ════════════════════════════════════════════════════════════════════════════
 // Analyse 1 lien TikTok en SSE (affichage dynamique : download → vision → synthèse).
 async function analyzeSingleUrl() {
@@ -1668,7 +1590,7 @@ async function analyzeSingleUrl() {
   const token = localStorage.getItem('tts_token');
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement !");
+    showToast("Abonnez-vous à Qeerah Pro pour analyser des liens TikTok directement.");
     return;
   }
 
@@ -1770,14 +1692,14 @@ async function analyzeUrls() {
   // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Passez au plan Pro (9,99€) pour analyser des liens TikTok directement sans rien télécharger !");
+    showToast("Abonnez-vous à Qeerah Pro pour analyser des liens TikTok sans rien télécharger.");
     return;
   }
 
-  // ── BLOCAGE 2 : PRO + plusieurs liens → upsell Gold ──
+  // ── (supprimé) L'analyse multi-liens est incluse dans Qeerah Pro ──
   if (tier === 'pro' && urls.length > 1) {
     switchTab('pricing');
-    showToast("Votre plan Pro permet d'analyser 1 lien à la fois. Passez au plan Gold pour analyser plusieurs vidéos en masse !");
+    showToast("Analyse de plusieurs liens en cours…");
     return;
   }
 
@@ -2154,8 +2076,8 @@ function showLockedCoachingSection(firstCoachingLine) {
       <h3 style="margin-top:0;margin-bottom:12px;color:var(--navy)">Coach IA personnalisé</h3>
       <p style="margin:0 0 12px 0;font-size:13px;color:var(--text);line-height:1.5">"${firstCoachingLine}"</p>
       <div style="background:rgba(0,0,0,.03);border-radius:8px;padding:12px;margin:12px 0;border-left:3px solid var(--primary)">
-        <div style="font-size:12px;color:var(--muted)">Cette analyse complète est réservée aux plans GOLD & AGENCY</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Passez à GOLD pour débloquer le coaching IA personnalisé</div>
+        <div style="font-size:12px;color:var(--muted)">Cette analyse complète est incluse dans Qeerah Pro</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Abonnez-vous pour débloquer le coaching IA personnalisé</div>
       </div>
       <button onclick="document.getElementById('tab-pricing').click()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px">Voir les plans →</button>
     </div>
@@ -2343,7 +2265,7 @@ function showResults(d) {
     const content = document.getElementById('market-intelligence-content');
 
     if (hasMarketAccess) {
-      // DÉVERROUILLER pour GOLD+
+      // DÉVERROUILLER
       if (lockOverlay) lockOverlay.style.display = 'none';
       if (content) content.style.display = 'block';
 
@@ -2973,10 +2895,10 @@ function renderPremiumStrategy(d) {
       <div class="gold-upsell-inner">
         <div class="gold-upsell-icon">🔒</div>
         <div class="gold-upsell-text">
-          <strong>Passez au plan Gold</strong> pour que notre IA identifie votre audience cible
+          <strong>Abonnez-vous à Qeerah Pro</strong> pour que notre IA identifie votre audience cible
           et rédige le script de vente parfait pour ce produit.
         </div>
-        <button class="gold-upsell-btn" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
+        <button class="gold-upsell-btn" onclick="switchTab('pricing')">Voir Qeerah Pro</button>
       </div>
     `;
     resultsSection.appendChild(up);
@@ -3069,14 +2991,45 @@ function resetAnalysis() {
 function getUsage()       { return parseInt(localStorage.getItem(USAGE_KEY) || '0', 10); }
 function incrementUsage() { localStorage.setItem(USAGE_KEY, getUsage() + 1); updateUsageCounter(); }
 function updateUsageCounter() {
-  const n  = getUsage();
   const el = document.getElementById('usage-count');
-  if (el) el.textContent = `${n} / ${FREE_LIMIT}`;
+  if (!el) return;
+
+  // Source de vérité : le quota renvoyé par le serveur (aligné sur le cycle de
+  // facturation Stripe). Le compteur localStorage n'est qu'un repli d'affichage
+  // tant qu'aucune réponse serveur n'est arrivée.
+  const u = window.__usage;
+  if (!u || u.limit === undefined || u.limit === null) {
+    el.textContent = `${getUsage()} / —`;
+    return;
+  }
+
+  el.textContent = `${u.used} / ${u.limit}`;
+
+  const banner = document.getElementById('freemium-banner');
+  const title  = document.getElementById('freemium-title');
+  const label  = document.getElementById('freemium-count-label');
+  if (label) label.textContent = 'Analyses ce mois-ci :';
+
+  if (!title) return;
+  if (u.kind === 'trial') {
+    title.textContent = "🎁 Essai gratuit — accès complet";
+    if (label) label.textContent = "Analyses d'essai :";
+  } else if (u.kind === 'expired') {
+    title.textContent = "Essai terminé — abonne-toi pour continuer";
+    if (banner) banner.style.cursor = 'pointer';
+    if (banner) banner.onclick = () => switchTab('pricing');
+  } else if (u.blocked) {
+    title.textContent = `Quota mensuel atteint — réinitialisation le ${u.reset_label || 'prochain cycle'}`;
+  } else {
+    title.textContent = "Qeerah Pro";
+  }
 }
 
 function updateUsageBadge(usage) {
   if (!usage) return;
-  const tierLabels = { free:'FREE', pro:'PRO', gold:'GOLD ⭐', agency:'AGENCY' };
+  window.__usage = usage;
+  updateUsageCounter();
+  const tierLabels = { free:'ESSAI', pro:'QEERAH PRO', gold:'QEERAH PRO', agency:'QEERAH PRO' };
   const label = tierLabels[usage.tier] || 'FREE';
   const badge = document.getElementById('user-email');
   if (badge && usage.email) {
@@ -3340,7 +3293,7 @@ function renderAccountPage() {
   if (!container) return;
 
   const userInfo = window.__userInfo || {};
-  const tierLabels = { free: 'Gratuit', pro: 'Pro', gold: 'Gold ⭐', agency: 'Agency', beta: 'Beta 🎁', admin: 'Admin' };
+  const tierLabels = { free: 'Essai', pro: 'Qeerah Pro', gold: 'Qeerah Pro', agency: 'Qeerah Pro', beta: 'Beta 🎁', admin: 'Admin' };
   const tierColors = { free: '#6B7280', pro: '#2563EB', gold: '#D97706', agency: '#7C3AED', beta: '#059669', admin: '#DC2626' };
   const tierDescriptions = {
     free: '3 analyses par mois • Pas de coaching IA • Support basique',
@@ -5471,7 +5424,7 @@ async function loadCreatorsTab(refresh) {
         <div class="gold-upsell"><div class="gold-upsell-inner">
           <div class="gold-upsell-icon">🔒</div>
           <div class="gold-upsell-text"><strong>Passe au plan Gold</strong> pour voir tous les créateurs gagnants par pays, leurs vidéos et leurs produits.</div>
-          <button class="gold-upsell-btn" onclick="switchTab('pricing')">Débloquer Gold 👑</button>
+          <button class="gold-upsell-btn" onclick="switchTab('pricing')">Voir Qeerah Pro</button>
         </div></div>`;
     }
   } catch (e) {

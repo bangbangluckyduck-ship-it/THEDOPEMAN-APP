@@ -1,11 +1,15 @@
 """
-Authentification et gestion des quotas par tier.
+Authentification et gestion des quotas.
 
-Tiers :
-  free   → 3 analyses/mois (upload uniquement) (0 €)
-  pro    → 300 analyses/mois  (19,90 €/mois)
-  gold   → 1000 analyses/mois (99 €/mois)
-  agency → 5000 analyses/mois (5 comptes Gold × 1000)
+Offre unique depuis la refonte tarifaire :
+  Qeerah Pro  → 100 analyses par cycle de facturation (29,99 €/mois · 299 €/an)
+  Essai       → 7 jours après inscription, accès complet, 10 analyses
+  Essai fini  → plus d'analyse sans abonnement (les anciennes restent lisibles)
+
+Le comptage des analyses vit désormais dans **analysis_quota.py**, aligné sur le
+cycle Stripe et non plus sur le mois calendaire. check_quota() et
+increment_usage() sont conservés comme façade — une douzaine d'appels dans
+main.py en dépendent — mais délèguent à ce module.
 
 Stockage : Supabase PostgreSQL (persiste entre redémarrages).
 Fallback : in-memory si Supabase non configuré.
@@ -64,11 +68,17 @@ if not _SECRET_KEY_RAW:
 SECRET_KEY = _SECRET_KEY_RAW.encode()
 
 # ── CONFIGURATION DES TIERS ───────────────────────────────────
+# Les plafonds effectifs sur l'analyse vidéo viennent d'analysis_quota.py
+# (100 par cycle Pro, 10 pendant l'essai). Cette table sert encore de
+# référentiel de libellés et de repli quand Supabase est indisponible.
+#
+# gold / agency ne sont PLUS souscriptibles mais restent définis : des comptes
+# historiques peuvent les porter, et ils doivent continuer à fonctionner.
 TIER_CONFIG: dict[str, dict] = {
-    "free":   {"monthly": 3,    "daily": None, "seats": 1,  "label": "FREE"},
-    "pro":    {"monthly": 300,  "daily": None, "seats": 1,  "label": "PRO"},
-    "gold":   {"monthly": 1000, "daily": None, "seats": 1,  "label": "GOLD"},
-    "agency": {"monthly": 5000, "daily": None, "seats": 5,  "label": "AGENCY"},
+    "free":   {"monthly": 10,   "daily": None, "seats": 1,  "label": "ESSAI"},
+    "pro":    {"monthly": 100,  "daily": None, "seats": 1,  "label": "QEERAH PRO"},
+    "gold":   {"monthly": 100,  "daily": None, "seats": 1,  "label": "GOLD"},
+    "agency": {"monthly": 100,  "daily": None, "seats": 5,  "label": "AGENCY"},
     "beta":   {"monthly": 999999, "daily": None, "seats": 1, "label": "BETA"},
     "admin":  {"monthly": None, "daily": None, "seats": 99, "label": "ADMIN"},
 }
@@ -277,54 +287,100 @@ def get_user_from_request(request: Request) -> dict:
 def is_admin(user: dict) -> bool:
     return user.get("is_admin", False) or user.get("tier") == "admin"
 
+
+def has_full_access(user: dict) -> bool:
+    """L'utilisateur a-t-il droit à TOUTES les fonctionnalités ?
+
+    Depuis la refonte tarifaire il n'y a plus de fonctionnalité réservée à un
+    palier : un abonné Qeerah Pro et un compte en essai ont exactement les
+    mêmes droits. Le seul différenciateur est le nombre d'analyses (100 vs 10),
+    géré par analysis_quota.
+
+    Renvoie False uniquement pour un visiteur non connecté ou un essai expiré
+    sans abonnement — ceux-là ne doivent rien pouvoir lancer.
+    """
+    if not user or not user.get("valid"):
+        return False
+    if is_admin(user):
+        return True
+
+    tier = (user.get("tier") or "free").lower()
+    if tier in ("pro", "gold", "agency", "beta"):
+        return True
+
+    # Compte gratuit : accès complet tant que l'essai court.
+    try:
+        import analysis_quota
+        return analysis_quota.resolve_period(user["email"], tier)["kind"] == "trial"
+    except Exception as e:
+        print(f"has_full_access: {e}")
+        return False
+
 def check_quota(user: dict) -> None:
+    """Bloque l'analyse si le quota du cycle est épuisé ou l'essai terminé.
+
+    Délègue à analysis_quota (cycle Stripe). En cas d'indisponibilité du module
+    ou de la base, on retombe sur l'ancien comptage mensuel calendaire plutôt
+    que de bloquer tout le monde."""
     if not user["valid"]:
         return
 
     if is_admin(user):
         return
 
-    tier   = user["tier"]
-    email  = user["email"]
-    cfg    = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+    try:
+        import analysis_quota
+        analysis_quota.check(user)
+        return
+    except HTTPException:
+        raise                       # quota réellement atteint → on propage
+    except Exception as e:
+        print(f"check_quota: repli sur le comptage mensuel ({e})")
+
+    # ── Repli historique (mois calendaire) ──
+    tier  = user["tier"]
+    email = user["email"]
+    cfg   = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
 
     if cfg["monthly"] is not None:
-        if SUPABASE_ENABLED:
-            count = supabase_get_monthly_count(email)
-        else:
-            count = _get_monthly_count(email)
+        count = supabase_get_monthly_count(email) if SUPABASE_ENABLED else _get_monthly_count(email)
         if count >= cfg["monthly"]:
-            label = cfg["label"]
             raise HTTPException(
                 status_code=429,
-                detail=f"Quota {label} atteint ({cfg['monthly']} analyses/mois). Passe au plan supérieur sur qeerah.com",
+                detail=f"Quota atteint ({cfg['monthly']} analyses). "
+                       "Réessaie au prochain cycle ou abonne-toi sur qeerah.com",
             )
 
-    if cfg["daily"] is not None:
-        if SUPABASE_ENABLED:
-            count = supabase_get_daily_count(email)
-        else:
-            count = _get_daily_count(email)
-        if count >= cfg["daily"]:
-            label = cfg["label"]
-            raise HTTPException(
-                status_code=429,
-                detail=f"Quota journalier {label} atteint ({cfg['daily']}/jour). Reviens demain ou upgrade.",
-            )
 
 def increment_usage(email: str) -> None:
-    if SUPABASE_ENABLED:
-        supabase_increment_usage(email)
-    else:
-        tier = get_user_tier(email)
-        cfg  = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+    """À n'appeler que sur une analyse ABOUTIE.
 
-        if cfg["monthly"] is not None:
-            _increment_monthly(email)
-        if cfg["daily"] is not None:
-            _increment_daily(email)
+    Double écriture volontaire : le nouveau compteur par cycle (source de
+    vérité) et l'ancien monthly_usage, conservé pour l'historique et pour que
+    le rollback de la migration retrouve des compteurs à jour."""
+    tier = get_user_tier(email)
+
+    try:
+        import analysis_quota
+        analysis_quota.increment(email, tier)
+    except Exception as e:
+        print(f"increment_usage (cycle): {e}")
+
+    try:
+        if SUPABASE_ENABLED:
+            supabase_increment_usage(email)
+        else:
+            cfg = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
+            if cfg["monthly"] is not None:
+                _increment_monthly(email)
+            if cfg["daily"] is not None:
+                _increment_daily(email)
+    except Exception as e:
+        print(f"increment_usage (mensuel): {e}")
+
 
 def usage_info(user: dict) -> dict:
+    """État du quota pour l'API et le tableau de bord (« 37 / 100 »)."""
     if not user["valid"]:
         return {"tracked": False}
 
@@ -332,32 +388,42 @@ def usage_info(user: dict) -> dict:
     tier  = user["tier"]
     cfg   = TIER_CONFIG.get(tier, TIER_CONFIG["free"])
 
-    if SUPABASE_ENABLED:
-        used = (
-            supabase_get_monthly_count(email) if cfg["monthly"] is not None
-            else supabase_get_daily_count(email)
-        )
-        expiry = supabase_get_tier_expiry(email)
-    else:
-        used = (
-            _get_monthly_count(email) if cfg["monthly"] is not None
-            else _get_daily_count(email)
-        )
-        expiry = _user_tiers.get(email, {}).get("expiry")
-
-    limit = cfg["monthly"] if cfg["monthly"] is not None else cfg["daily"]
-
-    return {
+    base = {
         "tracked":     True,
         "email":       email,
         "tier":        tier,
         "label":       cfg["label"],
-        "used":        used,
-        "limit":       limit,
-        "remaining":   max(0, limit - used) if limit else None,
         "customer_id": get_customer_id(email),
-        "expiry":      expiry,
+        "expiry":      supabase_get_tier_expiry(email) if SUPABASE_ENABLED
+                       else _user_tiers.get(email, {}).get("expiry"),
     }
+
+    try:
+        import analysis_quota
+        state = analysis_quota.get_state(email, tier)
+        base.update({
+            "kind":        state["kind"],          # subscription | trial | expired | unlimited
+            "used":        state["used"],
+            "limit":       state["limit"],
+            "remaining":   state["remaining"],
+            "reset_at":    state["reset_at"],
+            "reset_label": state["reset_label"],   # « 9 août 2026 »
+            "blocked":     state["blocked"],
+        })
+        return base
+    except Exception as e:
+        print(f"usage_info: repli sur le comptage mensuel ({e})")
+
+    used  = supabase_get_monthly_count(email) if SUPABASE_ENABLED else _get_monthly_count(email)
+    limit = cfg["monthly"]
+    base.update({
+        "kind":      "subscription" if tier != "free" else "trial",
+        "used":      used,
+        "limit":     limit,
+        "remaining": max(0, limit - used) if limit else None,
+        "blocked":   bool(limit and used >= limit),
+    })
+    return base
 
 def get_usage(email: str) -> int:
     tier = get_user_tier(email)

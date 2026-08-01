@@ -6,23 +6,14 @@ Variables d'environnement Render à configurer :
   STRIPE_PUBLISHABLE_KEY         pk_live_...
   STRIPE_WEBHOOK_SECRET          whsec_...
 
-  PRO — montée progressive (créer 3 prix sur Stripe) :
-  STRIPE_PRICE_PRO_999           price_...   (9,99 €/mois  — 31/07 → 19/08)
-  STRIPE_PRICE_PRO_999_YEAR      price_...   (99,90 €/an)
-  STRIPE_PRICE_PRO_1199          price_...   (11,99 €/mois — 20/08 → 15/09)
-  STRIPE_PRICE_PRO_1199_YEAR     price_...   (119,90 €/an)
-  STRIPE_PRICE_PRO               price_...   (12,99 €/mois — 16/09+)
-  STRIPE_PRICE_PRO_YEAR          price_...   (129,90 €/an)
+  QEERAH PRO — offre unique (2 prix, à créer sur Stripe) :
+  STRIPE_PRICE_QEERAH_PRO_MONTH  price_...   (29,99 €/mois)
+  STRIPE_PRICE_QEERAH_PRO_YEAR   price_...   (299 €/an, 2 mois offerts)
 
-  GOLD — prix de lancement puis prix normal :
-  STRIPE_PRICE_GOLD_LAUNCH       price_...   (79 €/mois   — 16/09 → 14/10)
-  STRIPE_PRICE_GOLD_LAUNCH_YEAR  price_...   (790 €/an)
-  STRIPE_PRICE_GOLD              price_...   (99 €/mois   — 15/10+)
-  STRIPE_PRICE_GOLD_YEAR         price_...   (990 €/an)
-
-  AGENCY :
-  STRIPE_PRICE_AGENCY            price_...   (299 €/mois)
-  STRIPE_PRICE_AGENCY_YEAR       price_...   (2990 €/an)
+  ⚠️ Noms VOLONTAIREMENT nouveaux. Réutiliser STRIPE_PRICE_PRO / _YEAR aurait
+  fait vendre les anciens tarifs (12,99 € / 129,90 €) en silence tant que
+  Render n'aurait pas été mis à jour. Ici, une variable absente = erreur
+  explicite au checkout, jamais un repli sur un prix périmé.
 
   PACKS DE CRÉDITS (paiement one-time, PAS des abonnements — cf. credits.py) :
   STRIPE_PRICE_CREDITS_DECOUVERTE  price_...   (9 €   → 150 crédits)
@@ -32,13 +23,11 @@ Variables d'environnement Render à configurer :
 """
 from __future__ import annotations
 import os
-from datetime import date as _date
 import stripe
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import set_user_tier, get_customer_id, revoke_by_customer
-from feature_flags import is_enabled
 
 router = APIRouter(tags=["stripe"])
 
@@ -53,53 +42,34 @@ INVOICE_FOOTER = os.getenv(
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
-# Lancement progressif par PALIERS DE PRIX (roadmap feature_flags.py) :
-# PRO 9,99€ → 11,99€ → 12,99€ ; GOLD 79€ (launch) → 99€ (normal).
-_PRO_999    = {"month": os.getenv("STRIPE_PRICE_PRO_999", ""),         "year": os.getenv("STRIPE_PRICE_PRO_999_YEAR", "")}
-_PRO_1199   = {"month": os.getenv("STRIPE_PRICE_PRO_1199", ""),        "year": os.getenv("STRIPE_PRICE_PRO_1199_YEAR", "")}
-_PRO        = {"month": os.getenv("STRIPE_PRICE_PRO", ""),             "year": os.getenv("STRIPE_PRICE_PRO_YEAR", "")}
-_GOLD_LAUNCH = {"month": os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),    "year": os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", "")}
-_GOLD       = {"month": os.getenv("STRIPE_PRICE_GOLD", ""),            "year": os.getenv("STRIPE_PRICE_GOLD_YEAR", "")}
-_AGENCY     = {"month": os.getenv("STRIPE_PRICE_AGENCY", ""),          "year": os.getenv("STRIPE_PRICE_AGENCY_YEAR", "")}
+# Offre unique « Qeerah Pro » — 29,99 €/mois ou 299 €/an.
+_QEERAH_PRO = {
+    "month": os.getenv("STRIPE_PRICE_QEERAH_PRO_MONTH", ""),
+    "year":  os.getenv("STRIPE_PRICE_QEERAH_PRO_YEAR", ""),
+}
 
 
 def get_price_id(plan: str, billing: str = "month") -> str:
-    """Retourne le price_id Stripe selon le plan, la période (mois/an) et le
-    palier de prix en vigueur aujourd'hui (roadmap feature_flags.py)."""
+    """Retourne le price_id Stripe de l'offre unique.
+
+    Aucun repli sur un autre prix : si la variable d'environnement n'est pas
+    posée, on renvoie une chaîne vide et l'appelant lève une 400 explicite.
+    Un repli silencieux risquerait de vendre un tarif archivé."""
+    if plan != "pro":
+        return ""
     b = "year" if (billing or "month").lower().startswith("year") else "month"
-
-    if plan == "pro":
-        if is_enabled("pro_price_12_99"):
-            tier = _PRO
-        elif is_enabled("pro_price_11_99"):
-            tier = _PRO_1199
-        else:
-            tier = _PRO_999
-        # Filet de sécurité : si le palier courant n'a pas de price_id configuré,
-        # on retombe sur le prix final (toujours censé être configuré).
-        return tier.get(b, "") or _PRO.get(b, "")
-
-    if plan == "gold":
-        tier = _GOLD if is_enabled("gold_price_normal") else _GOLD_LAUNCH
-        return tier.get(b, "") or _GOLD.get(b, "")
-
-    if plan == "agency":
-        return _AGENCY.get(b, "")
-
-    return ""
+    return _QEERAH_PRO.get(b, "")
 
 
 PLAN_NAMES = {
-    "pro":    "PRO — 12,99 €/mois (129,90 €/an)",
-    "gold":   "GOLD — 99 €/mois (990 €/an)",
-    "agency": "AGENCY — 299 €/mois (2990 €/an)",
+    "pro": "Qeerah Pro — 29,99 €/mois (299 €/an)",
 }
 
 
 # ── CHECKOUT ──────────────────────────────────────────────────
 
 class CheckoutRequest(BaseModel):
-    plan:    str                  # "pro" | "gold" | "agency"
+    plan:    Optional[str] = "pro"     # seule valeur acceptée : "pro"
     email:   Optional[str] = None
     billing: Optional[str] = "month"   # "month" | "year"
 
@@ -110,13 +80,22 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     if not stripe.api_key:
         raise HTTPException(503, detail="Stripe non configuré (STRIPE_SECRET_KEY manquant).")
 
-    billing = "year" if (body.billing or "month").lower().startswith("year") else "month"
-    price_id = get_price_id(body.plan, billing)
-    if not price_id:
-        suffix = "_YEAR" if billing == "year" else ""
+    plan = (body.plan or "pro").lower()
+    if plan != "pro":
+        # gold / agency / ltd ne sont plus vendus. Refus explicite plutôt que
+        # silencieux : un ancien bouton oublié quelque part doit se voir.
         raise HTTPException(
             400,
-            detail=f"Plan '{body.plan}' ({billing}) inconnu ou STRIPE_PRICE_{body.plan.upper()}{suffix} non configuré.",
+            detail="Une seule offre est disponible : Qeerah Pro.",
+        )
+
+    billing = "year" if (body.billing or "month").lower().startswith("year") else "month"
+    price_id = get_price_id(plan, billing)
+    if not price_id:
+        var = "STRIPE_PRICE_QEERAH_PRO_YEAR" if billing == "year" else "STRIPE_PRICE_QEERAH_PRO_MONTH"
+        raise HTTPException(
+            400,
+            detail=f"Offre indisponible : {var} n'est pas configurée.",
         )
 
     base = str(request.base_url).rstrip("/")
@@ -126,7 +105,7 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         "line_items":   [{"price": price_id, "quantity": 1}],
         "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url":   f"{base}/?checkout=cancel",
-        "metadata":     {"plan": body.plan, "billing": billing},
+        "metadata":     {"plan": plan, "billing": billing},
         # ── Facturation entreprise ────────────────────────────────────────
         # Sans ces deux options, la facture d'abonnement générée par Stripe ne
         # portait que l'e-mail : ni raison sociale, ni adresse, ni n° de TVA —

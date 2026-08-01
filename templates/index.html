@@ -1387,8 +1387,8 @@
 
   <!-- FREEMIUM BANNER -->
   <div class="freemium-banner" id="freemium-banner">
-    <strong id="freemium-title" data-i18n="freemium_title">🎁 Gratuit jusqu'au lancement officiel</strong>
-    <span id="freemium-count-label" data-i18n="freemium_count">Analyses utilisées :</span> <span class="usage-count" id="usage-count">0 / 999</span>
+    <strong id="freemium-title" data-i18n="freemium_title">Votre consommation</strong>
+    <span id="freemium-count-label" data-i18n="freemium_count">Analyses ce mois-ci :</span> <span class="usage-count" id="usage-count">— / —</span>
   </div>
 
   <!-- BETA MESSAGE -->
@@ -1535,7 +1535,7 @@
       <!-- ── Espace multi-liens — Gold / Agency ── -->
       <div id="url-multi-block" style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:8px;border:1px solid rgba(212,175,55,.5)">
         <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">
-          🔗🔗 Analyse multi-liens <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:1px 7px;border-radius:999px;font-weight:700">GOLD / AGENCY</span>
+          🔗🔗 Analyse multi-liens 
         </label>
         <p style="font-size:12px;color:var(--muted);margin:-2px 0 10px">Analyse plusieurs de tes vidéos d'un coup pour découvrir ce que tu fais <b>de bien — ou de mal — de façon répétée</b> : tes schémas gagnants à reproduire et tes erreurs récurrentes à corriger.</p>
         <textarea
@@ -1618,13 +1618,13 @@
         <div id="market-intelligence-lock" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
           <div style="text-align:center">
             <div style="font-size:48px;margin-bottom:12px">🔐</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Market Intelligence débloquée avec GOLD</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Market Intelligence incluse dans Qeerah Pro</div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:16px;max-width:300px">Accès aux données marché temps réel, conseils compétitifs et benchmarking par catégorie</div>
-            <a href="#pricing" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:13px">Passer à GOLD →</a>
+            <a href="#pricing" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:13px">Passer à Qeerah Pro →</a>
           </div>
         </div>
 
-        <!-- Contenu (visible pour GOLD+) -->
+        <!-- Contenu (inclus dans Qeerah Pro) -->
         <div id="market-intelligence-content" style="display:none">
           <!-- Contexte catégorie -->
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
@@ -1844,137 +1844,55 @@
       <button class="btn btn-primary" onclick="switchTab('analyze')">Commencer l'analyse →</button>
     </div>
 
-    <!-- Hero pricing -->
-    <div style="text-align:center;padding:20px 0 28px">
+    <!-- Offre unique Qeerah Pro -->
+    <div style="text-align:center;padding:20px 0 24px">
       <h2 style="font-size:26px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px;display:block">
-        Choisis ton plan <span style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Coach IA</span>
+        Passe à <span style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Qeerah Pro</span>
       </h2>
-      <p style="color:var(--muted);font-size:14px">Sans engagement · Annulation en 1 clic · Facture automatique</p>
+      <p style="color:var(--muted);font-size:14px">Tout est inclus &middot; Sans engagement &middot; Annulation en 1 clic</p>
 
-      <!-- Bascule Mensuel / Annuel (2 mois offerts) -->
       <div class="billing-toggle" role="group" aria-label="Période de facturation">
         <button type="button" class="billing-toggle-btn active" data-period="month" onclick="setBilling('month')">Mensuel</button>
         <button type="button" class="billing-toggle-btn" data-period="year" onclick="setBilling('year')">
-          Annuel <span class="billing-save">2 mois offerts 🎁</span>
+          Annuel <span class="billing-save">2 mois offerts</span>
         </button>
       </div>
     </div>
 
-    <!-- 4 cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px" id="pricing-grid" data-billing="month">
+    <div style="max-width:520px;margin:0 auto 24px" id="pricing-grid" data-billing="month">
+      <div class="pricing-card" data-plan="pro" style="border:2px solid var(--accent)">
+        <div class="pc-badge" style="background:rgba(37,99,235,.1);color:var(--accent)">QEERAH PRO</div>
 
-      <!-- FREE -->
-      <div class="pricing-card">
-        <div class="pc-badge" style="background:var(--surface2);color:var(--muted)">GRATUIT</div>
-        <div class="pc-price">0 €</div>
-        <div class="pc-period">pour toujours</div>
-        <div class="pc-annual-note">&nbsp;</div>
+        <div class="pc-price price-month">29,99 &euro;</div>
+        <div class="pc-period price-month">par mois, TTC</div>
+        <div class="pc-price price-year">299 &euro;</div>
+        <div class="pc-period price-year">par an, TTC &mdash; soit 24,92 &euro;/mois</div>
+
+        <div style="background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.25);border-radius:12px;padding:12px;margin:14px 0;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:var(--accent);line-height:1.1">100</div>
+          <div style="font-size:12.5px;color:var(--muted)">analyses par mois &middot; remises à zéro à chaque échéance</div>
+        </div>
+
         <ul class="pc-features">
-          <li>✅ 3 analyses gratuites (upload)</li>
-          <li>✅ Système de notation complet</li>
-          <li>🔒 Analyse par lien TikTok</li>
-          <li>🔒 🎬 AI Prompt Studio (Pro+)</li>
-          <li>🔒 Coach IA, produits & créateurs</li>
+          <li>&#9989; <strong>Toutes les fonctionnalités</strong>, sans exception</li>
+          <li>&#9989; Analyse par <strong>upload et lien TikTok</strong></li>
+          <li>&#9989; <strong>Analyse multi-liens</strong> et patterns récurrents</li>
+          <li>&#9989; <strong>Coach IA</strong> et script personnalisé</li>
+          <li>&#9989; <strong>Données marché</strong>, Feed Radar, recherche de profil</li>
+          <li>&#9989; AI Prompt Studio et Photo Slide Coach</li>
         </ul>
-        <button class="btn pc-btn pc-btn-free" disabled>Plan actuel</button>
-      </div>
 
-      <!-- PRO -->
-      <div class="pricing-card" data-plan="pro">
-        <div class="pc-badge" style="background:rgba(37,99,235,.1);color:var(--accent)">PRO · 🔥 LANCEMENT</div>
-        <div class="pc-value" id="pc-value-pro">💎 Valeur réelle ~120 €/mois</div>
-        <div class="pc-save" id="pc-save-pro"></div>
-        <div class="pc-price price-month" id="pc-pro-month"><span class="pc-old">12,99 €</span>9<span style="font-size:18px">,99 €</span></div>
-        <div class="pc-period price-month">/ mois</div>
-        <div class="pc-price price-year"><span class="pc-old">155,88 €</span>99,90 €</div>
-        <div class="pc-period price-year">/ an · 2 mois offerts 🎁</div>
-        <div class="pc-annual-note">&nbsp;</div>
-        <ul class="pc-features">
-          <li>✅ <strong>300 analyses / mois</strong></li>
-          <li>✅ Analyse upload <strong>+ lien TikTok</strong></li>
-          <li>✅ Scoring complet</li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 <strong>Photo Slide Coach</strong></li>
-          <li>✅ <strong>30 crédits / mois</strong> (~3-4 carrousels ou 30 prompts)</li>
-          <li>🔒 Coach IA & script perso · multi-liens (GOLD)</li>
-        </ul>
-        <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">Choisir PRO →</button>
+        <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">S'abonner &rarr;</button>
+        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px">
+          TVA non applicable, article 293 B du CGI.
+        </div>
       </div>
-
-      <!-- GOLD -->
-      <div class="pricing-card" data-plan="gold">
-        <div class="pc-badge pc-badge-gold">GOLD · 🔥 LANCEMENT</div>
-        <div class="pc-value" id="pc-value-gold">💎 Valeur réelle ~350 €/mois</div>
-        <div class="pc-save" id="pc-save-gold"></div>
-        <div class="pc-price price-month" style="color:var(--primary)"><span class="pc-old">99 €</span>79,99 €</div>
-        <div class="pc-period price-month">/ mois</div>
-        <div class="pc-price price-year" style="color:var(--primary)"><span class="pc-old">1188 €</span>799,90 €</div>
-        <div class="pc-period price-year">/ an · 2 mois offerts 🎁</div>
-        <div class="pc-annual-note">&nbsp;</div>
-        <ul class="pc-features">
-          <li>✅ <strong>Tout le plan Pro</strong></li>
-          <li>✅ <strong>1000 analyses / mois</strong></li>
-          <li>✅ <strong>Coaching IA + script personnalisé</strong> par produit</li>
-          <li>✅ Produits tendances, meilleurs créateurs & vidéos recommandées</li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 <strong>Photo Slide Coach</strong> · <strong>150 crédits / mois</strong></li>
-          <li>✅ <strong>Analyse multi-liens</strong> : patterns gagnants & ralentissants</li>
-        </ul>
-        <button class="btn pc-btn pc-btn-gold" onclick="startCheckout('gold')">Choisir GOLD ⭐</button>
-      </div>
-
-      <!-- AGENCY -->
-      <div class="pricing-card pricing-card-navy" data-plan="agency">
-        <div class="pc-badge" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9)">AGENCY</div>
-        <div class="pc-value" id="pc-value-agency" style="color:#FFD966">💎 Valeur réelle ~800 €/mois</div>
-        <div class="pc-save" id="pc-save-agency" style="color:#FFD966"></div>
-        <div class="pc-price price-month" style="color:#FFFFFF"><span class="pc-old">299 €</span>249 €</div>
-        <div class="pc-period price-month" style="color:rgba(255,255,255,.6)">/ mois · 5 comptes Gold</div>
-        <div class="pc-price price-year" style="color:#FFFFFF"><span class="pc-old">3588 €</span>2490 €</div>
-        <div class="pc-period price-year" style="color:rgba(255,255,255,.6)">/ an · 2 mois offerts 🎁</div>
-        <div class="pc-annual-note">&nbsp;</div>
-        <ul class="pc-features pc-features-navy">
-          <li>✅ <strong>5 comptes Gold inclus</strong></li>
-          <li>✅ Toutes les fonctionnalités Gold</li>
-          <li>✅ 1000 analyses / mois × 5</li>
-          <li>✅ <strong>Coaching IA + scripts personnalisés</strong></li>
-          <li>✅ 🎬 <strong>AI Prompt Studio</strong> + 📸 Photo Slide · <strong>600 crédits / mois</strong></li>
-          <li>✅ <strong>Données marché</strong> (tendances, créateurs gagnants)</li>
-        </ul>
-        <button class="btn pc-btn pc-btn-navy" onclick="startCheckout('agency')">Choisir AGENCY →</button>
-      </div>
-
     </div>
 
     <div class="pc-trust">
-      <span>🛡️ Sans engagement</span>
-      <span>💳 Paiement sécurisé (Stripe)</span>
-      <span>⚡ Activation immédiate · annulation en 1 clic</span>
-    </div>
-
-    <!-- OFFRE À VIE (LTD) — lancement, 50 places au total -->
-    <div id="ltd-section" style="max-width:760px;margin:8px auto 0;background:linear-gradient(135deg,rgba(212,175,55,.12),rgba(37,99,235,.08));border:1px solid rgba(212,175,55,.5);border-radius:16px;padding:20px">
-      <div style="text-align:center;margin-bottom:14px">
-        <span style="display:inline-block;background:var(--gold,#D4AF37);color:#1a1a1a;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px">🔥 OFFRE DE LANCEMENT</span>
-        <h3 style="margin:8px 0 2px;font-size:18px">Accès à VIE — paiement unique</h3>
-        <p style="font-size:12px;color:var(--muted);margin:0">⏳ <strong>50 places au total</strong> (tous plans confondus). Une fois épuisées, l'offre disparaît.</p>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:12px;font-weight:700;color:var(--accent)">PRO à vie</div>
-          <div style="font-size:24px;font-weight:800;margin:4px 0">199 €</div>
-          <div style="font-size:11px;color:var(--muted)">une fois · à vie</div>
-        </div>
-        <div style="background:var(--surface);border:2px solid var(--gold,#D4AF37);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:12px;font-weight:700;color:#b8860b">GOLD à vie ⭐</div>
-          <div style="font-size:24px;font-weight:800;margin:4px 0">299 €</div>
-          <div style="font-size:11px;color:var(--muted)">une fois · à vie</div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:12px;font-weight:700;color:var(--navy,#1F3A70)">AGENCY à vie</div>
-          <div style="font-size:24px;font-weight:800;margin:4px 0">499 €</div>
-          <div style="font-size:11px;color:var(--muted)">une fois · à vie</div>
-        </div>
-      </div>
-      <p style="text-align:center;font-size:11px;color:var(--muted);margin:12px 0 0">Disponible au lancement — la billetterie ouvre très bientôt.</p>
+      <span>&#128737; Sans engagement</span>
+      <span>&#128179; Paiement sécurisé (Stripe)</span>
+      <span>&#9889; Activation immédiate &middot; annulation en 1 clic</span>
     </div>
 
     <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px">
@@ -1994,7 +1912,7 @@
         <div><strong style="font-size:14px">📅 Puis-je annuler à tout moment ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, sans engagement. L'annulation prend effet à la fin de la période en cours.</span></div>
         <div><strong style="font-size:14px">💳 Quels moyens de paiement ?</strong><br><span style="font-size:13px;color:var(--muted)">CB Visa/Mastercard, Apple Pay, Google Pay — via Stripe (100% sécurisé).</span></div>
         <div><strong style="font-size:14px">🔄 Puis-je changer de plan ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, upgrade ou downgrade à tout moment depuis ton portail client.</span></div>
-        <div><strong style="font-size:14px">🤖 C'est quoi le Coach IA ?</strong><br><span style="font-size:13px;color:var(--muted)">Un assistant qui t'aide à réécrire tes accroches et scripts en temps réel basé sur ton analyse. Disponible sur GOLD et AGENCY.</span></div>
+        <div><strong style="font-size:14px">🤖 C'est quoi le Coach IA ?</strong><br><span style="font-size:13px;color:var(--muted)">Un assistant qui t'aide à réécrire tes accroches et scripts en temps réel, à partir de ton analyse. Inclus dans Qeerah Pro.</span></div>
       </div>
     </div>
 
@@ -2026,7 +1944,7 @@
     <div id="creator-detail" style="display:none"></div>
   </div>
 
-  <!-- ── ONGLET RECHERCHE DE PROFIL (PRO 10/j, GOLD+ illimité) ── -->
+  <!-- ── ONGLET RECHERCHE DE PROFIL ── -->
   <div id="tab-recherche-content" style="display:none">
     <div class="section">
       <h2>🔍 Recherche de profil TikTok</h2>
@@ -2041,7 +1959,7 @@
     </div>
   </div>
 
-  <!-- ── ONGLET FEED RADAR (GOLD/AGENCY) ── -->
+  <!-- ── ONGLET FEED RADAR ── -->
   <div id="tab-feedradar-content" style="display:none">
     <div class="section">
       <h2>📡 Feed Radar</h2>
@@ -2066,7 +1984,7 @@
     </div>
   </div>
 
-  <!-- ── ONGLET PHOTO SLIDE COACH (GOLD/AGENCY) ── -->
+  <!-- ── ONGLET PHOTO SLIDE COACH ── -->
   <div id="tab-photoslide-content" style="display:none">
     <div class="section">
       <h2>📸 Photo Slide Coach</h2>

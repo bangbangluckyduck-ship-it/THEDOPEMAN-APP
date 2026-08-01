@@ -42,10 +42,15 @@ def get_or_create_user(email: str) -> dict:
         if response.data:
             return response.data[0]
 
-        # Créer un nouvel utilisateur
+        # Créer un nouvel utilisateur — l'essai gratuit démarre ici.
+        # Posé à la création plutôt que par un appel séparé : impossible
+        # d'oublier une porte d'entrée (mot de passe, Google, TikTok), et un
+        # compte ne peut pas exister sans date de fin d'essai.
+        from datetime import timedelta
         new_user = {
             "email": email,
             "tier": "free",
+            "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         }
         response = supabase_service.table("users").insert(new_user).execute()
         return response.data[0] if response.data else new_user
