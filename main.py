@@ -21,7 +21,9 @@ from analyzer import analyze_video, transcribe_audio, analyze_visual, synthesize
 from generate_assets import generate_icons
 from security import rate_limit_middleware, security_logger
 # 1. Ajout de create_access_token dans l'import
-from auth import get_user_from_request, check_quota, increment_usage, usage_info, create_access_token, set_user_tier
+from auth import (get_user_from_request, check_quota, increment_usage, usage_info,
+                  create_access_token, set_user_tier, has_full_access)
+import analysis_quota
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
@@ -45,7 +47,7 @@ def _ip_hash(request: Request) -> str:
     ip = request.client.host if request.client else "unknown"
     return hashlib.sha256(("tts:" + ip).encode()).hexdigest()[:32]
 
-_PROMPT_STUDIO_TIERS = {"pro", "gold", "agency", "beta", "admin"}
+# (supprimé) L'AI Prompt Studio n'est plus réservé à un palier : cf. has_full_access().
 
 
 def _record_analyzed_product(result: dict, region: Optional[str] = None) -> None:
@@ -75,21 +77,15 @@ import stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 # Mapping price_id Stripe → tier interne (rempli via env Render une fois les prix créés)
+# Offre unique « Qeerah Pro ». Les anciens price_id (PRO 9,99/11,99/12,99,
+# GOLD, AGENCY) ne sont VOLONTAIREMENT plus reconnus : s'ils réapparaissaient
+# dans un webhook, mieux vaut un plan non identifié qu'une souscription à un
+# tarif archivé traitée comme normale.
 STRIPE_PRICE_TO_TIER: dict[str, str] = {
     p: tier
     for p, tier in [
-        (os.getenv("STRIPE_PRICE_PRO", ""),              "pro"),
-        (os.getenv("STRIPE_PRICE_PRO_YEAR", ""),         "pro"),
-        (os.getenv("STRIPE_PRICE_PRO_999", ""),          "pro"),
-        (os.getenv("STRIPE_PRICE_PRO_999_YEAR", ""),     "pro"),
-        (os.getenv("STRIPE_PRICE_PRO_1199", ""),         "pro"),
-        (os.getenv("STRIPE_PRICE_PRO_1199_YEAR", ""),    "pro"),
-        (os.getenv("STRIPE_PRICE_GOLD", ""),             "gold"),
-        (os.getenv("STRIPE_PRICE_GOLD_YEAR", ""),        "gold"),
-        (os.getenv("STRIPE_PRICE_GOLD_LAUNCH", ""),      "gold"),
-        (os.getenv("STRIPE_PRICE_GOLD_LAUNCH_YEAR", ""), "gold"),
-        (os.getenv("STRIPE_PRICE_AGENCY", ""),           "agency"),
-        (os.getenv("STRIPE_PRICE_AGENCY_YEAR", ""),      "agency"),
+        (os.getenv("STRIPE_PRICE_QEERAH_PRO_MONTH", ""), "pro"),
+        (os.getenv("STRIPE_PRICE_QEERAH_PRO_YEAR", ""),  "pro"),
     ]
     if p  # exclut les clés vides
 }
@@ -594,8 +590,8 @@ async def llms_txt():
         "Mexique, Brésil, et d'autres marchés européens depuis 2026). Qeerah aide les "
         "créateurs et marques à vendre plus efficacement dessus.\n\n"
         "## Pages clés\n"
-        f"- [Accueil]({base}/) : présentation de l'outil, essai gratuit (3 analyses offertes)\n"
-        f"- [Tarifs]({base}/pricing) : forfaits FREE, PRO, GOLD, AGENCY\n"
+        f"- [Accueil]({base}/) : présentation de l'outil, essai gratuit de 7 jours\n"
+        f"- [Tarifs]({base}/pricing) : offre unique Qeerah Pro, 29,99 EUR TTC/mois ou 299 EUR TTC/an\n"
         f"- [Blog]({base}/blog) : articles sourcés sur TikTok Shop\n"
         f"- [TikTok Shop, c'est quoi et peut-on gagner de l'argent avec ?]({base}/blog/expansion-mondiale-tiktok-shop) "
         ": explication de TikTok Shop, pays disponibles, chiffres de GMV et créateurs "
@@ -1224,9 +1220,8 @@ async def analyze_stream_sse(
     if not frames_list: raise HTTPException(status_code=400, detail="Aucune image extraite de la vidéo.")
 
     # ── Dispatcher de pipeline : si Pro+ ET vidéo uploadée → nouveau pipeline ──
-    _paid_tiers = {"pro", "gold", "agency", "beta", "admin"}
     _user_tier = user.get("tier", "free")
-    _use_native_pipeline = (_user_tier in _paid_tiers) and (video is not None)
+    _use_native_pipeline = has_full_access(user) and (video is not None)
     _video_upload = video  # référence conservée pour lecture DANS le stream
 
     async def stream_analysis():
@@ -1642,7 +1637,7 @@ async def track_visitor(page: str, request: Request, user_email: Optional[str] =
 # ════════════════════════════════════════════════════════════════════════════
 # ANALYSE PAR LIEN TIKTOK (Pro / Gold / Agency uniquement)
 # ════════════════════════════════════════════════════════════════════════════
-_URL_ANALYSIS_TIERS = {"pro", "gold", "agency", "beta", "admin"}
+# (supprimé) L'analyse par lien suit désormais has_full_access().
 
 # Anti-SSRF : l'analyse par lien télécharge l'URL fournie (yt-dlp). On restreint
 # donc aux liens TikTok en https, ET on vérifie que l'hôte ne résout pas vers une
@@ -1731,7 +1726,7 @@ async def scripts_multi_angle(request: Request):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     email = user["email"]
     tier = (user.get("tier") or "free").lower()
-    is_paid = tier in _URL_ANALYSIS_TIERS or user.get("is_admin")
+    is_paid = has_full_access(user)
 
     body = await request.json()
     product = (body.get("product") or "").strip()
@@ -1871,7 +1866,7 @@ async def analyze_url(request: Request):
     # ── SÉCURITÉ : tier requis ──
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
-    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+    if not has_full_access(user):
         raise HTTPException(
             status_code=403,
             detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency. Passez au plan Pro (9,99€) pour analyser des liens TikTok directement.",
@@ -2063,7 +2058,7 @@ async def analyze_url_stream(request: Request):
         raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
-    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
     check_quota(user)
     body = await request.json()
@@ -2390,7 +2385,7 @@ async def jobs_create_url(request: Request):
         raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
-    if not user.get("valid") or tier not in _URL_ANALYSIS_TIERS:
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
     check_quota(user)
 
@@ -2442,7 +2437,7 @@ async def jobs_create_upload(
         raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
-    if not user.get("valid") or tier not in {"pro", "gold", "agency", "beta", "admin"}:
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="L'analyse asynchrone est réservée aux plans Pro, Gold et Agency.")
     check_quota(user)
 
@@ -2529,7 +2524,7 @@ async def jobs_list(request: Request, limit: int = 20):
 # ════════════════════════════════════════════════════════════════════════════
 # MÉTA-SYNTHÈSE MULTI-VIDÉOS — patterns gagnants / perdants (Gold / Agency)
 # ════════════════════════════════════════════════════════════════════════════
-_BATCH_PATTERNS_TIERS = {"gold", "agency", "beta", "admin"}
+# (supprimé) Les patterns multi-vidéos suivent désormais has_full_access().
 
 
 @app.post("/analyze-batch-patterns")
@@ -2544,7 +2539,7 @@ async def analyze_batch_patterns(request: Request):
 
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
-    if not user.get("valid") or tier not in _BATCH_PATTERNS_TIERS:
+    if not has_full_access(user):
         raise HTTPException(
             status_code=403,
             detail="La détection de patterns multi-vidéos est réservée aux plans Gold et Agency.",
@@ -2621,32 +2616,73 @@ async def stripe_webhook_v1(request: Request):
         cust_id = obj.get("customer")
         sub_id = obj.get("subscription")
 
-        # 2) Identifier le plan : d'abord par price_id, sinon via metadata
-        plan = (obj.get("metadata") or {}).get("plan")
-        if not plan and sub_id:
-            try:
-                sub = stripe.Subscription.retrieve(sub_id)
-                price_id = sub["items"]["data"][0]["price"]["id"]
-                plan = STRIPE_PRICE_TO_TIER.get(price_id)
-            except Exception:
-                plan = None
-        if plan not in ("pro", "gold", "agency"):
-            plan = "pro"  # fallback sûr
+        # 2) Une seule offre : toute souscription aboutie donne le tier "pro".
+        plan = "pro"
 
-        # 3) Date de fin d'abonnement (current_period_end)
+        # 3) Bornes du cycle de facturation. `expiry` (date) pilote l'expiration
+        #    du tier ; `current_period_start/end` ancre le quota d'analyses
+        #    (cf. analysis_quota.py) — c'est ce qui remplace le mois calendaire.
         expiry = None
+        period_start = period_end = None
         if sub_id:
             try:
                 sub = stripe.Subscription.retrieve(sub_id)
-                period_end = sub.get("current_period_end")
-                if period_end:
-                    expiry = datetime.fromtimestamp(period_end, tz=timezone.utc).date().isoformat()
-            except Exception:
-                pass
+                if sub.get("current_period_start"):
+                    period_start = datetime.fromtimestamp(sub["current_period_start"], tz=timezone.utc)
+                if sub.get("current_period_end"):
+                    period_end = datetime.fromtimestamp(sub["current_period_end"], tz=timezone.utc)
+                    expiry = period_end.date().isoformat()
+            except Exception as e:
+                print(f"stripe_webhook_v1: lecture abonnement {sub_id} impossible: {e}")
 
         # 4) Mise à jour Supabase
         if email:
-            set_user_tier(email.lower().strip(), plan, customer_id=cust_id, subscription_id=sub_id, expiry=expiry)
+            email_norm = email.lower().strip()
+            set_user_tier(email_norm, plan, customer_id=cust_id, subscription_id=sub_id, expiry=expiry)
+            if period_start:
+                analysis_quota.set_billing_period(email_norm, period_start, period_end)
+
+    # ── Renouvellement payé → le quota repart sur le nouveau cycle ──
+    # Sans cet événement, un abonné mensuel restait bloqué sur la fenêtre de
+    # quota ouverte lors de sa souscription : le compteur ne repartait jamais.
+    elif etype == "invoice.paid":
+        sub_id = obj.get("subscription")
+        email = (obj.get("customer_email") or "").strip().lower()
+        if not email:
+            cust_id = obj.get("customer")
+            if cust_id:
+                try:
+                    email = (stripe.Customer.retrieve(cust_id).get("email") or "").strip().lower()
+                except Exception:
+                    email = ""
+        if email and sub_id:
+            try:
+                sub = stripe.Subscription.retrieve(sub_id)
+                ps = sub.get("current_period_start")
+                pe = sub.get("current_period_end")
+                if ps:
+                    analysis_quota.set_billing_period(
+                        email,
+                        datetime.fromtimestamp(ps, tz=timezone.utc),
+                        datetime.fromtimestamp(pe, tz=timezone.utc) if pe else None,
+                    )
+                # Prolonge aussi la validité du tier jusqu'à la nouvelle échéance.
+                if pe:
+                    set_user_tier(
+                        email, "pro",
+                        customer_id=obj.get("customer"), subscription_id=sub_id,
+                        expiry=datetime.fromtimestamp(pe, tz=timezone.utc).date().isoformat(),
+                    )
+            except Exception as e:
+                print(f"stripe_webhook_v1 invoice.paid: {e}")
+
+    # ── Paiement échoué → trace. Pas de downgrade immédiat : Stripe relance
+    #    plusieurs fois, et customer.subscription.deleted fermera l'accès si
+    #    toutes les tentatives échouent. Couper au premier échec priverait un
+    #    abonné qui a simplement une carte expirée. ──
+    elif etype == "invoice.payment_failed":
+        print(f"stripe_webhook_v1: paiement échoué "
+              f"(customer={obj.get('customer')}, invoice={obj.get('id')})")
 
     # ── Abonnement annulé / expiré → downgrade ──
     elif etype == "customer.subscription.deleted":
@@ -2837,7 +2873,7 @@ async def tiktok_status(request: Request):
 # ════════════════════════════════════════════════════════════════════════════
 # MARCHÉ — Créateurs Gagnants (Gold/Agency) — KeyAPI créateur-centric
 # ════════════════════════════════════════════════════════════════════════════
-_MARKET_PREMIUM_TIERS = {"gold", "agency", "beta", "admin"}
+# (supprimé) Les données marché suivent désormais has_full_access().
 
 
 # Version du cache marché : on l'incrémente pour invalider TOUTES les entrées d'un
@@ -2951,7 +2987,7 @@ async def market_creators_list(request: Request, category: Optional[str] = Query
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+    premium = has_full_access(user)
 
     cache_key = f"creators::{(category or 'all').lower()}::{region}"
     creators, _ = await _market_cache_fetch(
@@ -2971,7 +3007,7 @@ async def market_category_overview(request: Request, category: Optional[str] = Q
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+    premium = has_full_access(user)
 
     cache_key = f"catov::{(category or 'all').lower()}::{region}"
     ov, _ = await _market_cache_fetch(
@@ -2996,7 +3032,7 @@ async def market_category_momentum(request: Request, region: str = Query("US"), 
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+    premium = has_full_access(user)
 
     cache_key = f"catmom::{region}"
     momentum, _ = await _market_cache_fetch(
@@ -3015,7 +3051,7 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
     cache_key = f"creator::{unique_id}::{user_id}"
@@ -3034,7 +3070,7 @@ async def market_video_products(request: Request, video_id: str = Query(...),
     ok = False
     try:
         u = get_user_from_request(request)
-        ok = bool(u.get("valid") and ((u.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or u.get("is_admin")))
+        ok = bool(u.get("valid") and (has_full_access(u)))
     except Exception:
         ok = False
     if not ok and token:
@@ -3062,7 +3098,7 @@ async def market_popular(request: Request, category: Optional[str] = Query(None)
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if not ((user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")):
+    if not (has_full_access(user)):
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
     rows = product_store.get_popular(supabase_client, category=category, limit=8)
     products = [{
@@ -3085,7 +3121,7 @@ async def market_category_creators(request: Request, category: Optional[str] = Q
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")
+    premium = has_full_access(user)
 
     cache_key = f"catcr::{(category or 'all').lower()}::{region}"
     creators, _ = await _market_cache_fetch(
@@ -3105,7 +3141,7 @@ async def market_products_search(request: Request, keyword: str = Query(...), re
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+    premium = has_full_access(user)
 
     cache_key = f"psearch::{keyword.lower().strip()}::{region}"
     products, _ = await _market_cache_fetch(
@@ -3124,7 +3160,7 @@ async def market_product_detail(request: Request, product_id: str, region: str =
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    if (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
     cache_key = f"pdetail::{product_id}::{region}"
@@ -3213,7 +3249,7 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS
+    premium = has_full_access(user)
 
     import random, hashlib
     from datetime import date as _date
@@ -3304,7 +3340,7 @@ async def feed_radar_list(request: Request, region: str = Query("US"), limit: in
 async def feed_radar_video_embed(request: Request, video_id: str):
     """Blockquote oEmbed complet pour hydratation au TAP (jamais au scroll)."""
     user = get_user_from_request(request)
-    if not user.get("valid") or (user.get("tier") or "free").lower() not in _MARKET_PREMIUM_TIERS:
+    if not user.get("valid") or not has_full_access(user):
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
     try:
         r = supabase_client.table("feed_radar_videos").select("oembed_html,oembed_fetched_at,video_url") \
@@ -3489,7 +3525,7 @@ async def photo_slide_generate(
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    premium = (user.get("tier") or "free").lower() in _MARKET_PREMIUM_TIERS or user.get("is_admin")
+    premium = has_full_access(user)
     if not premium:
         raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
 
@@ -4203,7 +4239,7 @@ async def video_prompt_generate(
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     tier = (user.get("tier") or "free").lower()
-    if tier not in _PROMPT_STUDIO_TIERS and not user.get("is_admin"):
+    if not has_full_access(user):
         raise HTTPException(status_code=403, detail="Réservé aux plans Pro, Gold et Agency.")
 
     try:
@@ -4505,7 +4541,7 @@ async def carousel_generate(
                             detail="Produit non identifié depuis le lien — ajoute au moins le nom du produit.")
     email = user["email"]
     tier = (user.get("tier") or "free").lower()
-    is_paid = tier in ("pro", "gold", "agency", "beta", "admin") or user.get("is_admin")
+    is_paid = has_full_access(user)
 
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:

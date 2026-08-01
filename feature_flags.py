@@ -1,49 +1,43 @@
 from __future__ import annotations
 
 """
-🚦 Feature flags pilotés par DATE — colonne vertébrale du lancement échelonné.
+💰 Offre commerciale — source de vérité unique des prix affichés.
 
-Activation 100 % côté serveur (jamais de confiance dans le front). L'état est
-CALCULÉ EN DIRECT à chaque requête à partir de la roadmap : pas de cron, pas de
-table à maintenir, donc rien à oublier de flipper le jour J.
+Une seule offre publique : **Qeerah Pro**, 29,99 €/mois ou 299 €/an.
+Aucun palier intermédiaire, aucune offre agence publique, aucun prix barré,
+aucun prix qui varie selon la date.
 
-Roadmap (confirmée 2026-06-17) :
-  • 31 juil. 2026  → lancement public : PRO visible (offre 9,99 €)
-  • 20 août 2026   → PRO passe à 11,99 €
-  • 16 sept. 2026  → PRO prix final 12,99 € + ouverture GOLD (79,99 €) & AGENCY (249 €)
-  • 15 oct. 2026   → ouverture des LTD (199 / 299 / 499 €)
+Ce module remplace l'ancien système de lancement échelonné (PRO 9,99 → 11,99 →
+12,99 €, GOLD, AGENCY, LTD, roadmap datée). Les fonctions publiques sont
+conservées — `available_plans()`, `current_prices()`, `is_enabled()`… — parce
+que main.py et le front les consomment ; elles ne décrivent simplement plus
+qu'une seule offre.
 
-Surcharge manuelle possible pour tester / forcer un lancement anticipé :
-  FF_PUBLIC_LAUNCH=on   FF_GOLD_AVAILABLE=on   FF_LTD_AVAILABLE=off  ...
-(valeurs acceptées : on/1/true/yes  ou  off/0/false/no)
+TVA : DOPE VENTURES est en franchise en base (art. 293 B du CGI). Les prix
+affichés sont donc à la fois nets et TTC — c'est le montant réellement payé.
+La mention légale est obligatoire partout où le prix apparaît.
 """
 
 import os
-from datetime import date
 
-# ── Dates de la roadmap ───────────────────────────────────────────────────
-ROADMAP: dict[str, date] = {
-    "public_launch":    date(2026, 7, 31),   # PRO visible publiquement
-    "pro_price_11_99":  date(2026, 8, 20),   # PRO → 11,99 €
-    "pro_price_12_99":  date(2026, 9, 16),   # PRO → 12,99 € (prix final)
-    "gold_available":   date(2026, 9, 16),
-    "gold_price_normal": date(2026, 10, 15),  # GOLD launch (79€) → prix normal (99€)
-    "agency_available": date(2026, 9, 16),
-    "ltd_available":    date(2026, 10, 15),
-}
+# ── L'offre ───────────────────────────────────────────────────────────────
+PRO_MONTHLY_PRICE = 29.99
+PRO_YEARLY_PRICE  = 299.0
 
-# Prix de référence (l'« original » barré dans l'UI)
-PRO_FINAL_PRICE = 12.99
-GOLD_PROMO, GOLD_ORIGINAL = 79.0, 99.0
-AGENCY_PROMO, AGENCY_ORIGINAL = 249.0, 299.0
+# Deux mois offerts : 299 € au lieu de 12 × 29,99 = 359,88 €.
+PRO_YEARLY_MONTHS_FREE = 2
 
-_TRUE = {"on", "1", "true", "yes", "y"}
+# Quota inclus, par cycle mensuel de facturation (cf. analysis_quota.py).
+PRO_ANALYSES_PER_MONTH = 100
+
+# Essai gratuit : 7 jours, accès complet, 10 analyses.
+TRIAL_DAYS     = 7
+TRIAL_ANALYSES = 10
+
+VAT_NOTICE = "TVA non applicable, article 293 B du CGI"
+
+_TRUE  = {"on", "1", "true", "yes", "y"}
 _FALSE = {"off", "0", "false", "no", "n"}
-
-_FR_MONTHS = {
-    1: "janvier", 2: "février", 3: "mars", 4: "avril", 5: "mai", 6: "juin",
-    7: "juillet", 8: "août", 9: "septembre", 10: "octobre", 11: "novembre", 12: "décembre",
-}
 
 
 def _env_override(flag: str):
@@ -57,63 +51,65 @@ def _env_override(flag: str):
 
 
 def is_enabled(flag: str) -> bool:
-    """Un flag est actif si la date du jour a atteint sa date d'activation
-    (ou si une variable d'env le force)."""
+    """Il n'y a plus de roadmap datée : l'offre Pro est ouverte en permanence,
+    tout le reste est fermé. Une variable FF_<FLAG> permet encore de forcer un
+    état ponctuellement (tests, coupure d'urgence de la souscription)."""
     ov = _env_override(flag)
     if ov is not None:
         return ov
-    d = ROADMAP.get(flag)
-    return d is not None and date.today() >= d
+    return flag in ("public_launch", "pro_available")
 
 
 def available_plans() -> dict:
-    """Quels plans sont achetables aujourd'hui."""
+    """Ce qui est souscriptible aujourd'hui. `gold`/`agency`/`ltd` restent
+    présents dans la réponse — le front les lit encore — mais toujours à False :
+    ces plans ne sont plus vendus. Les comptes historiques qui les portent
+    conservent leur accès (cf. analysis_quota._SUBSCRIBED_TIERS)."""
     return {
-        "free":   True,                          # toujours dispo
         "pro":    is_enabled("public_launch"),
-        "gold":   is_enabled("gold_available"),
-        "agency": is_enabled("agency_available"),
-        "ltd":    is_enabled("ltd_available"),
+        "free":   False,      # plus d'offre gratuite : un essai de 7 jours la remplace
+        "gold":   False,
+        "agency": False,      # sur devis uniquement, cf. page de comparaison
+        "ltd":    False,
     }
 
 
 def current_prices() -> dict:
-    """Prix en vigueur selon la date (PRO : 9,99 → 11,99 → 12,99)."""
-    if is_enabled("pro_price_12_99"):
-        pro = PRO_FINAL_PRICE
-    elif is_enabled("pro_price_11_99"):
-        pro = 11.99
-    else:
-        pro = 9.99
+    """Prix en vigueur. Ni `original` ni `promo` : les prix barrés sont proscrits."""
     return {
-        "pro":    {"current": pro,          "original": PRO_FINAL_PRICE,
-                   "promo": pro < PRO_FINAL_PRICE},
-        "gold":   {"current": GOLD_PROMO,   "original": GOLD_ORIGINAL,   "promo": True},
-        "agency": {"current": AGENCY_PROMO, "original": AGENCY_ORIGINAL, "promo": True},
+        "pro": {
+            "month":        PRO_MONTHLY_PRICE,
+            "year":         PRO_YEARLY_PRICE,
+            "year_monthly": round(PRO_YEARLY_PRICE / 12, 2),   # ~24,92 €/mois
+            "months_free":  PRO_YEARLY_MONTHS_FREE,
+            "currency":     "EUR",
+            "vat_notice":   VAT_NOTICE,
+        }
     }
 
 
-def _fmt(d: date) -> str:
-    return f"{d.day} {_FR_MONTHS.get(d.month, d.month)} {d.year}"
+def offer_summary() -> dict:
+    """Tout ce dont le front a besoin pour afficher l'offre, en un appel."""
+    return {
+        "name":     "Qeerah Pro",
+        "prices":   current_prices()["pro"],
+        "analyses": PRO_ANALYSES_PER_MONTH,
+        "trial":    {"days": TRIAL_DAYS, "analyses": TRIAL_ANALYSES},
+    }
 
 
 def availability_dates() -> dict:
-    """Dates lisibles pour l'UI (« 🔜 disponible le … »)."""
-    return {
-        "pro":    _fmt(ROADMAP["public_launch"]),
-        "gold":   _fmt(ROADMAP["gold_available"]),
-        "agency": _fmt(ROADMAP["agency_available"]),
-        "ltd":    _fmt(ROADMAP["ltd_available"]),
-    }
+    """Conservée pour compatibilité : plus aucune ouverture n'est programmée."""
+    return {"pro": "", "gold": "", "agency": "", "ltd": ""}
 
 
 def snapshot() -> dict:
-    """Vue complète (pour l'admin / le débogage)."""
+    """Vue complète (admin / débogage)."""
     return {
-        "today": date.today().isoformat(),
-        "plans": available_plans(),
-        "prices": current_prices(),
-        "dates": availability_dates(),
-        "flags": {k: is_enabled(k) for k in ROADMAP},
-        "overrides": {k: _env_override(k) for k in ROADMAP if _env_override(k) is not None},
+        "offer":     offer_summary(),
+        "plans":     available_plans(),
+        "prices":    current_prices(),
+        "overrides": {k: _env_override(k)
+                      for k in ("public_launch", "pro_available")
+                      if _env_override(k) is not None},
     }

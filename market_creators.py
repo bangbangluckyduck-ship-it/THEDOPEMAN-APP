@@ -1,5 +1,5 @@
 """
-Intelligence marché « Créateurs Gagnants » (Gold / Agency) via KeyAPI.
+Intelligence marché « Créateurs Gagnants » via KeyAPI.
 
 Chaîne créateur-centric (validée 2/6) :
   1. /v1/tiktok/influencer/ranking/analytics  → top créateurs (ventes)
@@ -706,7 +706,7 @@ async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# RECHERCHE DE PROFIL (Pro / Gold / Agency) — recherche libre par @handle, sans
+# RECHERCHE DE PROFIL — recherche libre par @handle, sans
 # passer par le ranking. Chaîne : /influencer/detail (handle → uid) →
 # /influencer/trends/analytics (uid → GMV réel fenêtre glissante) →
 # /influencer/products/analytics (uid → meilleures ventes lifetime).
