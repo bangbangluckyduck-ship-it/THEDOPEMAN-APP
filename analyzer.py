@@ -996,16 +996,18 @@ def _synthesis_model() -> str:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# PROMPT PREMIUM DYNAMIQUE — réservé aux plans Gold / Agency (+ beta / admin)
-# Concaténé au prompt de synthèse UNIQUEMENT pour ces tiers. Le contrôle du tier
-# est fait 100% côté serveur (token JWT / Supabase) ; jamais via le frontend.
+# PROMPT PREMIUM DYNAMIQUE — désormais appliqué à TOUTE analyse.
+#
+# Refonte tarifaire : il n'y a plus de palier, donc plus d'analyse au rabais.
+# Le filtrage d'accès a déjà eu lieu en amont (check_quota lève une 402 si
+# l'essai est terminé sans abonnement) : si l'analyse s'exécute, l'utilisateur
+# y a droit — abonné ou en essai. Le tier ne sert donc plus à doser la qualité.
 # ════════════════════════════════════════════════════════════════════════════
-PREMIUM_STRATEGY_TIERS = {"gold", "agency", "beta", "admin"}
 
 PREMIUM_PROMPT_BLOCK = """
 
 ████████████████████████████████████████████████████████████████████████████████
-█  INSTRUCTION PREMIUM (Génération de revenus) — RÉSERVÉ PLANS GOLD / AGENCY
+█  INSTRUCTION PREMIUM (Génération de revenus)
 ████████████████████████████████████████████████████████████████████████████████
 
 En plus de l'analyse ci-dessus, tu dois identifier formellement le produit vendu ou mis en avant. Ensuite, dresse le profil psychologique du meilleur public cible (Persona) pour l'acheter. Enfin, rédige un script TikTok clé en main (Hook de 0-3s, Démonstration organique, Call-to-Action vers le TikTok Shop) hautement optimisé pour convertir cette audience précise. Structure cette réponse sous le titre exact '👑 Stratégie de Conversion (Premium)'.
@@ -1079,9 +1081,10 @@ def synthesize_analysis(
 
     # base_prompt : instructions d'analyse standard (tous les plans)
     base_prompt = SYNTHESIS_PROMPT
-    # Le bloc premium (Gold / Agency / beta / admin) sera ajouté À LA FIN du prompt
-    # (recency) pour maximiser la fiabilité d'émission de la clé JSON par le modèle.
-    is_premium = (user_tier or "free").lower() in PREMIUM_STRATEGY_TIERS
+    # Le bloc premium est ajouté À LA FIN du prompt (recency) pour maximiser la
+    # fiabilité d'émission de la clé JSON par le modèle. Plus de condition de
+    # tier : toute analyse autorisée est une analyse complète.
+    is_premium = True
 
     parts = [base_prompt]
 
@@ -1182,12 +1185,11 @@ def synthesize_analysis(
     full_prompt = "\n".join(parts)
 
     # Synthèse — provider dépend du tier :
-    # - Free : Mistral small (rapide, "Aperçu rapide")
-    # - Pro / Gold / Agency / Beta / Admin : Claude Haiku 4.5 (raisonnement supérieur,
-    #   meilleur sur psychologie de la persuasion / nuance / langage probabiliste)
-    # Override par env ANALYSIS_TEXT_PROVIDER pour forcer une valeur globale.
-    _is_paid = user_tier in ("pro", "gold", "agency", "beta", "admin")
-    _default_provider = "claude" if _is_paid else "mistral"
+    # Claude Haiku 4.5 pour tout le monde (raisonnement supérieur sur la
+    # psychologie de la persuasion). L'ancien repli Mistral servait à brider le
+    # plan gratuit ; l'essai donnant désormais le même accès qu'un abonnement,
+    # il n'a plus lieu d'être. Override global possible via ANALYSIS_TEXT_PROVIDER.
+    _default_provider = "claude"
     _atp = os.getenv("ANALYSIS_TEXT_PROVIDER", _default_provider)
     raw = ai_providers.text_complete(
         full_prompt,

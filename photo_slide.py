@@ -1,5 +1,5 @@
 """
-📸 Photo Slide Coach (feature premium GOLD / AGENCY / BETA / ADMIN).
+📸 Photo Slide Coach — inclus dans Qeerah Pro (et pendant l'essai).
 
 À partir d'une image produit + (nature, prix, description), l'IA propose un plan
 de carrousel TikTok Shop optimisé. Génération en **2 étapes streamées** (SSE) :

@@ -172,17 +172,17 @@ def _upsell_body(kind: str, unsubscribe_url: str) -> str:
         )
     benefits = (
         "<ul style=\"padding-left:18px;line-height:1.8;\">"
-        "<li>📈 <strong>Beaucoup plus d'analyses</strong> par mois (jusqu'à l'illimité)</li>"
+        "<li>📈 <strong>100 analyses par mois</strong></li>"
         "<li>🔗 <strong>Analyse par lien TikTok</strong> — sans rien télécharger</li>"
         "<li>🤖 <strong>Coach IA</strong> + scripts personnalisés</li>"
         "<li>📸 <strong>Photo Slide Coach</strong> &amp; 🎬 <strong>AI Prompt Studio</strong></li>"
         "<li>📊 Données marché : produits &amp; créateurs gagnants</li>"
         "</ul>"
-        "<p style=\"background:#f4f5f7;padding:14px;border-radius:10px;\">🔥 <strong>Offre de lancement</strong> : "
-        "PRO à <strong>9,99€</strong> (au lieu de 12,99€) · GOLD à <strong>79,99€</strong> — "
-        "et des <strong>accès à vie</strong> pour les 50 premiers.</p>"
+        "<p style=\"background:#f4f5f7;padding:14px;border-radius:10px;\">"
+        "<strong>Qeerah Pro</strong> : 29,99 € TTC/mois, ou 299 € TTC/an avec deux mois offerts. "
+        "Tout est inclus, sans engagement.</p>"
     )
-    cta = _button("Voir les offres", APP_URL + "/#pricing")
+    cta = _button("Découvrir Qeerah Pro", APP_URL + "/pricing")
     foot = (
         f'<p style="font-size:12px;color:#9a9ab0;margin-top:22px;">Tu reçois cet email car tu as un compte '
         f'Qeerah. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Se désinscrire des emails '

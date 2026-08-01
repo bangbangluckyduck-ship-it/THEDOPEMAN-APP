@@ -1,13 +1,17 @@
 """
-Quota journalier de la Recherche de profil TikTok — INDÉPENDANT de check_quota()/
-TIER_CONFIG (auth.py) qui sont câblés sur l'analyse vidéo. Une recherche coûte
-~5 appels KeyAPI (voir market_creators.search_creator_profile) ; ce module limite
-uniquement le volume de recherches PRO, pas l'analyse vidéo.
+Quota journalier de la Recherche de profil TikTok — INDÉPENDANT du quota
+d'analyses (analysis_quota.py). Une recherche coûte ~5 appels KeyAPI (voir
+market_creators.search_creator_profile) : ce plafond protège le quota du
+fournisseur de données, il ne mesure pas la valeur rendue au client.
 
-Gating :
-- free            : bloqué (403), vérifié ici pour un message clair
-- pro             : PRO_DAILY_LIMIT / jour (429 une fois atteint)
-- gold/agency/beta/admin : illimité
+Gating depuis la refonte tarifaire :
+- abonné Qeerah Pro et essai en cours : PRO_DAILY_LIMIT / jour (429 au-delà)
+- essai expiré sans abonnement        : bloqué (402)
+- admin                                : illimité
+
+Le plafond journalier est conservé pour les deux premiers cas : c'est la seule
+ressource du produit dont le coût est plafonné en amont par un tiers, et
+l'ouvrir en illimité épuiserait le quota fournisseur pour tout le monde.
 """
 from __future__ import annotations
 
@@ -18,8 +22,6 @@ from fastapi import HTTPException
 from supabase_client import supabase_service as supabase, _get_user_id
 
 PRO_DAILY_LIMIT = 10
-
-_UNLIMITED_TIERS = ("gold", "agency", "beta", "admin")
 
 
 def _today() -> str:
@@ -64,20 +66,23 @@ def increment_recherche_count(email: str) -> int:
 
 
 def check_recherche_quota(user: dict) -> None:
-    """Lève HTTPException(403) si free, HTTPException(429) si PRO a épuisé son
-    quota du jour. No-op (accès illimité) pour gold/agency/beta/admin."""
-    tier = (user.get("tier") or "free").lower()
-    if user.get("is_admin") or tier in _UNLIMITED_TIERS:
+    """Lève HTTPException(402) si l'essai est terminé sans abonnement,
+    HTTPException(429) si le plafond journalier est atteint. No-op pour admin."""
+    if user.get("is_admin") or (user.get("tier") or "").lower() == "admin":
         return
-    if tier != "pro":
+
+    from auth import has_full_access
+    if not has_full_access(user):
         raise HTTPException(
-            status_code=403,
-            detail="La recherche de profil est réservée aux plans Pro et plus. Passe au plan Pro sur qeerah.com",
+            status_code=402,
+            detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro sur "
+                   "qeerah.com pour continuer à rechercher des profils.",
         )
+
     count = get_recherche_count_today(user["email"])
     if count >= PRO_DAILY_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail=f"Limite de {PRO_DAILY_LIMIT} recherches/jour atteinte (plan Pro). "
-                   "Passe au plan Gold pour un accès illimité.",
+            detail=f"Limite de {PRO_DAILY_LIMIT} recherches de profil par jour atteinte. "
+                   "Le compteur repart demain.",
         )

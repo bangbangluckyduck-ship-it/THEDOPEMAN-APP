@@ -22,7 +22,8 @@ CATEGORY_LABELS = {
     "mobilier": "Mobilier", "food": "Food / Cuisine", "autre": "Autre",
 }
 
-PLAN_LABELS = {"pro": "PRO", "gold": "GOLD", "agency": "AGENCY"}
+# Offre unique : les anciens paliers restent mappés pour les données historiques.
+PLAN_LABELS = {"pro": "Qeerah Pro", "gold": "Qeerah Pro", "agency": "Qeerah Pro"}
 
 
 def can_access(tier: str | None, hook: dict) -> bool:
@@ -48,7 +49,7 @@ def required_label(hook: dict) -> str:
     """Libellé du plan requis (pour l'état verrouillé / incitation upgrade)."""
     ta = (hook.get("type_acces") or "plan_minimum").lower()
     if ta == "plan_minimum":
-        return f"À partir de {PLAN_LABELS.get((hook.get('plan_min') or 'pro').lower(), 'PRO')}"
+        return f"Inclus dans {PLAN_LABELS.get((hook.get('plan_min') or 'pro').lower(), 'Qeerah Pro')}"
     if ta == "plans_specifiques":
         labels = [PLAN_LABELS.get(str(p).lower(), str(p).upper()) for p in (hook.get("plans_autorises") or [])]
         return "Réservé : " + (", ".join(labels) if labels else "plan supérieur")

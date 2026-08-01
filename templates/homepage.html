@@ -68,7 +68,7 @@
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "EUR",
-          "description": "3 analyses gratuites, puis forfaits PRO / GOLD / AGENCY"
+          "description": "7 jours d'essai gratuit, puis Qeerah Pro a 29,99 EUR TTC/mois ou 299 EUR TTC/an"
         },
         "publisher": { "@id": "https://qeerah.com/#organization" }
       },
@@ -1203,12 +1203,12 @@
         <div id="market-intelligence-lock-hp" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
           <div style="text-align:center">
             <div style="font-size:40px;margin-bottom:8px">🔐</div>
-            <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Débloqué avec GOLD</div>
+            <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Inclus dans Qeerah Pro</div>
             <div style="font-size:11px;color:var(--muted)">Données marché + conseils compétitifs</div>
           </div>
         </div>
 
-        <!-- Contenu (visible pour GOLD+) -->
+        <!-- Contenu (inclus dans Qeerah Pro) -->
         <div id="market-intelligence-content-hp" style="display:none">
           <!-- Contexte catégorie -->
           <div style="margin-bottom:16px;padding:12px;background:white;border-radius:8px;border-left:3px solid var(--primary);font-size:12px;line-height:1.6;color:var(--text)">
@@ -1262,7 +1262,7 @@
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;margin-bottom:20px;opacity:0.6" data-locked="true">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:12px">
           <div style="text-align:center;font-size:13px;color:var(--navy);font-weight:600">
-            🔐 Verdict détaillé débloqué avec <strong>GOLD</strong> ou <strong>AGENCY</strong><br>
+            🔐 Verdict détaillé inclus dans <strong>Qeerah Pro</strong><br>
             <a href="#pricing" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;margin-top:6px;display:inline-block">Voir les plans →</a>
           </div>
         </div>
@@ -1276,7 +1276,7 @@
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;margin-bottom:20px;opacity:0.6" data-locked="true">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:12px">
           <div style="text-align:center;font-size:13px;color:var(--navy);font-weight:600">
-            🔐 Recommandations personnalisées débloquées avec <strong>GOLD</strong> ou <strong>AGENCY</strong><br>
+            🔐 Recommandations personnalisées incluses dans <strong>Qeerah Pro</strong><br>
             <a href="#pricing" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;margin-top:6px;display:inline-block">Voir les plans →</a>
           </div>
         </div>
@@ -1450,81 +1450,40 @@
 </script>
 
 <section class="pricing" id="pricing">
-  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-    <h2 class="section-title">Tarifs simples</h2>
-    <p class="section-subtitle">Commence gratuitement, scale quand tu es prêt</p>
+  <div style="max-width: 900px; margin: 0 auto; padding: 0 20px;">
+    <h2 class="section-title">Une seule offre</h2>
+    <p class="section-subtitle">Tout est inclus. Pas de palier, pas de fonctionnalite verrouillee.</p>
 
-    <div class="pricing-grid">
-      <!-- FREE -->
-      <div class="pricing-card">
-        <span class="pricing-badge">GRATUIT</span>
-        <div class="price">0€</div>
-        <div class="period">pour toujours</div>
-        <ul class="features-list">
-          <li>3 analyses/mois</li>
-          <li>Score sur 100</li>
-          <li>Insights basiques</li>
-          <li class="disabled">Coach IA</li>
-          <li class="disabled">Export PDF</li>
-        </ul>
-        <button class="btn-pricing" onclick="scrollToTool()">Commencer</button>
-      </div>
-
-      <!-- PRO -->
+    <div class="pricing-grid" style="grid-template-columns:1fr;max-width:520px;margin:0 auto">
       <div class="pricing-card popular" data-plan="pro">
-        <span class="pricing-badge">⭐ POPULAIRE · 🔥 LANCEMENT</span>
-        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~120 €/mois</div>
-        <div class="hp-save" id="hp-save-pro" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
-        <div class="price" id="hp-pro-price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">12,99€</span>9<span style="font-size:20px">,99€</span></div>
-        <div class="period">/ mois</div>
+        <span class="pricing-badge">QEERAH PRO</span>
+        <div class="price" id="hp-pro-price">29<span style="font-size:20px">,99&euro;</span></div>
+        <div class="period">par mois, TTC &mdash; ou 299 &euro; TTC/an (2 mois offerts)</div>
         <ul class="features-list">
-          <li><strong>300 analyses / mois</strong></li>
-          <li>Analyse upload <strong>+ lien TikTok</strong></li>
-          <li>🎬 <strong>AI Prompt Studio</strong> · 10 crédits</li>
-          <li>Scoring complet 8 dimensions</li>
-          <li class="disabled">Coach IA & multi-liens (GOLD)</li>
+          <li><strong>100 analyses de vid&eacute;os / mois</strong></li>
+          <li>Analyse par <strong>upload et par lien TikTok</strong></li>
+          <li><strong>Coach IA</strong>, script perso et analyse multi-liens</li>
+          <li><strong>Donn&eacute;es march&eacute;</strong>, Feed Radar et recherche de profil</li>
+          <li>&#127916; AI Prompt Studio et &#128248; Photo Slide Coach</li>
         </ul>
-        <button class="btn-pricing" onclick="location.href='/app'">Commencer avec PRO →</button>
-      </div>
-
-      <!-- GOLD -->
-      <div class="pricing-card" data-plan="gold">
-        <span class="pricing-badge">GOLD · 🔥 LANCEMENT</span>
-        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~350 €/mois</div>
-        <div class="hp-save" id="hp-save-gold" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
-        <div class="price"><span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">99€</span>79,99€</div>
-        <div class="period">/ mois</div>
-        <ul class="features-list">
-          <li><strong>Tout le plan PRO</strong></li>
-          <li><strong>1000 analyses / mois</strong></li>
-          <li><strong>Coach IA + script personnalisé</strong></li>
-          <li>📸 Photo Slide · 50 crédits/mois</li>
-          <li><strong>Analyse multi-liens</strong> (patterns)</li>
-        </ul>
-        <button class="btn-pricing" onclick="location.href='/pricing'">Découvrir GOLD →</button>
-      </div>
-
-      <!-- AGENCY -->
-      <div class="pricing-card" data-plan="agency">
-        <span class="pricing-badge">AGENCY</span>
-        <div class="hp-value" style="font-size:12px;font-weight:700;color:var(--accent)">💎 Valeur réelle ~800 €/mois</div>
-        <div class="hp-save" id="hp-save-agency" style="font-size:12px;font-weight:800;color:#16A34A;margin-bottom:6px"></div>
-        <div class="price">249€</div>
-        <div class="period">/ mois</div>
-        <ul class="features-list">
-          <li><strong>5 comptes Gold inclus</strong></li>
-          <li>Toutes les fonctionnalités Gold</li>
-          <li>1000 analyses / mois × 5</li>
-          <li>📸 Photo Slide · <strong>200 crédits/mois</strong></li>
-          <li><strong>Données marché</strong> · Support VIP</li>
-        </ul>
-        <button class="btn-pricing" onclick="location.href='/pricing'">Découvrir AGENCY →</button>
+        <button class="btn-pricing" onclick="location.href='/pricing'">S'abonner &agrave; Qeerah Pro &rarr;</button>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px">TVA non applicable, article 293 B du CGI.</div>
       </div>
     </div>
+
+    <p style="text-align:center;font-size:14px;color:var(--muted);margin-top:20px">
+      Pas encore de compte ? <strong style="color:var(--text)">7 jours d'acc&egrave;s complet offerts</strong>
+      &agrave; l'inscription, avec 10 analyses pour tester.
+      <a href="/app" style="color:var(--accent);font-weight:700;text-decoration:none">Cr&eacute;er un compte &rarr;</a>
+    </p>
+    <p style="text-align:center;margin-top:12px">
+      <a href="/pricing/compare" style="color:var(--accent);font-weight:700;text-decoration:none;font-size:14px">Voir le d&eacute;tail de toutes les fonctionnalit&eacute;s &rarr;</a>
+    </p>
+
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:18px;color:var(--muted);font-size:12.5px;margin-top:22px">
-      <span>🛡️ Sans engagement</span>
-      <span>💳 Paiement sécurisé (Stripe)</span>
-      <span>⚡ Activation immédiate · annulation en 1 clic</span>
+      <span>&#128737; Sans engagement</span>
+      <span>&#128179; Paiement s&eacute;curis&eacute; (Stripe)</span>
+      <span>&#9889; Activation imm&eacute;diate &middot; annulation en 1 clic</span>
     </div>
   </div>
 </section>
@@ -2286,7 +2245,7 @@
         <li style="margin-bottom:8px">✅ Recommandations détaillées personnalisées</li>
         <li style="margin-bottom:8px">✅ Conseils concrets pour chaque vidéo</li>
         <li style="margin-bottom:8px">✅ Analyses illimitées</li>
-        <li style="margin-bottom:8px">✅ Données marché en temps réel (GOLD/AGENCY)</li>
+        <li style="margin-bottom:8px">✅ Données marché en temps réel</li>
       </ul>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
         <button onclick="document.getElementById('limit-modal').remove(); document.getElementById('pricing').scrollIntoView({behavior:'smooth'})"
@@ -2442,59 +2401,10 @@
   }
   window.notifyMe = notifyMe;
 
-  function makeSoon(card, plan, dateStr) {
-    card.style.opacity = '.92';
-    var badge = card.querySelector('.pricing-badge');
-    if (badge) badge.textContent = '🔜 BIENTÔT';
-    card.querySelectorAll('.price,.period,.hp-value,.hp-save').forEach(function (n) { n.style.display = 'none'; });
-    card.classList.remove('popular');
-    var info = document.createElement('div');
-    info.style.cssText = 'text-align:center;font-size:13px;color:var(--muted);background:rgba(0,0,0,.04);border:1px dashed var(--border);border-radius:12px;padding:12px;margin:8px 0 14px';
-    info.innerHTML = '🔜 Disponible le<br><strong style="color:var(--text);font-size:16px">' + dateStr + '</strong>';
-    var feats = card.querySelector('.features-list');
-    if (feats) card.insertBefore(info, feats); else card.appendChild(info);
-    var btn = card.querySelector('.btn-pricing');
-    if (btn) { btn.textContent = '🔔 Me notifier'; btn.onclick = function () { notifyMe(plan); }; }
-  }
+  // (supprimé) Pilotage dynamique des anciennes cartes FREE/PRO/GOLD/AGENCY :
+  // prix progressifs, mentions « tu économises », bascule de carte vedette et
+  // état « bientôt disponible ». L'offre est unique et son prix est statique.
 
-  Promise.all([
-    fetch('/api/plans/available').then(function (r) { return r.json(); }),
-    fetch('/api/plans/prices').then(function (r) { return r.json(); })
-  ]).then(function (res) {
-    var plans = res[0].plans, dates = res[0].dates, prices = res[1].prices;
-    if (!plans || !prices) return;
-    var proEl = document.getElementById('hp-pro-price');
-    if (proEl && prices.pro) {
-      var cur = prices.pro.current, parts = cur.toFixed(2).split('.');
-      var old = prices.pro.promo
-        ? '<span style="font-size:16px;text-decoration:line-through;color:var(--muted);font-weight:500;margin-right:6px">' + fmtEur(prices.pro.original) + '</span>' : '';
-      proEl.innerHTML = old + parts[0] + '<span style="font-size:20px">,' + parts[1] + '€</span>';
-    }
-    // « Tu économises X €/mois » (valeur réelle − prix actuel)
-    var REAL = { pro: 120, gold: 350, agency: 800 };
-    ['pro', 'gold', 'agency'].forEach(function (plan) {
-      var s = document.getElementById('hp-save-' + plan);
-      if (!s) return;
-      if (plans[plan] && prices[plan]) s.textContent = '→ tu économises ~' + Math.round(REAL[plan] - prices[plan].current) + ' €/mois';
-      else s.style.display = 'none';
-    });
-    ['pro', 'gold', 'agency'].forEach(function (plan) {
-      var card = document.querySelector('.pricing-card[data-plan="' + plan + '"]');
-      if (card && !plans[plan]) makeSoon(card, plan, dates[plan]);
-    });
-    // Carte vedette : PRO jusqu'au 16 sept, puis GOLD (seulement si ouverte)
-    var featured = plans.gold ? 'gold' : 'pro';
-    if (!plans[featured]) featured = null;
-    ['pro', 'gold', 'agency'].forEach(function (plan) {
-      var card = document.querySelector('.pricing-card[data-plan="' + plan + '"]');
-      if (!card) return;
-      if (plan === featured) {
-        card.classList.add('popular');
-        var b = card.querySelector('.pricing-badge');
-        if (b) b.textContent = '⭐ POPULAIRE · 🔥 LANCEMENT';
-      } else { card.classList.remove('popular'); }
-    });
-  }).catch(function () { /* garde l'affichage statique si l'API échoue */ });
 })();
 </script>
 <!--TURNSTILE_SCRIPT-->
