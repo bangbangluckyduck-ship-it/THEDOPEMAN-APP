@@ -232,13 +232,13 @@ def check(user: dict) -> None:
     if state["kind"] == "trial":
         raise HTTPException(
             status_code=429,
-            detail=f"Tu as utilisé les {TRIAL_LIMIT} analyses de ton essai gratuit. "
-                   "Abonne-toi à Qeerah Pro pour 100 analyses par mois.",
+            detail="Tu as utilisé toutes les analyses de ton essai gratuit. "
+                   "Abonne-toi à Qeerah Pro pour continuer.",
         )
 
     raise HTTPException(
         status_code=429,
-        detail=f"Quota mensuel atteint ({state['limit']} analyses) — "
+        detail=f"Limite mensuelle d'analyses atteinte — "
                f"réinitialisation le {state['reset_label']}.",
     )
 

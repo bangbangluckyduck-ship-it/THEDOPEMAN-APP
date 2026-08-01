@@ -2998,12 +2998,15 @@ function updateUsageCounter() {
   // facturation Stripe). Le compteur localStorage n'est qu'un repli d'affichage
   // tant qu'aucune réponse serveur n'est arrivée.
   const u = window.__usage;
-  if (!u || u.limit === undefined || u.limit === null) {
-    el.textContent = `${getUsage()} / —`;
+  if (!u || u.used === undefined || u.used === null) {
+    el.textContent = `${getUsage()}`;
     return;
   }
 
-  el.textContent = `${u.used} / ${u.limit}`;
+  // Le plafond existe côté serveur mais n'est pas affiché : on ne montre que
+  // la consommation. Le client n'apprend l'existence d'une limite que s'il
+  // l'atteint réellement.
+  el.textContent = `${u.used}`;
 
   const banner = document.getElementById('freemium-banner');
   const title  = document.getElementById('freemium-title');
@@ -3019,7 +3022,7 @@ function updateUsageCounter() {
     if (banner) banner.style.cursor = 'pointer';
     if (banner) banner.onclick = () => switchTab('pricing');
   } else if (u.blocked) {
-    title.textContent = `Quota mensuel atteint — réinitialisation le ${u.reset_label || 'prochain cycle'}`;
+    title.textContent = `Limite mensuelle atteinte — réinitialisation le ${u.reset_label || 'prochain cycle'}`;
   } else {
     title.textContent = "Qeerah Pro";
   }

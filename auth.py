@@ -347,7 +347,7 @@ def check_quota(user: dict) -> None:
         if count >= cfg["monthly"]:
             raise HTTPException(
                 status_code=429,
-                detail=f"Quota atteint ({cfg['monthly']} analyses). "
+                detail="Limite mensuelle d'analyses atteinte. "
                        "Réessaie au prochain cycle ou abonne-toi sur qeerah.com",
             )
 
