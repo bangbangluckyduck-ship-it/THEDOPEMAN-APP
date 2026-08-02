@@ -64,9 +64,14 @@
         'flex-wrap:wrap;padding:10px 44px 10px 16px;font-size:14px;' +
         'line-height:1.4;box-shadow:0 2px 12px rgba(0,0,0,.18)}' +
       '#' + BANNER_ID + ' .qp-msg{font-weight:700}' +
+      // Police système volontairement, PAS une chasse fixe : en monospace le O
+      // majuscule se confond avec le zéro (« TIKTOKAOUT2026 » se lit
+      // « TIKT0KA0UT2026 »), et le client recopie un code que Stripe refuse
+      // sans lui dire pourquoi. L'espacement des lettres suffit à donner
+      // l'aspect « code » sans créer l'ambiguïté.
       '#' + BANNER_ID + ' .qp-code{display:inline-block;background:rgba(255,255,255,.18);' +
         'border:1px dashed rgba(255,255,255,.55);border-radius:8px;padding:2px 10px;' +
-        'font-weight:800;letter-spacing:.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}' +
+        'font-weight:800;letter-spacing:.09em}' +
       '#' + BANNER_ID + ' .qp-count{font-variant-numeric:tabular-nums;font-weight:800;' +
         'background:rgba(0,0,0,.22);border-radius:8px;padding:3px 10px}' +
       '#' + BANNER_ID + ' .qp-cta{background:#fff;color:#1F3A70;text-decoration:none;' +
