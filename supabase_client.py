@@ -229,13 +229,14 @@ def increment_usage(email: str) -> None:
     """Incrémente les compteurs selon le tier."""
     tier = get_user_tier(email)
 
-    # Tiers avec limite mensuelle
-    if tier in ("free", "pro"):
+    # Compteur mensuel pour tous les tiers sauf admin. `beta` était auparavant
+    # absent des deux branches : ses analyses n'étaient écrites nulle part, et
+    # le KPI « analyses totales » de l'admin restait bloqué à zéro.
+    if tier in ("free", "pro", "beta"):
         _increment_monthly(email)
-    # Tiers avec limite journalière
     elif tier in ("gold", "agency"):
         _increment_daily(email)
-    # Admin et beta: pas de limite
+    # admin : volontairement non compté
 
 
 def get_usage(email: str) -> int:

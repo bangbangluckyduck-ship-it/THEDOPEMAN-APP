@@ -863,9 +863,15 @@ async def admin_stats(request: Request):
             except Exception as e:
                 print(f"[admin/stats] count tier {t} échoué : {e}")
 
-        # Total analyses = somme des compteurs d'usage (mensuel free/pro + journalier gold/agency),
-        # en ignorant les lignes appartenant aux comptes internes/bots.
-        for table in ("monthly_usage", "daily_usage"):
+        # Total analyses — source de vérité : analysis_quota_periods, alimenté
+        # pour TOUS les tiers sauf admin.
+        #
+        # Les tables monthly_usage / daily_usage sont conservées dans la somme
+        # pour l'antériorité, mais elles ne sont plus fiables seules : l'ancien
+        # compteur ne traitait que free/pro (mensuel) et gold/agency (journalier)
+        # — un compte `beta` n'était écrit nulle part, et le KPI restait donc
+        # bloqué à zéro pour ces comptes.
+        for table in ("analysis_quota_periods", "monthly_usage", "daily_usage"):
             try:
                 resp = supabase.table(table).select("count, user_id").execute()
                 for row in (resp.data or []):

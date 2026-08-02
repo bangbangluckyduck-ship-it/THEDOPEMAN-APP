@@ -274,7 +274,11 @@
       <!-- ── VUE STATISTIQUES ── -->
       <section id="view-stats" class="view active">
         <h1 class="view-title">📊 Statistiques</h1>
-        <p class="view-sub">Pilotage de l'application en temps réel.</p>
+        <p class="view-sub">Pilotage de l'application. Les chiffres sont lus à l'ouverture de l'onglet.</p>
+
+        <div class="toolbar">
+          <button class="btn btn-ghost" onclick="loadStats()">🔄 Rafraîchir</button>
+        </div>
 
         <div class="kpi-grid">
           <div class="kpi-card accent">
