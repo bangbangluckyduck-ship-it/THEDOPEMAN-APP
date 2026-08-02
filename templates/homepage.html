@@ -1171,6 +1171,275 @@
 })();
 </script>
 
+<!-- ════════════════════ DÉMONSTRATION PRODUIT (lot 2.1) ════════════════════ -->
+<!-- Rien ne montrait à quoi ressemble un rapport complet : le visiteur devait
+     s'inscrire pour le découvrir. Reconstitution animée en HTML/CSS plutôt
+     qu'une vidéo — plus légère, lisible par les moteurs, sans décalage de
+     mise en page, et le texte reste sélectionnable. -->
+<style>
+  .demo-section { padding: 56px 20px; background: var(--surface, #fff); }
+  .demo-wrap { max-width: 940px; margin: 0 auto; }
+  .demo-head { text-align: center; margin-bottom: 26px; }
+  .demo-head h2 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 8px; }
+  .demo-head p { color: var(--muted); font-size: 15px; }
+  .demo-tag {
+    display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; margin-bottom: 12px;
+  }
+
+  /* Fenêtre */
+  .demo-win {
+    background: #0F172A; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(15,23,42,.28); margin-bottom: 18px;
+  }
+  .demo-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: #1E293B; }
+  .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-url {
+    flex: 1; margin-left: 8px; font-size: 11.5px; color: #94A3B8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .demo-stage { padding: 20px 18px 22px; min-height: 268px; }
+
+  /* Étapes du déroulé */
+  .demo-line {
+    display: flex; align-items: center; gap: 10px; padding: 9px 0;
+    font-size: 13.5px; color: #94A3B8;
+    opacity: .28; transition: opacity .45s ease, color .45s ease;
+  }
+  .demo-line.on { opacity: 1; color: #E2E8F0; }
+  .demo-line.done { opacity: .65; }
+  .demo-ico {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid #334155; display: flex; align-items: center;
+    justify-content: center; font-size: 11px; color: #0F172A;
+  }
+  .demo-line.on .demo-ico, .demo-line.done .demo-ico { background: #22C55E; border-color: #22C55E; }
+
+  /* Résultat */
+  .demo-result { margin-top: 14px; opacity: 0; transform: translateY(8px); transition: all .5s ease; }
+  .demo-result.on { opacity: 1; transform: none; }
+  .demo-score {
+    background: linear-gradient(135deg, #D4AF37, #B8912A); color: #1a1a1a;
+    border-radius: 12px; padding: 14px; text-align: center;
+    font-size: 30px; font-weight: 800; margin-bottom: 12px;
+  }
+  .demo-score span { font-size: 15px; font-weight: 700; opacity: .75; }
+  .demo-rows { display: grid; gap: 8px; }
+  .demo-row {
+    background: #1E293B; border-left: 3px solid #22C55E; border-radius: 8px;
+    padding: 9px 12px; font-size: 12.5px; color: #CBD5E1;
+  }
+  .demo-row.warn { border-left-color: #F59E0B; }
+
+  .demo-controls { display: flex; justify-content: center; margin-bottom: 30px; }
+  .demo-pause {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 18px; font: inherit; font-size: 13px; font-weight: 700;
+    color: var(--text); cursor: pointer;
+  }
+  .demo-pause:hover { border-color: var(--primary); }
+
+  /* Onglets */
+  .demo-tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .demo-tab {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+    padding: 9px 16px; font: inherit; font-size: 13.5px; font-weight: 700;
+    color: var(--muted); cursor: pointer;
+  }
+  .demo-tab[aria-selected="true"] { background: var(--navy, #1F3A70); border-color: var(--navy, #1F3A70); color: #fff; }
+  .demo-panel {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; font-size: 14.5px; line-height: 1.65;
+  }
+  .demo-panel[hidden] { display: none; }
+  .demo-panel h3 { font-size: 15px; margin-bottom: 8px; color: var(--navy, #1F3A70); }
+  .demo-panel ul { margin: 8px 0 0 18px; }
+  .demo-panel li { margin-bottom: 6px; }
+  .demo-quote {
+    background: var(--surface, #fff); border-left: 3px solid var(--primary);
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-style: italic;
+  }
+
+  @media (max-width: 560px) {
+    .demo-head h2 { font-size: 22px; }
+    .demo-stage { padding: 16px 14px 18px; min-height: 250px; }
+    .demo-tab { flex: 1; min-width: 0; font-size: 12.5px; padding: 9px 8px; }
+  }
+  /* Respecte le réglage système « animations réduites » */
+  @media (prefers-reduced-motion: reduce) {
+    .demo-line, .demo-result { transition: none; }
+  }
+</style>
+
+<section class="demo-section" id="demo" aria-labelledby="demo-title">
+  <div class="demo-wrap">
+    <div class="demo-head">
+      <span class="demo-tag">Exemple d'analyse</span>
+      <h2 id="demo-title">Voici exactement ce que tu reçois</h2>
+      <p>Un rapport complet en 30 secondes, à partir d'un simple lien.</p>
+    </div>
+
+    <div class="demo-win">
+      <div class="demo-bar" aria-hidden="true">
+        <span class="demo-dot" style="background:#EF4444"></span>
+        <span class="demo-dot" style="background:#F59E0B"></span>
+        <span class="demo-dot" style="background:#22C55E"></span>
+        <span class="demo-url">qeerah.com/app — analyse en cours</span>
+      </div>
+      <div class="demo-stage">
+        <div id="demo-steps" role="status" aria-live="polite">
+          <div class="demo-line" data-i="0"><span class="demo-ico">✓</span> Lecture du lien TikTok</div>
+          <div class="demo-line" data-i="1"><span class="demo-ico">✓</span> Extraction des images et de l'audio</div>
+          <div class="demo-line" data-i="2"><span class="demo-ico">✓</span> Analyse de l'accroche et de la rétention</div>
+          <div class="demo-line" data-i="3"><span class="demo-ico">✓</span> Détection des déclencheurs de vente</div>
+          <div class="demo-line" data-i="4"><span class="demo-ico">✓</span> Rédaction du plan d'action</div>
+        </div>
+
+        <div class="demo-result" id="demo-result">
+          <div class="demo-score">87<span>/100</span></div>
+          <div class="demo-rows">
+            <div class="demo-row">Accroche : question directe, interruption forte dès la 1<sup>re</sup> seconde</div>
+            <div class="demo-row">Preuve sociale et rareté activées entre 0:04 et 0:11</div>
+            <div class="demo-row warn">Appel à l'action tardif — la chute d'attention démarre à 0:14</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-controls">
+      <button type="button" class="demo-pause" id="demo-pause"
+              aria-label="Mettre la démonstration en pause">Mettre en pause</button>
+    </div>
+
+    <div class="demo-tabs" role="tablist" aria-label="Détail du rapport">
+      <button class="demo-tab" role="tab" id="tab-0" aria-controls="panel-0" aria-selected="true">Accroche décryptée</button>
+      <button class="demo-tab" role="tab" id="tab-1" aria-controls="panel-1" aria-selected="false">Déclencheurs</button>
+      <button class="demo-tab" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false">Plan d'action</button>
+    </div>
+
+    <div class="demo-panel" role="tabpanel" id="panel-0" aria-labelledby="tab-0">
+      <h3>Pourquoi cette accroche retient</h3>
+      <div class="demo-quote">« Tu fais ça tous les matins et c'est exactement ce qui abîme ta peau. »</div>
+      <ul>
+        <li><strong>Type</strong> — accusation douce : le spectateur se sent concerné avant de comprendre pourquoi.</li>
+        <li><strong>Force d'interruption</strong> — élevée : le sujet est nommé dans les 1,2 première seconde.</li>
+        <li><strong>Promesse implicite</strong> — « je vais te dire quoi faire à la place », tenue à 0:06.</li>
+      </ul>
+    </div>
+
+    <div class="demo-panel" role="tabpanel" id="panel-1" aria-labelledby="tab-1" hidden>
+      <h3>Les déclencheurs activés</h3>
+      <ul>
+        <li><strong>Preuve sociale</strong> — « des milliers de personnes » à 0:04, sans chiffre vérifiable mais suffisant pour rassurer.</li>
+        <li><strong>Autorité</strong> — vocabulaire technique à 0:07, qui installe la légitimité.</li>
+        <li><strong>Rareté</strong> — mention d'un stock limité à 0:11.</li>
+        <li><strong>Absent : réciprocité</strong> — aucun conseil offert avant la vente, c'est le levier le plus rentable à ajouter ici.</li>
+      </ul>
+    </div>
+
+    <div class="demo-panel" role="tabpanel" id="panel-2" aria-labelledby="tab-2" hidden>
+      <h3>Ce que tu changes sur ta prochaine vidéo</h3>
+      <ul>
+        <li>Avancer l'appel à l'action à <strong>0:08</strong> au lieu de 0:14 : l'attention chute avant qu'il n'arrive.</li>
+        <li>Ajouter une démonstration visuelle entre 0:05 et 0:09, la zone la plus regardée.</li>
+        <li>Reprendre la structure d'accroche, adaptée à ton produit — trois variantes te sont proposées.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var lignes  = Array.prototype.slice.call(document.querySelectorAll('#demo-steps .demo-line'));
+  var result  = document.getElementById('demo-result');
+  var pauseBtn = document.getElementById('demo-pause');
+  if (!lignes.length || !result || !pauseBtn) return;
+
+  var i = 0, timer = null, enPause = false;
+  // Le réglage système « animations réduites » : on affiche tout d'emblée,
+  // sans boucle, plutôt que d'imposer un mouvement à qui l'a désactivé.
+  var reduit = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function toutAfficher() {
+    lignes.forEach(function (l) { l.classList.add('on', 'done'); });
+    result.classList.add('on');
+  }
+
+  function etape() {
+    if (i < lignes.length) {
+      if (i > 0) lignes[i - 1].classList.add('done');
+      lignes[i].classList.add('on');
+      i++;
+    } else if (!result.classList.contains('on')) {
+      result.classList.add('on');
+    } else {
+      // Reprise du cycle
+      i = 0;
+      result.classList.remove('on');
+      lignes.forEach(function (l) { l.classList.remove('on', 'done'); });
+    }
+  }
+
+  function demarrer() {
+    if (timer || enPause || reduit) return;
+    // Repart du début : sinon l'animation reprendrait sur l'état « tout
+    // affiché » et le déroulé ne se verrait pas.
+    i = 0;
+    result.classList.remove('on');
+    lignes.forEach(function (l) { l.classList.remove('on', 'done'); });
+    timer = setInterval(etape, 1400);
+  }
+  function arreter() { clearInterval(timer); timer = null; }
+
+  pauseBtn.addEventListener('click', function () {
+    enPause = !enPause;
+    if (enPause) { arreter(); toutAfficher(); }
+    else { demarrer(); }
+    pauseBtn.textContent = enPause ? 'Relancer la démonstration' : 'Mettre en pause';
+    pauseBtn.setAttribute('aria-label', enPause ? 'Relancer la démonstration'
+                                               : 'Mettre la démonstration en pause');
+  });
+
+  // État de repos : tout est visible. L'animation rejoue le déroulé quand la
+  // section entre à l'écran, mais le visiteur ne doit JAMAIS tomber sur un
+  // bloc grisé si l'observateur ne se déclenche pas.
+  toutAfficher();
+
+  if (reduit) {
+    pauseBtn.hidden = true;
+  } else {
+    // N'anime que si la section est à l'écran : inutile de faire tourner une
+    // boucle en arrière-plan pendant que le visiteur lit ailleurs.
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { e.isIntersecting ? demarrer() : arreter(); });
+      }, { threshold: .25 }).observe(document.getElementById('demo'));
+    } else {
+      demarrer();
+    }
+  }
+
+  // Onglets — navigation clavier incluse (flèches), comme attendu d'un tablist
+  var onglets = Array.prototype.slice.call(document.querySelectorAll('.demo-tab'));
+  function activer(n) {
+    onglets.forEach(function (t, k) {
+      t.setAttribute('aria-selected', k === n ? 'true' : 'false');
+      document.getElementById('panel-' + k).hidden = k !== n;
+    });
+    onglets[n].focus();
+  }
+  onglets.forEach(function (t, n) {
+    t.addEventListener('click', function () { activer(n); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); activer((n + 1) % onglets.length); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); activer((n - 1 + onglets.length) % onglets.length); }
+    });
+  });
+})();
+</script>
+
 <!-- ════════════════════ TOOL ════════════════════ -->
 <section class="tool-section" id="tool">
   <div class="tool-container">
