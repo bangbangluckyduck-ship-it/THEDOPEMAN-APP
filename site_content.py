@@ -88,7 +88,9 @@ SOCIAL = {
 # plainte. Aucune occurrence ne doit subsister dans le dépôt.
 
 CONTACT_EMAIL = "contact@qeerah.com"
-SITE_URL = "https://qeerah.com"
+# Domaine réellement servi par Render : qeerah.com redirige en 308 vers www.
+# Une balise canonical doit désigner l'URL finale, pas une URL redirigée.
+SITE_URL = "https://www.qeerah.com"
 
 # ── ÉDITEUR (mentions légales) ────────────────────────────────────────────
 # Repris des CGV, donc déjà vérifié. Les champs vides sont à fournir : ils ne

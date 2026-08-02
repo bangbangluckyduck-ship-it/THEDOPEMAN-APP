@@ -1380,6 +1380,7 @@ async function extractAudio(file) {
 
 // ── MAIN ANALYSIS FLOW ────────────────────────────────────────
 async function analyzeVideo() {
+  if (window.qTrackAnalyseDemarree) qTrackAnalyseDemarree('fichier');
   if (!selectedFile) return;
 
   // ── "Aha! Moment" gate : 1 essai libre, puis création de compte ──
@@ -1581,6 +1582,7 @@ async function analyzeVideo() {
 // ════════════════════════════════════════════════════════════════════════════
 // Analyse 1 lien TikTok en SSE (affichage dynamique : download → vision → synthèse).
 async function analyzeSingleUrl() {
+  if (window.qTrackAnalyseDemarree) qTrackAnalyseDemarree('lien');
   const input = document.getElementById('tiktok-url-single');
   const url = input ? input.value.trim() : '';
   if (!url) { showError('Colle un lien TikTok.'); input && input.focus(); return; }
@@ -2185,6 +2187,8 @@ function renderErrorTimeline(d) {
 
 // ── SHOW RESULTS (Core rendering function - keep as is) ────────
 function showResults(d) {
+  if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(true);
+  if (window.qTrackResultatAffiche) qTrackResultatAffiche();
   console.log('[DEBUG] showResults called with data:', d);
   window._lastAnalysis = d;   // pour le partage du score (Feature 4)
   renderModerationAndScript(d);
@@ -5684,6 +5688,7 @@ let _jobsPollTimer = null;
 
 // ── Lancement async d'une analyse par URL ────────────────────────────────
 async function analyzeUrlAsync() {
+  if (window.qTrackAnalyseDemarree) qTrackAnalyseDemarree('lien');
   const input = document.getElementById('tiktok-url-single');
   const url = input ? input.value.trim() : '';
   if (!url) { showError('Colle un lien TikTok.'); return; }
@@ -5717,6 +5722,7 @@ async function analyzeUrlAsync() {
 
 // ── Lancement async d'une analyse par upload ─────────────────────────────
 async function analyzeUploadAsync() {
+  if (window.qTrackAnalyseDemarree) qTrackAnalyseDemarree('fichier');
   if (!selectedFile) { showError('Choisis une vidéo.'); return; }
   const product = (document.getElementById('product-input')?.value || '').trim();
   const price = (document.getElementById('price-input')?.value || '').trim();
