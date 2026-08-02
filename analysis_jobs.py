@@ -184,27 +184,50 @@ def mark_error(job_id: str, error_message: str) -> None:
         logger.warning("[analysis_jobs] mark_error failed: %s", e)
 
 
-def cleanup_stale_running(timeout_minutes: int = 10) -> int:
-    """Au démarrage de l'app : tous les jobs 'running' qui ont commencé il y a
-    plus de N minutes sont marqués 'error' (probablement orphelins après un
-    crash/deploy Render). Retourne le nombre de jobs nettoyés."""
+def cleanup_stale_running(timeout_minutes: int = 2) -> int:
+    """Au démarrage de l'app : marque 'error' les jobs restés en cours.
+
+    Un processus qui vient de démarrer ne peut avoir AUCUN job légitimement en
+    cours : tout `running` (ou `queued`) survivant appartient au processus
+    précédent, tué par un redéploiement ou un crash. Sans ce nettoyage, le job
+    reste « en cours » pour l'éternité : l'interface attend un résultat qui
+    n'arrivera jamais et aucun e-mail d'erreur n'est envoyé.
+
+    Le seuil était de 10 minutes, ce qui le rendait inopérant sur le cas le plus
+    fréquent — un déploiement pendant une analyse qui vient de démarrer : au
+    redémarrage le job n'avait que quelques minutes, il passait sous le seuil et
+    restait bloqué. Deux minutes suffisent à couvrir le redémarrage tout en
+    épargnant un job qu'une autre instance viendrait de lancer.
+
+    Couvre aussi `queued` : si le processus meurt entre la création du job et
+    son démarrage effectif, il n'atteint jamais l'état `running`.
+
+    Retourne le nombre de jobs nettoyés.
+    """
     if not supabase_service:
         return 0
-    try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)).isoformat()
-        r = (supabase_service.table("analysis_jobs")
-             .update({
-                 "status": _STATUS_ERROR,
-                 "error_message": "Job interrompu (worker redémarré). Relance l'analyse.",
-                 "completed_at": _now_iso(),
-             })
-             .eq("status", _STATUS_RUNNING)
-             .lt("started_at", cutoff)
-             .execute())
-        n = len(r.data or [])
-        if n > 0:
-            logger.info("[analysis_jobs] nettoyé %s job(s) orphelin(s)", n)
-        return n
-    except Exception as e:
-        logger.warning("[analysis_jobs] cleanup failed: %s", e)
-        return 0
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)).isoformat()
+    total = 0
+
+    # `running` → filtré sur started_at ; `queued` → sur created_at, car un job
+    # jamais démarré n'a pas de started_at (la comparaison exclurait les NULL).
+    for status, date_col in ((_STATUS_RUNNING, "started_at"), (_STATUS_QUEUED, "created_at")):
+        try:
+            r = (supabase_service.table("analysis_jobs")
+                 .update({
+                     "status": _STATUS_ERROR,
+                     "error_message": "Analyse interrompue par un redémarrage du serveur. "
+                                      "Relance-la, rien n'est perdu.",
+                     "completed_at": _now_iso(),
+                 })
+                 .eq("status", status)
+                 .lt(date_col, cutoff)
+                 .execute())
+            total += len(r.data or [])
+        except Exception as e:
+            logger.warning("[analysis_jobs] cleanup %s failed: %s", status, e)
+
+    if total:
+        logger.info("[analysis_jobs] nettoyé %s job(s) orphelin(s)", total)
+    return total

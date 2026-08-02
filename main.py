@@ -125,11 +125,14 @@ def _persist_sync_analysis(user: dict, result: dict, *, source: str,
 generate_icons()
 
 # Nettoyage des jobs orphelins au démarrage : si Render a redéployé pendant
-# qu'un job était en cours, le worker a été tué → le job reste "running"
-# pour l'éternité. On marque "error" tous les jobs running depuis >10 min.
+# qu'un job était en cours, le worker a été tué → le job reste "running" pour
+# l'éternité et l'utilisateur attend un résultat qui n'arrivera jamais.
+# Seuil court (2 min) : un processus qui démarre n'a aucun job légitimement en
+# cours. À 10 min, une analyse tuée juste après son lancement passait sous le
+# seuil et n'était jamais nettoyée.
 try:
     import analysis_jobs as _aj_startup
-    _aj_startup.cleanup_stale_running(timeout_minutes=10)
+    _aj_startup.cleanup_stale_running(timeout_minutes=2)
 except Exception as _e_startup:
     print(f"[startup] cleanup_stale_running KO: {_e_startup}")
 
