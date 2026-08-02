@@ -40,8 +40,52 @@ CREDIT_PACKS = {
 }
 
 
+# Essais offerts sur CHAQUE fonctionnalité qui consomme des crédits, pendant
+# l'essai gratuit. Le tier `free` a 0 crédit : sans cette dotation, la promesse
+# « 7 jours d'accès complet » serait fausse — le Studio d'accroches et le Coach
+# carrousel restaient inaccessibles pendant tout l'essai.
+#
+# Compté par fonctionnalité, et non en crédits : un pot commun laisserait un
+# utilisateur épuiser sa dotation sur une seule fonction sans jamais découvrir
+# l'autre. Le comptage s'appuie sur les tables d'historique déjà écrites après
+# chaque génération, donc rien à maintenir en plus.
+TRIAL_FREE_USES = 3
+
+
 def plan_total(tier: Optional[str]) -> int:
     return PLAN_CREDITS.get((tier or "free").lower(), 0)
+
+
+def trial_uses_left(supabase, email: str, tier: str, table: str) -> int:
+    """Essais gratuits restants sur une fonctionnalité, pendant l'essai.
+
+    Renvoie 0 si l'utilisateur n'est pas en période d'essai — un abonné passe
+    par ses crédits normalement, un essai expiré n'a plus rien.
+    `table` : 'video_prompt_generations' ou 'photo_slide_generations'.
+    """
+    try:
+        import analysis_quota
+        period = analysis_quota.resolve_period(email, tier)
+    except Exception as e:
+        print(f"credits.trial_uses_left: {e}")
+        return 0
+
+    if period.get("kind") != "trial":
+        return 0
+
+    start = period.get("start")
+    if not supabase or not email or not start:
+        return 0
+
+    try:
+        r = (supabase.table(table).select("id", count="exact")
+             .eq("email", email).gte("created_at", start.isoformat()).execute())
+        used = r.count if r.count is not None else len(r.data or [])
+    except Exception as e:
+        print(f"credits.trial_uses_left ({table}): {e}")
+        return 0
+
+    return max(0, TRIAL_FREE_USES - used)
 
 
 def level_cost(level: int, platform: Optional[str] = None) -> int:

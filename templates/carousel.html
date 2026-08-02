@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Créer un Carrousel TikTok Shop — Qeerah</title>
-<meta name="description" content="Génère un carrousel TikTok Shop optimisé en 60s. Compte gratuit — 3 carrousels/mois inclus.">
+<meta name="description" content="Génère un carrousel TikTok Shop optimisé en 60s. {{ TRIAL_OFFER }}.">
 <style>
   :root{--bg:#F5F7FA;--surface:#fff;--surface2:#f1f4f8;--text:#1A1A1A;--muted:#6B7280;--border:#e3e8ef;
         --primary:#2563EB;--gold:#D4AF37;--navy:#1F3A70;--success:#059669;--err:#DC2626;--radius:14px}
@@ -54,7 +54,7 @@
 
 <div class="wrap">
   <h1>Créer un Carrousel TikTok Shop <span class="badge">NEW</span></h1>
-  <div class="sub" id="cc-status">✨ Crée un compte gratuit pour générer — 3 carrousels/mois inclus.</div>
+  <div class="sub" id="cc-status">✨ Crée un compte pour générer — {{ TRIAL_OFFER }}.</div>
 
   <div class="card" id="cc-form">
     <!-- Lien produit TikTok Shop (OBLIGATOIRE) -->
@@ -203,7 +203,7 @@ async function ccGenerate(){
   if(!token()){
     const out=document.getElementById('cc-result');
     out.innerHTML=`<div class="upsell"><strong>🔒 Crée un compte gratuit pour générer ton carrousel</strong>
-      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">L'inscription est gratuite — 3 carrousels/mois inclus, historique sauvegardé.</div>
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">L'inscription est gratuite — {{ TRIAL_OFFER }}, historique sauvegardé.</div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <a class="btn btn-primary" style="width:auto" href="/app">Créer mon compte gratuit</a>
         <a class="btn btn-gold" href="/app">Se connecter</a></div></div>`;

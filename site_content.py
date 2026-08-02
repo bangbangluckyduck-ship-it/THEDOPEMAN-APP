@@ -24,12 +24,17 @@ TRIAL_OFFER_SHORT = "7 jours offerts"
 TRIAL_DAYS = _ff.TRIAL_DAYS               # 7
 TRIAL_ANALYSES = _ff.TRIAL_ANALYSES       # 10
 
-# Formulation complète, à utiliser là où la limite doit être explicite (CGV,
-# page tarifs). La promesse courte ne mentionne pas le plafond : les deux
+# Nombre d'essais offerts sur chaque fonctionnalité consommant des crédits
+# (Studio d'accroches, Coach carrousel) pendant l'essai.
+TRIAL_FREE_USES = 3
+
+# Formulation complète, à utiliser là où le détail doit être explicite (page
+# tarifs, CGV). La promesse courte ne détaille pas les plafonds : les deux
 # doivent rester cohérentes avec l'article 4 des CGV.
 TRIAL_OFFER_FULL = (
-    f"{TRIAL_DAYS} jours d'accès complet, sans carte bancaire "
-    f"({TRIAL_ANALYSES} analyses incluses)"
+    f"{TRIAL_DAYS} jours d'accès complet, sans carte bancaire — "
+    f"{TRIAL_ANALYSES} analyses de vidéos et {TRIAL_FREE_USES} essais "
+    f"sur chaque outil de création"
 )
 
 # ── L'OFFRE ───────────────────────────────────────────────────────────────
@@ -133,6 +138,7 @@ def context() -> dict:
         "TRIAL_OFFER_FULL": TRIAL_OFFER_FULL,
         "TRIAL_DAYS": TRIAL_DAYS,
         "TRIAL_ANALYSES": TRIAL_ANALYSES,
+        "TRIAL_FREE_USES": TRIAL_FREE_USES,
 
         "PLAN_NAME": PLAN_NAME,
         "PRICE_MONTH": PRICE_MONTH,

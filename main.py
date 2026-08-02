@@ -4322,8 +4322,15 @@ async def video_prompt_generate(
     # Vérif crédits AVANT (réponse claire pour le front si insuffisant)
     bal = credits_mod.get_balance(supabase_client, email, tier)
     if bal.get("total_available", 0) < cost:
-        return JSONResponse({"ok": False, "reason": "insufficient_credits",
-                             "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+        # Pendant l'essai, les premières générations sont offertes : le tier
+        # `free` n'a aucun crédit, sans quoi la fonctionnalité resterait
+        # inaccessible durant les 7 jours d'accès annoncés.
+        if credits_mod.trial_uses_left(supabase_client, email, tier,
+                                       "video_prompt_generations") > 0:
+            cost = 0
+        else:
+            return JSONResponse({"ok": False, "reason": "insufficient_credits",
+                                 "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
 
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
@@ -4627,8 +4634,12 @@ async def carousel_generate(
         cost = image_gen.provider_credits(gen_provider)
         bal = credits_mod.get_balance(supabase_client, email, tier)
         if bal.get("total_available", 0) < cost:
-            return JSONResponse({"ok": False, "reason": "insufficient_credits",
-                                 "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+            if credits_mod.trial_uses_left(supabase_client, email, tier,
+                                           "photo_slide_generations") > 0:
+                cost = 0          # essai : génération offerte, aucun débit
+            else:
+                return JSONResponse({"ok": False, "reason": "insufficient_credits",
+                                     "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
         payment_method = "credits"
     else:
         # Mode A : quota FREE = 3/mois
