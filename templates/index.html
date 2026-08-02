@@ -1356,7 +1356,7 @@
   <!-- TRANSPARENCY BANNER -->
   <div id="transparency-banner">
     <span class="tb-icon">🔒</span>
-    <span class="tb-text"><strong data-i18n="tb_title">Vos données vous appartiennent</strong> — <span data-i18n="tb_sub">restent EN LOCAL, jamais envoyées.</span></span>
+    <span class="tb-text"><strong data-i18n="tb_title">Tes données t'appartiennent</strong> — <span data-i18n="tb_sub">restent EN LOCAL, jamais envoyées.</span></span>
     <span class="tb-link" onclick="openPrivacyModal()" data-i18n="tb_link">Détails →</span>
     <button class="tb-close" onclick="dismissTransparencyBanner()">✕</button>
   </div>
@@ -1388,7 +1388,7 @@
 
   <!-- FREEMIUM BANNER -->
   <div class="freemium-banner" id="freemium-banner">
-    <strong id="freemium-title" data-i18n="freemium_title">Votre consommation</strong>
+    <strong id="freemium-title" data-i18n="freemium_title">Ta consommation</strong>
     <span id="freemium-count-label" data-i18n="freemium_count">Analyses ce mois-ci :</span> <span class="usage-count" id="usage-count">—</span>
   </div>
 
@@ -1902,7 +1902,7 @@
         <div><strong style="font-size:14px">🤔 C'est quoi Qeerah exactement ?</strong><br><span style="font-size:13px;color:var(--muted)">Qeerah analyse les vidéos et produits qui <strong>vendent le plus sur TikTok Shop</strong>, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit.</span></div>
         <div><strong style="font-size:14px">🆓 Je peux tester sans payer ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui : <strong>3 carrousels/mois gratuits</strong> et l'analyse de vidéos en accès test, sans carte bancaire. Tu passes à un plan payant seulement quand tu veux plus de volume ou les images IA.</span></div>
         <div><strong style="font-size:14px">💎 Comment fonctionnent les crédits ?</strong><br><span style="font-size:13px;color:var(--muted)">Un pot unique de crédits IA partagé entre <strong>AI Prompt Studio</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton Compte.</span></div>
-        <div><strong style="font-size:14px">📊 D'où viennent vos données TikTok Shop ?</strong><br><span style="font-size:13px;color:var(--muted)">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</span></div>
+        <div><strong style="font-size:14px">📊 D'où viennent tes données TikTok Shop ?</strong><br><span style="font-size:13px;color:var(--muted)">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</span></div>
         <div><strong style="font-size:14px">🔒 Mes produits et générations sont-ils privés ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui. Tes générations sont rattachées à ton compte et ne sont jamais partagées. Hébergement conforme RGPD.</span></div>
         <div><strong style="font-size:14px">💰 Mensuel ou annuel ?</strong><br><span style="font-size:13px;color:var(--muted)">En choisissant l'annuel, tu profites de <strong>2 mois offerts</strong> (tu ne paies que 10 mois sur 12) sur Pro, Gold et Agency.</span></div>
         <div><strong style="font-size:14px">📅 Puis-je annuler à tout moment ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui, sans engagement. L'annulation prend effet à la fin de la période en cours.</span></div>
@@ -2146,13 +2146,14 @@
       <h3>Légal</h3>
       <a href="#" onclick="openCGV()">CGV</a>
       <a href="/privacy">Confidentialité</a>
-      <a href="/terms">Mentions légales</a>
+      <a href="/mentions-legales">Mentions légales</a>
+      <a href="/terms">Conditions d'utilisation</a>
       <a href="#" onclick="event.preventDefault();QeerahConsent.revoke()">Gérer les cookies</a>
     </div>
 
     <div class="footer-section">
       <h3>Réseaux</h3>
-      <a href="https://www.tiktok.com/@tiktokshop.analyzer?_r=1&_t=ZN-96fKdjpk1wd" target="_blank">TikTok</a>
+      <a href="{{ SOCIAL.tiktok }}" target="_blank">TikTok</a>
     </div>
   </div>
 
@@ -2298,11 +2299,11 @@
 <div class="modal" id="forgot-password-modal" style="display:none">
   <div class="modal-content">
     <button class="modal-close" onclick="closeForgotPasswordModal()">✕</button>
-    <h2 style="margin-bottom:20px">🔐 Réinitialiser votre mot de passe</h2>
+    <h2 style="margin-bottom:20px">🔐 Réinitialiser ton mot de passe</h2>
     <form id="forgot-password-form" onsubmit="submitForgotPassword(event)">
       <div class="input-group">
         <label style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:block">Adresse e-mail</label>
-        <input type="email" id="forgot-email-input" placeholder="votre@email.com" required>
+        <input type="email" id="forgot-email-input" placeholder="ton@email.com" required>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px">📧 Recevoir le lien de réinitialisation</button>
     </form>
@@ -2317,7 +2318,7 @@
   <div id="privacy-modal">
     <div class="pm-handle"></div>
     <div class="pm-header">
-      <h2>🔒 <span data-i18n="pm_title">Votre confidentialité</span></h2>
+      <h2>🔒 <span data-i18n="pm_title">Ta confidentialité</span></h2>
       <button class="pm-close" onclick="closePrivacyModal()">✕</button>
     </div>
     <div class="pm-body" id="pm-body">
@@ -2334,7 +2335,7 @@
   <div class="cookie-inner">
     <div>
       <div class="cookie-title" data-i18n="ck_title">🍪 Nous utilisons des cookies</div>
-      <div class="cookie-body" data-i18n="ck_body">Vos données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.</div>
+      <div class="cookie-body" data-i18n="ck_body">Tes données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.</div>
       <span class="cookie-link" onclick="openPrivacyModal()" data-i18n="ck_link">Politique de confidentialité</span>
     </div>
     <div class="cookie-btns">

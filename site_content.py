@@ -94,14 +94,23 @@ COMPANY = {
     "capital": "100 €",
     "rcs": "RCS Paris 106 482 508",
     "siren": "106 482 508",
-    "siret": "",                  # ⚠️ manquant
+    # SIRET du siège, relevé sur l'annuaire officiel des entreprises
+    # (recherche-entreprises.api.gouv.fr) : adresse, forme juridique et code
+    # activité concordent avec les CGV.
+    "siret": "106 482 508 00012",
     "address": "47 rue Vivienne, 75002 Paris, France",
     "president": "Aimeric Bourgon",
-    "publication_director": "",   # ⚠️ manquant
+    "publication_director": "Aimeric Bourgon",
+    "activity_code": "62.01Z",
     "vat_notice": VAT_NOTICE,
+    # Hébergeur — obligatoire (LCEN art. 6). Relevé sur les conditions
+    # d'utilisation de Render : le préambule identifie « Render Services, Inc. »
+    # comme éditeur du service, et 525 Brannan Street est l'adresse postale
+    # qu'ils y publient.
     "host": {
-        "name": "",               # ⚠️ manquant (Render Services, Inc. à confirmer)
-        "address": "",
+        "name": "Render Services, Inc.",
+        "address": "525 Brannan Street, Suite 300, San Francisco, CA 94107, États-Unis",
+        "url": "https://render.com",
     },
     "mediator": {
         "name": "CM2C — Centre de Médiation de la Consommation de Conciliateurs de Justice",

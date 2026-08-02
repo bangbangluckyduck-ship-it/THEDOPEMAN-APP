@@ -372,6 +372,7 @@ _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
 _PRIVACY_HTML = _render("privacy.html", bust=False)
 _TERMS_HTML = _render("terms.html", bust=False)
 _CGV_HTML = _render("cgv.html", bust=False)
+_MENTIONS_HTML = _render("mentions_legales.html", bust=False)
 # Pages tarifs/crédits dédiées (dynamiques côté client via /api/plans/*)
 _PRICING_HTML = _render("pricing.html")
 _PRICING_COMPARE_HTML = _render("pricing_compare.html")
@@ -506,8 +507,29 @@ async def credits_page(): return HTMLResponse(_CREDITS_HTML)
 @app.get("/temoignage", response_class=HTMLResponse)
 async def avis_page(): return HTMLResponse(_AVIS_HTML)
 
+@app.get("/mentions-legales", response_class=HTMLResponse)
+@app.get("/mentions_legales", response_class=HTMLResponse)
+async def mentions_legales_page():
+    """Mentions légales — page autonome exigée par la LCEN.
+
+    Le pied de page renvoyait auparavant vers /terms (les CGU), qui ne portent
+    ni l'identité de l'éditeur, ni celle de l'hébergeur."""
+    return HTMLResponse(_MENTIONS_HTML)
+
+
 @app.get("/temoignages", response_class=HTMLResponse)
-async def temoignages_page(): return HTMLResponse(_TEMOIGNAGES_HTML)
+async def temoignages_page():
+    """Vitrine des témoignages.
+
+    Tant qu'aucun témoignage n'est publié, la page redirige vers le formulaire
+    d'avis plutôt que d'afficher une grille vide : une section de preuve sociale
+    vide dessert plus qu'elle ne sert. Rebasculer se fait en passant
+    site_content.TESTIMONIALS_ENABLED à True, sans toucher au code.
+    """
+    import site_content
+    if not site_content.TESTIMONIALS_ENABLED:
+        return RedirectResponse("/avis", status_code=302)
+    return HTMLResponse(_TEMOIGNAGES_HTML)
 
 # ── Fichier de vérification de propriété TikTok (méthode « préfixe d'URL ») ───
 # TikTok fournit un fichier de signature à héberger à la racine du domaine. On le

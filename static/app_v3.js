@@ -55,24 +55,24 @@ const TRANSLATIONS = {
     err_timeout:'❌ Délai dépassé. Réessaie avec une vidéo plus courte.',
     saved_ok:'Sauvegardé !',
     footer:'© 2026 Dope Ventures · Qeerah · Tous droits réservés',
-    tb_title:'Vos données vous appartiennent', tb_sub:'restent EN LOCAL, jamais envoyées.', tb_link:'Détails →',
+    tb_title:'Tes données t\'appartiennent', tb_sub:'restent EN LOCAL, jamais envoyées.', tb_link:'Détails →',
     ck_title:'🍪 Nous utilisons des cookies',
-    ck_body:'Vos données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer votre expérience.',
+    ck_body:'Tes données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer ton expérience.',
     ck_link:'Politique de confidentialité', ck_accept:'Accepter tout', ck_reject:'Refuser tout',
-    pm_title:'Votre confidentialité', pm_close:'Compris ! Fermer',
+    pm_title:'Ta confidentialité', pm_close:'Compris ! Fermer',
     footer_privacy:'Confidentialité', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Vos données restent EN LOCAL</h3>
-<p>Toutes vos analyses (scores, résultats, historique) sont stockées <strong>uniquement sur votre appareil</strong> via localStorage. Nous ne les récupérons jamais sur nos serveurs.</p>
+    pm_content:`<h3>✅ Tes données restent EN LOCAL</h3>
+<p>Toutes tes analyses (scores, résultats, historique) sont stockées <strong>uniquement sur ton appareil</strong> via localStorage. Nous ne les récupérons jamais sur nos serveurs.</p>
 <h3>🤖 Ce qui est envoyé à l'IA</h3>
-<p>Lors d'une analyse, les <strong>images extraites</strong> de votre vidéo et l'<strong>audio transcrit</strong> sont transmis à Mistral AI pour générer les scores. Aucune donnée personnelle n'est incluse.</p>
+<p>Lors d'une analyse, les <strong>images extraites</strong> de ta vidéo et l'<strong>audio transcrit</strong> sont transmis à Mistral AI pour générer les scores. Aucune donnée personnelle n'est incluse.</p>
 <h3>🍪 Cookies utilisés</h3>
 <ul>
-  <li><strong>localStorage</strong> : vos analyses, historique, préférences de langue</li>
-  <li><strong>cookieConsent</strong> : votre choix de consentement</li>
+  <li><strong>localStorage</strong> : tes analyses, historique, préférences de langue</li>
+  <li><strong>cookieConsent</strong> : ton choix de consentement</li>
   <li><strong>Analytiques</strong> : trafic général (optionnel, anonyme)</li>
 </ul>
 <h3>📤 Export & suppression</h3>
-<p>Vous pouvez exporter vos analyses en PDF à tout moment. Pour supprimer toutes vos données, effacez les données de site dans les réglages de votre navigateur.</p>
+<p>Tu peux exporter tes analyses en PDF à tout moment. Pour supprimer toutes tes données, effacez les données de site dans les réglages de votre navigateur.</p>
 <h3>📧 Questions ?</h3>
 <p>Contactez-nous : <a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Installer sur iPhone / iPad',
@@ -723,7 +723,7 @@ async function startCheckout(plan) {
 
   const email = SESSION.email || '';
   if (!email) {
-    showToast('Veuillez vous connecter d\'abord');
+    showToast('Connecte-toi d\'abord');
     const modal = document.getElementById('auth-modal');
     if (modal) modal.classList.add('active');
     return;
@@ -1590,7 +1590,7 @@ async function analyzeSingleUrl() {
   const token = localStorage.getItem('tts_token');
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Abonnez-vous à Qeerah Pro pour analyser des liens TikTok directement.");
+    showToast("Abonne-toi à Qeerah Pro pour analyser des liens TikTok directement.");
     return;
   }
 
@@ -1692,7 +1692,7 @@ async function analyzeUrls() {
   // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
   if (!token || tier === 'free') {
     switchTab('pricing');
-    showToast("Abonnez-vous à Qeerah Pro pour analyser des liens TikTok sans rien télécharger.");
+    showToast("Abonne-toi à Qeerah Pro pour analyser des liens TikTok sans rien télécharger.");
     return;
   }
 
@@ -2077,7 +2077,7 @@ function showLockedCoachingSection(firstCoachingLine) {
       <p style="margin:0 0 12px 0;font-size:13px;color:var(--text);line-height:1.5">"${firstCoachingLine}"</p>
       <div style="background:rgba(0,0,0,.03);border-radius:8px;padding:12px;margin:12px 0;border-left:3px solid var(--primary)">
         <div style="font-size:12px;color:var(--muted)">Cette analyse complète est incluse dans Qeerah Pro</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Abonnez-vous pour débloquer le coaching IA personnalisé</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Abonne-toi pour débloquer le coaching IA personnalisé</div>
       </div>
       <button onclick="document.getElementById('tab-pricing').click()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px">Voir les plans →</button>
     </div>
@@ -2835,7 +2835,7 @@ function applyFreemiumBlur() {
     cta.className = 'section freemium-cta';
     cta.innerHTML = `
       <div class="fc-icon">🔒</div>
-      <div class="fc-title">Choisissez votre plan pour débloquer toutes les fonctionnalités</div>
+      <div class="fc-title">Choisis ton plan pour débloquer toutes les fonctionnalités</div>
       <div class="fc-sub">Conseils IA personnalisés, structure de vente, potentiel de conversion, détection produit et bien plus — passez à un plan payant pour accéder à l'analyse complète.</div>
       <button class="fc-btn" onclick="switchTab('pricing')">Voir les plans →</button>
     `;
@@ -2895,7 +2895,7 @@ function renderPremiumStrategy(d) {
       <div class="gold-upsell-inner">
         <div class="gold-upsell-icon">🔒</div>
         <div class="gold-upsell-text">
-          <strong>Abonnez-vous à Qeerah Pro</strong> pour que notre IA identifie votre audience cible
+          <strong>Abonne-toi à Qeerah Pro</strong> pour que notre IA identifie ton audience cible
           et rédige le script de vente parfait pour ce produit.
         </div>
         <button class="gold-upsell-btn" onclick="switchTab('pricing')">Voir Qeerah Pro</button>
@@ -4993,7 +4993,7 @@ async function initCreditsTab() {
 async function buyCredits(pack) {
   const email = SESSION.email || '';
   if (!email) {
-    showToast('Veuillez vous connecter d\'abord');
+    showToast('Connecte-toi d\'abord');
     const modal = document.getElementById('auth-modal');
     if (modal) modal.classList.add('active');
     return;

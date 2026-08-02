@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentions légales — Qeerah</title>
+  <meta name="description" content="Mentions légales de Qeerah, édité par {{ COMPANY.name }}.">
+  <link rel="canonical" href="{{ SITE_URL }}/mentions-legales">
+  <style>
+    :root { --navy:#1f3a70; --accent:#6c5ce7; --text:#1a1a2e; --muted:#667; --border:#e5e7eb; }
+    * { box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:var(--text); line-height:1.7; margin:0; background:#f7f8fc; }
+    .wrap { max-width:820px; margin:0 auto; padding:40px 22px 80px; }
+    header { border-bottom:2px solid var(--border); padding-bottom:18px; margin-bottom:26px; }
+    h1 { font-size:28px; margin:0 0 6px; color:var(--navy); }
+    h2 { font-size:18px; margin:30px 0 10px; color:var(--navy); }
+    .muted { color:var(--muted); font-size:13px; }
+    ul { margin:8px 0 8px 18px; }
+    a { color:var(--accent); }
+    .back { display:inline-block; margin-bottom:22px; color:var(--accent); text-decoration:none; font-weight:600; }
+    .box { background:#fff; border:1px solid var(--border); border-radius:14px; padding:26px 28px; }
+    dl { margin:8px 0; }
+    dt { font-weight:700; margin-top:12px; }
+    dd { margin:2px 0 0 0; }
+  </style>
+  <script src="/static/qeerah-consent.js" defer></script>
+  <script src="/static/qeerah-promo.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/">← Retour à l'accueil</a>
+    <div class="box">
+      <header>
+        <h1>Mentions légales</h1>
+        <div class="muted">Conformément à la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN).</div>
+      </header>
+
+      <h2>1. Éditeur du site</h2>
+      <dl>
+        <dt>Dénomination sociale</dt>
+        <dd>{{ COMPANY.name }}</dd>
+
+        <dt>Forme juridique</dt>
+        <dd>{{ COMPANY.legal_form }} au capital de {{ COMPANY.capital }}</dd>
+
+        <dt>Siège social</dt>
+        <dd>{{ COMPANY.address }}</dd>
+
+        <dt>Immatriculation</dt>
+        <dd>{{ COMPANY.rcs }}<br>SIREN : {{ COMPANY.siren }}<br>SIRET (siège) : {{ COMPANY.siret }}</dd>
+
+        <dt>Code d'activité (APE/NAF)</dt>
+        <dd>{{ COMPANY.activity_code }} — Programmation informatique</dd>
+
+        <dt>Taxe sur la valeur ajoutée</dt>
+        <dd>{{ COMPANY.vat_notice }}</dd>
+
+        <dt>Président</dt>
+        <dd>{{ COMPANY.president }}</dd>
+
+        <dt>Directeur de la publication</dt>
+        <dd>{{ COMPANY.publication_director }}</dd>
+
+        <dt>Contact</dt>
+        <dd><a href="mailto:{{ CONTACT_EMAIL }}">{{ CONTACT_EMAIL }}</a></dd>
+      </dl>
+
+      <h2>2. Hébergeur</h2>
+      <p>Le site est hébergé par :</p>
+      <ul>
+        <li><strong>{{ COMPANY.host.name }}</strong></li>
+        <li>{{ COMPANY.host.address }}</li>
+        <li><a href="{{ COMPANY.host.url }}" target="_blank" rel="noopener">{{ COMPANY.host.url }}</a></li>
+      </ul>
+
+      <h2>3. Propriété intellectuelle</h2>
+      <p>L'ensemble des éléments composant le site — structure, textes, visuels, logo, marque Qeerah, code source et bases de données — est protégé par le droit de la propriété intellectuelle et demeure la propriété exclusive de {{ COMPANY.name }}, sauf mention contraire. Toute reproduction, représentation ou exploitation, totale ou partielle, sans autorisation écrite préalable est interdite.</p>
+      <p>Les contenus analysés par le service (vidéos, images, textes) restent la propriété de leurs auteurs respectifs. Qeerah n'en revendique aucun droit et n'en effectue aucune republication.</p>
+
+      <h2>4. Marques de tiers</h2>
+      <p>TikTok et TikTok Shop sont des marques déposées de leurs titulaires respectifs. Qeerah est un service indépendant, sans lien, partenariat ni affiliation avec ces sociétés, et n'est ni approuvé ni sponsorisé par elles.</p>
+
+      <h2>5. Données personnelles</h2>
+      <p>Le traitement des données personnelles est décrit dans notre <a href="/confidentialite">politique de confidentialité</a>. Conformément au Règlement (UE) 2016/679 et à la loi Informatique et Libertés, tu disposes d'un droit d'accès, de rectification, d'effacement, de portabilité, de limitation et d'opposition, exerçable à l'adresse <a href="mailto:{{ CONTACT_EMAIL }}">{{ CONTACT_EMAIL }}</a>.</p>
+
+      <h2>6. Cookies et traceurs</h2>
+      <p>Les traceurs déposés, leur finalité et leur durée de conservation sont détaillés dans la <a href="/confidentialite">politique de confidentialité</a>. Tu peux à tout moment modifier ton choix depuis le lien « Gérer les cookies » présent en pied de page.</p>
+
+      <h2>7. Conditions de vente</h2>
+      <p>Les modalités d'abonnement, de facturation et de résiliation figurent dans les <a href="/cgv">conditions générales de vente</a>. Les conditions d'utilisation du service sont décrites dans les <a href="/terms">conditions générales d'utilisation</a>.</p>
+
+      <h2>8. Médiation de la consommation</h2>
+      <p>Conformément à l'article L.612-1 du Code de la consommation, le consommateur peut recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable d'un litige. Le médiateur désigné par {{ COMPANY.name }} est le <strong>{{ COMPANY.mediator.name }}</strong>, {{ COMPANY.mediator.address }} — <a href="{{ COMPANY.mediator.url }}" target="_blank" rel="noopener">{{ COMPANY.mediator.url }}</a>.</p>
+
+      <h2>9. Responsabilité</h2>
+      <p>Les analyses produites par le service reposent sur des traitements automatisés et de l'intelligence artificielle. Elles constituent des estimations à visée indicative et ne garantissent aucun résultat commercial. {{ COMPANY.name }} ne saurait être tenue responsable des décisions prises sur leur fondement.</p>
+
+      <h2>10. Droit applicable</h2>
+      <p>Les présentes mentions légales sont soumises au droit français. En cas de litige et à défaut de résolution amiable, les tribunaux français sont compétents.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -45,7 +45,7 @@
         "url": "https://qeerah.com/",
         "logo": "https://qeerah.com/static/qeerah-logo.png",
         "sameAs": [
-          "https://www.tiktok.com/@tiktokshop.analyzer"
+          "{{ SOCIAL.tiktok }}"
         ],
         "parentOrganization": { "@type": "Organization", "name": "Dope Ventures" }
       },
@@ -1016,20 +1016,22 @@
         <p class="authority-sub">Créée grâce à l'expertise de plus de 10 créateurs TikTok Shop FR confirmés, et calibrée sur l'analyse de plus de 1000 vidéos parmi les meilleurs créateurs de plusieurs marchés — pas des suppositions marketing.</p>
 
         <div class="authority-stats">
+          {#- Valeurs écrites côté serveur : sans script, connexion lente ou
+              défilement insuffisant, le visiteur lisait « +0 créateurs ». -#}
           <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="1000">0</span></div>
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="1000">1000</span></div>
             <div class="authority-stat-label">top vidéos analysées</div>
           </div>
           <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="31">0</span></div>
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="31">31</span></div>
             <div class="authority-stat-label">leviers de vente décodés</div>
           </div>
           <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="10">0</span></div>
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="10">10</span></div>
             <div class="authority-stat-label">créateurs TikTok Shop FR ont mis leur expertise dans l'appli</div>
           </div>
           <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="6">0</span></div>
+            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="6">6</span></div>
             <div class="authority-stat-label">marchés analysés</div>
           </div>
         </div>
@@ -1082,12 +1084,16 @@
     if (done.has(el)) return;
     done.add(el);
     var target = parseInt(el.getAttribute('data-target'), 10) || 0;
+    // Départ à 70 % de la cible, jamais à zéro : la valeur réelle est déjà
+    // affichée dans le HTML, l'animation ne doit pas la faire chuter sous les
+    // yeux du visiteur ni afficher « 0 » si elle s'interrompt.
+    var from = Math.round(target * 0.7);
     var start = null, duration = 1100;
     function step(ts){
       if (!start) start = ts;
       var p = Math.min((ts - start) / duration, 1);
       var eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(eased * target);
+      el.textContent = Math.round(from + eased * (target - from));
       if (p < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
@@ -1324,7 +1330,7 @@
       <div class="step-card">
         <div class="step-icon">🤖</div>
         <h3>2. L'IA décrypte tout</h3>
-        <p>Analyse en 8 dimensions: Hook, Rétention, Vente, Émotion, Conversion, Algo, Score global.</p>
+        <p>Analyse en {{ ANALYSIS_DIMENSIONS_COUNT }} dimensions : {{ ANALYSIS_DIMENSIONS_TEXT }}.</p>
       </div>
 
       <div class="step-card">
@@ -1417,6 +1423,7 @@
 })();
 </script>
 
+{% if TESTIMONIALS_ENABLED %}
 <section id="temoignages-section" style="display:none;padding:60px 20px;background:var(--surface,#fff)">
   <div style="max-width:1100px;margin:0 auto">
     <h2 class="section-title" style="text-align:center">Ils utilisent Qeerah</h2>
@@ -1449,11 +1456,12 @@
   }).catch(function(){});
 })();
 </script>
+{% endif %}
 
 <section class="pricing" id="pricing">
   <div style="max-width: 900px; margin: 0 auto; padding: 0 20px;">
     <h2 class="section-title">Une seule offre</h2>
-    <p class="section-subtitle">Tout est inclus. Pas de palier, pas de fonctionnalite verrouillee.</p>
+    <p class="section-subtitle">Tout est inclus. Pas de palier, pas de fonctionnalité verrouillée.</p>
 
     <div class="pricing-grid" style="grid-template-columns:1fr;max-width:520px;margin:0 auto">
       <div class="pricing-card popular" data-plan="pro">
@@ -1507,7 +1515,7 @@
       <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6">Un pot unique de crédits IA partagé entre <strong>AI Prompt Studio</strong> et <strong>le créateur de carrousels</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton compte.</p>
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
-      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A">📊 D'où viennent vos données TikTok Shop ?</summary>
+      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A">📊 D'où viennent tes données TikTok Shop ?</summary>
       <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</p>
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
@@ -1547,13 +1555,14 @@
       <a href="/terms">Conditions d'utilisation (CGU)</a>
       <a href="/cgv">Conditions de vente (CGV)</a>
       <a href="/privacy">Confidentialité</a>
-      <a href="/terms">Mentions légales</a>
+      <a href="/mentions-legales">Mentions légales</a>
+      <a href="/terms">Conditions d'utilisation</a>
       <a href="#" onclick="event.preventDefault();QeerahConsent.revoke()">Gérer les cookies</a>
     </div>
 
     <div class="footer-section">
       <h3>Réseaux</h3>
-      <a href="https://www.tiktok.com/@tiktokshop.analyzer?_r=1&_t=ZN-96fKdjpk1wd" target="_blank">TikTok</a>
+      <a href="{{ SOCIAL.tiktok }}" target="_blank">TikTok</a>
     </div>
   </div>
 
@@ -2365,9 +2374,9 @@
   justify-content: center; overflow-y: auto; padding: 20px;">
   <div style="background: var(--surface); padding: 32px; border-radius: 12px; max-width: 420px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; margin: auto;">
-    <h2 style="margin: 0 0 20px 0; font-size: 20px">🔐 Réinitialiser votre mot de passe</h2>
+    <h2 style="margin: 0 0 20px 0; font-size: 20px">🔐 Réinitialiser ton mot de passe</h2>
     <form id="forgot-password-form" onsubmit="submitForgotPassword(event)">
-      <input type="email" id="forgot-email-input" placeholder="votre@email.com" required
+      <input type="email" id="forgot-email-input" placeholder="ton@email.com" required
         style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
         font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 12px;">
       <button type="submit" style="width: 100%; padding: 12px; background: var(--primary);

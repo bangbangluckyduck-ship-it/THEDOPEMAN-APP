@@ -244,7 +244,7 @@ async def stripe_webhook(request: Request):
     """
     Webhook Stripe — écoute les événements d'abonnement.
     Configure l'URL dans Stripe Dashboard → Webhooks :
-      https://tts-analyzer.onrender.com/webhook
+      https://qeerah.com/api/v1/stripe/webhook
     Événements à activer :
       checkout.session.completed
       customer.subscription.deleted
