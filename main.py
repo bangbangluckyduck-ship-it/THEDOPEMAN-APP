@@ -3990,6 +3990,17 @@ async def affiliate_apply(request: Request):
 
 
 # ── Plans & prix dynamiques (pilotés par la roadmap, 100 % serveur) ──────────
+@app.get("/api/promo")
+async def public_promo():
+    """Bandeau promotionnel visible par les visiteurs.
+
+    Renvoie {'active': False} dès que l'échéance est passée : c'est le serveur
+    qui tranche, jamais le navigateur. `server_now` permet au front de corriger
+    un décalage d'horloge côté visiteur au lieu de se fier à son Date.now()."""
+    import promo_banner
+    return promo_banner.get_public()
+
+
 @app.get("/api/plans/available")
 async def plans_available():
     import feature_flags

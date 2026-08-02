@@ -137,6 +137,7 @@ function showView(view) {
   if (view === 'temoignages') loadTemoignages();
   if (view === 'notifs') initNotifsView();
   if (view === 'affiliates') loadAffiliates();
+  if (view === 'promo') loadPromo();
 }
 
 /* ── NOTIFICATIONS — broadcast (admin) ────────────────────────────────── */
@@ -643,4 +644,130 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     showLogin();
   }
+});
+
+
+// ══════════════════════════════════════════════════════════════
+// BANDEAU PROMOTIONNEL
+//
+// L'échéance est saisie en heure locale (input datetime-local) puis convertie
+// en ISO avec fuseau avant l'envoi : sans ça, « 15/08 23:59 » serait interprété
+// comme de l'UTC par le serveur et le bandeau tomberait deux heures trop tôt.
+// ══════════════════════════════════════════════════════════════
+
+function _isoToLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+         'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+async function loadPromo() {
+  const status = document.getElementById('promo-status');
+  try {
+    const r = await fetch('/admin/promo', { headers: authHeaders() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Erreur');
+    const p = d.promo || {};
+    document.getElementById('promo-active').checked = !!p.active;
+    document.getElementById('promo-message').value = p.message || '';
+    document.getElementById('promo-code').value = p.code || '';
+    document.getElementById('promo-cta-label').value = p.cta_label || 'En profiter';
+    document.getElementById('promo-cta-url').value = p.cta_url || '/pricing';
+    document.getElementById('promo-ends-at').value = _isoToLocalInput(p.ends_at);
+    if (status) {
+      status.textContent = p.active
+        ? 'Bandeau actif sur le site.'
+        : 'Bandeau désactivé — rien ne s\'affiche aux visiteurs.';
+    }
+    renderPromoPreview();
+  } catch (e) {
+    if (status) status.textContent = 'Chargement impossible : ' + e.message;
+  }
+}
+
+function renderPromoPreview() {
+  const box = document.getElementById('promo-preview');
+  if (!box) return;
+  const msg = document.getElementById('promo-message').value || 'Offre en cours';
+  const code = document.getElementById('promo-code').value;
+  const cta = document.getElementById('promo-cta-label').value || 'En profiter';
+  const ends = document.getElementById('promo-ends-at').value;
+
+  let count = '';
+  if (ends) {
+    const left = new Date(ends).getTime() - Date.now();
+    if (left > 0) {
+      const s = Math.floor(left / 1000);
+      const days = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      count = days > 0 ? `${days} j ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`
+                       : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`;
+    } else {
+      count = 'échéance passée';
+    }
+  }
+
+  box.innerHTML =
+    '<div style="background:linear-gradient(135deg,#1F3A70,#2563EB);color:#fff;padding:10px 14px;' +
+    'display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px">' +
+      '<span style="font-weight:700">' + esc(msg) + '</span>' +
+      (code ? '<span style="background:rgba(255,255,255,.18);border:1px dashed rgba(255,255,255,.55);' +
+              'border-radius:8px;padding:2px 9px;font-weight:800">' + esc(code) + '</span>' : '') +
+      (count ? '<span style="background:rgba(0,0,0,.22);border-radius:8px;padding:3px 9px;' +
+               'font-weight:800">' + esc(count) + '</span>' : '') +
+      '<span style="background:#fff;color:#1F3A70;font-weight:800;padding:6px 13px;' +
+      'border-radius:9px">' + esc(cta) + '</span>' +
+    '</div>';
+}
+
+async function savePromo() {
+  const status = document.getElementById('promo-status');
+  const endsLocal = document.getElementById('promo-ends-at').value;
+  const active = document.getElementById('promo-active').checked;
+
+  if (active && !endsLocal) {
+    showToast('Renseigne une date de fin avant d\'activer le bandeau.');
+    return;
+  }
+
+  const body = {
+    active: active,
+    message: document.getElementById('promo-message').value.trim(),
+    code: document.getElementById('promo-code').value.trim().toUpperCase(),
+    cta_label: document.getElementById('promo-cta-label').value.trim() || 'En profiter',
+    cta_url: document.getElementById('promo-cta-url').value.trim() || '/pricing',
+    // toISOString() convertit l'heure locale saisie en UTC : le serveur reçoit
+    // un instant non ambigu.
+    ends_at: endsLocal ? new Date(endsLocal).toISOString() : null,
+  };
+
+  try {
+    const r = await fetch('/admin/promo', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Erreur');
+    showToast(body.active ? 'Bandeau activé sur le site.' : 'Bandeau désactivé.');
+    if (status) {
+      status.textContent = body.active
+        ? 'Bandeau actif sur le site.'
+        : 'Bandeau désactivé — rien ne s\'affiche aux visiteurs.';
+    }
+    renderPromoPreview();
+  } catch (e) {
+    showToast('Échec : ' + e.message);
+  }
+}
+
+// Aperçu réactif à la saisie
+['promo-message', 'promo-code', 'promo-cta-label', 'promo-ends-at'].forEach(function (id) {
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === id) renderPromoPreview();
+  });
 });

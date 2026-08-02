@@ -435,3 +435,35 @@ async def admin_set_affiliate_status(body: AffiliateStatusBody, request: Request
         status = 404 if code == "not_found" else 400
         raise HTTPException(status_code=status, detail=code or "Échec.")
     return {"ok": True, "affiliate": res.get("affiliate")}
+
+
+# ── BANDEAU PROMOTIONNEL ─────────────────────────────────────
+class PromoBannerBody(BaseModel):
+    active:    bool = False
+    message:   Optional[str] = ""
+    code:      Optional[str] = ""
+    cta_label: Optional[str] = "En profiter"
+    cta_url:   Optional[str] = "/pricing"
+    ends_at:   Optional[str] = None      # ISO 8601, ex. "2026-08-15T23:59:00+02:00"
+
+
+@router.get("/promo")
+async def admin_get_promo(request: Request):
+    """Paramétrage actuel du bandeau promotionnel."""
+    _require_admin(request)
+    import promo_banner
+    return {"ok": True, "promo": promo_banner.get_admin()}
+
+
+@router.post("/promo")
+async def admin_save_promo(body: PromoBannerBody, request: Request):
+    """Active, modifie ou désactive le bandeau promotionnel."""
+    _require_admin(request)
+    import promo_banner
+    try:
+        promo = promo_banner.save(body.dict())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Enregistrement impossible : {e}")
+    return {"ok": True, "promo": promo}

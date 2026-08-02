@@ -453,6 +453,63 @@
       </section>
     </main>
 
+
+      <!-- ── VUE BANDEAU PROMO ── -->
+      <section id="view-promo" class="view">
+        <h1 class="view-title">🎟️ Bandeau promo</h1>
+        <p class="view-sub">Bandeau fixe en haut du site, avec décompte vers une échéance réelle.</p>
+
+        <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px;margin-bottom:18px">
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;margin-bottom:16px;cursor:pointer">
+            <input type="checkbox" id="promo-active" style="width:20px;height:20px">
+            Afficher le bandeau sur le site
+          </label>
+
+          <label style="font-size:12px;font-weight:700">Message *</label>
+          <input id="promo-message" maxlength="200" placeholder="Ex : -20 % sur Qeerah Pro"
+            style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin:5px 0 14px;font-size:14px">
+
+          <label style="font-size:12px;font-weight:700">Code promo (affiché au visiteur)</label>
+          <input id="promo-code" maxlength="60" placeholder="Ex : TIKTOK20"
+            style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin:5px 0 4px;font-size:14px;text-transform:uppercase">
+          <p style="font-size:11.5px;color:var(--muted);margin:0 0 14px">
+            À créer <strong>aussi</strong> dans Stripe (Produits → Codes promo), avec la même date d'expiration.
+          </p>
+
+          <label style="font-size:12px;font-weight:700">Fin de l'offre *</label>
+          <input type="datetime-local" id="promo-ends-at"
+            style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin:5px 0 4px;font-size:14px">
+          <p style="font-size:11.5px;color:var(--muted);margin:0 0 14px">
+            Heure locale. Le décompte vise cette date pour tous les visiteurs, et le bandeau
+            disparaît tout seul une fois atteinte.
+          </p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:12px;font-weight:700">Texte du bouton</label>
+              <input id="promo-cta-label" maxlength="40" placeholder="En profiter"
+                style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin-top:5px;font-size:14px">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700">Lien du bouton</label>
+              <input id="promo-cta-url" maxlength="200" placeholder="/pricing"
+                style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin-top:5px;font-size:14px">
+            </div>
+          </div>
+
+          <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" onclick="savePromo()">Enregistrer</button>
+            <button class="btn btn-ghost" onclick="loadPromo()">Recharger</button>
+          </div>
+          <div id="promo-status" style="font-size:12.5px;color:var(--muted);margin-top:12px"></div>
+        </div>
+
+        <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px">
+          <h3 style="font-size:14px;margin:0 0 10px">Aperçu</h3>
+          <div id="promo-preview" style="border-radius:10px;overflow:hidden"></div>
+        </div>
+      </section>
+
     <!-- ── NAVIGATION BAS ── -->
     <nav class="bottom-nav">
       <button class="nav-item active" data-view="stats" onclick="showView('stats')">
@@ -475,6 +532,9 @@
       </button>
       <button class="nav-item" data-view="affiliates" onclick="showView('affiliates')">
         <span class="ic">🤝</span>Affil.
+      </button>
+      <button class="nav-item" data-view="promo" onclick="showView('promo')">
+        <span class="ic">🎟️</span>Promo
       </button>
     </nav>
   </div>
