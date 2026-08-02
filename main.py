@@ -326,10 +326,38 @@ def _bust(html: str) -> str:
         html,
     )
 
-_HOMEPAGE_HTML = _bust(Path("templates/homepage.html").read_text(encoding="utf-8"))
-_APP_HTML = _bust(Path("templates/index.html").read_text(encoding="utf-8"))
-_CAROUSEL_PAGE_HTML = _bust(Path("templates/carousel.html").read_text(encoding="utf-8"))
-_SCRIPTS_PAGE_HTML = _bust(Path("templates/scripts.html").read_text(encoding="utf-8"))
+# ── RENDU DES GABARITS (Jinja2) ──────────────────────────────────────────
+# Les pages étaient servies telles quelles, ce qui obligeait à recopier chaque
+# valeur (prix, promesse d'essai, liens) dans chaque fichier — d'où sept
+# formulations divergentes de la même promesse. Elles passent désormais par
+# Jinja avec un contexte unique (site_content.py).
+#
+# Le rendu a lieu UNE FOIS au démarrage, comme la lecture qu'il remplace : le
+# contenu injecté est statique, donc aucun coût par requête n'est ajouté.
+# ⚠️ Un contenu qui doit varier après le démarrage (témoignages, Feed Radar)
+# ne peut pas passer par ce chemin : il faudra un rendu par requête.
+import jinja2 as _jinja2
+
+_JINJA_ENV = _jinja2.Environment(
+    loader=_jinja2.FileSystemLoader("templates"),
+    autoescape=_jinja2.select_autoescape(["html"]),
+    undefined=_jinja2.StrictUndefined,   # une variable absente casse au démarrage,
+                                         # jamais silencieusement en production
+    keep_trailing_newline=True,          # rendu strictement identique à la source
+)
+
+
+def _render(filename: str, bust: bool = True) -> str:
+    """Rend un gabarit avec le contexte global du site."""
+    import site_content
+    html = _JINJA_ENV.get_template(filename).render(**site_content.context())
+    return _bust(html) if bust else html
+
+
+_HOMEPAGE_HTML = _render("homepage.html")
+_APP_HTML = _render("index.html")
+_CAROUSEL_PAGE_HTML = _render("carousel.html")
+_SCRIPTS_PAGE_HTML = _render("scripts.html")
 _BLOG_HTML = Path("templates/blog.html").read_text(encoding="utf-8")
 _BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="utf-8")
 _BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
@@ -337,20 +365,20 @@ _BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding=
 _BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
 _BLOG_EXPANSION_HTML = Path("templates/blog_expansion_mondiale.html").read_text(encoding="utf-8")
 _BLOG_TTS_EN_HTML = Path("templates/blog_what_is_tiktok_shop_en.html").read_text(encoding="utf-8")
-_CONTACT_HTML = Path("templates/contact.html").read_text(encoding="utf-8")
-_ABOUT_HTML = Path("templates/about.html").read_text(encoding="utf-8")
+_CONTACT_HTML = _render("contact.html", bust=False)
+_ABOUT_HTML = _render("about.html", bust=False)
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
 # Pages légales publiques (URLs dédiées exigées par TikTok / RGPD)
-_PRIVACY_HTML = Path("templates/privacy.html").read_text(encoding="utf-8")
-_TERMS_HTML = Path("templates/terms.html").read_text(encoding="utf-8")
-_CGV_HTML = Path("templates/cgv.html").read_text(encoding="utf-8")
+_PRIVACY_HTML = _render("privacy.html", bust=False)
+_TERMS_HTML = _render("terms.html", bust=False)
+_CGV_HTML = _render("cgv.html", bust=False)
 # Pages tarifs/crédits dédiées (dynamiques côté client via /api/plans/*)
-_PRICING_HTML = _bust(Path("templates/pricing.html").read_text(encoding="utf-8"))
-_PRICING_COMPARE_HTML = _bust(Path("templates/pricing_compare.html").read_text(encoding="utf-8"))
-_CREDITS_HTML = _bust(Path("templates/credits.html").read_text(encoding="utf-8"))
+_PRICING_HTML = _render("pricing.html")
+_PRICING_COMPARE_HTML = _render("pricing_compare.html")
+_CREDITS_HTML = _render("credits.html")
 # Témoignages (Feature 2)
-_AVIS_HTML = _bust(Path("templates/avis.html").read_text(encoding="utf-8"))
-_TEMOIGNAGES_HTML = _bust(Path("templates/temoignages.html").read_text(encoding="utf-8"))
+_AVIS_HTML = _render("avis.html")
+_TEMOIGNAGES_HTML = _render("temoignages.html")
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
