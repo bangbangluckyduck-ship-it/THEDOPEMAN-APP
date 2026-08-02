@@ -276,6 +276,8 @@
       text-decoration: none;
       display: inline-flex;
       align-items: center;
+      white-space: nowrap;      /* évitait de passer sur deux lignes en mobile */
+      margin-left: 8px;         /* le bouton touchait le logo à 375 px */
       cursor: pointer;
       transition: all 0.3s;
       box-shadow: 0 4px 12px rgba(212,175,55,0.3);
@@ -456,6 +458,60 @@
       margin-bottom: 24px;
       text-align: center;
       color: var(--text);
+    }
+
+
+    /* En-tête à 375 px : le libellé de connexion passait sur deux lignes,
+       ce qui donnait l'impression d'un texte coupé au bord de l'écran. */
+    @media (max-width: 420px) {
+      header { padding: 12px 14px; }
+      .logo { font-size: 16px; gap: 8px; }
+      .btn-header { font-size: 11.5px; padding: 6px 11px; margin-left: 6px; }
+      .nav-link-login { font-size: 13px; white-space: nowrap; }
+      nav { gap: 10px; }
+    }
+
+    /* ── Analyse par lien : chemin principal (lot 2.7) ── */
+    .link-box { margin-bottom: 14px; }
+    .link-row { display: flex; gap: 8px; }
+    .link-input {
+      flex: 1; min-width: 0;
+      padding: 15px 14px;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      font-size: 16px;              /* 16px : empêche le zoom automatique iOS */
+      font-family: inherit;
+      background: var(--surface, #fff);
+      color: var(--text);
+    }
+    .link-input:focus { outline: none; border-color: var(--primary); }
+    .link-paste {
+      flex-shrink: 0;
+      padding: 0 16px;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      background: var(--bg);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text);
+    }
+    .link-paste:hover { border-color: var(--primary); }
+    .link-hint { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+    .upload-switch {
+      display: block; width: 100%;
+      text-align: center; margin-top: 14px;
+      background: none; border: none;
+      font: inherit; font-size: 13.5px; font-weight: 600;
+      color: var(--muted); cursor: pointer; text-decoration: underline;
+    }
+    .upload-switch:hover { color: var(--text); }
+    #upload-zone { display: none; }
+    #upload-zone.shown { display: block; }
+    @media (max-width: 560px) {
+      .upload-box { padding: 26px 16px; }
+      .link-paste { padding: 0 12px; font-size: 13px; }
     }
 
     .upload-box {
@@ -936,7 +992,7 @@
   <div class="hero-content">
     <div class="hero-left">
       <div style="display:inline-block;font-size:13px;font-weight:700;color:var(--accent,#2563EB);background:rgba(37,99,235,.08);padding:5px 12px;border-radius:999px;margin-bottom:14px">Outil d'analyse de vidéo TikTok Shop</div>
-      <h1>Analyse tes vidéos <span>TikTok Shop</span> pour t'aider à créer LA vidéo qui fera exploser ton GMV</h1>
+      <h1>Comprends pourquoi <span>leurs vidéos</span> vendent — et refais-le avec ton produit</h1>
       <p class="subtitle">Notre IA analyse n'importe quelle vidéo virale et te révèle EXACTEMENT pourquoi elle marche — et ce qu'elle rapporte en GMV (chiffre d'affaires généré). Copie la méthode en 30 secondes.</p>
 
       <div class="social-proof">
@@ -1132,19 +1188,35 @@
     <div class="error-message" id="error-message"></div>
 
     <div id="upload-form">
-      <div class="upload-box" id="upload-area">
-        <div class="upload-icon">📁</div>
-        <p>Clique ou glisse ta vidéo</p>
-        <p class="hint">MP4, MOV • Max 500MB</p>
-        <input type="file" id="video-file" accept="video/mp4,video/quicktime,video/*">
+      <div class="link-box">
+        <div class="link-row">
+          <input type="url" id="tiktok-url" class="link-input" inputmode="url"
+                 autocomplete="off" spellcheck="false"
+                 placeholder="Colle le lien de la vidéo TikTok"
+                 aria-label="Lien de la vidéo TikTok à analyser">
+          <button type="button" class="link-paste" id="paste-btn"
+                  aria-label="Coller depuis le presse-papiers">Coller</button>
+        </div>
+        <p class="link-hint">Exemple : https://www.tiktok.com/@compte/video/123456789</p>
       </div>
 
-      <div class="file-tag" id="file-tag"></div>
+      <button class="btn-analyze" id="analyze-url-btn" disabled>Analyser cette vidéo</button>
 
-      <button class="btn-analyze" id="analyze-btn" disabled>Analyser avec l'IA
-      </button>
+      <button type="button" class="upload-switch" id="upload-switch">ou envoie un fichier vidéo</button>
 
-      <p class="tool-note">✅ {{ TRIAL_OFFER }}</p>
+      <div id="upload-zone">
+        <div class="upload-box" id="upload-area">
+          <p>Clique ou glisse ta vidéo</p>
+          <p class="hint">MP4, MOV • 500 Mo maximum</p>
+          <input type="file" id="video-file" accept="video/mp4,video/quicktime,video/*">
+        </div>
+
+        <div class="file-tag" id="file-tag"></div>
+
+        <button class="btn-analyze" id="analyze-btn" disabled>Analyser ce fichier</button>
+      </div>
+
+      <p class="tool-note">{{ TRIAL_OFFER }}</p>
     </div>
 
     <div class="loading" id="loading">
@@ -1323,19 +1395,19 @@
     <div class="steps-grid">
       <div class="step-card">
         <div class="step-icon">📋</div>
-        <h3>1. Envoie ta vidéo</h3>
+        <h3>1. Colle un lien TikTok</h3>
         <p>N'importe quelle vidéo TikTok Shop, virale ou non. Quelques secondes suffisent.</p>
       </div>
 
       <div class="step-card">
         <div class="step-icon">🤖</div>
-        <h3>2. L'IA décrypte tout</h3>
+        <h3>2. L'IA décortique ce qui fait vendre</h3>
         <p>Analyse en {{ ANALYSIS_DIMENSIONS_COUNT }} dimensions : {{ ANALYSIS_DIMENSIONS_TEXT }}.</p>
       </div>
 
       <div class="step-card">
         <div class="step-icon">📈</div>
-        <h3>3. Copie & applique</h3>
+        <h3>3. Applique la méthode à ton produit</h3>
         <p>Plan d'action détaillé pour reproduire le succès avec TES produits.</p>
       </div>
     </div>
@@ -1351,38 +1423,38 @@
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-emoji">🎯</div>
-        <h3>Score Hook /100</h3>
-        <p>Évaluation précise de l'accroche. Type, force d'interruption, promesse implicite.</p>
+        <h3>Comprends pourquoi on te scrolle en 3 secondes</h3>
+        <p>L'IA note ton accroche et pointe ce qui fait fuir : type, force d'interruption, promesse tenue ou non.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-emoji">🧠</div>
-        <h3>Mécanismes psychologiques</h3>
-        <p>Autorité, preuve sociale, rareté, FOMO. Tous les biais décortiqués.</p>
+        <h3>Repère les déclencheurs qui font acheter, chez toi comme chez tes concurrents</h3>
+        <p>Autorité, preuve sociale, rareté, urgence : ceux que la vidéo active, et ceux qui manquent.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-emoji">⏱️</div>
-        <h3>Analyse de rétention</h3>
-        <p>Boucles ouvertes, changements de plans, transitions, stimuli visuels.</p>
+        <h3>Identifie la seconde exacte où les gens décrochent</h3>
+        <p>Boucles ouvertes, coupes, transitions : ce qui retient l'attention, et ce qui la casse.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-emoji">💰</div>
-        <h3>Mécanismes de conversion</h3>
-        <p>CTA visibles et implicites, réduction d'objections, incitations à l'achat.</p>
+        <h3>Comprends pourquoi ils regardent sans jamais cliquer</h3>
+        <p>Appels à l'action visibles ou implicites, objections levées ou laissées en suspens.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-emoji">📊</div>
-        <h3>Compatibilité algorithme</h3>
-        <p>Pourquoi TikTok push la vidéo. Tous les signaux algorithmiques détectés.</p>
+        <h3>Découvre pourquoi TikTok a poussé sa vidéo et pas la tienne</h3>
+        <p>Les signaux que l'algorithme récompense, et ceux qui manquent à la tienne.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-emoji">🚀</div>
-        <h3>Plan de reproduction</h3>
-        <p>Hooks adaptés, CTA optimisés, angles TikTok Shop pour TES produits.</p>
+        <h3>Récupère les accroches du gagnant, adaptées à ton produit</h3>
+        <p>Accroches réécrites, appels à l'action optimisés, angles prêts à tourner.</p>
       </div>
     </div>
   </div>
@@ -1890,6 +1962,98 @@
         if (e.key === 'Enter') done();
       });
       emailInput.focus();
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // ANALYSE PAR LIEN — chemin principal (lot 2.7)
+  //
+  // Coller un lien depuis un téléphone prend deux secondes ; envoyer un
+  // fichier de 500 Mo, non. Le premier essai est offert sans compte : c'est
+  // le serveur qui décompte par IP, le navigateur ne fait qu'afficher.
+  // ══════════════════════════════════════════════════════════════════
+  const urlInput     = document.getElementById('tiktok-url');
+  const analyzeUrlBtn = document.getElementById('analyze-url-btn');
+  const pasteBtn     = document.getElementById('paste-btn');
+  const uploadSwitch = document.getElementById('upload-switch');
+  const uploadZone   = document.getElementById('upload-zone');
+
+  const RX_TIKTOK = /^https?:\/\/([a-z0-9-]+\.)?(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)\//i;
+
+  function refreshUrlBtn() {
+    if (!urlInput || !analyzeUrlBtn) return;
+    analyzeUrlBtn.disabled = !RX_TIKTOK.test(urlInput.value.trim());
+  }
+
+  if (urlInput) urlInput.addEventListener('input', refreshUrlBtn);
+
+  // Bouton « Coller » : le presse-papiers demande une permission et n'est pas
+  // disponible partout (Safari iOS le refuse hors geste direct). En cas
+  // d'échec, on redonne simplement le focus au champ plutôt qu'une erreur.
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const txt = await navigator.clipboard.readText();
+        if (txt) { urlInput.value = txt.trim(); refreshUrlBtn(); }
+        if (!RX_TIKTOK.test(urlInput.value.trim())) urlInput.focus();
+      } catch (e) {
+        urlInput.focus();
+      }
+    });
+  }
+
+  if (uploadSwitch) {
+    uploadSwitch.addEventListener('click', () => {
+      const ouvert = uploadZone.classList.toggle('shown');
+      uploadSwitch.textContent = ouvert ? 'masquer l\'envoi de fichier'
+                                        : 'ou envoie un fichier vidéo';
+      if (ouvert) uploadZone.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+
+  if (analyzeUrlBtn) {
+    analyzeUrlBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!RX_TIKTOK.test(url)) return;
+
+      if (window.qTrackAnalyseDemarree) qTrackAnalyseDemarree('lien');
+
+      uploadForm.style.display = 'none';
+      loading.classList.add('active');
+      loadingText.textContent = 'Téléchargement de la vidéo…';
+      errorMessage.classList.remove('active');
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('tts_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/analyze-url', {
+          method: 'POST', headers, body: JSON.stringify({ url })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          // 402 (essai terminé) et 429 (essai anonyme épuisé) invitent à
+          // créer un compte : c'est le moment le plus propice pour le faire.
+          if (res.status === 402 || res.status === 429) {
+            if (typeof openLoginModal === 'function') openLoginModal();
+          }
+          throw new Error(data.detail || "L'analyse a échoué. Vérifie le lien et réessaie.");
+        }
+
+        if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(true);
+        loading.classList.remove('active');
+        showResults(data);
+        if (window.qTrackResultatAffiche) qTrackResultatAffiche();
+        updateFreeAnalysisCounter();
+      } catch (err) {
+        if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(false);
+        loading.classList.remove('active');
+        uploadForm.style.display = '';
+        errorMessage.textContent = err.message;
+        errorMessage.classList.add('active');
+      }
     });
   }
 

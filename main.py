@@ -148,6 +148,26 @@ _ANON_IP_USAGE: dict[str, list[float]] = {}
 _ANON_WINDOW_SECONDS = 24 * 60 * 60   # 24h
 _ANON_MAX_REQUESTS = 2                 # 1 essai + 1 marge
 
+
+def _consume_anon_quota(request: Request) -> None:
+    """Décompte un essai anonyme, par adresse IP sur 24 h glissantes.
+
+    Permet au visiteur de faire sa première analyse sans créer de compte —
+    le geste qui transforme le mieux. Lève une 429 explicite au-delà, en
+    invitant à l'inscription plutôt qu'en affichant une erreur brute."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    timestamps = [t for t in _ANON_IP_USAGE.get(client_ip, []) if now - t < _ANON_WINDOW_SECONDS]
+    if len(timestamps) >= _ANON_MAX_REQUESTS:
+        _ANON_IP_USAGE[client_ip] = timestamps
+        raise HTTPException(
+            status_code=429,
+            detail="Tu as utilisé ton essai sans compte. Crée un compte gratuit "
+                   "pour continuer — 7 jours d'accès complet, sans carte bancaire.",
+        )
+    timestamps.append(now)
+    _ANON_IP_USAGE[client_ip] = timestamps
+
 # ⚠️ Middleware ASGI PUR (et non BaseHTTPMiddleware) : BaseHTTPMiddleware bufferise
 # les réponses en streaming (il accumule tout le corps avant de l'envoyer), ce qui
 # casse le SSE (analyse vidéo + Photo Slide). En ASGI pur on ne touche jamais au
@@ -1271,14 +1291,7 @@ async def analyze_stream_sse(
     # Utilisateur authentifié (token valide) => limite classique via check_quota (plan Supabase).
     # Utilisateur ANONYME (pas de token) => limite stricte par IP, fenêtre glissante 24h.
     if not user["valid"]:
-        client_ip = request.client.host if request.client else "unknown"
-        now = time.time()
-        timestamps = [t for t in _ANON_IP_USAGE.get(client_ip, []) if now - t < _ANON_WINDOW_SECONDS]
-        if len(timestamps) >= _ANON_MAX_REQUESTS:
-            _ANON_IP_USAGE[client_ip] = timestamps
-            raise HTTPException(status_code=429, detail="Quota anonyme atteint. Créez un compte gratuit.")
-        timestamps.append(now)
-        _ANON_IP_USAGE[client_ip] = timestamps
+        _consume_anon_quota(request)
 
     try: frames_list: list[str] = json.loads(frames)
     except json.JSONDecodeError as e: raise HTTPException(status_code=400, detail="Frames JSON invalide.")
@@ -1813,7 +1826,7 @@ async def scripts_multi_angle(request: Request):
             # on retombe sur le comportement réservé Pro+ pour éviter tout abus gratuit.
             raise HTTPException(
                 status_code=403,
-                detail="Le générateur multi-angles est momentanément réservé aux plans Pro, Gold et Agency.",
+                detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.",
             )
         if used >= _SCRIPTS_FREE_MONTHLY:
             raise HTTPException(
@@ -1932,10 +1945,17 @@ async def analyze_url(request: Request):
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
     if not has_full_access(user):
-        raise HTTPException(
-            status_code=403,
-            detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency. Passez au plan Pro (9,99€) pour analyser des liens TikTok directement.",
-        )
+        # Visiteur anonyme : premier essai offert, décompté par IP. C'est le
+        # geste qui convertit le mieux — coller un lien depuis un téléphone
+        # prend deux secondes, envoyer un fichier de 500 Mo, non.
+        if not user.get("valid"):
+            _consume_anon_quota(request)
+        else:
+            raise HTTPException(
+                status_code=402,
+                detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro "
+                       "pour continuer à analyser des liens TikTok.",
+            )
 
     # Quota classique selon le plan
     check_quota(user)
@@ -2124,7 +2144,13 @@ async def analyze_url_stream(request: Request):
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
+        if not user.get("valid"):
+            _consume_anon_quota(request)
+        else:
+            raise HTTPException(
+                status_code=402,
+                detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.",
+            )
     check_quota(user)
     body = await request.json()
     url = (body.get("url") or "").strip()
@@ -2451,7 +2477,7 @@ async def jobs_create_url(request: Request):
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="L'analyse par lien est réservée aux plans Pro, Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
     check_quota(user)
 
     body = await request.json()
@@ -2503,7 +2529,7 @@ async def jobs_create_upload(
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="L'analyse asynchrone est réservée aux plans Pro, Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
     check_quota(user)
 
     # Stream → tmpfile sur disque, JAMAIS la vidéo entière en RAM (Render 512 MB :
@@ -2607,7 +2633,7 @@ async def analyze_batch_patterns(request: Request):
     if not has_full_access(user):
         raise HTTPException(
             status_code=403,
-            detail="La détection de patterns multi-vidéos est réservée aux plans Gold et Agency.",
+            detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.",
         )
 
     body = await request.json()
@@ -3117,7 +3143,7 @@ async def market_creator_detail(request: Request, unique_id: str, user_id: str =
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
 
     cache_key = f"creator::{unique_id}::{user_id}"
     detail, _ = await _market_cache_fetch(
@@ -3146,7 +3172,7 @@ async def market_video_products(request: Request, video_id: str = Query(...),
         except Exception:
             ok = False
     if not ok:
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
     try:
         products = await market_creators.get_video_products(video_id, region)
     except Exception as e:
@@ -3164,7 +3190,7 @@ async def market_popular(request: Request, category: Optional[str] = Query(None)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     if not (has_full_access(user)):
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
     rows = product_store.get_popular(supabase_client, category=category, limit=8)
     products = [{
         "id": r.get("product_id"),
@@ -3226,7 +3252,7 @@ async def market_product_detail(request: Request, product_id: str, region: str =
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
 
     cache_key = f"pdetail::{product_id}::{region}"
     detail, _ = await _market_cache_fetch(
@@ -3406,7 +3432,7 @@ async def feed_radar_video_embed(request: Request, video_id: str):
     """Blockquote oEmbed complet pour hydratation au TAP (jamais au scroll)."""
     user = get_user_from_request(request)
     if not user.get("valid") or not has_full_access(user):
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
     try:
         r = supabase_client.table("feed_radar_videos").select("oembed_html,oembed_fetched_at,video_url") \
             .eq("video_id", video_id).execute()
@@ -3592,7 +3618,7 @@ async def photo_slide_generate(
         raise HTTPException(status_code=401, detail="Connexion requise.")
     premium = has_full_access(user)
     if not premium:
-        raise HTTPException(status_code=403, detail="Réservé aux plans Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
 
     img = (image or "").strip()
     if "," in img and img.lower().startswith("data:"):
@@ -4316,7 +4342,7 @@ async def video_prompt_generate(
         raise HTTPException(status_code=401, detail="Connexion requise.")
     tier = (user.get("tier") or "free").lower()
     if not has_full_access(user):
-        raise HTTPException(status_code=403, detail="Réservé aux plans Pro, Gold et Agency.")
+        raise HTTPException(status_code=402, detail="Ton essai gratuit est terminé. Abonne-toi à Qeerah Pro pour continuer.")
 
     try:
         lvl = max(1, min(5, int(level)))
