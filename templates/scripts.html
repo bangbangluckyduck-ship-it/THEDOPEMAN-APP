@@ -76,7 +76,7 @@
     <label class="fld" style="margin-top:4px">Nombre d'angles</label>
     <select id="sp-n"><option value="5">5 angles (recommandé)</option><option value="4">4 angles</option><option value="3">3 angles</option></select>
 
-    <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">✨ Générer mes scripts</button>
+    <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">Générer mes scripts</button>
     <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">3 générations gratuites/mois — puis illimité avec un plan Pro.</div>
   </div>
 
@@ -124,7 +124,7 @@ function renderResult(d){
     +   '<div class="script-body">'+esc(s.script||'')+'</div>'
     +   (s.cta? '<div class="cta">📣 '+esc(s.cta)+'</div>':'')
     +   (s.why_it_works? '<div class="why">💡 '+esc(s.why_it_works)+'</div>':'')
-    +   '<button class="btn-sec" style="margin-top:10px" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">📋 Copier le script</button>'
+    +   '<button class="btn-sec" style="margin-top:10px" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">Copier le script</button>'
     + '</div>';
   }).join('');
 
@@ -156,8 +156,8 @@ async function generate(){
       })
     });
     if(res.status===401){ out.innerHTML='<div class="upsell"><strong>Session expirée</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Reconnecte-toi pour continuer.</div><a class="btn btn-gold" href="/">Se reconnecter</a></div>'; return; }
-    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>🎁 Tes 3 générations gratuites du mois sont épuisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à un plan Pro pour générer des scripts en illimité.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
-    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>🔒 Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est momentanément réservé aux plans Pro. Réessaie dans un instant.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>Tes 3 générations gratuites du mois sont épuisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à un plan Pro pour générer des scripts en illimité.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est momentanément réservé aux plans Pro. Réessaie dans un instant.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
     var d = await res.json().catch(function(){return {};});
     if(!res.ok || d.ok===false){ out.innerHTML='<div class="banner err">'+esc((d && (d.detail||d.error))||'Génération indisponible pour le moment. Réessaie dans un instant.')+'</div>'; return; }
     if(!d.scripts || !d.scripts.length){ out.innerHTML='<div class="banner err">Aucun script généré. Réessaie avec un nom de produit plus précis.</div>'; return; }

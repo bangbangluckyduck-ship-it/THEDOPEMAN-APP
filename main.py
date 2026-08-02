@@ -575,7 +575,10 @@ async def about(): return HTMLResponse(_ABOUT_HTML)
 # ── SEO : robots.txt + sitemap.xml ────────────────────────────────────────────
 def _seo_base_url() -> str:
     """URL canonique publique (sans slash final) pour les liens du sitemap."""
-    host = (os.getenv("CANONICAL_HOST", "qeerah.com") or "qeerah.com").strip().rstrip("/")
+    # www par défaut : c'est le domaine réellement servi (qeerah.com redirige
+    # en 308). Le sitemap doit lister les URL finales, cohérentes avec les
+    # balises canonical — sinon chaque entrée pointe vers une redirection.
+    host = (os.getenv("CANONICAL_HOST", "www.qeerah.com") or "www.qeerah.com").strip().rstrip("/")
     if host.startswith("http://") or host.startswith("https://"):
         return host.rstrip("/")
     return f"https://{host}"
@@ -587,8 +590,11 @@ _SITEMAP_PATHS = [
     "/pricing",
     "/pricing/compare",
     "/credits",
-    "/temoignages",
+    # "/temoignages" retiré : la page redirige vers /avis tant qu'aucun
+    # témoignage n'est publié — une URL redirigée dans le sitemap est une
+    # page orpheline pour les moteurs.
     "/avis",
+    "/mentions-legales",
     "/about",
     "/contact",
     "/blog",

@@ -21,6 +21,16 @@
   </style>
   <script src="/static/qeerah-consent.js" defer></script>
   <script src="/static/qeerah-analytics.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ SITE_URL }}/" },
+      { "@type": "ListItem", "position": 2, "name": "Conditions générales de vente", "item": "{{ SITE_URL }}/cgv" }
+    ]
+  }
+  </script>
 </head>
 <body>
   <div class="wrap">

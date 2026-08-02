@@ -2824,7 +2824,16 @@ function applyFreemiumBlur() {
   locks.forEach(el => el.classList.remove('freemium-locked'));
 
   const tier = window.__userInfo?.tier || 'free';
-  if (tier !== 'free') return;   // Pro / Gold / Agency / Beta / Admin : aucun flou
+  if (tier !== 'free') return;   // abonné ou admin : aucun flou
+
+  // Un compte en essai porte le tier `free` : se fier au seul tier floutait le
+  // rapport de quelqu'un à qui on venait de promettre « 7 jours d'accès
+  // complet ». On s'appuie sur l'état renvoyé par le serveur, et on ne floute
+  // QUE si l'essai est terminé sans abonnement. État inconnu (réponse serveur
+  // pas encore arrivée) → pas de flou : le serveur reste l'autorité et refuse
+  // l'analyse en 402 le cas échéant.
+  const kind = window.__usage?.kind;
+  if (kind !== 'expired') return;
 
   let firstLocked = null;
   locks.forEach(el => {
@@ -2889,9 +2898,13 @@ function renderPremiumStrategy(d) {
     return;
   }
 
-  // → Plan free / pro : composant d'upsell statique attractif
+  // → Essai terminé sans abonnement : composant d'incitation.
+  // La condition portait sur les tiers `free` ET `pro`, héritage de l'ancienne
+  // grille où l'on poussait un plan supérieur : un abonné Qeerah Pro lisait
+  // donc « Abonne-toi à Qeerah Pro ». Un essai en cours n'a rien à voir non
+  // plus, l'accès lui est promis complet.
   const tier = window.__userInfo?.tier || 'free';
-  if (tier === 'free' || tier === 'pro' || tier === 'basic') {
+  if (tier === 'free' && window.__usage?.kind === 'expired') {
     const up = document.createElement('section');
     up.id = 'gold-upsell-section';
     up.className = 'section gold-upsell';

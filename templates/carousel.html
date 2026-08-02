@@ -71,7 +71,7 @@
     </div>
     <!-- Détails produit : auto-remplis depuis le lien, repliés par défaut (optionnels). -->
     <details style="margin-top:12px;border:1px solid var(--border);border-radius:10px;padding:0 12px">
-      <summary style="cursor:pointer;padding:12px 0;font-size:13px;font-weight:600;color:var(--muted);list-style:none">⚙️ Détails du produit <span style="font-weight:400">(auto-remplis — clique pour ajuster)</span></summary>
+      <summary style="cursor:pointer;padding:12px 0;font-size:13px;font-weight:600;color:var(--muted);list-style:none">Détails du produit <span style="font-weight:400">(auto-remplis — clique pour ajuster)</span></summary>
       <div style="padding-bottom:12px">
         <label class="fld">Nom du produit <span style="color:var(--muted)">(auto — modifiable)</span></label>
         <input id="cc-name" maxlength="100" placeholder="Rempli automatiquement depuis le lien…">
@@ -85,10 +85,10 @@
         </div>
       </div>
     </details>
-    <label class="fld" style="margin-top:14px">🎯 Angle du carrousel <span style="color:var(--muted)">(optionnel — structure l'accroche)</span></label>
+    <label class="fld" style="margin-top:14px">Angle du carrousel <span style="color:var(--muted)">(optionnel — structure l'accroche)</span></label>
     <div class="pills" id="cc-angles"></div>
 
-    <label class="fld">💡 Ton idée (optionnel) — l'IA optimise pour TikTok Shop</label>
+    <label class="fld">Ton idée (optionnel) — l'IA optimise pour TikTok Shop</label>
     <input id="cc-idea" maxlength="200" placeholder="Ex: ambiance matinale, avant/après, ton humoristique…">
 
     <label class="fld">Style (optionnel — l'IA recommande sinon)</label>
@@ -98,12 +98,12 @@
     <label class="fld" style="margin-top:14px">Mode</label>
     <div class="modes" id="cc-modes">
       <div class="mode on" data-mode="prompts">
-        <h3>📝 Prompts</h3>
+        <h3>Prompts</h3>
         <div style="font-size:12px;color:var(--muted)">Plan complet + textes + style. Tu crées les visuels.</div>
         <div class="price">Gratuit</div>
       </div>
       <div class="mode" data-mode="images">
-        <h3>🎨 Images IA <span style="font-size:10px;color:var(--gold)">🔥</span></h3>
+        <h3>Images IA <span style="font-size:10px;color:var(--gold)">🔥</span></h3>
         <div style="font-size:12px;color:var(--muted)">4 slides générées par IA + conseils photos 5-7.</div>
         <div class="price" id="cc-img-price">10 crédits</div>
       </div>
@@ -116,7 +116,7 @@
       <div style="font-size:11px;color:var(--muted);margin-top:4px">« Auto » choisit la meilleure IA selon le visuel. Le produit est repris depuis ta photo.</div>
     </div>
 
-    <button class="btn btn-primary" id="cc-go" style="margin-top:16px" onclick="ccGenerate()">✨ Générer mon carrousel</button>
+    <button class="btn btn-primary" id="cc-go" style="margin-top:16px" onclick="ccGenerate()">Générer mon carrousel</button>
   </div>
 
   <div id="cc-result"></div>
@@ -124,7 +124,7 @@
   <!-- Mes générations (rétention + réutilisation) — visible si connecté -->
   <div id="cc-history-wrap" class="card" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <strong style="font-size:14px">🗂️ Mes générations</strong>
+      <strong style="font-size:14px">Mes générations</strong>
       <button class="btn-sec" onclick="ccLoadHistory()">↻</button>
     </div>
     <div id="cc-history" style="margin-top:10px"></div>
@@ -203,7 +203,7 @@ async function ccGenerate(){
   // Carrousel = compte obligatoire (l'analyse vidéo, elle, reste en test anonyme).
   if(!token()){
     const out=document.getElementById('cc-result');
-    out.innerHTML=`<div class="upsell"><strong>🔒 Crée un compte gratuit pour générer ton carrousel</strong>
+    out.innerHTML=`<div class="upsell"><strong>Crée un compte gratuit pour générer ton carrousel</strong>
       <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">L'inscription est gratuite — {{ TRIAL_OFFER }}, historique sauvegardé.</div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <a class="btn btn-primary" style="width:auto" href="/app">Créer mon compte gratuit</a>
@@ -256,7 +256,7 @@ function ccPaywall(j){
       <a class="btn btn-gold" href="/app#pricing">S'abonner Pro</a></div></div>`;
   }
   if(j.reason==='payment_required'){
-    return `<div class="upsell"><strong>🎨 Mode Images IA</strong>
+    return `<div class="upsell"><strong>Mode Images IA</strong>
       <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">${esc(j.message||'Achat requis')}</div>
       <a class="btn btn-gold" href="/app#pricing">Découvrir les abonnements</a></div>`;
   }
@@ -339,8 +339,8 @@ function ccRender(r){
   CC.last=r;
   const st=r.strategy||{};
   let h='';
-  if(r._fallback) h+=`<div class="card" style="border-color:#e8a417;background:rgba(232,164,23,.07)"><strong>⚠️ Génération dégradée</strong><div style="font-size:12px;color:var(--muted);margin-top:4px">Notre IA d'analyse était momentanément indisponible — ce résultat est un plan générique de secours, PAS la qualité normale. Relance la génération dans quelques instants.</div></div>`;
-  h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">🎬 Ton carrousel</h3><button class="btn-sec" onclick="ccExportPDF()">📄 Télécharger le PDF</button></div>
+  if(r._fallback) h+=`<div class="card" style="border-color:#e8a417;background:rgba(232,164,23,.07)"><strong>Génération dégradée</strong><div style="font-size:12px;color:var(--muted);margin-top:4px">Notre IA d'analyse était momentanément indisponible — ce résultat est un plan générique de secours, PAS la qualité normale. Relance la génération dans quelques instants.</div></div>`;
+  h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Ton carrousel</h3><button class="btn-sec" onclick="ccExportPDF()">Télécharger le PDF</button></div>
     <div style="font-size:12px;color:var(--muted)">${esc(st.style_label||st.chosen_style||'')} · ${esc(st.detected_niche||'')}</div>`;
   if(st.justification) h+=`<div style="font-size:12px;color:var(--muted);margin-top:4px">${esc(st.justification)}</div>`;
 
@@ -364,7 +364,7 @@ function ccRender(r){
 
   // Upsell post-génération
   if(!token()){
-    h+=`<div class="upsell"><strong>💡 Tu as aimé ?</strong>
+    h+=`<div class="upsell"><strong>Tu as aimé ?</strong>
       <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">Crée un compte gratuit : 3 prompts/mois, historique sauvegardé, et plus.</div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <a class="btn btn-primary" style="width:auto" href="/app">Créer mon compte gratuit</a>
