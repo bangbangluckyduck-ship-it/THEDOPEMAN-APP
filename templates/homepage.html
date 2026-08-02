@@ -96,7 +96,7 @@
             "name": "Comment fonctionnent les crédits Qeerah ?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Un pot unique de crédits IA partagé entre AI Prompt Studio et le créateur de carrousels (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9 € depuis ton compte."
+              "text": "Un pot unique de crédits IA partagé entre Studio d'accroches IA et le créateur de carrousels (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9 € depuis ton compte."
             }
           },
           {
@@ -264,13 +264,17 @@
     .nav-link-login:hover { color: var(--accent); text-decoration: underline; }
 
     .btn-header {
-      padding: 10px 20px;
+      padding: 7px 15px;
       background: linear-gradient(135deg, var(--primary), var(--primary-dk));
       color: #fff;
       border: none;
-      border-radius: 20px;
+      border-radius: 999px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12.5px;
+      line-height: 1.3;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
       cursor: pointer;
       transition: all 0.3s;
       box-shadow: 0 4px 12px rgba(212,175,55,0.3);
@@ -920,7 +924,7 @@
     <a href="#how" class="nav-link">Comment ça marche</a>
     <a href="#features" class="nav-link">Fonctionnalités</a>
     <a href="#pricing" class="nav-link">Tarifs</a>
-    <button class="btn-header" onclick="scrollToTool()">Tester gratuitement</button>
+    <a href="#tool" class="btn-header">Tester gratuitement</a>
     <button class="nav-link-login" onclick="openLoginModal()" style="background: none; border: none; cursor: pointer; padding: 0; font: inherit;">Se connecter</button>
   </nav>
 </header>
@@ -931,7 +935,7 @@
     <div class="hero-left">
       <div style="display:inline-block;font-size:13px;font-weight:700;color:var(--accent,#2563EB);background:rgba(37,99,235,.08);padding:5px 12px;border-radius:999px;margin-bottom:14px">Outil d'analyse de vidéo TikTok Shop</div>
       <h1>Analyse tes vidéos <span>TikTok Shop</span> pour t'aider à créer LA vidéo qui fera exploser ton GMV</h1>
-      <p class="subtitle">Notre IA analyse n'importe quelle vidéo virale et te révèle EXACTEMENT pourquoi elle marche. Copie la méthode en 30 secondes.</p>
+      <p class="subtitle">Notre IA analyse n'importe quelle vidéo virale et te révèle EXACTEMENT pourquoi elle marche — et ce qu'elle rapporte en GMV (chiffre d'affaires généré). Copie la méthode en 30 secondes.</p>
 
       <div class="social-proof">
         <span>👥</span>
@@ -1117,10 +1121,10 @@
         🚀 Analyser une vidéo
       </button>
       <a href="/carousel" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#D4AF37;color:#1a1a1a;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
-        📸 Créer un carrousel <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
+        📸 Créer un carrousel <span style="font-size:10px;margin-left:6px;opacity:.8">NOUVEAU</span>
       </a>
       <a href="/scripts" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#1F3A70;color:#fff;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">
-        🎬 Générer des scripts <span style="font-size:10px;margin-left:6px;opacity:.8">NEW</span>
+        🎬 Générer des scripts <span style="font-size:10px;margin-left:6px;opacity:.8">NOUVEAU</span>
       </a>
     </div>
 
@@ -1147,7 +1151,7 @@
 
     <div class="loading" id="loading">
       <div class="spinner"></div>
-      <p class="loading-text" id="loading-text">Extraction des frames...</p>
+      <p class="loading-text" id="loading-text">Extraction des images...</p>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -1180,11 +1184,11 @@
             <div style="font-size:14px;font-weight:600;color:var(--primary)" id="det-prix">—</div>
           </div>
           <div style="background:var(--surface2);padding:14px;border-radius:12px;border:1px solid var(--border)">
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Hook Type</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Type d'accroche</div>
             <div style="font-size:14px;font-weight:600;color:var(--accent)" id="det-hook">—</div>
           </div>
           <div style="background:var(--surface2);padding:14px;border-radius:12px;border:1px solid var(--border)">
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Hook Force</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Force de l'accroche</div>
             <div style="font-size:14px;font-weight:600;color:#059669" id="det-force">—/10</div>
           </div>
         </div>
@@ -1204,7 +1208,7 @@
 
       <!-- MARKET INTELLIGENCE (HOMEPAGE) -->
       <div id="market-intelligence-section-hp" style="display:none;margin-bottom:20px;position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px">
-        <h3 style="margin-bottom:16px;color:var(--navy);font-size:14px;font-weight:600">📊 Market Intelligence</h3>
+        <h3 style="margin-bottom:16px;color:var(--navy);font-size:14px;font-weight:600">📊 Données marché</h3>
 
         <!-- Lock overlay pour FREE/PRO -->
         <div id="market-intelligence-lock-hp" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
@@ -1231,7 +1235,7 @@
 
           <!-- Trending -->
           <div style="margin-bottom:16px">
-            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">📈 Trending</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">📈 Tendances</div>
             <div id="market-trending-hp" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px"></div>
           </div>
 
@@ -1323,7 +1327,7 @@
     <div class="steps-grid">
       <div class="step-card">
         <div class="step-icon">📋</div>
-        <h3>1. Upload ta vidéo</h3>
+        <h3>1. Envoie ta vidéo</h3>
         <p>N'importe quelle vidéo TikTok Shop, virale ou non. Quelques secondes suffisent.</p>
       </div>
 
@@ -1473,7 +1477,7 @@
           <li>Analyse par <strong>upload et par lien TikTok</strong></li>
           <li><strong>Coach IA</strong>, script perso et analyse multi-liens</li>
           <li><strong>Donn&eacute;es march&eacute;</strong>, Feed Radar et recherche de profil</li>
-          <li>&#127916; AI Prompt Studio et &#128248; Photo Slide Coach</li>
+          <li>&#127916; Studio d'accroches IA et &#128248; Coach carrousel photo</li>
         </ul>
         <button class="btn-pricing" onclick="location.href='/pricing'">S'abonner &agrave; Qeerah Pro &rarr;</button>
         <div style="font-size:12px;color:var(--muted);margin-top:10px">TVA non applicable, article 293 B du CGI.</div>
@@ -1512,7 +1516,7 @@
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A">💎 Comment fonctionnent les crédits ?</summary>
-      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6">Un pot unique de crédits IA partagé entre <strong>AI Prompt Studio</strong> et <strong>le créateur de carrousels</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton compte.</p>
+      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6">Un pot unique de crédits IA partagé entre <strong>Studio d'accroches IA</strong> et <strong>le créateur de carrousels</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton compte.</p>
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A">📊 D'où viennent tes données TikTok Shop ?</summary>
@@ -1920,7 +1924,7 @@
 
     uploadForm.style.display = 'none';
     loading.classList.add('active');
-    loadingText.textContent = '🎬 Extraction des frames et audio...';
+    loadingText.textContent = '🎬 Extraction des images et audio...';
 
     try {
       // Extract frames and audio
@@ -2071,7 +2075,7 @@
     document.getElementById('viral-emoji').textContent = vEmoji;
     document.getElementById('viral-expl').textContent = d.viral_potential?.explication || '—';
 
-    // Market Intelligence (Homepage) - Verrouillée pour FREE/PRO
+    // Données marché (Homepage) - Verrouillée pour FREE/PRO
     const marketData = d.donnees_marche;
     const detectedCategory = d.detection?.produit || '';
 

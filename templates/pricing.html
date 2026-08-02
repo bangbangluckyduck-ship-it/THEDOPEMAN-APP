@@ -158,7 +158,7 @@
     <div class="toggle">
       <div class="toggle-inner">
         <button id="btn-month" class="active" onclick="setBilling('month')">Mensuel</button>
-        <button id="btn-year" onclick="setBilling('year')">Annuel <span class="tag">2 mois offerts</span></button>
+        <button id="btn-year" onclick="setBilling('year')">Annuel <span class="tag">&minus;{{ SAVING_YEAR_PERCENT }} %</span></button>
       </div>
     </div>
 
@@ -167,12 +167,13 @@
         <div class="plan-name">Qeerah Pro</div>
         <div class="price" id="price">29<small>,99 €</small></div>
         <div class="price-unit" id="unit">par mois, TTC</div>
-        <div class="price-note" id="note">Soit 359,88 € sur un an.</div>
+        <div class="price-note" id="note">Soit {{ eur(PRICE_MONTH_YEARLY) }} € sur un an.</div>
         <div class="vat">TVA non applicable, article 293 B du CGI.</div>
       </div>
 
       <ul>
-        <li><span class="ck">✓</span> <span><strong>Analyses de vidéos</strong> incluses chaque mois</span></li>
+        <li><span class="ck">✓</span> <span><strong>{{ ANALYSES_PER_MONTH }} analyses de vidéos</strong> par mois</span></li>
+        <li><span class="ck">✓</span> <span><strong>{{ CREDITS_PER_MONTH }} crédits IA</strong> par mois &mdash; environ {{ CAROUSELS_PER_MONTH }} carrousels ({{ CREDITS_PER_CAROUSEL }} crédits chacun)</span></li>
         <li><span class="ck">✓</span> <span><strong>Analyse approfondie</strong> de chaque vidéo</span></li>
         <li><span class="ck">✓</span> <span>Détection des <strong>CTA visuels et audio</strong></span></li>
         <li><span class="ck">✓</span> <span>Analyse par <strong>upload et par lien TikTok</strong></span></li>
@@ -180,7 +181,7 @@
         <li><span class="ck">✓</span> <span><strong>Coach IA</strong> et script personnalisé</span></li>
         <li><span class="ck">✓</span> <span><strong>Données marché</strong> et créateurs gagnants</span></li>
         <li><span class="ck">✓</span> <span><strong>Feed Radar</strong> et recherche de profil</span></li>
-        <li><span class="ck">✓</span> <span><strong>AI Prompt Studio</strong> et Photo Slide Coach</span></li>
+        <li><span class="ck">✓</span> <span><strong>Studio d'accroches IA</strong> et Coach carrousel photo</span></li>
         <li><span class="ck">✓</span> <span>Historique de tes analyses, sur tous tes appareils</span></li>
         <li><span class="ck">✓</span> <span>Résiliation à tout moment, en 1 clic</span></li>
       </ul>
@@ -215,13 +216,13 @@
       document.getElementById('btn-year').classList.toggle('active', BILLING==='year');
       var price=document.getElementById('price'), unit=document.getElementById('unit'), note=document.getElementById('note');
       if(BILLING==='year'){
-        price.innerHTML='299<small> €</small>';
+        price.innerHTML='{{ PRICE_YEAR|int }}<small> €</small>';
         unit.textContent='par an, TTC';
-        note.textContent='Soit 24,92 € par mois — deux mois offerts par rapport au mensuel.';
+        note.textContent="Soit {{ eur(PRICE_YEAR_MONTHLY) }} € par mois — tu économises {{ eur(SAVING_YEAR) }} € par an ({{ SAVING_YEAR_PERCENT }} %).";
       } else {
-        price.innerHTML='29<small>,99 €</small>';
+        price.innerHTML='{{ PRICE_MONTH|int }}<small>,99 €</small>';
         unit.textContent='par mois, TTC';
-        note.textContent='Soit 359,88 € sur un an.';
+        note.textContent='Soit {{ eur(PRICE_MONTH_YEARLY) }} € sur un an.';
       }
     }
 

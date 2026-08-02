@@ -3366,11 +3366,11 @@ function renderAccountPage() {
         <div id="tiktok-insights" style="margin-top:14px"></div>
       </div>`;
 
-  // 💎 Crédits (AI Prompt Studio) — balance + achat
+  // 💎 Crédits (Studio d'accroches IA) — balance + achat
   html += `
       <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <div style="font-size:13px;font-weight:600;color:var(--text)">💎 Crédits AI Prompt Studio</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">💎 Crédits Studio d'accroches IA</div>
           <div style="font-size:13px"><strong id="acc-credit-total">—</strong> dispo <span id="acc-credit-detail" style="font-size:11px;color:var(--muted)"></span></div>
         </div>
         <div id="acc-credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>

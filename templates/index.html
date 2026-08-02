@@ -1402,7 +1402,7 @@
       <div class="nav-group-row">
         <button class="tab active" id="tab-analyze"  onclick="switchTab('analyze')"  data-i18n="tab_analyze">🎬 Analyser</button>
         <button class="tab"        id="tab-photoslide" onclick="switchTab('photoslide')">✨ Créer un carrousel</button>
-        <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 AI Prompt Studio</button>
+        <button class="tab"        id="tab-promptstudio" onclick="switchTab('promptstudio')">🎬 Studio d'accroches IA</button>
         <button class="tab"        id="tab-scripts" onclick="switchTab('scripts')">✍️ Scripts multi-angles</button>
         <button class="tab"        id="tab-hooks" onclick="switchTab('hooks')">💡 Banque de Hooks</button>
         <button class="tab"        id="tab-favoris" onclick="switchTab('favoris')">❤️ Favoris</button>
@@ -1613,13 +1613,13 @@
 
       <!-- MARKET INTELLIGENCE -->
       <div class="section" id="market-intelligence-section" style="display:none;position:relative">
-        <h2 style="margin-bottom:20px">📊 Market Intelligence</h2>
+        <h2 style="margin-bottom:20px">📊 Données marché</h2>
 
         <!-- Lock overlay pour FREE/PRO -->
         <div id="market-intelligence-lock" style="position:absolute;inset:0;background:rgba(255,255,255,0.95);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);z-index:100">
           <div style="text-align:center">
             <div style="font-size:48px;margin-bottom:12px">🔐</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Market Intelligence incluse dans Qeerah Pro</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Données marché incluse dans Qeerah Pro</div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:16px;max-width:300px">Accès aux données marché temps réel, conseils compétitifs et benchmarking par catégorie</div>
             <a href="#pricing" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:13px">Passer à Qeerah Pro →</a>
           </div>
@@ -1875,7 +1875,7 @@
           <li>&#9989; <strong>Analyse multi-liens</strong> et patterns récurrents</li>
           <li>&#9989; <strong>Coach IA</strong> et script personnalisé</li>
           <li>&#9989; <strong>Données marché</strong>, Feed Radar, recherche de profil</li>
-          <li>&#9989; AI Prompt Studio et Photo Slide Coach</li>
+          <li>&#9989; Studio d'accroches IA et Coach carrousel photo</li>
         </ul>
 
         <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">S'abonner &rarr;</button>
@@ -1892,7 +1892,7 @@
     </div>
 
     <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px">
-      💎 Crédits IA = un pot unique partagé entre <strong>AI Prompt Studio</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelés chaque mois (non reportés). <strong>Crédits supplémentaires achetables</strong> (packs dès 9€, validité 1 mois) depuis ton Compte.
+      💎 Crédits IA = un pot unique partagé entre <strong>Studio d'accroches IA</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelés chaque mois (non reportés). <strong>Crédits supplémentaires achetables</strong> (packs dès 9€, validité 1 mois) depuis ton Compte.
     </p>
 
     <!-- FAQ mini -->
@@ -1901,7 +1901,7 @@
       <div style="display:flex;flex-direction:column;gap:14px">
         <div><strong style="font-size:14px">🤔 C'est quoi Qeerah exactement ?</strong><br><span style="font-size:13px;color:var(--muted)">Qeerah analyse les vidéos et produits qui <strong>vendent le plus sur TikTok Shop</strong>, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit.</span></div>
         <div><strong style="font-size:14px">🆓 Je peux tester sans payer ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui : <strong>{{ TRIAL_OFFER_FULL }}</strong>. Tu passes à un abonnement seulement si tu veux continuer au-delà.</span></div>
-        <div><strong style="font-size:14px">💎 Comment fonctionnent les crédits ?</strong><br><span style="font-size:13px;color:var(--muted)">Un pot unique de crédits IA partagé entre <strong>AI Prompt Studio</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton Compte.</span></div>
+        <div><strong style="font-size:14px">💎 Comment fonctionnent les crédits ?</strong><br><span style="font-size:13px;color:var(--muted)">Un pot unique de crédits IA partagé entre <strong>Studio d'accroches IA</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton Compte.</span></div>
         <div><strong style="font-size:14px">📊 D'où viennent tes données TikTok Shop ?</strong><br><span style="font-size:13px;color:var(--muted)">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</span></div>
         <div><strong style="font-size:14px">🔒 Mes produits et générations sont-ils privés ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui. Tes générations sont rattachées à ton compte et ne sont jamais partagées. Hébergement conforme RGPD.</span></div>
         <div><strong style="font-size:14px">💰 Mensuel ou annuel ?</strong><br><span style="font-size:13px;color:var(--muted)">En choisissant l'annuel, tu profites de <strong>2 mois offerts</strong> (tu ne paies que 10 mois sur 12) sur Pro, Gold et Agency.</span></div>
@@ -1983,7 +1983,7 @@
   <!-- ── ONGLET PHOTO SLIDE COACH ── -->
   <div id="tab-photoslide-content" style="display:none">
     <div class="section">
-      <h2>📸 Photo Slide Coach</h2>
+      <h2>📸 Coach carrousel photo</h2>
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Génère un carrousel TikTok Shop optimisé à partir d'une simple image produit : plan stratégique + textes (gratuit, 3/mois) ou <strong>4 slides créées par IA</strong> + conseils photos 5-7 (avec tes crédits).</p>
 
       <a href="/carousel" style="display:block;text-decoration:none;color:inherit">
@@ -2030,7 +2030,7 @@
   <!-- ── ONGLET AI VIDEO PROMPT STUDIO (PRO+) ── -->
   <div id="tab-promptstudio-content" style="display:none">
     <div class="section">
-      <h2>🎬 AI Prompt Studio <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:2px 8px;border-radius:999px;font-weight:700;vertical-align:middle">PREMIUM</span></h2>
+      <h2>🎬 Studio d'accroches IA <span style="font-size:11px;background:#D4AF37;color:#1a1a1a;padding:2px 8px;border-radius:999px;font-weight:700;vertical-align:middle">PREMIUM</span></h2>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Génère des prompts vidéo IA (Sora 2, Veo 3, Runway, Kling, Pika, Hailuo) optimisés TikTok Shop.</p>
 
       <!-- Gate non-premium -->
@@ -2094,7 +2094,7 @@
   <div id="tab-credits-content" style="display:none">
     <div class="section">
       <h2>💳 Acheter des crédits</h2>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Crédits pour l'AI Prompt Studio. Validité 1 mois après l'achat.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Crédits pour l'Studio d'accroches IA. Validité 1 mois après l'achat.</p>
       <div id="credits-balance-box" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px">💎 <strong id="credits-total">—</strong> crédits disponibles <span id="credits-detail" style="font-size:11px;color:var(--muted)"></span></div>
       <div id="credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
     </div>
