@@ -2796,8 +2796,25 @@ async def stripe_webhook_v1(request: Request):
     except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Signature webhook invalide.")
 
-    etype = event.get("type", "")
-    obj = event.get("data", {}).get("object", {})
+    # ⚠️ On relit le PAYLOAD BRUT plutôt que l'objet renvoyé par la bibliothèque.
+    #
+    # `construct_event` renvoie un `stripe.Event`, dont l'attribut `data` n'est PAS
+    # un dictionnaire : `event.get("data", {}).get("object", {})` levait
+    # `AttributeError: get` — avant toute logique métier, donc pour TOUS les types
+    # d'événement. Le webhook répondait 500 à chaque livraison ; il n'a jamais rien
+    # traité. Découvert en lui envoyant un événement signé pour la première fois.
+    #
+    # La signature vient d'être vérifiée juste au-dessus : `payload` est donc
+    # authentifié, et le lire en JSON brut donne exactement les mêmes données sans
+    # dépendre du typage interne de la bibliothèque — donc sans risque qu'une montée
+    # de version le recasse en silence.
+    try:
+        brut = json.loads(payload)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payload invalide.")
+
+    etype = brut.get("type", "")
+    obj = (brut.get("data") or {}).get("object") or {}
 
     # ── Paiement réussi → activer le plan (ou créditer un pack) ──
     if etype == "checkout.session.completed":

@@ -116,6 +116,21 @@ def test_un_abonnement_illisible_ne_fait_pas_planter():
     assert d is None and f is None
 
 
+def test_le_webhook_lit_le_payload_brut_et_non_l_objet_stripe():
+    """Le handler faisait `event.get("data", {}).get("object", {})` sur l'objet
+    renvoyé par la bibliothèque — or son attribut `data` n'est pas un
+    dictionnaire, d'où `AttributeError: get` sur TOUS les types d'événement,
+    avant la moindre logique métier. Le webhook répondait 500 à chaque
+    livraison. Ce test vérifie qu'on lit bien le payload JSON brut."""
+    import inspect
+    source = inspect.getsource(main.stripe_webhook_v1)
+    assert "json.loads(payload)" in source, \
+        "Le handler ne relit plus le payload brut : le typage de la bibliothèque " \
+        "Stripe peut le recasser silencieusement."
+    assert 'event.get("data"' not in source, \
+        "Accès dictionnaire sur l'objet Stripe : c'est ce qui levait AttributeError."
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # 3. CONTRÔLES D'ACCÈS — ce qui exposait des données de facturation
 # ══════════════════════════════════════════════════════════════════════════
