@@ -163,7 +163,7 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
         base_kwargs["temperature"] = temperature
 
     # Modèles à tester en cascade :
-    # 1. Modèle primaire (Flash 2.5 par défaut, rapide mais parfois surchargé)
+    # 1. Modèle primaire (Pro 2.5 par défaut, qualité max — cf. GEMINI_VIDEO_MODEL)
     # 2. Fallback Flash 2.0 (plus ancien, généralement plus stable côté capacité)
     # Override possible par env GEMINI_VIDEO_FALLBACK_MODEL.
     fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", "gemini-2.0-flash")
@@ -171,15 +171,34 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
         models_to_try.append(fallback_model)
 
+    # ⚠️ NE JAMAIS envoyer thinking_budget=0 : les modèles Pro refusent de couper
+    # leur raisonnement et renvoient un 400 « Budget 0 is invalid. This model only
+    # works in thinking mode ». C'était le cas ici à chaque analyse — l'appel
+    # partait perdant d'avance et ne devait sa survie qu'à un retry de rattrapage.
+    # Par défaut on n'envoie donc AUCUN ThinkingConfig : chaque modèle applique son
+    # raisonnement dynamique, ce qu'on veut de toute façon pour la qualité (le mode
+    # async absorbe la latence). GEMINI_VIDEO_THINKING_BUDGET permet de forcer une
+    # valeur si besoin : -1 = dynamique, 128-32768 = budget fixe. 0 est ignoré.
+    _budget_env = (os.getenv("GEMINI_VIDEO_THINKING_BUDGET", "") or "").strip()
+    try:
+        thinking_budget = int(_budget_env) if _budget_env else None
+    except ValueError:
+        thinking_budget = None
+    if thinking_budget == 0:
+        thinking_budget = None
+
     def _try_call(model_name: str):
-        """Tente un appel generate_content avec ThinkingConfig, fallback sans si rejeté."""
+        """Appel generate_content ; retry sans ThinkingConfig si le modèle le rejette."""
+        if thinking_budget is None:
+            cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
+            return client.models.generate_content(model=model_name, contents=parts, config=cfg)
         try:
-            thinking_cfg = gt.ThinkingConfig(thinking_budget=0)
+            thinking_cfg = gt.ThinkingConfig(thinking_budget=thinking_budget)
             cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
             return client.models.generate_content(model=model_name, contents=parts, config=cfg)
         except Exception as e:
-            if "thinking" in str(e).lower() or "invalid" in str(e).lower():
-                # Retry sans ThinkingConfig
+            if "thinking" in str(e).lower() or "budget" in str(e).lower():
+                # Le modèle n'accepte pas ce réglage → on le laisse décider seul.
                 cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
                 return client.models.generate_content(model=model_name, contents=parts, config=cfg)
             raise
