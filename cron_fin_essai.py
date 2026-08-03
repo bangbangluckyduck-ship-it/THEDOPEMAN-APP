@@ -36,6 +36,16 @@ def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     envoi_reel = "--envoyer" in sys.argv
 
+    # --exclure a@b.c,d@e.f — écarte des adresses pour CE lancement seulement.
+    # Sert aux cas qu'aucune règle automatique ne peut trancher : adresses
+    # visiblement issues d'une faute de frappe, dont on ne sait pas si elles
+    # existent ni à qui elles appartiennent. Les coder en dur dans le dépôt
+    # serait pire ; les décider au lancement laisse la main à l'humain.
+    exclus = set()
+    for a in sys.argv:
+        if a.startswith("--exclure="):
+            exclus = {e.strip().lower() for e in a.split("=", 1)[1].split(",") if e.strip()}
+
     import fin_essai
     from supabase_client import supabase_service
 
@@ -54,10 +64,14 @@ def main() -> int:
     if not envoi_reel:
         print("MODE SIMULATION — aucun e-mail ne sera envoyé.\n")
 
+    if exclus:
+        print(f"Écartées à la demande : {', '.join(sorted(exclus))}\n")
+
     total_env = total_ech = 0
     for etape in etapes:
         r = asyncio.run(fin_essai.envoyer(supabase_service, etape,
-                                          simulation=not envoi_reel))
+                                          simulation=not envoi_reel,
+                                          exclure=exclus))
         print(f"── {etape} : {r['cibles']} destinataire(s)")
         for d in r["details"]:
             print(f"     [{d['piste']:7}] {d['email'][:34]:36} "

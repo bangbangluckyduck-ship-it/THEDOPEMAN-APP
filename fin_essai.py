@@ -48,6 +48,36 @@ FIN_OFFRE = date(2026, 8, 17)
 ETAPES = ("annonce", "essai_termine", "derniere_chance")
 LOT_MAX = 500
 
+# ── Adresses à ne JAMAIS solliciter ───────────────────────────────────────
+#
+# La table `users` contient des comptes de test accumulés au fil du développement
+# (bots de test, comptes créés par des vérifications automatisées, un compte
+# fabriqué par un test de l'audit du 03/08). Leurs domaines n'existent pas : un
+# envoi produit un rebond dur.
+#
+# ⚠️ L'enjeu n'est pas le message perdu, c'est la RÉPUTATION D'EXPÉDITION. Quelques
+# rebonds durs sur un domaine jeune suffisent à faire classer en indésirable tous
+# les e-mails suivants — y compris les transactionnels : réinitialisation de mot
+# de passe, résultat d'analyse. On abîmerait le service pour tout le monde afin
+# d'écrire à des comptes qui n'existent pas.
+_DOMAINES_INTERDITS = ("example.com", "example.invalid", "example.org", "example.net",
+                       "test.com", "tts-test.com", "localhost", "invalid")
+_MOTIFS_INTERDITS = ("@test.", "+test@", "bot-", "testuser", "user-17", "audit@")
+
+
+def adresse_envoyable(email: str) -> tuple[bool, str]:
+    """(envoyable, motif du refus). Prudent par construction : au moindre doute
+    sur la validité d'une adresse, on s'abstient."""
+    e = (email or "").strip().lower()
+    if not e or "@" not in e or "." not in e.split("@")[-1]:
+        return False, "adresse mal formée"
+    domaine = e.split("@")[-1]
+    if domaine in _DOMAINES_INTERDITS or domaine.endswith(".invalid"):
+        return False, f"domaine de test ({domaine})"
+    if any(m in e for m in _MOTIFS_INTERDITS):
+        return False, "compte de test"
+    return True, ""
+
 
 def _parse(valeur):
     """Horodatage Supabase → datetime aware. Tolère 5 chiffres de fraction de
@@ -234,13 +264,81 @@ def _colonne(etape: str) -> str:
     return f"trial_mail_{etape}"
 
 
+# ── Traçage des envois : colonne dédiée, sinon repli sur market_cache ──────
+#
+# La garantie « un envoi par personne et par étape » est la plus importante de ce
+# module : un doublon sur une relance commerciale se voit immédiatement et se
+# rattrape mal. Elle repose normalement sur trois colonnes booléennes de `users`.
+#
+# Mais leur création demande un ALTER TABLE, que le backend ne peut pas exécuter
+# (l'API REST de Supabase n'expose pas le DDL). Sans repli, le cron quotidien
+# planterait chaque jour tant que la migration n'a pas été jouée à la main — et
+# la garantie disparaîtrait au moment précis où elle compte.
+#
+# On tente donc la colonne, et à défaut on note l'envoi dans `market_cache`, table
+# clé/valeur déjà en place. Ce n'est pas sa vocation première, d'où ce commentaire :
+# dès que les colonnes existent, le code les utilise et ce repli devient inerte.
+_MEMO = "mail_envoye"
+
+
+def _cle_memo(etape: str, email: str) -> str:
+    return f"{_MEMO}:{etape}:{email}"
+
+
+def _colonnes_disponibles(supabase) -> bool:
+    global _COLONNES_OK
+    if _COLONNES_OK is None:
+        try:
+            supabase.table("users").select(_colonne("annonce")).limit(1).execute()
+            _COLONNES_OK = True
+        except Exception:
+            _COLONNES_OK = False
+            print("ℹ️  Colonnes trial_mail_* absentes → suivi des envois via market_cache. "
+                  "Jouer la migration les rendra prioritaires automatiquement.")
+    return _COLONNES_OK
+
+
+_COLONNES_OK: bool | None = None
+
+
+def _deja_envoye(supabase, etape: str, email: str) -> bool:
+    if _colonnes_disponibles(supabase):
+        return False          # déjà filtré par la requête principale
+    try:
+        r = (supabase.table("market_cache").select("cache_key")
+             .eq("cache_key", _cle_memo(etape, email)).limit(1).execute())
+        return bool(r.data)
+    except Exception as e:
+        # En cas de doute on considère l'envoi comme DÉJÀ fait : mieux vaut un
+        # message manquant qu'un doublon envoyé à un client.
+        print(f"_deja_envoye({email}) : {e} → on s'abstient")
+        return True
+
+
+def _marquer_envoye(supabase, etape: str, email: str) -> None:
+    try:
+        if _colonnes_disponibles(supabase):
+            supabase.table("users").update({_colonne(etape): True}).eq("email", email).execute()
+        else:
+            supabase.table("market_cache").upsert(
+                {"cache_key": _cle_memo(etape, email),
+                 "payload": {"etape": etape, "envoye_le": datetime.now(timezone.utc).isoformat()},
+                 "expires_at": (datetime.now(timezone.utc) + timedelta(days=3650)).isoformat()}
+            ).execute()
+    except Exception as e:
+        print(f"⚠️  {email} : envoi réussi mais marquage KO ({e}) — "
+              f"risque de doublon au prochain passage, à vérifier.")
+
+
 def destinataires(supabase, etape: str, maintenant: datetime | None = None) -> list[dict]:
     """Comptes éligibles à CETTE étape, jamais encore sollicités pour elle."""
     maintenant = maintenant or datetime.now(timezone.utc)
     colonne = _colonne(etape)
+    champs = "email,tier,trial_ends_at,marketing_opt_out"
+    if _colonnes_disponibles(supabase):
+        champs += f",{colonne}"
 
-    lignes = (supabase.table("users")
-              .select(f"email,tier,trial_ends_at,marketing_opt_out,{colonne}")
+    lignes = (supabase.table("users").select(champs)
               .not_.is_("trial_ends_at", "null").limit(LOT_MAX).execute()).data or []
 
     retenus = []
@@ -264,12 +362,19 @@ def destinataires(supabase, etape: str, maintenant: datetime | None = None) -> l
             continue
 
         email = (u.get("email") or "").strip().lower()
-        if email:
+        if not email:
+            continue
+        envoyable, motif = adresse_envoyable(email)
+        if not envoyable:
+            print(f"   ⊘ {email} écarté — {motif}")
+            continue
+        if not _deja_envoye(supabase, etape, email):
             retenus.append({"email": email, "jours_essai": max(0, jours)})
     return retenus
 
 
-async def envoyer(supabase, etape: str, *, simulation: bool = True) -> dict:
+async def envoyer(supabase, etape: str, *, simulation: bool = True,
+                  exclure: set | None = None) -> dict:
     """Envoie une étape. **Simulation par défaut** : renvoie ce qui PARTIRAIT."""
     if etape not in ETAPES:
         return {"ok": False, "erreur": f"étape inconnue : {etape}"}
@@ -278,7 +383,8 @@ async def envoyer(supabase, etape: str, *, simulation: bool = True) -> dict:
     from email_service import email_service
 
     app = os.getenv("APP_PUBLIC_URL", "https://qeerah.com").rstrip("/")
-    cibles = destinataires(supabase, etape)
+    exclure = {e.lower() for e in (exclure or set())}
+    cibles = [c for c in destinataires(supabase, etape) if c["email"] not in exclure]
     envoyes = echecs = 0
     details = []
 
@@ -291,8 +397,9 @@ async def envoyer(supabase, etape: str, *, simulation: bool = True) -> dict:
         if simulation:
             continue
         if await email_service._send(c["email"], sujet, html):
-            supabase.table("users").update({_colonne(etape): True}) \
-                    .eq("email", c["email"]).execute()
+            # Marquage APRÈS succès : un échec réseau laisse la personne
+            # éligible au prochain passage plutôt que de lui faire perdre le message.
+            _marquer_envoye(supabase, etape, c["email"])
             envoyes += 1
         else:
             echecs += 1
