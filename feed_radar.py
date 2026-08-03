@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import gc
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -62,21 +62,53 @@ FEED_RADAR_CATEGORIES = ["beaute", "mode", "tech", "fitness", "sante", "maison",
 # max API) — 5 pages = jusqu'à 50 créateurs par catégorie. La boucle s'arrête
 # d'elle-même dès qu'une page revient vide (pas de gaspillage si le classement
 # KeyAPI a moins de créateurs que ça pour une catégorie/région donnée).
-FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "10"))
+# ⚠️ Défaut ramené de 10 à 3. À 10 pages × 7 catégories × 9 régions, la seule
+# découverte engageait ~7 000 appels par run. Les pages profondes du classement
+# ramènent en plus des créateurs de moins en moins pertinents : le rendement en
+# vidéos Shop réellement conservées y est marginal. Remonter via l'env si le
+# quota le permet un jour.
+FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "3"))
 # Nb de pages de vidéos récupérées PAR créateur (20 vidéos/page). La découverte est
 # créateur-centrée et seules ~1 vidéo sur 5 d'un créateur est une vraie vidéo Shop
 # (le reste = contenu organique, écarté par le filtre Shop). Paginer plus loin dans
 # leurs vidéos augmente donc le rendement en vidéos Shop réelles. La boucle s'arrête
 # dès qu'une page revient vide. Override via env pour arbitrer rendement ↔ coût KeyAPI.
 FEED_RADAR_VIDEO_PAGES = int(os.getenv("FEED_RADAR_VIDEO_PAGES", "2"))
-# Mêmes régions que MARKET_COUNTRIES (static/app_v3.js) — marchés déjà
-# confirmés couverts par KeyAPI pour "Créateurs Gagnants". Override possible
-# via env (liste séparée par virgules) pour réduire le coût KeyAPI si besoin.
+# ⚠️ Défaut ramené de 9 régions à la seule FR. Chaque région multiplie le coût du
+# run à l'identique : les huit autres représentaient 8/9 du budget KeyAPI pour des
+# marchés qui ne sont pas l'audience de Qeerah (créateurs TikTok Shop français).
+# Un utilisateur d'une autre région voit son feed se remplir dès qu'on rajoute sa
+# région ici — c'est un arbitrage de coût, pas une limite technique.
+#
+#   FEED_RADAR_REGIONS=FR,US,GB   sur Render pour élargir sans tout rallumer.
+#
+# ⚠️ Si cette variable est déjà définie sur Render, c'est ELLE qui gagne : ce
+# défaut ne changera rien tant qu'elle n'est pas modifiée là-bas.
 FEED_RADAR_REGIONS = [
     r.strip().upper() for r in os.getenv(
-        "FEED_RADAR_REGIONS", "FR,US,GB,BR,DE,ES,IT,ID,MY"  # FR en priorité : audience cœur de cible de l'app
+        "FEED_RADAR_REGIONS", "FR"
     ).split(",") if r.strip()
 ]
+
+# ── BUDGET D'APPELS KeyAPI ───────────────────────────────────────────────────
+# Mesuré sur la configuration ci-dessus : ~13 700 appels par run, soit ~27 000
+# par jour (2 runs) et ~820 000 par mois — pour un feed dont seules ~19 % des
+# vidéos découvertes sont réellement des vidéos Shop conservées. C'est ce cron,
+# et lui seul, qui vide le quota : les écrans utilisateur passent tous par un
+# cache quasi permanent et ne consomment quasiment rien.
+#
+# Deux leviers ajoutés ici, tous deux réglables sans redéploiement :
+
+# Rafraîchir le détail (GMV réel) des vidéos DÉJÀ en base. Désactivé par défaut :
+# c'était un coût par run proportionnel à la taille du feed, pour réactualiser une
+# donnée qui n'est de toute façon qu'indicative. Passer à "1" pour le rétablir.
+REFRESH_KNOWN_DETAIL = os.getenv("FEED_RADAR_REFRESH_KNOWN_DETAIL", "0").strip().lower() in (
+    "1", "true", "on", "yes")
+
+# Durée de vie du contexte créateur (GMV 30 j + prix moyen) en base. 4 appels par
+# créateur, auparavant repayés à CHAQUE run alors qu'un GMV glissant sur 30 jours
+# ne bouge pas en six heures. 0 = désactive le cache persistant.
+CREATOR_CTX_TTL_HOURS = int(os.getenv("FEED_RADAR_CREATOR_CTX_TTL_HOURS", "24"))
 
 _TIKTOK_OEMBED_URL = "https://www.tiktok.com/oembed"
 
@@ -281,10 +313,32 @@ async def _collect_region(region: str, supabase) -> dict:
     new_count = 0
     updated_count = 0
 
-    # GMV/ventes RÉELS par vidéo (endpoint KeyAPI corrigé mi-2026, confirmé non-zéro en live).
-    # Batché en un seul passage sur tous les candidats de la région avant la boucle principale.
+    # ── Vidéos DÉJÀ en base ─────────────────────────────────────────────────
+    # ⚠️ Cette lecture se faisait APRÈS get_videos_detail : chaque run repayait
+    # donc le détail de toutes les vidéos déjà connues. Sur 2 runs/jour × 9 régions,
+    # c'est le poste de gaspillage le plus mécanique du cron — une vidéo déjà
+    # stockée est déjà connue comme « Shop », le filtre n'a rien à trancher.
+    # Remontée AVANT, elle permet de ne demander le détail que des NOUVELLES.
+    existing_ids: set = set()
     try:
-        detail_map = await mc.get_videos_detail([c["id"] for c in candidates if c.get("id")])
+        existing_rows = supabase.table("feed_radar_videos").select("video_id") \
+            .in_("video_id", [c["id"] for c in candidates if c.get("id")]).execute().data or []
+        existing_ids = {r["video_id"] for r in existing_rows}
+    except Exception as e:
+        print(f"_collect_region({region}) existing lookup error: {e}")
+
+    # GMV/ventes RÉELS par vidéo (endpoint KeyAPI corrigé mi-2026, confirmé non-zéro en live).
+    # Batché (10 IDs/appel) et restreint aux nouveautés, sauf demande explicite de
+    # rafraîchir les anciennes — leur GMV est figé à la valeur relevée lors de la
+    # découverte, ce qui est le compromis assumé pour tenir le budget d'appels.
+    a_detailler = [c["id"] for c in candidates
+                   if c.get("id") and (REFRESH_KNOWN_DETAIL or c["id"] not in existing_ids)]
+    economisees = len([c for c in candidates if c.get("id")]) - len(a_detailler)
+    if economisees:
+        print(f"_collect_region({region}) détail : {len(a_detailler)} demandés, "
+              f"{economisees} déjà en base et non redemandés")
+    try:
+        detail_map = await mc.get_videos_detail(a_detailler)
     except Exception as e:
         print(f"_collect_region({region}) get_videos_detail error: {e}")
         detail_map = {}
@@ -298,32 +352,63 @@ async def _collect_region(region: str, supabase) -> dict:
     # les candidats dont le détail contient au moins un produit. Placé AVANT la
     # boucle d'enrichissement → on économise aussi les appels KeyAPI par créateur
     # pour les vidéos qu'on allait jeter.
-    shop_candidates = [c for c in candidates
-                       if (detail_map.get(str(c.get("id"))) or {}).get("video_products")]
+    # Une vidéo DÉJÀ en base a forcément passé ce filtre lors de sa découverte :
+    # elle est conservée sans redemander son détail (cf. bloc précédent).
+    shop_candidates = [
+        c for c in candidates
+        if str(c.get("id")) in existing_ids
+        or (detail_map.get(str(c.get("id"))) or {}).get("video_products")
+    ]
     skipped_non_shop = found - len(shop_candidates)
     candidates = shop_candidates
     if skipped_non_shop:
         print(f"_collect_region({region}) filtre Shop : {len(candidates)} gardées / "
               f"{skipped_non_shop} non-Shop écartées ({found} découvertes)")
 
-    # Vidéos déjà connues (pour éviter un re-fetch oEmbed inutile).
-    existing_ids: set = set()
-    try:
-        existing_rows = supabase.table("feed_radar_videos").select("video_id") \
-            .in_("video_id", [c["id"] for c in candidates]).execute().data or []
-        existing_ids = {r["video_id"] for r in existing_rows}
-    except Exception as e:
-        print(f"_collect_region({region}) existing lookup error: {e}")
-
     # Cache par créateur (GMV 30j + prix moyen) — évite de répéter les mêmes
     # appels KeyAPI pour chaque vidéo d'un même créateur dans cette collecte.
     creator_cache: dict = {}
 
     async def _creator_context(uid: Optional[str]):
+        """GMV 30 jours + prix moyen d'un créateur, le poste le plus cher du cron.
+
+        ⚠️ Coûte 4 appels KeyAPI par créateur (3 pages de `trends/analytics` + 1
+        de `products/analytics`). Le cache mémoire `creator_cache` n'existait que
+        pour la durée du run : chaque exécution, deux fois par jour et sur neuf
+        régions, repayait l'intégralité de ces appels pour les MÊMES créateurs.
+        Or un GMV sur fenêtre glissante de 30 jours ne bouge pas en six heures.
+
+        Le cache est donc persisté en base (`market_cache`, table déjà utilisée
+        par les écrans marché) avec une durée de vie de 24 h par défaut. Le cache
+        mémoire reste en première ligne pour éviter d'interroger la base plusieurs
+        fois dans le même run.
+        """
         if not uid:
             return {"series": [], "avg_price": 0.0, "gmv_30d": 0.0}
         if uid in creator_cache:
             return creator_cache[uid]
+
+        cle = f"v1:feed_radar:creator_ctx:{uid}"
+        if CREATOR_CTX_TTL_HOURS > 0 and supabase is not None:
+            try:
+                res = supabase.table("market_cache").select("payload,expires_at") \
+                    .eq("cache_key", cle).limit(1).execute()
+                ligne = (res.data or [None])[0]
+                if ligne and ligne.get("payload"):
+                    exp = ligne.get("expires_at")
+                    frais = True
+                    if exp:
+                        try:
+                            frais = datetime.fromisoformat(
+                                str(exp).replace("Z", "+00:00")) > datetime.now(timezone.utc)
+                        except Exception:
+                            frais = True
+                    if frais:
+                        creator_cache[uid] = ligne["payload"]
+                        return ligne["payload"]
+            except Exception as e:
+                print(f"_creator_context lecture cache ({uid}): {e}")
+
         avg_price = 0.0
         series: list = []
         gmv_30d = 0.0
@@ -341,6 +426,18 @@ async def _collect_region(region: str, supabase) -> dict:
             print(f"_creator_context products error ({uid}): {e}")
         ctx = {"series": series, "avg_price": avg_price, "gmv_30d": gmv_30d}
         creator_cache[uid] = ctx
+
+        # Un contexte vide vient presque toujours d'un quota épuisé : ne pas
+        # l'écrire, sinon on fige une absence de données pour 24 h.
+        if CREATOR_CTX_TTL_HOURS > 0 and supabase is not None and (series or avg_price or gmv_30d):
+            try:
+                exp = (datetime.now(timezone.utc)
+                       + timedelta(hours=CREATOR_CTX_TTL_HOURS)).isoformat()
+                supabase.table("market_cache").upsert(
+                    {"cache_key": cle, "payload": ctx, "expires_at": exp}
+                ).execute()
+            except Exception as e:
+                print(f"_creator_context écriture cache ({uid}): {e}")
         return ctx
 
     for v in candidates:
