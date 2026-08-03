@@ -1,21 +1,26 @@
-"""Entrée CRON du rappel « ton essai se termine bientôt ».
+"""Entrée CRON de la séquence « premiers testeurs ».
 
-⚠️ **N'ENVOIE RIEN PAR DÉFAUT.** Sans argument, le script simule : il affiche qui
-recevrait le message et à quelle échéance, sans rien expédier. Un e-mail parti ne
-se rattrape pas — la simulation est le mode sûr, l'envoi est le mode explicite.
+⚠️ **N'ENVOIE RIEN PAR DÉFAUT.** Sans `--envoyer`, le script simule : il affiche
+qui recevrait quoi, sur quelle piste, avec quel sujet — et n'expédie rien. Un
+e-mail parti ne se rattrape pas : le mode sûr doit être celui qu'on obtient sans
+y penser.
 
-    python3 cron_fin_essai.py              # simulation, aucun envoi
-    python3 cron_fin_essai.py --envoyer    # envoi réel
+    python3 cron_fin_essai.py                        # simulation des 3 étapes
+    python3 cron_fin_essai.py annonce                # simulation d'une étape
+    python3 cron_fin_essai.py annonce --envoyer      # envoi réel
 
-Configuration Render (quotidien, une fois le texte validé) :
+Étapes : annonce · essai_termine · derniere_chance (cf. fin_essai.py).
+
+Configuration Render, une fois le texte validé — un seul job quotidien suffit,
+chaque étape ne retient que les comptes dans sa fenêtre :
     Cron Job « fin-essai »
     Command  : python3 cron_fin_essai.py --envoyer
     Schedule : "0 9 * * *"
     Env      : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_PUBLIC_URL,
-               APP_SIGNING_SECRET, et la configuration d'envoi (Resend / SMTP).
+               APP_SIGNING_SECRET + configuration d'envoi (Resend / SMTP).
 
-Prérequis base : une colonne booléenne `trial_ending_sent` sur `users` — elle
-garantit qu'une même personne n'est jamais sollicitée deux fois.
+Prérequis base : trois colonnes booléennes sur `users` —
+`trial_mail_annonce`, `trial_mail_essai_termine`, `trial_mail_derniere_chance`.
 """
 from __future__ import annotations
 
@@ -28,31 +33,47 @@ load_dotenv()
 
 
 def main() -> int:
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
     envoi_reel = "--envoyer" in sys.argv
 
-    from supabase_client import supabase_service
     import fin_essai
+    from supabase_client import supabase_service
 
     if not supabase_service:
         print("❌ Client Supabase indisponible "
               "(SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY manquants ?)")
         return 1
 
-    resultat = asyncio.run(fin_essai.envoyer(supabase_service, simulation=not envoi_reel))
+    etapes = args or list(fin_essai.ETAPES)
+    inconnues = [e for e in etapes if e not in fin_essai.ETAPES]
+    if inconnues:
+        print(f"❌ Étape(s) inconnue(s) : {', '.join(inconnues)}")
+        print(f"   Attendu : {' · '.join(fin_essai.ETAPES)}")
+        return 1
 
-    if resultat["simulation"]:
-        print("MODE SIMULATION — aucun e-mail envoyé.\n")
-    print(f"{resultat['cibles']} destinataire(s) éligible(s) :")
-    for d in resultat["details"]:
-        quand = "demain" if d["jours"] <= 1 else f"dans {d['jours']} jours"
-        print(f"   · {d['email']:38} essai terminé {quand}")
+    if not envoi_reel:
+        print("MODE SIMULATION — aucun e-mail ne sera envoyé.\n")
 
-    if resultat["simulation"]:
-        print("\nPour envoyer réellement : python3 cron_fin_essai.py --envoyer")
+    total_env = total_ech = 0
+    for etape in etapes:
+        r = asyncio.run(fin_essai.envoyer(supabase_service, etape,
+                                          simulation=not envoi_reel))
+        print(f"── {etape} : {r['cibles']} destinataire(s)")
+        for d in r["details"]:
+            print(f"     [{d['piste']:7}] {d['email'][:34]:36} "
+                  f"{d['analyses']:>2} analyses · « {d['sujet']} »")
+        if not r["details"]:
+            print("     (personne dans la fenêtre de cette étape)")
+        total_env += r["envoyes"]
+        total_ech += r["echecs"]
+        print()
+
+    if envoi_reel:
+        print(f"Envoyés : {total_env}   Échecs : {total_ech}")
     else:
-        print(f"\nEnvoyés : {resultat['envoyes']}   Échecs : {resultat['echecs']}")
-
-    return 0 if resultat["ok"] else 1
+        print("Pour envoyer réellement :")
+        print("   python3 cron_fin_essai.py <étape> --envoyer")
+    return 0
 
 
 if __name__ == "__main__":
