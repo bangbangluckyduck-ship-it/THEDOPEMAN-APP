@@ -1,6 +1,7 @@
 from __future__ import annotations
 import base64
 import json
+import logging
 import os
 import re
 from datetime import date, datetime, timedelta
@@ -8,6 +9,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import ai_providers
+
+logger = logging.getLogger(__name__)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -646,6 +649,131 @@ Retourne ce JSON exact :
 AUCUN texte avant ou après le JSON. AUCUN markdown ```json. JSON BRUT."""
 
 
+# Schéma imposé au modèle : sa réponse ne PEUT structurellement plus être autre
+# chose que ça. Le prompt ci-dessus dit quoi observer, le schéma garantit la
+# forme — les deux doivent rester alignés si l'un des deux évolue.
+VIDEO_RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "produit": {"type": "STRING"},
+        "confiance_detection": {"type": "NUMBER"},
+        "description_visuelle": {"type": "STRING"},
+        "transcript": {"type": "STRING"},
+        "qualite_visuelle_score": {"type": "INTEGER"},
+        "format_visuel_score": {"type": "INTEGER"},
+        "hook_visuel_score": {"type": "INTEGER"},
+        "cta_visuel": {
+            "type": "OBJECT",
+            "properties": {
+                "present": {"type": "BOOLEAN"},
+                "description": {"type": "STRING", "nullable": True},
+                "timestamp_seconds": {"type": "NUMBER", "nullable": True},
+            },
+            "required": ["present"],
+        },
+        "cta_audio": {
+            "type": "OBJECT",
+            "properties": {
+                "present": {"type": "BOOLEAN"},
+                "phrase": {"type": "STRING", "nullable": True},
+                "timestamp_seconds": {"type": "NUMBER", "nullable": True},
+            },
+            "required": ["present"],
+        },
+        "rythme": {"type": "STRING", "enum": ["lent", "moyen", "rapide"]},
+        "duree_secondes": {"type": "NUMBER"},
+        "moderation": {
+            "type": "OBJECT",
+            "properties": {
+                "is_safe_visuel": {"type": "BOOLEAN"},
+                "raison": {"type": "STRING", "nullable": True},
+            },
+            "required": ["is_safe_visuel"],
+        },
+        "timeline_evenements": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "timestamp_seconds": {"type": "NUMBER"},
+                    "evenement": {"type": "STRING"},
+                    "texte_ecran": {"type": "STRING", "nullable": True},
+                },
+                "required": ["timestamp_seconds", "evenement"],
+            },
+        },
+    },
+    "required": ["produit", "confiance_detection", "description_visuelle", "transcript",
+                 "qualite_visuelle_score", "format_visuel_score", "hook_visuel_score",
+                 "cta_visuel", "cta_audio", "rythme", "duree_secondes", "moderation",
+                 "timeline_evenements"],
+}
+
+# Seuils du contrôle qualité, volontairement tolérants : ils doivent attraper un
+# modèle qui décroche, pas sanctionner une vidéo atypique (plan fixe, sans voix).
+_MIN_CONFIANCE = float(os.getenv("VIDEO_MIN_CONFIANCE", "0.7"))
+_MAX_TROU_TIMELINE = float(os.getenv("VIDEO_MAX_TROU_TIMELINE", "12"))
+_MIN_COUVERTURE = float(os.getenv("VIDEO_MIN_COUVERTURE", "0.6"))
+
+
+def _video_quality_issues(data: dict) -> List[str]:
+    """Contrôles DÉTERMINISTES sur les constats du modèle vision. Aucun appel IA.
+
+    Raison d'être : l'étape suivante (Claude) ne voit jamais la vidéo. Elle ne
+    peut donc pas remarquer qu'une timeline s'arrête à la 8e seconde d'un clip
+    de 45, ni qu'un timestamp tombe après la fin. Personne, en aval, ne rattrape
+    ça — le rapport sort avec assurance sur des repères inventés.
+
+    Ces vérifications sont le dernier endroit du pipeline où une hallucination
+    temporelle peut encore être vue. Elles ne coûtent rien : on ne fait que
+    comparer des nombres entre eux.
+
+    Retourne la liste des anomalies — vide = constats exploitables.
+    """
+    issues: List[str] = []
+
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    duree = _num(data.get("duree_secondes")) or 0.0
+    conf = _num(data.get("confiance_detection"))
+    timeline = data.get("timeline_evenements")
+    timeline = timeline if isinstance(timeline, list) else []
+
+    if conf is not None and conf < _MIN_CONFIANCE:
+        issues.append(f"confiance de détection faible ({conf:.2f} < {_MIN_CONFIANCE})")
+    if duree <= 0:
+        issues.append("durée de vidéo non renseignée")
+
+    if not timeline:
+        issues.append("timeline absente")
+    else:
+        ts = sorted(t for t in (_num((e or {}).get("timestamp_seconds"))
+                                for e in timeline if isinstance(e, dict)) if t is not None)
+        if not ts:
+            issues.append("timeline sans timestamp exploitable")
+        elif duree > 0:
+            if ts[-1] > duree + 1.5:
+                # Un repère après la fin ne peut pas avoir été observé.
+                issues.append(f"timestamp au-delà de la fin ({ts[-1]:.0f}s > {duree:.0f}s)")
+            elif ts[-1] < duree * _MIN_COUVERTURE:
+                # Symptôme classique d'un modèle qui saute des segments.
+                issues.append(f"timeline ne couvre que {ts[-1] / duree:.0%} de la vidéo")
+            trou = max([b - a for a, b in zip(ts, ts[1:])] or [0.0])
+            if trou > _MAX_TROU_TIMELINE:
+                issues.append(f"trou de {trou:.0f}s dans la timeline")
+
+    # Un CTA audio suppose de la parole : sans transcript, l'un des deux constats
+    # est faux et rien ne permet de savoir lequel.
+    if (data.get("cta_audio") or {}).get("present") and not (data.get("transcript") or "").strip():
+        issues.append("CTA audio annoncé mais transcript vide")
+
+    return issues
+
+
 def analyze_video_native(video_path: str, product: Optional[str] = None,
                          price: Optional[str] = None) -> dict:
     """Analyse multimodale via Gemini Pro sur la vidéo ENTIÈRE (visuel + audio).
@@ -666,29 +794,57 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     # 90s et non 120 : ce timeout ne borne pas une analyse normale (Flash rend sa
     # réponse en 15-40s sur une vidéo TikTok), il borne un appel qui se fige. Le
     # descendre ne coupe donc rien d'utile, ça raccourcit juste l'attente inutile.
-    raw = ai_providers.video_complete(
-        video_path, prompt,
-        timeout=float(os.getenv("VIDEO_NATIVE_TIMEOUT", "90")),
-        temperature=0.0,
-    )
-    try:
+    def _observe(model: Optional[str] = None) -> dict:
+        raw = ai_providers.video_complete(
+            video_path, prompt,
+            timeout=float(os.getenv("VIDEO_NATIVE_TIMEOUT", "90")),
+            temperature=0.0,
+            response_schema=VIDEO_RESPONSE_SCHEMA,
+            model=model,
+        )
         return _extract_json(raw)
-    except Exception:
-        return {
-            "produit": product or "non détecté",
-            "confiance_detection": 0.6,
-            "description_visuelle": "Analyse Gemini vidéo native échouée — JSON invalide",
-            "transcript": "",
-            "qualite_visuelle_score": 50,
-            "format_visuel_score": 50,
-            "hook_visuel_score": 50,
-            "cta_visuel": {"present": False, "description": None, "timestamp_seconds": None},
-            "cta_audio": {"present": False, "phrase": None, "timestamp_seconds": None},
-            "rythme": "moyen",
-            "duree_secondes": 0,
-            "moderation": {"is_safe_visuel": True, "raison": None},
-            "timeline_evenements": [],
-        }
+
+    # Première passe sur le modèle rapide.
+    #
+    # ⚠️ Si le JSON est inexploitable, on LAISSE REMONTER l'erreur. Ce bloc
+    # renvoyait auparavant une analyse fabriquée — notes à 50/50/50, transcript
+    # et timeline vides, `is_safe_visuel: True` — sans le moindre log. Claude
+    # rédigeait alors un rapport assuré sur des données inventées, l'utilisateur
+    # le recevait comme une vraie analyse, et la modération passait au vert sur
+    # une vidéo que personne n'avait regardée. Un échec franc vaut infiniment
+    # mieux qu'un résultat faux qui ne se signale pas.
+    data = _observe()
+
+    # Contrôle qualité + escalade. On ne relance le modèle fin que sur les
+    # vidéos où le modèle rapide a démontrablement décroché : coût moyen proche
+    # de celui du rapide, finesse du fin là où elle sert réellement.
+    issues = _video_quality_issues(data)
+    if not issues:
+        return data
+
+    escalation_model = os.getenv("GEMINI_VIDEO_ESCALATION_MODEL", "gemini-2.5-pro")
+    logger.warning("[analyzer] constats vidéo douteux (%s) → escalade vers %s",
+                   " ; ".join(issues), escalation_model)
+    try:
+        better = _observe(model=escalation_model)
+    except Exception as e:
+        # L'escalade est un BONUS : si le modèle fin est indisponible ou saturé,
+        # on garde les constats de la première passe. Échouer ici reviendrait à
+        # transformer une analyse imparfaite en analyse absente.
+        logger.warning("[analyzer] escalade vers %s impossible (%s) — on conserve "
+                       "les constats de la première passe", escalation_model, e)
+        return data
+
+    better_issues = _video_quality_issues(better)
+    if len(better_issues) < len(issues):
+        logger.info("[analyzer] escalade concluante : %d anomalie(s) → %d",
+                    len(issues), len(better_issues))
+        return better
+    # Le modèle fin ne fait pas mieux : le problème vient probablement de la
+    # vidéo elle-même (muette, très courte, illisible), pas du modèle.
+    logger.info("[analyzer] escalade sans gain (%d → %d anomalies) — constats "
+                "de la première passe conservés", len(issues), len(better_issues))
+    return data
 
 
 # ════════════════════════════════════════════════════════════════════════════

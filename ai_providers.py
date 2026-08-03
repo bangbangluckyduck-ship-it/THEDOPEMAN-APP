@@ -150,7 +150,9 @@ def _gemini_vision(content: Any, timeout: float, temperature: Optional[float] = 
 
 # ── Gemini Pro (VIDÉO native + audio) ────────────────────────────────────────
 def _gemini_video(video_path: str, prompt: str, timeout: float,
-                  temperature: Optional[float] = None) -> str:
+                  temperature: Optional[float] = None,
+                  response_schema: Optional[dict] = None,
+                  model: Optional[str] = None) -> str:
     """Envoie la vidéo entière (mp4) à Gemini Pro pour analyse multimodale
     native — vision + audio dans un seul appel. Pas d'extraction de frames,
     pas de transcription audio séparée.
@@ -214,19 +216,36 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
 
-    # Config de base : temperature
+    # Config de base : temperature + format de sortie imposé.
     base_kwargs = {}
     if temperature is not None:
         base_kwargs["temperature"] = temperature
 
+    # SORTIE STRUCTURÉE : on n'espère plus du JSON, on l'impose. Avant, le format
+    # n'était demandé qu'en toutes lettres dans le prompt (« JSON BRUT, aucun
+    # markdown ») et l'appelant se débrouillait avec ce qui revenait. Un schéma
+    # rend la réponse malformée structurellement impossible — ce qui ferme le
+    # trou décrit dans analyzer.analyze_video_native (une analyse inventée était
+    # renvoyée en silence quand le JSON ne se laissait pas parser).
+    if response_schema:
+        base_kwargs["response_mime_type"] = "application/json"
+        base_kwargs["response_schema"] = response_schema
+
     # Modèles à tester en cascade :
-    # 1. Modèle primaire (Pro 2.5 par défaut, qualité max — cf. GEMINI_VIDEO_MODEL)
+    # 1. Modèle primaire (Flash 2.5 par défaut — cf. GEMINI_VIDEO_MODEL), ou le
+    #    modèle explicitement demandé par l'appelant (escalade qualité vers Pro).
     # 2. Fallback Flash 2.0 (plus ancien, généralement plus stable côté capacité)
     # Override possible par env GEMINI_VIDEO_FALLBACK_MODEL.
-    fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", "gemini-2.0-flash")
-    models_to_try = [GEMINI_VIDEO_MODEL]
-    if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
-        models_to_try.append(fallback_model)
+    if model:
+        # Escalade ciblée : on veut CE modèle et rien d'autre. Retomber sur un
+        # modèle plus faible viderait l'escalade de son sens — l'appelant garde
+        # déjà un résultat de première passe si celle-ci échoue.
+        models_to_try = [model]
+    else:
+        fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", "gemini-2.0-flash")
+        models_to_try = [GEMINI_VIDEO_MODEL]
+        if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
+            models_to_try.append(fallback_model)
 
     # VITESSE : par défaut on COUPE le raisonnement du modèle. Décrire ce qui se
     # passe dans une vidéo est une tâche d'observation, pas de déduction — le
@@ -250,20 +269,37 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
         return thinking_budget
 
     def _try_call(model_name: str):
-        """Appel generate_content ; retry sans ThinkingConfig si le modèle le rejette."""
+        """Appel generate_content, avec deux replis CIBLÉS.
+
+        Chacun ne se déclenche que si le modèle a nommément refusé l'option, et
+        ne retire que celle-là. Ce n'est pas une nouvelle tentative à l'aveugle :
+        envoyer systématiquement une option vouée au refus pour la retirer
+        ensuite est exactement le défaut qu'on a corrigé sur thinking_budget.
+        """
+        kwargs = dict(base_kwargs)
         budget = _thinking_for(model_name)
-        if budget is None:
-            cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
+        if budget is not None:
+            kwargs["thinking_config"] = gt.ThinkingConfig(thinking_budget=budget)
+
+        def _call(kw):
+            cfg = gt.GenerateContentConfig(**kw) if kw else None
             return client.models.generate_content(model=model_name, contents=parts, config=cfg)
+
         try:
-            thinking_cfg = gt.ThinkingConfig(thinking_budget=budget)
-            cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
-            return client.models.generate_content(model=model_name, contents=parts, config=cfg)
+            return _call(kwargs)
         except Exception as e:
-            if "thinking" in str(e).lower() or "budget" in str(e).lower():
-                # Le modèle n'accepte pas ce réglage → on le laisse décider seul.
-                cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
-                return client.models.generate_content(model=model_name, contents=parts, config=cfg)
+            msg = str(e).lower()
+            if "thinking" in msg or "budget" in msg:
+                kwargs.pop("thinking_config", None)
+                return _call(kwargs)
+            if "schema" in msg or "mime_type" in msg or "response_format" in msg:
+                # Modèle sans sortie structurée : on repasse au JSON demandé en
+                # toutes lettres dans le prompt. L'appelant valide ce qu'il
+                # reçoit dans tous les cas, donc on ne perd pas de garantie.
+                print(f"[ai] {model_name} refuse le schéma de sortie — repli sur JSON libre")
+                kwargs.pop("response_schema", None)
+                kwargs.pop("response_mime_type", None)
+                return _call(kwargs)
             raise
 
     # Plafond de temps GLOBAL sur la cascade. Sans lui : 3 tentatives × 2 modèles
@@ -367,17 +403,25 @@ def vision_complete(content: Any, timeout: float = 60.0,
 
 
 def video_complete(video_path: str, prompt: str, timeout: float = 90.0,
-                   temperature: Optional[float] = None) -> str:
-    """Analyse vidéo NATIVE via Gemini Pro (visuel + audio, un seul appel).
+                   temperature: Optional[float] = None,
+                   response_schema: Optional[dict] = None,
+                   model: Optional[str] = None) -> str:
+    """Analyse vidéo NATIVE via Gemini (visuel + audio, un seul appel).
     Plus précis qu'une analyse de frames extraites + transcription séparée.
+
+    `response_schema` impose la structure de la réponse (JSON garanti).
+    `model` force un modèle précis, court-circuitant la cascade par défaut :
+    c'est le levier de l'escalade qualité (analyzer relance sur un modèle plus
+    fin quand les constats de la première passe échouent à ses contrôles).
 
     Lève une exception si Gemini KO — pas de fallback automatique car les autres
     providers ne supportent pas la vidéo native. L'appelant peut retomber sur le
     pipeline frames+transcription si besoin."""
-    out = _gemini_video(video_path, prompt, timeout, temperature=temperature)
+    out = _gemini_video(video_path, prompt, timeout, temperature=temperature,
+                        response_schema=response_schema, model=model)
     if not out or not out.strip():
         raise Exception("réponse Gemini vidéo vide")
-    _LAST["vision"] = "gemini-video:" + GEMINI_VIDEO_MODEL
+    _LAST["vision"] = "gemini-video:" + (model or GEMINI_VIDEO_MODEL)
     return out
 
 
