@@ -38,6 +38,35 @@ def last_providers() -> dict:
     return dict(_LAST)
 
 
+# Signatures d'une panne PASSAGÈRE côté fournisseur (saturation, capacité,
+# quota instantané) — par opposition à une erreur de notre requête, qu'il ne
+# sert à rien de rejouer. Rejouer à l'identique n'a de sens que pour celles-ci.
+_TRANSIENT_MARKERS = ("503", "unavailable", "overload", "high demand",
+                      "resource_exhausted", "429")
+
+
+def _is_transient(e: Exception) -> bool:
+    msg = str(e).lower()
+    return any(m in msg for m in _TRANSIENT_MARKERS)
+
+
+def _video_failure(err: Optional[Exception]) -> Exception:
+    """Échec définitif d'analyse vidéo, formulé pour l'utilisateur final.
+
+    Ce texte part TEL QUEL dans l'email d'échec (analysis_runner._send_error_email
+    en encadre `str(e)` en rouge). Il ne doit donc contenir ni code HTTP, ni JSON,
+    ni nom de fournisseur — seulement ce que le destinataire peut en faire. Le
+    détail technique n'est pas perdu : on chaîne la cause avec `from`, Sentry la
+    conserve dans l'incident.
+    """
+    if err is not None and _is_transient(err):
+        return Exception("Le service d'analyse est saturé en ce moment — ça vient de "
+                         "leur côté, pas de ta vidéo. Relance l'analyse dans quelques "
+                         "minutes, elle devrait passer.")
+    return Exception("L'analyse de cette vidéo n'a pas abouti. Relance-la ; si ça se "
+                     "reproduit, envoie-nous le lien et on regarde.")
+
+
 def any_ai_key() -> bool:
     """Au moins un fournisseur IA est configuré (sinon les features IA sont indispo)."""
     return bool(os.getenv("MISTRAL_API_KEY") or os.getenv("GEMINI_API_KEY")
@@ -129,17 +158,39 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     """
     from google import genai
     from google.genai import types as gt
+    import time as _t
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"),
                           http_options=gt.HttpOptions(timeout=int(timeout * 1000)))
+
+    # L'upload et le sondage d'état étaient les SEULS appels Gemini sans filet :
+    # generate_content avait sa cascade de retries, mais un 503 « high demand »
+    # pendant l'upload tuait le job instantanément, sans une seule reprise. Or
+    # une saturation côté Google touche tous les endpoints en même temps — c'est
+    # précisément au pire moment que l'étape la plus fragile n'était pas protégée.
+    def _retry_transient(fn, what: str, attempts: int = 4):
+        """Rejoue fn() sur saturation/indispo Google (503, 429, overload)."""
+        delay = 2
+        for i in range(attempts):
+            try:
+                return fn()
+            except Exception as e:
+                if not _is_transient(e) or i == attempts - 1:
+                    raise
+                print(f"[ai] {what} : {type(e).__name__} transitoire, "
+                      f"nouvelle tentative dans {delay}s ({i + 1}/{attempts - 1})")
+                _t.sleep(delay)
+                delay *= 2
+
     # Toujours Files API : ne charge JAMAIS la vidéo en mémoire Python (Render
     # starter = 512 MB RAM, on doit éviter `f.read()` sur des fichiers vidéo qui
     # font 10-30 MB et risquent l'OOM quand combinés au reste de l'app).
-    uploaded = client.files.upload(file=video_path, config={"mime_type": "video/mp4"})
+    uploaded = _retry_transient(
+        lambda: client.files.upload(file=video_path, config={"mime_type": "video/mp4"}),
+        "upload vidéo")
 
     # Attente du passage à l'état ACTIVE — Google a besoin de quelques secondes
     # pour traiter la vidéo après upload. Sans ça, generate_content renvoie
     # 400 FAILED_PRECONDITION "File X is not in an ACTIVE state".
-    import time as _t
     _wait = 0
     while True:
         state = getattr(uploaded, "state", None)
@@ -152,7 +203,8 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
             raise Exception(f"Gemini Files API : timeout (état toujours {state_name} après 60s)")
         _t.sleep(2)
         _wait += 2
-        uploaded = client.files.get(name=uploaded.name)
+        uploaded = _retry_transient(lambda: client.files.get(name=uploaded.name),
+                                    "état fichier", attempts=3)
 
     video_part = gt.Part.from_uri(file_uri=uploaded.uri, mime_type="video/mp4")
     parts = [video_part, gt.Part.from_text(text=prompt)]
@@ -203,7 +255,6 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                 return client.models.generate_content(model=model_name, contents=parts, config=cfg)
             raise
 
-    import time as _t
     last_err = None
     for model_name in models_to_try:
         # 3 tentatives par modèle avec backoff exponentiel (2s, 5s) avant de
@@ -215,14 +266,15 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                 resp = _try_call(model_name)
                 return resp.text or ""
             except Exception as e:
-                msg = str(e).lower()
                 last_err = e
-                # Si 503 / overloaded / unavailable → on retry
-                if any(s in msg for s in ("503", "unavailable", "overload", "high demand", "resource_exhausted", "429")):
+                if _is_transient(e):
                     continue
                 # Erreur non-récupérable → on passe au modèle suivant directement
                 break
-    raise Exception(f"Tous les modèles vidéo Gemini ont échoué : {last_err}")
+    # Message lisible pour l'utilisateur (il le reçoit par email), cause technique
+    # chaînée pour Sentry. Avant, c'est « 503 UNAVAILABLE. {'error': {...}} » qui
+    # partait dans l'email d'échec d'un client payant.
+    raise _video_failure(last_err) from last_err
 
 
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
