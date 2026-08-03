@@ -1,20 +1,40 @@
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-python-multipart>=0.0.6
-httpx>=0.27.0
-assemblyai>=0.30.0
-pillow>=10.0.0
-python-dotenv>=1.0.0
-qrcode[pil]>=7.4.2
-stripe>=10.0.0
-supabase>=2.0.0
-bcrypt>=4.0.0
-sendgrid>=6.10.0
-email-validator>=2.0.0
-jinja2>=3.1.0
+# Versions bornées par MAJEURE.
+#
+# Pourquoi : ce fichier n'indiquait que des `>=`. Render a donc installé stripe 15.x
+# alors que le code avait été écrit pour la 10.x — or Stripe a retiré
+# `current_period_start` / `current_period_end` de l'objet Subscription dans l'API
+# 2025-03-31 « basil ». Les deux champs sont revenus None en silence, le cycle de
+# facturation n'a plus jamais été enregistré et le handler `invoice.paid` est devenu
+# du code mort. Aucune ligne de code n'avait changé : c'est un simple redéploiement
+# qui a cassé la facturation.
+#
+# Les bornes hautes empêchent qu'un `pip install` reproduise ce scénario. Les montées
+# de version majeure redeviennent un choix explicite, à faire en lisant le changelog.
+#
+# Étape suivante possible : figer les versions EXACTES à partir d'un `pip freeze` pris
+# sur Render, pour une reproductibilité totale entre local et production.
+
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+python-multipart>=0.0.6,<0.1.0
+httpx>=0.27.0,<1.0.0
+assemblyai>=0.30.0,<1.0.0
+pillow>=10.0.0,<12.0.0
+python-dotenv>=1.0.0,<2.0.0
+qrcode[pil]>=7.4.2,<9.0.0
+# ⚠️ Ne PAS relever au-delà de 15.x sans relire _subscription_period() dans main.py.
+stripe>=15.0.0,<16.0.0
+supabase>=2.0.0,<3.0.0
+bcrypt>=4.0.0,<6.0.0
+sendgrid>=6.10.0,<7.0.0
+email-validator>=2.0.0,<3.0.0
+jinja2>=3.1.0,<4.0.0
 yt-dlp>=2024.0.0
-opencv-python-headless>=4.8.0
-google-genai>=1.0.0
-anthropic>=0.40.0
-pywebpush>=2.0.0
-rjsmin>=1.2.0
+opencv-python-headless>=4.8.0,<5.0.0
+google-genai>=1.0.0,<2.0.0
+anthropic>=0.40.0,<1.0.0
+pywebpush>=2.0.0,<3.0.0
+rjsmin>=1.2.0,<2.0.0
+# Supervision des erreurs. Inerte tant que SENTRY_DSN n'est pas défini sur Render :
+# l'installer ne change rien tant qu'on n'a pas décidé de l'activer.
+sentry-sdk[fastapi]>=2.0.0,<3.0.0

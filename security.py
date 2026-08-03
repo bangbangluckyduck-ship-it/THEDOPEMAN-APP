@@ -4,7 +4,7 @@ import json
 import os
 from time import time
 from typing import Dict, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -18,9 +18,26 @@ class RateLimiter:
     def __init__(self, requests_per_minute: int = 10):
         self.limit = requests_per_minute
         self._store: Dict[str, List[float]] = {}
+        self._last_sweep: float = 0.0
+
+    def _sweep(self, now: float) -> None:
+        """Retire les adresses devenues inactives.
+
+        Sans ce balayage, `_store` ne perdait JAMAIS une adresse : chaque IP vue
+        une seule fois y laissait une entrée définitive. Sur un processus qui vit
+        des semaines, c'est une fuite mémoire lente — et la mémoire est déjà la
+        ressource critique de cette instance. Au plus une fois par minute, donc
+        négligeable devant le coût d'une requête.
+        """
+        if now - self._last_sweep < 60:
+            return
+        self._last_sweep = now
+        for ip in [k for k, v in self._store.items() if not v or now - v[-1] >= 60]:
+            self._store.pop(ip, None)
 
     def is_allowed(self, ip: str) -> bool:
         now = time()
+        self._sweep(now)
         bucket = self._store.setdefault(ip, [])
         # Purge les entrées > 60 s
         self._store[ip] = [t for t in bucket if now - t < 60]
@@ -38,17 +55,24 @@ class RateLimiter:
 # ── SECURITY LOGGER ───────────────────────────────────────────────────────────
 
 class SecurityLogger:
-    LOG_FILE = "security.log"
+    """Journal des événements de sécurité, émis sur la sortie standard.
+
+    ⚠️ Ces événements étaient écrits dans un fichier local `security.log`. Or le
+    disque d'une instance Render est ÉPHÉMÈRE : tout le journal disparaissait à
+    chaque déploiement et à chaque redémarrage — c'est-à-dire précisément quand on
+    aurait besoin de le relire. Sur stdout, il est capté par la journalisation
+    Render (consultable et interrogeable) et par n'importe quel agrégateur branché
+    plus tard, sans rien changer ici.
+    """
 
     def _write(self, event: str, details: dict):
         entry = {
-            "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "event": event,
             **details,
         }
         try:
-            with open(self.LOG_FILE, "a") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            print("[security] " + json.dumps(entry, ensure_ascii=False), flush=True)
         except Exception:
             pass  # Ne jamais crasher à cause du logging
 
@@ -82,9 +106,40 @@ rate_limiter    = RateLimiter(requests_per_minute=10)
 auth_rate_limiter = RateLimiter(requests_per_minute=8)
 _AUTH_PROTECTED_PATHS = {"/api/login", "/api/register", "/api/forgot-password"}
 
+# Limiteur des routes COÛTEUSES : chacune déclenche soit du calcul vidéo (CPU,
+# mémoire, crédits IA), soit un appel au fournisseur de données payant, soit un
+# envoi d'e-mail. Seul `/analyze` était protégé — tout le reste, y compris les
+# chemins réellement empruntés par l'application, était en accès libre.
+# 20/min laisse largement passer un usage humain normal.
+costly_rate_limiter = RateLimiter(requests_per_minute=20)
+_COSTLY_EXACT_PATHS = {
+    "/analyze-url",
+    "/analyze-url/stream",
+    "/analyze-batch-patterns",
+    "/api/jobs/create-url",
+    "/api/jobs/create-upload",
+    "/api/temoignages",
+    "/api/img-proxy",
+    "/api/tt-thumb",
+    "/api/recherche/profile",
+    "/create-checkout-session",
+    "/create-credits-checkout-session",
+    "/customer-portal",
+    "/api/carousel/generate",
+    "/api/photo-slide/generate",
+    "/api/video-prompt/generate",
+    "/api/scripts/multi-angle",
+    "/api/request-testimonial-email",
+}
+_COSTLY_PREFIXES = ("/api/market/",)
+
+
+def _is_costly(path: str) -> bool:
+    return path in _COSTLY_EXACT_PATHS or path.startswith(_COSTLY_PREFIXES)
+
 
 async def rate_limit_middleware(request: Request, call_next):
-    """Rate limiting : /analyze (10/min) + routes d'auth sensibles (8/min)."""
+    """Rate limiting : /analyze (10/min), routes d'auth (8/min), routes coûteuses (20/min)."""
     path = request.url.path
     ip = request.client.host if request.client else "unknown"
 
@@ -101,5 +156,12 @@ async def rate_limit_middleware(request: Request, call_next):
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Trop de tentatives. Attends 1 minute avant de réessayer."},
+            )
+    elif _is_costly(path):
+        if not costly_rate_limiter.is_allowed(ip):
+            security_logger.rate_limit_exceeded(ip)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Trop de requêtes d'affilée. Attends une minute puis réessaie."},
             )
     return await call_next(request)

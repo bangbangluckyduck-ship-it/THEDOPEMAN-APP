@@ -191,7 +191,14 @@ def _session_ttl_seconds() -> int:
         days = float(os.getenv("SESSION_TTL_DAYS", "30"))
     except (TypeError, ValueError):
         days = 30.0
-    return int(days * 86400) if days > 0 else 0
+    if days <= 0:
+        return 0
+    # ⚠️ Plancher à 1 seconde. `int(days * 86400)` tombait à 0 pour toute valeur
+    # inférieure à ~0,00001 jour — et 0 est justement le sentinelle « pas
+    # d'expiration ». Une valeur minuscule mal saisie désactivait donc
+    # silencieusement l'expiration des sessions, exactement l'inverse de
+    # l'intention. Repéré par test_un_jeton_perime_est_refuse.
+    return max(1, int(days * 86400))
 
 
 def create_access_token(email: str) -> str:
