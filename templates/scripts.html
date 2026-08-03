@@ -48,7 +48,7 @@
 </head>
 <body>
 <header class="top">
-  <span class="logo">🎬 Qeerah</span>
+  <span class="logo">Qeerah</span>
   <a href="/">← Accueil</a>
 </header>
 
@@ -82,7 +82,7 @@
 
   <div id="sp-out"></div>
 
-  <div class="foot">⚖️ Rappel : une vidéo qui vend doit afficher une mention publicitaire (« Publicité » / « Collaboration commerciale »). Ne garde que des prix, promos et allégations véridiques.</div>
+  <div class="foot">️ Rappel : une vidéo qui vend doit afficher une mention publicitaire (« Publicité » / « Collaboration commerciale »). Ne garde que des prix, promos et allégations véridiques.</div>
 </div>
 
 <script>
@@ -107,8 +107,8 @@ function renderResult(d){
     +   '</div>'
     +   '<div style="font-size:12px;color:var(--muted);margin-top:8px">Potentiel produit : <strong>'+esc(d.potentiel_produit)+'/100</strong> — '+esc(d.categorie_produit||'')+'</div>'
     +   '<div class="meter"><span style="width:'+Math.max(0,Math.min(100,parseInt(d.potentiel_produit)||0))+'%"></span></div>';
-  if(d.mention_pub){ head += '<div class="banner warn" style="margin-top:12px">⚖️ '+esc(d.mention_pub)+'</div>'; }
-  if(d.quota && d.quota.remaining!=null){ head += '<div style="font-size:11px;color:var(--muted);margin-top:10px">🎁 Générations gratuites restantes ce mois : <strong>'+esc(d.quota.remaining)+'</strong> / '+esc(d.quota.free_monthly)+'</div>'; }
+  if(d.mention_pub){ head += '<div class="banner warn" style="margin-top:12px">️ '+esc(d.mention_pub)+'</div>'; }
+  if(d.quota && d.quota.remaining!=null){ head += '<div style="font-size:11px;color:var(--muted);margin-top:10px">Générations gratuites restantes ce mois : <strong>'+esc(d.quota.remaining)+'</strong> / '+esc(d.quota.free_monthly)+'</div>'; }
   head += '</div>';
 
   var cards = scripts.map(function(s,i){
@@ -123,7 +123,7 @@ function renderResult(d){
     +   (s.hook_0_3s? '<div class="hook">🎣 '+esc(s.hook_0_3s)+'</div>':'')
     +   '<div class="script-body">'+esc(s.script||'')+'</div>'
     +   (s.cta? '<div class="cta">📣 '+esc(s.cta)+'</div>':'')
-    +   (s.why_it_works? '<div class="why">💡 '+esc(s.why_it_works)+'</div>':'')
+    +   (s.why_it_works? '<div class="why">'+esc(s.why_it_works)+'</div>':'')
     +   '<button class="btn-sec" style="margin-top:10px" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">Copier le script</button>'
     + '</div>';
   }).join('');

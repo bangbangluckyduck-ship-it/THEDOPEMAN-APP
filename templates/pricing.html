@@ -208,16 +208,15 @@
     <div class="compare-link"><a href="/pricing/compare">Voir le détail de toutes les fonctionnalités →</a></div>
 
     <div class="trust">
-      <span>🛡️ Annulation à tout moment</span>
-      <span>💳 Paiement sécurisé (Stripe)</span>
-      <span>⚡ Activation immédiate</span>
+      <span>️ Annulation à tout moment</span>
+      <span>Paiement sécurisé (Stripe)</span>
+      <span>Activation immédiate</span>
     </div>
   </main>
 
   <div class="toast" id="toast"></div>
 
-  <script>
-    var BILLING = 'month';
+  <script>var BILLING = 'month';
 
     function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500); }
 

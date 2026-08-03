@@ -54,15 +54,14 @@
     </div>
 
     <div id="ok-wrap" class="ok" style="display:none">
-      <div class="big">🎉</div>
+      <div class="big"></div>
       <h1>Merci !</h1>
       <p class="sub">Ton avis a bien été envoyé. Il sera publié après une rapide validation.</p>
       <a class="btn" href="/" style="display:inline-block;text-decoration:none;max-width:220px">Retour à l'accueil</a>
     </div>
   </main>
 
-  <script>
-    var note = 0;
+  <script>var note = 0;
     document.querySelectorAll('#t-stars span').forEach(function (s) {
       s.onclick = function () {
         note = parseInt(s.getAttribute('data-n'));

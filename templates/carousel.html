@@ -49,13 +49,13 @@
 </head>
 <body>
 <header class="top">
-  <span class="logo">📸 Qeerah</span>
+  <span class="logo">Qeerah</span>
   <a href="/">← Accueil</a>
 </header>
 
 <div class="wrap">
   <h1>Créer un Carrousel TikTok Shop <span class="badge">NOUVEAU</span></h1>
-  <div class="sub" id="cc-status">✨ Crée un compte pour générer — {{ TRIAL_OFFER }}.</div>
+  <div class="sub" id="cc-status">Crée un compte pour générer — {{ TRIAL_OFFER }}.</div>
 
   <div class="card" id="cc-form">
     <!-- Lien produit TikTok Shop (OBLIGATOIRE) -->
@@ -103,7 +103,7 @@
         <div class="price">Gratuit</div>
       </div>
       <div class="mode" data-mode="images">
-        <h3>Images IA <span style="font-size:10px;color:var(--gold)">🔥</span></h3>
+        <h3>Images IA <span style="font-size:10px;color:var(--gold)"></span></h3>
         <div style="font-size:12px;color:var(--muted)">4 slides générées par IA + conseils photos 5-7.</div>
         <div class="price" id="cc-img-price">10 crédits</div>
       </div>
@@ -166,8 +166,8 @@ const ANGLES=[
   ['erreurs','❌ Erreurs à éviter',"Structure le carrousel autour des erreurs courantes que font les gens avec ce type de produit, puis présente le produit comme la bonne solution."],
   ['secret','🤫 Le secret',"Adopte un angle 'révélation' : dévoile une astuce ou un secret peu connu que ce produit rend possible."],
   ['probleme','🔴 Problème → Solution',"Structure en problème → agitation → solution : expose le point de douleur, amplifie-le, puis présente le produit comme la résolution."],
-  ['top','🏆 Top raisons',"Structure en 'Top raisons' d'adopter ce produit : une raison forte et concrète par slide."],
-  ['avant_apres','⚡ Avant / Après',"Mets en scène une transformation avant/après grâce au produit : la situation frustrante avant, le résultat après."],
+  ['top','Top raisons',"Structure en 'Top raisons' d'adopter ce produit : une raison forte et concrète par slide."],
+  ['avant_apres','Avant / Après',"Mets en scène une transformation avant/après grâce au produit : la situation frustrante avant, le résultat après."],
 ];
 document.getElementById('cc-angles').innerHTML = ANGLES.map(([v,l])=>`<span class="pill" data-a="${v}" onclick="ccPickAngle('${v}')">${l}</span>`).join('');
 function ccPickAngle(v){ CC.angle=(CC.angle===v?'':v); document.querySelectorAll('#cc-angles .pill').forEach(p=>p.classList.toggle('on',p.dataset.a===CC.angle)); }
@@ -220,7 +220,7 @@ async function ccGenerate(){
   const name=document.getElementById('cc-name').value.trim();
   const out=document.getElementById('cc-result'), btn=document.getElementById('cc-go');
   btn.disabled=true;btn.textContent='⏳ Génération…';
-  out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">📸 Génération du carrousel…</div>';
+  out.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">Génération du carrousel…</div>';
   const fd=new FormData();
   fd.append('mode',CC.mode); fd.append('style',CC.style); fd.append('provider',CC.provider||'auto');
   fd.append('product_name',name); fd.append('description',document.getElementById('cc-desc').value);
@@ -237,15 +237,15 @@ async function ccGenerate(){
   const headers = token() ? {'Authorization':'Bearer '+token()} : {};
   try{
     const res=await fetch(url,{method:'POST',headers,body:fd});
-    if(res.status===402){ const j=await res.json(); out.innerHTML=ccPaywall(j); btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
-    if(!res.ok){ let m='Erreur.';try{m=(await res.json()).detail||m;}catch(e){} out.innerHTML=`<div class="card" style="color:var(--err)">${esc(m)}</div>`; btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; return; }
+    if(res.status===402){ const j=await res.json(); out.innerHTML=ccPaywall(j); btn.disabled=false;btn.textContent='Générer mon carrousel'; return; }
+    if(!res.ok){ let m='Erreur.';try{m=(await res.json()).detail||m;}catch(e){} out.innerHTML=`<div class="card" style="color:var(--err)">${esc(m)}</div>`; btn.disabled=false;btn.textContent='Générer mon carrousel'; return; }
     const reader=res.body.getReader(),dec=new TextDecoder();let buf='';
     const handle=(ev,d)=>{let o;try{o=JSON.parse(d);}catch(e){return;} if(ev==='complete'){ccRender(o); ccRemember(url0,o);} else if(ev==='error')out.innerHTML=`<div class="card" style="color:var(--err)">${esc(o.error||'Erreur')}</div>`; };
     const proc=b=>{let ev='message';const dl=[];for(const raw of b.split('\n')){const l=raw.replace(/\r$/,'');if(l.startsWith('event:'))ev=l.slice(6).trim();else if(l.startsWith('data:'))dl.push(l.slice(5).trim());}if(dl.length)handle(ev,dl.join('\n'));};
     while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf('\n\n'))!==-1){const b=buf.slice(0,i);buf=buf.slice(i+2);if(b.trim())proc(b);}}
     if(buf.trim())proc(buf);
   }catch(e){ out.innerHTML='<div class="card" style="color:var(--err)">Erreur réseau.</div>'; }
-  finally{ btn.disabled=false;btn.textContent='✨ Générer mon carrousel'; }
+  finally{ btn.disabled=false;btn.textContent='Générer mon carrousel'; }
 }
 
 function ccPaywall(j){
@@ -346,7 +346,7 @@ function ccRender(r){
 
   // Images (Mode B)
   if(Array.isArray(r.ai_generated_images)){
-    h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">🎨 Slides générées (1-4)</div><div class="imgs">`;
+    h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">Slides générées (1-4)</div><div class="imgs">`;
     r.ai_generated_images.forEach(im=>{ h+=`<div class="slot">${im.url?`<img src="${esc(im.url)}" loading="lazy">`:`⏳ ${esc(im.phase||'')}<br><span style="font-size:10px">${esc(im.note||'image en démo')}</span>`}</div>`; });
     h+=`</div>`;
     if(Array.isArray(r.next_slides_advice)){
@@ -355,11 +355,11 @@ function ccRender(r){
     }
   }
 
-  h+=block('📌 Hook (slide 1)', r.hook);
+  h+=block('Hook (slide 1)', r.hook);
   h+=block('🏷️ Titre du carrousel', r.carousel_title);
-  h+=block('📝 Description optimisée', r.description);
+  h+=block('Description optimisée', r.description);
   if(Array.isArray(r.hashtags)&&r.hashtags.length) h+=block('# Hashtags', r.hashtags.map(x=>x[0]==='#'?x:'#'+x).join(' '));
-  if(Array.isArray(r.save_optimization_tips)&&r.save_optimization_tips.length) h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">💡 Pourquoi ça va cartonner</div><ul style="font-size:13px;color:var(--muted)">${r.save_optimization_tips.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
+  if(Array.isArray(r.save_optimization_tips)&&r.save_optimization_tips.length) h+=`<div style="margin-top:12px;font-weight:700;font-size:13px">Pourquoi ça va cartonner</div><ul style="font-size:13px;color:var(--muted)">${r.save_optimization_tips.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;
   h+=`</div>`;
 
   // Upsell post-génération
@@ -409,7 +409,7 @@ async function ccLoadHistory(){
     CC.history=items;
     box.innerHTML=items.map((it,i)=>{
       const dt=it.created_at?new Date(it.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'';
-      const mode=it.generation_mode==='images'?'🎨 Images':'📝 Prompts';
+      const mode=it.generation_mode==='images'?'Images':'Prompts';
       return `<div onclick="ccOpenHistory(${i})" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);cursor:pointer">
         <div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.product_name||'Carrousel')}</div>
         <div style="font-size:11px;color:var(--muted)">${mode} · ${esc(dt)}</div></div>
