@@ -816,8 +816,12 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     import time as _time
     _t0 = _time.monotonic()
     data = _observe()
-    logger.info("[analyzer] ⏱ passe 1 (%s) : %.1fs",
-                ai_providers.GEMINI_VIDEO_MODEL, _time.monotonic() - _t0)
+    # print et non logger.info : l'app ne configure aucun handler de logging, donc
+    # seuls les WARNING+ sortent (handler de dernier recours de Python). Les
+    # chronos en INFO n'apparaissaient nulle part dans les logs Render — un
+    # instrument invisible ne sert à rien.
+    print(f"[analyzer] ⏱ passe 1 ({ai_providers.GEMINI_VIDEO_MODEL}) : "
+          f"{_time.monotonic() - _t0:.1f}s", flush=True)
 
     # Contrôle qualité + escalade. On ne relance le modèle fin que sur les
     # vidéos où le modèle rapide a démontrablement décroché : coût moyen proche
@@ -843,8 +847,8 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     _t1 = _time.monotonic()
     try:
         better = _observe(model=escalation_model)
-        logger.info("[analyzer] ⏱ escalade (%s) : %.1fs", escalation_model,
-                    _time.monotonic() - _t1)
+        print(f"[analyzer] ⏱ escalade ({escalation_model}) : "
+              f"{_time.monotonic() - _t1:.1f}s", flush=True)
     except Exception as e:
         # L'escalade est un BONUS : si le modèle fin est indisponible ou saturé,
         # on garde les constats de la première passe. Échouer ici reviendrait à
@@ -855,13 +859,13 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
 
     better_issues = _video_quality_issues(better)
     if len(better_issues) < len(issues):
-        logger.info("[analyzer] escalade concluante : %d anomalie(s) → %d",
-                    len(issues), len(better_issues))
+        print(f"[analyzer] escalade concluante : {len(issues)} anomalie(s) → "
+              f"{len(better_issues)}", flush=True)
         return better
     # Le modèle fin ne fait pas mieux : le problème vient probablement de la
     # vidéo elle-même (muette, très courte, illisible), pas du modèle.
-    logger.info("[analyzer] escalade sans gain (%d → %d anomalies) — constats "
-                "de la première passe conservés", len(issues), len(better_issues))
+    print(f"[analyzer] escalade sans gain ({len(issues)} → {len(better_issues)} "
+          f"anomalies) — constats de la première passe conservés", flush=True)
     return data
 
 
@@ -1368,6 +1372,11 @@ def synthesize_analysis(
     # il n'a plus lieu d'être. Override global possible via ANALYSIS_TEXT_PROVIDER.
     _default_provider = "claude"
     _atp = os.getenv("ANALYSIS_TEXT_PROVIDER", _default_provider)
+    # Chronomètre : c'est cette étape que la jauge désigne quand elle stagne en
+    # fin de course. La longueur du prompt est loguée avec, parce que le temps de
+    # rédaction dépend surtout du volume à écrire et à lire.
+    import time as _time
+    _t_synth = _time.monotonic()
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
@@ -1376,6 +1385,8 @@ def synthesize_analysis(
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
         temperature=0.0,
     )
+    print(f"[analyzer] ⏱ rédaction ({_atp}) : {_time.monotonic() - _t_synth:.1f}s "
+          f"— prompt {len(full_prompt)} car., réponse {len(raw or '')} car.", flush=True)
     try:
         parsed = _extract_json(raw)
     except Exception:

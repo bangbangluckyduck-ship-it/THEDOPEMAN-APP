@@ -8,7 +8,15 @@ from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta
 import hashlib
 
-from supabase_client import supabase
+# ⚠️ Client SERVICE, pas le client anonyme. Le cache d'analyses est une donnée
+# serveur : aucun utilisateur ne l'écrit ni ne le lit directement. Depuis le
+# verrouillage RLS des tables sensibles, le client anonyme se faisait refuser
+# chaque écriture — « new row violates row-level security policy for table
+# video_analyses_cache » — et le cache était donc TOTALEMENT inopérant : chaque
+# analyse d'une vidéo déjà analysée refaisait tout le pipeline, en silence, les
+# erreurs étant avalées par le except. analysis_cache.py (chemin asynchrone)
+# utilisait déjà le bon client ; ce module-ci avait été oublié.
+from supabase_client import supabase_service as supabase
 
 # Cache configuration
 CACHE_TTL_DAYS = 30
