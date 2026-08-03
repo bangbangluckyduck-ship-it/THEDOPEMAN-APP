@@ -206,6 +206,62 @@ def test_la_connexion_ne_cree_plus_de_compte():
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# 3 bis. CAMPAGNE E-MAIL — une relance oubliée qui tourne des mois fait plus
+#        de dégâts qu'une relance jamais envoyée
+# ══════════════════════════════════════════════════════════════════════════
+
+def test_la_campagne_se_ferme_apres_l_echeance_de_l_offre():
+    """Les trois étapes tournent autour d'une offre datée. Passé son échéance,
+    plus rien ne doit partir — le code promo ne fonctionne plus et le message
+    annoncerait un tarif inexistant."""
+    import fin_essai
+    from datetime import timedelta
+
+    class _Muet:
+        """Renvoie toujours une liste vide : si le garde-fou de date fonctionne,
+        la base n'est même pas interrogée."""
+        def __getattr__(self, _):
+            return lambda *a, **k: self
+        def execute(self):
+            return type("R", (), {"data": []})()
+
+    apres = datetime.combine(fin_essai.FIN_OFFRE + timedelta(days=1),
+                             datetime.min.time(), tzinfo=timezone.utc)
+    for etape in fin_essai.ETAPES:
+        assert fin_essai.destinataires(_Muet(), etape, maintenant=apres) == [], \
+            f"L'étape {etape} écrit encore après la fin de l'offre."
+
+
+def test_la_derniere_chance_est_bornee_des_deux_cotes():
+    """La fenêtre était ouverte vers le futur : elle serait restée active
+    indéfiniment, avec un décompte figé sur « expire ce soir »."""
+    import fin_essai
+    from datetime import timedelta
+
+    def ouverte(jour):
+        return 0 <= (fin_essai.FIN_OFFRE - jour).days <= 2
+
+    assert not ouverte(fin_essai.FIN_OFFRE - timedelta(days=3)), "s'ouvre trop tôt"
+    assert ouverte(fin_essai.FIN_OFFRE - timedelta(days=2)), "devrait être ouverte"
+    assert ouverte(fin_essai.FIN_OFFRE), "devrait être ouverte le dernier jour"
+    assert not ouverte(fin_essai.FIN_OFFRE + timedelta(days=1)), "reste ouverte après l'échéance"
+
+
+def test_aucun_compte_de_test_ne_recoit_d_email():
+    """Un rebond dur sur un domaine inexistant abîme la réputation d'expédition,
+    donc la délivrabilité de TOUS les envois — y compris les transactionnels."""
+    import fin_essai
+    for adresse in ("bot-free@tts-test.com", "admin@example.com",
+                    "user-1779836805089@test.com", "x@example.invalid",
+                    "sans-arobase", "vide@pasdedomaine"):
+        envoyable, _ = fin_essai.adresse_envoyable(adresse)
+        assert not envoyable, f"{adresse} passerait le filtre"
+    for adresse in ("jeremy@gmail.com", "morane.matura@hotmail.fr", "v.m@live.fr"):
+        envoyable, motif = fin_essai.adresse_envoyable(adresse)
+        assert envoyable, f"{adresse} écarté à tort : {motif}"
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # 4. SSRF — le proxy d'images renvoyait le corps de n'importe quelle cible
 # ══════════════════════════════════════════════════════════════════════════
 

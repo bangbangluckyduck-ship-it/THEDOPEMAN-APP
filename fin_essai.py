@@ -333,6 +333,22 @@ def _marquer_envoye(supabase, etape: str, email: str) -> None:
 def destinataires(supabase, etape: str, maintenant: datetime | None = None) -> list[dict]:
     """Comptes éligibles à CETTE étape, jamais encore sollicités pour elle."""
     maintenant = maintenant or datetime.now(timezone.utc)
+
+    # ⚠️ GARDE-FOU DE FIN DE CAMPAGNE.
+    # Les trois étapes tournent autour d'une offre datée. Passé son échéance, plus
+    # aucune ne doit partir : le code ne fonctionne plus, et le message annoncerait
+    # un tarif qui n'existe pas. Sans ce garde-fou, « derniere_chance » n'était
+    # bornée que par le haut — elle aurait continué d'écrire indéfiniment, avec un
+    # décompte figé sur « expire ce soir ». C'est le genre de campagne oubliée qui
+    # tourne des mois et détruit la crédibilité d'une marque.
+    #
+    # Pour une relance de fin d'essai PERMANENTE, il faudra un module distinct :
+    # un autre texte, sans offre datée. Prolonger celui-ci serait un contresens.
+    if maintenant.date() > FIN_OFFRE:
+        print(f"Campagne « premiers testeurs » terminée depuis le {FIN_OFFRE:%d/%m/%Y} "
+              f"— aucun envoi.")
+        return []
+
     colonne = _colonne(etape)
     champs = "email,tier,trial_ends_at,marketing_opt_out"
     if _colonnes_disponibles(supabase):
@@ -358,7 +374,9 @@ def destinataires(supabase, etape: str, maintenant: datetime | None = None) -> l
             continue
         if etape == "essai_termine" and not (-7 <= jours < 0):
             continue
-        if etape == "derniere_chance" and (FIN_OFFRE - maintenant.date()).days > 2:
+        # Fenêtre bornée des DEUX côtés : les 2 derniers jours de l'offre, pas
+        # « à partir de 2 jours avant » — sans quoi elle reste ouverte pour toujours.
+        if etape == "derniere_chance" and not (0 <= (FIN_OFFRE - maintenant.date()).days <= 2):
             continue
 
         email = (u.get("email") or "").strip().lower()
