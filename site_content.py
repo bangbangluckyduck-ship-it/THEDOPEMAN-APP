@@ -127,9 +127,22 @@ COMPANY = {
 }
 
 # ── PREUVE SOCIALE ────────────────────────────────────────────────────────
-# Aucun témoignage rédigé n'existe à ce jour : la section reste masquée, y
-# compris son lien de navigation. Un conteneur vide nuit plus que son absence.
-TESTIMONIALS_ENABLED = False
+# ⚠️ Ce drapeau ne pilote PLUS l'affichage de la section témoignages.
+#
+# Il servait à masquer un conteneur vide, mais il était évalué UNE SEULE FOIS au
+# démarrage du serveur (les gabarits sont rendus au boot) : publier le premier
+# témoignage depuis /dope-admin n'aurait donc rien changé sur le site sans un
+# redéploiement — un piège silencieux, sur la fonctionnalité qui pèse le plus sur
+# la conversion.
+#
+# La section se remplit désormais depuis /api/temoignages et reste en display:none
+# tant que l'API ne renvoie rien : le conteneur vide est impossible, et le premier
+# avis validé apparaît immédiatement, sans toucher au code.
+#
+# Conservé pour ne rien casser si un gabarit le lit encore, et volontairement à
+# True pour refléter l'état réel : la preuve sociale est active côté produit, il ne
+# manque que les avis.
+TESTIMONIALS_ENABLED = True
 
 
 def context() -> dict:

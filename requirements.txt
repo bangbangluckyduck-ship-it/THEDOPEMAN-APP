@@ -35,3 +35,6 @@ google-genai>=1.0.0,<2.0.0
 anthropic>=0.40.0,<1.0.0
 pywebpush>=2.0.0,<3.0.0
 rjsmin>=1.2.0,<2.0.0
+# Supervision des erreurs. Inerte tant que SENTRY_DSN n'est pas défini sur Render :
+# l'installer ne change rien tant qu'on n'a pas décidé de l'activer.
+sentry-sdk[fastapi]>=2.0.0,<3.0.0

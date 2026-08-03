@@ -144,6 +144,40 @@ def _persist_sync_analysis(user: dict, result: dict, *, source: str,
         print(f"[_persist_sync_analysis] KO: {e}")
 
 
+# ── SUPERVISION DES ERREURS ──────────────────────────────────────────────────
+# Toutes les erreurs partaient en print() vers les logs Render : aucune alerte,
+# aucune agrégation, aucune conservation au-delà de la rétention Render. Chaque
+# incident de l'historique du projet a été découvert parce qu'un utilisateur l'a
+# signalé — jamais par le système lui-même.
+#
+# L'initialisation est silencieuse tant que SENTRY_DSN n'est pas défini : poser la
+# variable sur Render suffit à tout activer, sans redéploiement de code.
+def _init_error_monitoring() -> None:
+    dsn = os.getenv("SENTRY_DSN", "").strip()
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=dsn,
+            environment=os.getenv("SENTRY_ENV", "production"),
+            # Échantillonnage des traces à 0 par défaut : on veut les ERREURS, pas
+            # un profil de performance — et le volume gratuit part très vite sinon.
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0")),
+            # Les corps de requête peuvent contenir un mot de passe ou une URL de
+            # vidéo privée : on n'envoie jamais de données personnelles à Sentry.
+            send_default_pii=False,
+        )
+        print("✅ Supervision des erreurs active (Sentry).")
+    except ImportError:
+        print("⚠️  SENTRY_DSN est défini mais sentry-sdk n'est pas installé "
+              "— ajoute-le à requirements.txt puis redéploie.")
+    except Exception as e:
+        print(f"⚠️  Initialisation de la supervision impossible : {e}")
+
+
+_init_error_monitoring()
+
 generate_icons()
 
 # Nettoyage des jobs orphelins au démarrage : si Render a redéployé pendant
@@ -161,7 +195,19 @@ except Exception as _e_startup:
 app = FastAPI(title="Qeerah")
 
 # --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
-ANALYSIS_SEMAPHORE = asyncio.Semaphore(1)
+# Sérialise les analyses SYNCHRONES. À 1, une seule analyse tourne à la fois pour
+# toute la plateforme : à 1-2 min par analyse, cela plafonne Qeerah autour de
+# 30-60 analyses/heure, tous utilisateurs confondus. C'est le plafond de
+# scalabilité n°1 — mais le relever sans mesurer la mémoire réelle, c'est rejouer
+# les OOM de juillet.
+#
+# Rendu réglable pour que l'arbitrage se fasse en observant la production, pas en
+# redéployant : monter ANALYSIS_MAX_CONCURRENT_SYNC à 2 sur Render, regarder la
+# mémoire, ajuster. Défaut inchangé (1) : aucun changement de comportement tant
+# que la variable n'est pas posée.
+ANALYSIS_SEMAPHORE = asyncio.Semaphore(
+    max(1, int(os.getenv("ANALYSIS_MAX_CONCURRENT_SYNC", "1")))
+)
 
 # --- "Aha! Moment" : blindage backend des essais anonymes par IP ---
 # Stocke les timestamps des requêtes anonymes par IP (fenêtre glissante 24h).
@@ -835,37 +881,17 @@ def _check_cron_secret(request: Request, key: str) -> None:
 
 @app.get("/api/_cron/upsell-j3")
 async def cron_upsell_j3(request: Request, key: str = Query("")):
-    """Tâche planifiée (cron quotidien) : relance les Free inscrits il y a ~3 jours.
-    Protégé par CRON_SECRET. À appeler 1×/jour (Render Cron ou cron externe)."""
+    """Relance des comptes gratuits inscrits il y a ~3 jours (déclenchement manuel).
+
+    ⚠️ La planification ne doit PLUS passer par cette route : le Render Cron Job
+    exécute désormais `python3 cron_upsell.py`, qui appelle directement la même
+    logique. Motif : un `curl` sans `-L` ne suivait pas le 301 qeerah.com →
+    www.qeerah.com et le job « réussissait » sans rien envoyer (piège déjà
+    rencontré sur feed-radar-collect). Cf. `upsell_j3.py`.
+    """
     _check_cron_secret(request, key)
-    if not supabase_client:
-        return {"ok": False, "reason": "supabase indisponible"}
-    from datetime import timedelta as _td
-    from auth import make_unsubscribe_token
-    from email_service import email_service
-    from urllib.parse import quote as _q
-    now = datetime.now(timezone.utc)
-    lo = (now - _td(days=4)).isoformat()
-    hi = (now - _td(days=3)).isoformat()
-    sent = 0
-    skipped = 0
-    try:
-        rows = (supabase_client.table("users")
-                .select("email,tier,marketing_opt_out,upsell_j3_sent,created_at")
-                .eq("tier", "free").gte("created_at", lo).lte("created_at", hi)
-                .limit(200).execute())
-        for u in (rows.data or []):
-            email = (u.get("email") or "").strip().lower()
-            if not email or u.get("marketing_opt_out") or u.get("upsell_j3_sent"):
-                skipped += 1
-                continue
-            unsub = f"{tiktok_oauth.APP_PUBLIC_URL}/unsubscribe?e={_q(email)}&s={make_unsubscribe_token(email)}"
-            if await email_service.send_upsell_email(email, unsub, kind="j3"):
-                supabase_client.table("users").update({"upsell_j3_sent": True}).eq("email", email).execute()
-                sent += 1
-    except Exception as ex:
-        return {"ok": False, "error": str(ex), "sent": sent}
-    return {"ok": True, "sent": sent, "skipped": skipped}
+    import upsell_j3
+    return await upsell_j3.run_upsell_j3(supabase_client)
 
 
 @app.get("/api/_cron/feed-radar-collect")
@@ -1156,33 +1182,21 @@ async def login(request: Request):
             else:
                 raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
         else:
-            # Nouveau compte → cette branche déclenche un email de bienvenue.
-            # On exige une vérification anti-bot (Turnstile) AVANT toute création,
-            # pour ne pas laisser des bots générer des envois en masse.
-            cf_token = body.get("cf_turnstile_token", "") if isinstance(body, dict) else ""
-            remote_ip = request.client.host if request.client else ""
-            if not await verify_turnstile(cf_token, remote_ip):
-                raise HTTPException(status_code=400, detail="Vérification anti-robot échouée. Merci de réessayer.")
-
-            password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-            try:
-                # ⚠️ C'est le SEUL chemin d'inscription réellement utilisé : les trois
-                # formulaires du front (app, écran de garde /app, accueil) postent tous
-                # ici, /api/register n'est appelé par aucun d'eux. Le helper garantit
-                # que l'essai gratuit est posé — cf. _new_user_row.
-                supabase.table("users").insert(_new_user_row(email, password_hash)).execute()
-                token = create_access_token(email)
-
-                # Email de bienvenue (best-effort : un échec ne bloque jamais l'inscription)
-                try:
-                    from email_service import email_service
-                    await email_service.send_welcome_email(email)
-                except Exception as mail_err:
-                    print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
-
-                return {"ok": True, "email": email, "message": "Compte créé", "created": True, "token": token}
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
+            # ⚠️ Cette branche CRÉAIT le compte quand l'e-mail était inconnu — la
+            # connexion faisait donc aussi office d'inscription. Deux conséquences :
+            # une faute de frappe à la connexion fabriquait un compte vide (et
+            # l'utilisateur croyait avoir perdu son abonnement), et il existait deux
+            # chemins de création aux règles différentes, dont celui-ci qui
+            # court-circuitait le contrôle « compte déjà existant » de /api/register.
+            #
+            # L'inscription a désormais son propre écran et passe par /api/register.
+            # Le message distingue explicitement les deux cas pour que la personne
+            # sache si elle s'est trompée d'adresse ou si elle n'a pas encore de compte.
+            raise HTTPException(
+                status_code=401,
+                detail="Aucun compte pour cette adresse. Vérifie l'orthographe, "
+                       "ou crée ton compte — 7 jours d'accès complet, sans carte bancaire.",
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -2824,6 +2838,25 @@ async def stripe_webhook_v1(request: Request):
                     expiry = period_end.date().isoformat()
             except Exception as e:
                 print(f"stripe_webhook_v1: lecture abonnement {sub_id} impossible: {e}")
+
+        # 3 bis) Mention de TVA sur les factures d'abonnement.
+        # En franchise en base (art. 293 B du CGI), la mention est obligatoire sur
+        # chaque facture. Elle n'était posée que sur les paiements uniques (packs de
+        # crédits), via `invoice_creation.invoice_data.footer` — l'API Checkout
+        # n'expose aucun équivalent pour un abonnement. Les factures du produit
+        # PRINCIPAL sortaient donc sans la mention.
+        # La solution sans dashboard : poser le pied de page sur le CLIENT Stripe.
+        # Il s'applique alors à toutes ses factures, y compris les renouvellements
+        # automatiques des années suivantes.
+        if cust_id:
+            from stripe_routes import INVOICE_FOOTER
+            if INVOICE_FOOTER:
+                try:
+                    stripe.Customer.modify(
+                        cust_id, invoice_settings={"footer": INVOICE_FOOTER}
+                    )
+                except Exception as e:
+                    print(f"stripe_webhook_v1: pied de page facture non posé sur {cust_id}: {e}")
 
         # 4) Mise à jour Supabase
         if email:

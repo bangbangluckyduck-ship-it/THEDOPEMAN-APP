@@ -1,0 +1,47 @@
+# Exécution des tests du parcours critique à chaque poussée.
+#
+# ⚠️ POURQUOI CE FICHIER EXISTE. Le dépôt contenait des tests qu'aucun lanceur
+# n'exécutait jamais. Pendant ce temps, deux régressions ont vécu en production :
+# l'essai gratuit ne démarrait plus, et le webhook Stripe lisait un champ retiré
+# de l'API. Des tests que personne ne lance ne protègent de rien.
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  # Déclenchement manuel depuis l'onglet Actions.
+  workflow_dispatch:
+
+jobs:
+  parcours-critique:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Valeurs factices : ces tests ne touchent ni base, ni Stripe, ni moteur d'IA.
+      # Le secret de signature est requis au démarrage (fail-fast volontaire).
+      APP_SIGNING_SECRET: secret-de-test-ci-non-production
+      ADMIN_EMAIL: admin-test@example.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Tests du parcours critique
+        run: python -m pytest test_parcours_critique.py -v --tb=short
+
+      # Filet supplémentaire : une erreur de syntaxe dans un module jamais importé
+      # par les tests ne casserait qu'au démarrage sur Render, donc en production.
+      - name: Vérifier la syntaxe de tous les modules
+        run: python -m compileall -q . -x 'venv|__pycache__'

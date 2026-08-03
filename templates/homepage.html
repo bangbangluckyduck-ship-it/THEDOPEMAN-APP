@@ -1833,7 +1833,12 @@
 })();
 </script>
 
-{% if TESTIMONIALS_ENABLED %}
+{# Le verrou {% if TESTIMONIALS_ENABLED %} a été retiré. Il était évalué UNE FOIS au
+   démarrage du serveur (les gabarits sont rendus au boot), donc publier un premier
+   témoignage n'aurait rien affiché sans redéployer — alors que la section se remplit
+   déjà toute seule depuis /api/temoignages.
+   La crainte du « conteneur vide » est couverte par le script ci-dessous : la section
+   naît en display:none et n'apparaît que si l'API renvoie au moins un élément. #}
 <section id="temoignages-section" style="display:none;padding:60px 20px;background:var(--surface,#fff)">
   <div style="max-width:1100px;margin:0 auto">
     <h2 class="section-title" style="text-align:center">Ils utilisent Qeerah</h2>
@@ -1866,7 +1871,6 @@
   }).catch(function(){});
 })();
 </script>
-{% endif %}
 
 <section class="pricing" id="pricing">
   <div style="max-width: 900px; margin: 0 auto; padding: 0 20px;">
@@ -2166,6 +2170,32 @@
     }
   }
 
+  // Bascule connexion ↔ inscription de la modale d'accueil.
+  window.__hpAuthMode = 'login';
+
+  function setHomeAuthMode(mode) {
+    window.__hpAuthMode = (mode === 'signup') ? 'signup' : 'login';
+    var inscription = window.__hpAuthMode === 'signup';
+    function set(id, prop, val) { var el = document.getElementById(id); if (el) el[prop] = val; }
+    set('hp-auth-heading', 'textContent', inscription ? 'Créer mon compte' : 'Accès à mon espace');
+    set('hp-auth-sub',     'textContent', inscription
+        ? "7 jours d'accès complet, sans carte bancaire."
+        : 'Connecte-toi à ton compte Qeerah.');
+    set('hp-submit-btn',   'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
+    set('hp-switch-label', 'textContent', inscription ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?');
+    set('hp-switch-btn',   'textContent', inscription ? 'Se connecter' : 'Créer un compte');
+    var forgot = document.getElementById('hp-forgot-wrap');
+    if (forgot) forgot.style.display = inscription ? 'none' : 'block';
+    var pwd = document.getElementById('login-password');
+    if (pwd) pwd.placeholder = inscription ? 'Choisis un mot de passe (min. 6 caractères)' : 'Mot de passe';
+    var msg = document.getElementById('login-message');
+    if (msg) msg.style.display = 'none';
+  }
+
+  function toggleHomeAuthMode() {
+    setHomeAuthMode(window.__hpAuthMode === 'signup' ? 'login' : 'signup');
+  }
+
   async function submitLoginModal() {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
@@ -2196,16 +2226,21 @@
         return;
       }
 
-      const res = await fetch('/api/login', {
+      const inscription = window.__hpAuthMode === 'signup';
+      const res = await fetch(inscription ? '/api/register' : '/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(function () { return {}; });
       if (!res.ok) {
         messageDiv.textContent = data.detail || 'Erreur d\'authentification';
         messageDiv.style.display = 'block';
+        // Bascule vers le bon écran : 401 en connexion = pas de compte,
+        // 409 en inscription = compte déjà existant.
+        if (!inscription && res.status === 401) setHomeAuthMode('signup');
+        if (inscription && res.status === 409) setHomeAuthMode('login');
         // Réinitialise le CAPTCHA pour permettre une nouvelle tentative
         if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset();
         return;
@@ -2847,8 +2882,8 @@
   justify-content: center; overflow-y: auto; padding: 20px;">
   <div style="background: var(--surface); padding: 32px; border-radius: 12px; max-width: 420px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; margin: auto;">
-    <h2 style="margin: 0 0 8px 0; font-size: 20px">Accès à mon espace</h2>
-    <p style="color: var(--muted); font-size: 14px; margin: 0 0 24px 0;">Connexion / Inscription
+    <h2 id="hp-auth-heading" style="margin: 0 0 8px 0; font-size: 20px">Accès à mon espace</h2>
+    <p id="hp-auth-sub" style="color: var(--muted); font-size: 14px; margin: 0 0 24px 0;">Connecte-toi à ton compte Qeerah.
     </p>
     <input type="email" id="login-email" placeholder="ton@email.com"
       style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
@@ -2856,18 +2891,27 @@
     <input type="password" id="login-password" placeholder="Mot de passe"
       style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
       font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 16px;">
-    <div style="text-align:center;margin:12px 0;padding:10px;background:#fff3cd;border-radius:6px;border:1px solid #ffc107">
+    <div id="hp-forgot-wrap" style="text-align:center;margin:12px 0;padding:10px;background:#fff3cd;border-radius:6px;border:1px solid #ffc107">
       <button type="button" onclick="openForgotPasswordModal(); closeLoginModal()" style="background:none;border:none;color:#d39e00;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0">Mot de passe oublié?
       </button>
     </div>
     <div id="login-message" style="color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none;"></div>
     <!--TURNSTILE_WIDGET-->
-    <button onclick="submitLoginModal()" style="width: 100%; padding: 12px; background: var(--primary);
+    <button id="hp-submit-btn" onclick="submitLoginModal()" style="width: 100%; padding: 12px; background: var(--primary);
       color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;">Se connecter
     </button>
     <button onclick="closeLoginModal()" style="width: 100%; padding: 12px; background: transparent;
       color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Annuler
     </button>
+    <!-- « Connexion / Inscription » dans un seul formulaire : c'est cette ambiguïté
+         qui faisait qu'une adresse mal saisie créait un compte au lieu de le dire. -->
+    <p style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--muted)">
+      <span id="hp-switch-label">Pas encore de compte ?</span>
+      <button type="button" id="hp-switch-btn" onclick="toggleHomeAuthMode()"
+              style="background:none;border:none;color:var(--accent,#2563EB);font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:13.5px">
+        Créer un compte
+      </button>
+    </p>
   </div>
 </div>
 

@@ -4143,6 +4143,41 @@ function closeModal() {
   document.getElementById('auth-modal').classList.remove('active');
 }
 
+// ── CONNEXION vs INSCRIPTION ──────────────────────────────────
+// Un seul formulaire « Continuer » servait aux deux : côté serveur, /api/login
+// créait le compte quand l'adresse était inconnue. Une faute de frappe donnait
+// donc un compte neuf et vide, et la personne croyait avoir perdu son abonnement.
+// Les deux intentions sont maintenant explicites et visent deux routes distinctes.
+window.__authMode = 'login';   // 'login' | 'signup'
+
+function setAuthMode(mode) {
+  window.__authMode = (mode === 'signup') ? 'signup' : 'login';
+  const inscription = window.__authMode === 'signup';
+
+  const set = (id, prop, val) => {
+    const el = document.getElementById(id);
+    if (el) el[prop] = val;
+  };
+  set('auth-heading',      'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
+  set('auth-submit-btn',   'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
+  set('auth-switch-label', 'textContent', inscription ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?');
+  set('auth-switch-btn',   'textContent', inscription ? 'Se connecter' : 'Créer un compte');
+
+  // La promesse d'essai n'a de sens qu'à l'inscription ; « mot de passe oublié »
+  // n'a de sens qu'à la connexion.
+  const sub = document.getElementById('auth-subheading');
+  if (sub) sub.style.display = inscription ? 'block' : 'none';
+  const forgot = document.getElementById('auth-forgot-wrap');
+  if (forgot) forgot.style.display = inscription ? 'none' : 'block';
+
+  const pwd = document.getElementById('password-input');
+  if (pwd) pwd.placeholder = inscription ? 'Choisis un mot de passe (min. 6 caractères)' : 'Ton mot de passe';
+}
+
+function toggleAuthMode() {
+  setAuthMode(window.__authMode === 'signup' ? 'login' : 'signup');
+}
+
 // ── LOGIN FORM HANDLER ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const authForm = document.getElementById('auth-form');
@@ -4176,16 +4211,22 @@ async function handleAuthSubmit(event) {
       return;
     }
 
-    // Call the /api/login endpoint
-    const response = await fetch('/api/login', {
+    // Deux routes distinctes selon l'intention affichée à l'écran.
+    const inscription = window.__authMode === 'signup';
+    const response = await fetch(inscription ? '/api/register' : '/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       showToast('❌ ' + (error.detail || 'Erreur connexion'));
+      // Bascule automatiquement vers le bon écran plutôt que de laisser la
+      // personne relire un message d'erreur : 401 en connexion = pas de compte,
+      // 409 en inscription = compte déjà là.
+      if (!inscription && response.status === 401) setAuthMode('signup');
+      if (inscription && response.status === 409) setAuthMode('login');
       // Réinitialise le CAPTCHA pour permettre une nouvelle tentative
       if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset();
       return;
@@ -4193,7 +4234,8 @@ async function handleAuthSubmit(event) {
 
     const data = await response.json();
 
-    // `created` n'est renvoyé que lorsque le serveur vient de créer le compte.
+    // `created` n'est renvoyé que par /api/register, donc uniquement sur une
+    // inscription réelle — la connexion ne crée plus de compte.
     if (data.created && window.qTrackCompteCree) qTrackCompteCree('email');
 
     // Save session (with secure auth token from backend)
@@ -4217,6 +4259,32 @@ async function handleAuthSubmit(event) {
 // Connexion depuis l'écran de garde #login-overlay (accès /app réservé aux membres).
 // Réplique la logique éprouvée de handleAuthSubmit ; saveSession() met à jour l'UI et
 // masque l'overlay (updateSessionUI passe en état « connecté »).
+// Bascule connexion ↔ inscription de l'écran de garde /app.
+window.__overlayMode = 'login';
+
+function setOverlayMode(mode) {
+  window.__overlayMode = (mode === 'signup') ? 'signup' : 'login';
+  const inscription = window.__overlayMode === 'signup';
+  const set = (id, prop, val) => {
+    const el = document.getElementById(id);
+    if (el) el[prop] = val;
+  };
+  set('lo-submit-btn',   'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
+  set('lo-switch-label', 'textContent', inscription ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?');
+  set('lo-switch-btn',   'textContent', inscription ? 'Se connecter' : 'Créer un compte');
+  const forgot = document.getElementById('lo-forgot-wrap');
+  if (forgot) forgot.style.display = inscription ? 'none' : 'block';
+  const pwd = document.getElementById('lo-password');
+  if (pwd) {
+    pwd.placeholder = inscription ? 'Choisis un mot de passe (min. 6 caractères)' : 'Ton mot de passe';
+    pwd.setAttribute('autocomplete', inscription ? 'new-password' : 'current-password');
+  }
+}
+
+function toggleOverlayMode() {
+  setOverlayMode(window.__overlayMode === 'signup' ? 'login' : 'signup');
+}
+
 async function submitLoginOverlay(event) {
   event.preventDefault();
   const emailEl = document.getElementById('lo-email');
@@ -4227,7 +4295,8 @@ async function submitLoginOverlay(event) {
   try {
     const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
       ? (window.turnstile.getResponse() || '') : '';
-    const response = await fetch('/api/login', {
+    const inscription = window.__overlayMode === 'signup';
+    const response = await fetch(inscription ? '/api/register' : '/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, cf_turnstile_token: cfToken })
@@ -4235,6 +4304,8 @@ async function submitLoginOverlay(event) {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       showToast('❌ ' + (error.detail || 'Erreur connexion'));
+      if (!inscription && response.status === 401) setOverlayMode('signup');
+      if (inscription && response.status === 409) setOverlayMode('login');
       return;
     }
     const data = await response.json();
