@@ -27,9 +27,23 @@ import stripe
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from auth import set_user_tier, get_customer_id, revoke_by_customer
+from auth import set_user_tier, get_customer_id, revoke_by_customer, get_user_from_request
 
 router = APIRouter(tags=["stripe"])
+
+
+def _session_email(request: Request) -> str:
+    """E-mail de la session, ou chaîne vide si le visiteur n'est pas connecté.
+
+    Ne lève jamais : un jeton absent ou expiré vaut « pas connecté », c'est à
+    l'appelant de décider si cela bloque. Sert à ne JAMAIS faire confiance à un
+    e-mail fourni dans le corps de la requête quand une session existe.
+    """
+    try:
+        user = get_user_from_request(request)
+        return (user.get("email") or "").lower().strip() if user.get("valid") else ""
+    except Exception:
+        return ""
 
 # Mention portée au pied des factures. En franchise en base de TVA, l'article
 # 293 B du CGI impose de l'indiquer. Réglable via STRIPE_INVOICE_FOOTER : le
@@ -103,8 +117,12 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     params: dict = {
         "mode":         "subscription",
         "line_items":   [{"price": price_id, "quantity": 1}],
-        "success_url":  f"{base}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-        "cancel_url":   f"{base}/?checkout=cancel",
+        # Retour vers /app, pas vers la page d'accueil : l'accueil est la page de
+        # VENTE, elle ne charge pas app_v3.js et ne sait donc pas traiter
+        # `checkout=success`. Un client qui venait de payer revoyait l'argumentaire
+        # commercial avec un paramètre orphelin dans l'URL, sans confirmation.
+        "success_url":  f"{base}/app?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url":   f"{base}/pricing?checkout=cancel",
         "metadata":     {"plan": plan, "billing": billing},
         # ── Facturation entreprise ────────────────────────────────────────
         # Sans ces deux options, la facture d'abonnement générée par Stripe ne
@@ -113,8 +131,24 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         "billing_address_collection": "required",
         "tax_id_collection": {"enabled": True},
     }
-    if body.email:
-        params["customer_email"] = body.email
+    # ⚠️ MENTION TVA — action à faire dans le Dashboard Stripe, pas ici.
+    # INVOICE_FOOTER (« TVA non applicable, article 293 B du CGI ») n'est appliqué
+    # qu'aux paiements uniques, via `invoice_creation.invoice_data.footer`. L'API
+    # Checkout n'expose AUCUN équivalent pour un abonnement : `subscription_data` ne
+    # porte pas de pied de page. Les factures d'abonnement — le produit principal —
+    # sortent donc sans la mention obligatoire en franchise en base.
+    # → Renseigner le pied de page par défaut dans Stripe → Paramètres → Facturation
+    #   → Modèle de facture. Cela couvre les deux modes d'un seul coup.
+
+    # L'e-mail de la session prime TOUJOURS sur celui du corps de requête : un
+    # visiteur connecté ne peut pas ouvrir un paiement au nom d'un autre compte,
+    # et l'adresse facturée est forcément celle qui recevra l'abonnement.
+    # `client_reference_id` rattache la session Stripe au compte : si l'acheteur
+    # saisit malgré tout une autre adresse, le webhook sait à qui créditer.
+    buyer_email = _session_email(request) or (body.email or "")
+    if buyer_email:
+        params["customer_email"] = buyer_email
+        params["client_reference_id"] = buyer_email
 
     # Promo de lancement (variante B) : si STRIPE_LAUNCH_COUPON est défini, la remise
     # est appliquée AUTOMATIQUEMENT (le client ne tape rien). Sinon, on autorise la
@@ -182,8 +216,8 @@ async def create_credits_checkout_session(body: CreditsCheckoutRequest, request:
     params: dict = {
         "mode":         "payment",
         "line_items":   [{"price": price_id, "quantity": 1}],
-        "success_url":  f"{base}/?credits=success&session_id={{CHECKOUT_SESSION_ID}}",
-        "cancel_url":   f"{base}/?credits=cancel",
+        "success_url":  f"{base}/app?credits=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url":   f"{base}/credits?credits=cancel",
         "metadata":     {"type": "credit_pack", "pack": body.pack},
         # ── Facturation entreprise ────────────────────────────────────────
         # En mode 'payment', Stripe n'émet AUCUNE facture par défaut : l'acheteur
@@ -201,8 +235,11 @@ async def create_credits_checkout_session(body: CreditsCheckoutRequest, request:
         "billing_address_collection": "required",
         "tax_id_collection": {"enabled": True},
     }
-    if body.email:
-        params["customer_email"] = body.email
+    # Même règle que pour l'abonnement : la session prime sur le corps de requête.
+    buyer_email = _session_email(request) or (body.email or "")
+    if buyer_email:
+        params["customer_email"] = buyer_email
+        params["client_reference_id"] = buyer_email
 
     try:
         session = stripe.checkout.Session.create(**params)
@@ -215,14 +252,25 @@ async def create_credits_checkout_session(body: CreditsCheckoutRequest, request:
 
 @router.post("/customer-portal")
 async def customer_portal(request: Request):
-    """Redirige l'abonné vers le portail Stripe (gérer/annuler l'abonnement)."""
+    """Redirige l'abonné vers le portail Stripe (gérer/annuler l'abonnement).
+
+    ⚠️ SÉCURITÉ : l'identité vient EXCLUSIVEMENT de la session. Cette route lisait
+    auparavant `email` / `customer_id` dans le corps de la requête, sans jamais
+    vérifier de jeton — n'importe qui pouvait donc obtenir une URL de portail au nom
+    d'un autre abonné (factures, adresse de facturation, moyen de paiement, et
+    résiliation de l'abonnement) en connaissant simplement son adresse e-mail.
+    Le corps de la requête est désormais entièrement ignoré.
+    """
+    # L'authentification est vérifiée AVANT l'état de configuration : un appelant
+    # anonyme ne doit rien apprendre sur le paramétrage du service.
+    email = _session_email(request)
+    if not email:
+        raise HTTPException(401, "Connecte-toi pour gérer ton abonnement.")
+
     if not stripe.api_key:
         raise HTTPException(503, "Stripe non configuré.")
 
-    data = await request.json()
-    email = data.get("email") or ""
-    customer_id = data.get("customer_id") or get_customer_id(email)
-
+    customer_id = get_customer_id(email)
     if not customer_id:
         raise HTTPException(400, "Aucun abonnement trouvé pour ce compte.")
 
@@ -238,60 +286,13 @@ async def customer_portal(request: Request):
 
 
 # ── WEBHOOK ───────────────────────────────────────────────────
-
-@router.post("/webhook")
-async def stripe_webhook(request: Request):
-    """
-    Webhook Stripe — écoute les événements d'abonnement.
-    Configure l'URL dans Stripe Dashboard → Webhooks :
-      https://qeerah.com/api/v1/stripe/webhook
-    Événements à activer :
-      checkout.session.completed
-      customer.subscription.deleted
-      invoice.payment_failed
-    """
-    payload    = await request.body()
-    sig_header = request.headers.get("stripe-signature", "")
-    secret     = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-
-    if not secret:
-        # Mode dev sans webhook secret : traite quand même (à sécuriser en prod)
-        import json
-        try:
-            event = {"type": "unknown", "data": {"object": {}}}
-            event = json.loads(payload)
-        except Exception:
-            raise HTTPException(400, "Payload invalide")
-    else:
-        try:
-            event = stripe.Webhook.construct_event(payload, sig_header, secret)
-        except ValueError:
-            raise HTTPException(400, "Payload invalide")
-        except stripe.error.SignatureVerificationError:
-            raise HTTPException(400, "Signature invalide")
-
-    etype = event.get("type", "")
-    obj   = event.get("data", {}).get("object", {})
-
-    # ── Paiement réussi → activer le tier ──
-    if etype == "checkout.session.completed":
-        plan     = (obj.get("metadata") or {}).get("plan", "pro")
-        email    = (obj.get("customer_details") or {}).get("email")
-        cust_id  = obj.get("customer")
-        sub_id   = obj.get("subscription")
-        if email:
-            set_user_tier(email, plan, customer_id=cust_id, subscription_id=sub_id)
-
-    # ── Abonnement annulé / expiré → downgrade free ──
-    elif etype == "customer.subscription.deleted":
-        cust_id = obj.get("customer")
-        if cust_id:
-            revoke_by_customer(cust_id)
-
-    # ── Paiement échoué → log (pas de downgrade immédiat, Stripe réessaie) ──
-    elif etype == "invoice.payment_failed":
-        email   = (obj.get("customer_email") or "").strip()
-        cust_id = obj.get("customer")
-        # TODO phase 2 : envoyer un email de relance
-
-    return {"ok": True}
+#
+# (supprimé) Ce module exposait un SECOND handler de webhook sur `POST /webhook`
+# — le routeur n'ayant pas de préfixe, il était servi à la racine du domaine.
+# Ce n'était pas celui branché côté Stripe (c'est `/api/v1/stripe/webhook`, dans
+# main.py), mais il restait joignable et contenait un repli dangereux : sans
+# STRIPE_WEBHOOK_SECRET, il traitait le payload SANS vérifier la signature et
+# accordait le tier « pro » à l'adresse e-mail indiquée dans le corps.
+#
+# Un seul handler de webhook désormais, celui qui reçoit réellement les
+# événements : main.py → `@app.post("/api/v1/stripe/webhook")`.

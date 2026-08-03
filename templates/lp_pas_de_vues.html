@@ -90,6 +90,10 @@
     @media (max-width:560px){ h1{font-size:25px} h2{font-size:19px} main{padding:30px 18px 60px} }
   </style>
   <script src="/static/qeerah-consent.js" defer></script>
+  <!-- Suivi de l'entonnoir : ces trois pages d'atterrissage chargeaient le
+       consentement mais PAS la mesure — les seules pages du site dans ce cas,
+       alors que ce sont justement celles qui captent l'intention de recherche. -->
+  <script src="/static/qeerah-analytics.js" defer></script>
   <script src="/static/qeerah-promo.js" defer></script>
 </head>
 <body>

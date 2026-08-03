@@ -82,8 +82,18 @@
       if (!nom || texte.length < 10) { alert('Renseigne ton nom et un témoignage (au moins 10 caractères).'); return; }
       var btn = document.getElementById('t-submit'); btn.disabled = true; btn.textContent = 'Envoi…';
       try {
+        // Le dépôt d'avis exige désormais un compte (anti-spam de la file de
+        // modération). On le dit avant l'envoi plutôt que de laisser tomber un 401.
+        var tok = localStorage.getItem('tts_token') || '';
+        if (!tok) {
+          alert('Connecte-toi à ton compte Qeerah pour laisser ton avis — ça prend 10 secondes.');
+          btn.disabled = false; btn.textContent = 'Envoyer mon avis →';
+          window.location.href = '/app#avis';
+          return;
+        }
         var r = await fetch('/api/temoignages', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
           body: JSON.stringify({ nom: nom, texte: texte, lien_tiktok: document.getElementById('t-tiktok').value.trim(), note: note || null })
         });
         var d = await r.json().catch(function () { return {}; });

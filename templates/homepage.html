@@ -2211,6 +2211,9 @@
         return;
       }
 
+      // `created` n'est renvoyé que lorsque le serveur vient de créer le compte.
+      if (data.created && window.qTrackCompteCree) qTrackCompteCree('email');
+
       // Save to SESSION (both formats for compatibility with /app)
       const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
       session.email = email;

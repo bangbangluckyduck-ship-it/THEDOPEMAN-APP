@@ -95,6 +95,28 @@ except Exception as e:
     print(f"⚠️  Supabase analytics client init failed: {e}")
     supabase_client = None
 
+def _new_user_row(email: str, password_hash: str) -> dict:
+    """Ligne `users` d'un compte qui vient d'être créé.
+
+    ⚠️ `trial_ends_at` est posé ICI, dans la ligne insérée, et non par un appel
+    séparé après coup : c'est la seule façon qu'un compte ne puisse pas exister
+    sans date de fin d'essai. La version précédente insérait sans cette colonne
+    et comptait sur `get_or_create_user()` pour la poser — or celui-ci ne la pose
+    qu'à la CRÉATION de la ligne, donc jamais quand la ligne existe déjà. Résultat :
+    tout compte créé par e-mail/mot de passe naissait avec `trial_ends_at = NULL`,
+    ce que `analysis_quota.resolve_period()` lit comme « essai terminé » → 402 dès
+    la première analyse. Toute nouvelle porte d'entrée doit passer par ce helper.
+    """
+    from datetime import timedelta as _td
+    return {
+        "email": email,
+        "tier": "free",
+        "password": password_hash,
+        "trial_ends_at": (datetime.now(timezone.utc)
+                          + _td(days=analysis_quota.TRIAL_DAYS)).isoformat(),
+    }
+
+
 def _persist_sync_analysis(user: dict, result: dict, *, source: str,
                            source_url=None, product=None, price=None,
                            title=None, duration_ms=None) -> None:
@@ -792,13 +814,30 @@ async def unsubscribe(e: str = Query(""), s: str = Query("")):
         f"</div></body></html>")
 
 
+def _check_cron_secret(request: Request, key: str) -> None:
+    """Valide le secret cron, de préférence via l'en-tête `X-Cron-Key`.
+
+    Le secret ne circulait qu'en paramètre d'URL (`?key=…`) : une URL est
+    journalisée par Render, conservée dans l'historique du navigateur et lisible
+    par tout intermédiaire, contrairement à un en-tête. Le paramètre reste accepté
+    pour ne pas casser les Cron Jobs déjà configurés — à retirer une fois leurs
+    commandes basculées sur l'en-tête (cf. `curl -H "X-Cron-Key: $CRON_SECRET"`).
+    """
+    import hmac as _hmac
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if not cron_secret:
+        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+    provided = (request.headers.get("x-cron-key") or "").strip() or (key or "")
+    # compare_digest : pas de fuite d'information par le temps de comparaison.
+    if not _hmac.compare_digest(provided, cron_secret):
+        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+
+
 @app.get("/api/_cron/upsell-j3")
-async def cron_upsell_j3(key: str = Query("")):
+async def cron_upsell_j3(request: Request, key: str = Query("")):
     """Tâche planifiée (cron quotidien) : relance les Free inscrits il y a ~3 jours.
     Protégé par CRON_SECRET. À appeler 1×/jour (Render Cron ou cron externe)."""
-    cron_secret = os.getenv("CRON_SECRET", "")
-    if not cron_secret or key != cron_secret:
-        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+    _check_cron_secret(request, key)
     if not supabase_client:
         return {"ok": False, "reason": "supabase indisponible"}
     from datetime import timedelta as _td
@@ -830,7 +869,8 @@ async def cron_upsell_j3(key: str = Query("")):
 
 
 @app.get("/api/_cron/feed-radar-collect")
-async def cron_feed_radar_collect(key: str = Query(""), region: Optional[str] = Query(None)):
+async def cron_feed_radar_collect(request: Request, key: str = Query(""),
+                                  region: Optional[str] = Query(None)):
     """Tâche planifiée : collecte Feed Radar (découverte créateurs → vidéos ≥
     seuil de vues → GMV réel/estimé + tendance créateur → oEmbed) sur tous les
     marchés de FEED_RADAR_REGIONS (mêmes marchés que "Créateurs Gagnants") —
@@ -840,9 +880,7 @@ async def cron_feed_radar_collect(key: str = Query(""), region: Optional[str] = 
     heure de Paris, pour ne pas dégrader les requêtes utilisateur pendant la
     collecte). Aucun scheduler ne vit dans ce repo — la planification est
     entièrement côté Render."""
-    cron_secret = os.getenv("CRON_SECRET", "")
-    if not cron_secret or key != cron_secret:
-        raise HTTPException(status_code=403, detail="Clé cron invalide.")
+    _check_cron_secret(request, key)
     import feed_radar
     try:
         summary = await feed_radar.run_feed_radar_collection(region)
@@ -1058,9 +1096,7 @@ async def register(request: Request):
 
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     try:
-        supabase.table("users").insert(
-            {"email": email, "tier": "free", "password": password_hash}
-        ).execute()
+        supabase.table("users").insert(_new_user_row(email, password_hash)).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur création compte: {str(e)}")
 
@@ -1130,8 +1166,11 @@ async def login(request: Request):
 
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
             try:
-                new_user = {"email": email, "tier": "free", "password": password_hash}
-                supabase.table("users").insert(new_user).execute()
+                # ⚠️ C'est le SEUL chemin d'inscription réellement utilisé : les trois
+                # formulaires du front (app, écran de garde /app, accueil) postent tous
+                # ici, /api/register n'est appelé par aucun d'eux. Le helper garantit
+                # que l'essai gratuit est posé — cf. _new_user_row.
+                supabase.table("users").insert(_new_user_row(email, password_hash)).execute()
                 token = create_access_token(email)
 
                 # Email de bienvenue (best-effort : un échec ne bloque jamais l'inscription)
@@ -2684,6 +2723,43 @@ async def analyze_batch_patterns(request: Request):
 # ════════════════════════════════════════════════════════════════════════════
 # STRIPE WEBHOOK — activation automatique des abonnements
 # ════════════════════════════════════════════════════════════════════════════
+def _subscription_period(sub) -> "tuple[Optional[datetime], Optional[datetime]]":
+    """Bornes du cycle de facturation d'un abonnement Stripe, en UTC.
+
+    ⚠️ Depuis l'API Stripe `2025-03-31.basil`, `current_period_start` et
+    `current_period_end` ont été RETIRÉS de l'objet Subscription et déplacés sur
+    ses items. Or `requirements.txt` déclarait `stripe>=10.0.0` sans épingler :
+    Render a installé la 15.3.0, et les deux champs sont revenus `None` en silence.
+    Conséquence : le cycle n'était jamais enregistré, `tier_expiry` jamais posé, et
+    tout le handler `invoice.paid` — ajouté précisément pour faire repartir le quota
+    au renouvellement — ne faisait rien.
+
+    On lit donc les items en priorité, avec repli sur les champs historiques pour
+    rester compatible si le compte Stripe est un jour repassé sur une API ancienne.
+    """
+    def _at(ts):
+        return datetime.fromtimestamp(ts, tz=timezone.utc) if ts else None
+
+    start = end = None
+    try:
+        items = ((sub.get("items") or {}).get("data") or [])
+        if items:
+            start = _at(items[0].get("current_period_start"))
+            end = _at(items[0].get("current_period_end"))
+    except Exception as e:
+        print(f"_subscription_period: lecture des items impossible: {e}")
+
+    if start is None:
+        start = _at(sub.get("current_period_start"))
+    if end is None:
+        end = _at(sub.get("current_period_end"))
+
+    if start is None:
+        print(f"⚠️ _subscription_period: aucun cycle lisible sur l'abonnement "
+              f"{sub.get('id')} — le quota retombera sur la date de création du compte.")
+    return start, end
+
+
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook_v1(request: Request):
     """
@@ -2743,10 +2819,8 @@ async def stripe_webhook_v1(request: Request):
         if sub_id:
             try:
                 sub = stripe.Subscription.retrieve(sub_id)
-                if sub.get("current_period_start"):
-                    period_start = datetime.fromtimestamp(sub["current_period_start"], tz=timezone.utc)
-                if sub.get("current_period_end"):
-                    period_end = datetime.fromtimestamp(sub["current_period_end"], tz=timezone.utc)
+                period_start, period_end = _subscription_period(sub)
+                if period_end:
                     expiry = period_end.date().isoformat()
             except Exception as e:
                 print(f"stripe_webhook_v1: lecture abonnement {sub_id} impossible: {e}")
@@ -2774,20 +2848,15 @@ async def stripe_webhook_v1(request: Request):
         if email and sub_id:
             try:
                 sub = stripe.Subscription.retrieve(sub_id)
-                ps = sub.get("current_period_start")
-                pe = sub.get("current_period_end")
+                ps, pe = _subscription_period(sub)
                 if ps:
-                    analysis_quota.set_billing_period(
-                        email,
-                        datetime.fromtimestamp(ps, tz=timezone.utc),
-                        datetime.fromtimestamp(pe, tz=timezone.utc) if pe else None,
-                    )
+                    analysis_quota.set_billing_period(email, ps, pe)
                 # Prolonge aussi la validité du tier jusqu'à la nouvelle échéance.
                 if pe:
                     set_user_tier(
                         email, "pro",
                         customer_id=obj.get("customer"), subscription_id=sub_id,
-                        expiry=datetime.fromtimestamp(pe, tz=timezone.utc).date().isoformat(),
+                        expiry=pe.date().isoformat(),
                     )
             except Exception as e:
                 print(f"stripe_webhook_v1 invoice.paid: {e}")
@@ -2873,7 +2942,11 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
             print(f"[google_callback] attribution affiliation ignorée : {_ref_err}")
     token = create_access_token(email)
     # Token en FRAGMENT (#) : jamais envoyé au serveur ni journalisé (contrairement à ?).
-    return RedirectResponse(f"{app_url}/app#gauth={token}")
+    # `nouveau=1` signale au front que ce retour a CRÉÉ le compte, pour qu'il émette
+    # l'événement `compte_cree` — sans ce marqueur, une inscription via Google est
+    # indiscernable d'une simple reconnexion côté mesure.
+    frag = f"gauth={token}" + ("&nouveau=1" if is_new_account else "")
+    return RedirectResponse(f"{app_url}/app#{frag}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -3716,10 +3789,69 @@ async def photo_slide_generate(
     )
 
 
-_IMG_PROXY_ALLOWED = ("tiktokcdn", "ibyteimg", "ttcdn", "byteimg", "muscdn",
-                      "tiktokcdn-us", "p16-", "p19-", "akamaized", "ttwstatic",
-                      # Host propre de KeyAPI (avatars créateurs) — URLs stables :
-                      "echosell-images", "volces.com", "byteplus")
+# Domaines autorisés pour le proxy d'images, en SUFFIXES de nom d'hôte.
+#
+# ⚠️ La version précédente listait des fragments (« tiktokcdn », « p16- »…) testés
+# n'importe où dans l'URL. Deux contournements en découlaient : un chemin ou un
+# paramètre suffisait à valider n'importe quelle cible (`http://169.254.169.254/?p16-`),
+# et un fragment comme « p16- » validait aussi un hôte tiers (`p16-evil.attaquant.com`).
+# On compare désormais le suffixe du nom d'hôte, ce qui exige de posséder le domaine.
+#
+# Les hôtes exacts viennent des réponses de KeyAPI / oEmbed, pas du code : si une
+# vignette légitime tombe en « Domaine non autorisé », le nom d'hôte refusé est
+# journalisé et peut être ajouté via IMG_PROXY_EXTRA_DOMAINS (liste séparée par des
+# virgules) sur Render, sans redéploiement.
+_IMG_PROXY_ALLOWED = tuple(filter(None, [
+    "tiktokcdn.com", "tiktokcdn-us.com", "tiktokcdn-eu.com",
+    "ibyteimg.com", "byteimg.com", "bytedance.com", "byteoversea.com",
+    "muscdn.com", "isnssdk.com", "ttwstatic.com",
+    "akamaized.net", "volces.com", "byteplus.com",
+] + [d.strip().lower() for d in os.getenv("IMG_PROXY_EXTRA_DOMAINS", "").split(",")]))
+
+def _img_proxy_host_allowed(u: str) -> bool:
+    """Le nom d'HÔTE de l'URL appartient-il bien à un CDN autorisé ?
+
+    ⚠️ Le contrôle précédent était `any(tok in u for tok in _IMG_PROXY_ALLOWED)` :
+    il cherchait les jetons N'IMPORTE OÙ dans l'URL, chemin et paramètres compris.
+    `http://169.254.169.254/latest/meta-data/?p16-` passait donc le filtre, et comme
+    le proxy suit les redirections et renvoie le corps de la réponse, cela ouvrait
+    une lecture du réseau interne (SSRF) depuis une simple requête GET publique.
+
+    On compare désormais le seul nom d'hôte, on impose https, et on refuse toute
+    adresse IP littérale — les CDN visés sont tous joignables par nom de domaine.
+    """
+    from urllib.parse import urlparse
+    import ipaddress
+
+    try:
+        parsed = urlparse(u)
+    except Exception:
+        return False
+
+    if parsed.scheme != "https":
+        return False
+
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return False
+
+    # Une IP littérale ne peut pas être un CDN légitime ici, et c'est le vecteur
+    # direct vers le loopback, le réseau privé et les adresses de métadonnées.
+    try:
+        ipaddress.ip_address(host)
+        return False
+    except ValueError:
+        pass
+
+    # Suffixe strict : « exemple.tiktokcdn.com » passe, « tiktokcdn.com.evil.net » non.
+    if any(host == d or host.endswith("." + d) for d in _IMG_PROXY_ALLOWED):
+        return True
+
+    print(f"[img-proxy] hôte refusé : {host} — ajoute-le à IMG_PROXY_EXTRA_DOMAINS "
+          f"s'il s'agit d'un CDN légitime.")
+    return False
+
+
 _IMG_CACHE: "dict[str, tuple[bytes, str]]" = {}   # url -> (bytes, content_type)
 _IMG_CACHE_MAX = 400
 # Budget RAM total du cache (Render 512 MB) : au-delà, on évince les plus
@@ -3737,9 +3869,7 @@ async def img_proxy(url: str = Query(...)):
     (sans Referer) puis on la re-sert. Whitelist stricte (anti-SSRF) + cache mémoire
     (évite de re-télécharger en rafale → moins de scintillement sous charge)."""
     u = (url or "").strip()
-    if not u.lower().startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="URL invalide.")
-    if not any(tok in u for tok in _IMG_PROXY_ALLOWED):
+    if not _img_proxy_host_allowed(u):
         raise HTTPException(status_code=400, detail="Domaine non autorisé.")
 
     cached = _IMG_CACHE.get(u)
@@ -3747,7 +3877,11 @@ async def img_proxy(url: str = Query(...)):
         return Response(content=cached[0], media_type=cached[1],
                         headers={"Cache-Control": "public, max-age=86400"})
     try:
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+        # Redirections bornées : un CDN autorisé peut légitimement rebondir une ou
+        # deux fois, mais une chaîne longue est le vecteur classique pour sortir de
+        # la liste blanche après coup.
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True,
+                                     max_redirects=3) as client:
             r = await client.get(u, headers={
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
                 "Referer": "",
@@ -4226,6 +4360,22 @@ async def list_temoignages(featured: Optional[int] = Query(None), limit: Optiona
 
 @app.post("/api/temoignages")
 async def submit_temoignage(request: Request):
+    """Dépôt d'un témoignage — réservé aux comptes connectés.
+
+    ⚠️ Cette route était entièrement ouverte : ni session, ni CAPTCHA, ni limite de
+    débit. Or chaque envoi écrit en base ET déclenche une notification push à
+    l'administrateur — un script trivial saturait donc la file de modération et le
+    téléphone. Exiger une session ferme le vecteur, et n'enlève rien au produit :
+    l'avis d'un utilisateur réel est le seul qui ait une valeur de preuve sociale.
+    (La limite de débit est posée en amont par security._COSTLY_EXACT_PATHS.)
+    """
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(
+            status_code=401,
+            detail="Connecte-toi pour laisser ton avis.",
+        )
+
     body = await request.json()
     nom = (body.get("nom") or "").strip()[:80]
     texte = (body.get("texte") or "").strip()[:1000]

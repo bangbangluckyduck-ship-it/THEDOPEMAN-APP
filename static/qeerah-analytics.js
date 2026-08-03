@@ -61,14 +61,30 @@
     }, true);
 
     // 9 — retour de paiement réussi (Stripe renvoie ?checkout=success)
+    // `value` et `currency` sont indispensables : sans eux, GA4 ne peut calculer
+    // ni chiffre d'affaires, ni coût d'acquisition, ni retour sur dépense. Le
+    // montant est déduit de la périodicité choisie, posée par le front sur
+    // window.BILLING avant la redirection vers Stripe.
     if (/[?&]checkout=success/.test(location.search)) {
-      trackUnique('abonnement_confirme');
-    }
-    // 10 — création de compte (le serveur renvoie ?signup=1 ou gauth=ok)
-    if (/[?&](signup=1|gauth=ok)/.test(location.search)) {
-      trackUnique('compte_cree');
+      var annuel = (window.BILLING || localStorage.getItem('q_billing') || '') === 'year';
+      trackUnique('abonnement_confirme', {
+        value: annuel ? 299 : 29.99,
+        currency: 'EUR',
+        periodicite: annuel ? 'annuel' : 'mensuel',
+      });
     }
   });
+
+  // 10 — création de compte.
+  //
+  // ⚠️ Cet événement attendait `?signup=1` ou `?gauth=ok` dans l'URL — deux
+  // paramètres qu'AUCUN code du site n'a jamais posés. L'inscription par e-mail
+  // se fait en AJAX, sans redirection : l'étape la plus importante du tunnel
+  // n'était donc mesurée nulle part. Le front appelle désormais cette fonction
+  // directement, au moment où le serveur confirme la création (`created: true`).
+  window.qTrackCompteCree = function (methode) {
+    track('compte_cree', { methode: methode || 'email' });
+  };
 
   // 3, 4, 5 — cycle d'analyse. L'application appelle ces fonctions aux moments
   // clés ; elles vivent ici pour que les noms d'événements restent groupés.

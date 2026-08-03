@@ -1,5 +1,5 @@
 /* ============================================================
-   TikTok Shop Vidéo Analyzer — app_v2.js (COMPLETE REBUILD)
+   Qeerah — app_v3.js
    Clean session management with single source of truth
    ============================================================ */
 
@@ -119,7 +119,7 @@ const TRANSLATIONS = {
     btn_connect:'Se connecter', btn_account:'Mon compte',
     server_waking:'⏳ Réveil du serveur en cours… (~30 sec)',
     pwa_title:'Ajouter à l\'écran d\'accueil', pwa_desc:'Accède à l\'application depuis ton téléphone', pwa_install:'Installer',
-    freemium_title:'🎁 Gratuit jusqu\'au lancement officiel', freemium_count:'Analyses utilisées :',
+    freemium_title:'Analyses', freemium_count:'Analyses utilisées :',
     tab_analyze:'🎬 Analyser', tab_history:'📋 Historique', tab_winning_trends:'🔥 Tendances Gagnantes',
     upload_title:'📹 Analyse ta vidéo TikTok Shop', upload_sub:'Importe ta vidéo',
     upload_hint:'Clique ici ou glisse ta vidéo', upload_fmt:'MP4, MOV',
@@ -152,26 +152,29 @@ const TRANSLATIONS = {
     err_timeout:'❌ Délai dépassé. Réessaie avec une vidéo plus courte.',
     saved_ok:'Sauvegardé !',
     footer:'© 2026 Dope Ventures · Qeerah · Tous droits réservés',
-    tb_title:'Tes données t\'appartiennent', tb_sub:'restent EN LOCAL, jamais envoyées.', tb_link:'Détails →',
+    tb_title:'Tes données t\'appartiennent', tb_sub:'jamais revendues, supprimables sur simple demande.', tb_link:'Détails →',
     ck_title:'🍪 Nous utilisons des cookies',
     ck_body:'Tes données vidéo restent TOUJOURS en local. Les cookies nous aident à améliorer ton expérience.',
     ck_link:'Politique de confidentialité', ck_accept:'Accepter tout', ck_reject:'Refuser tout',
     pm_title:'Ta confidentialité', pm_close:'Compris ! Fermer',
     footer_privacy:'Confidentialité', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Tes données restent EN LOCAL</h3>
-<p>Toutes tes analyses (scores, résultats, historique) sont stockées <strong>uniquement sur ton appareil</strong> via localStorage. Nous ne les récupérons jamais sur nos serveurs.</p>
-<h3>🤖 Ce qui est envoyé à l'IA</h3>
-<p>Lors d'une analyse, les <strong>images extraites</strong> de ta vidéo et l'<strong>audio transcrit</strong> sont transmis à Mistral AI pour générer les scores. Aucune donnée personnelle n'est incluse.</p>
+    pm_content:`<h3>🗂️ Où vivent tes analyses</h3>
+<p>Tes analyses sont enregistrées sur nos serveurs, rattachées à ton compte. C'est ce qui te permet de les retrouver dans <strong>Mes analyses</strong> depuis n'importe quel appareil. Elles ne sont visibles que par toi.</p>
+<h3>🤖 Ce qui est envoyé pour l'analyse</h3>
+<p>Ta vidéo est transmise à notre prestataire d'analyse par IA le temps du traitement, puis n'est pas conservée par lui. Nous ne joignons aucune donnée personnelle à cet envoi.</p>
+<h3>🔐 Ce que nous ne faisons jamais</h3>
+<p>Nous ne vendons ni ne cédons tes données, et nous ne les utilisons pas à des fins publicitaires.</p>
 <h3>🍪 Cookies utilisés</h3>
 <ul>
-  <li><strong>localStorage</strong> : tes analyses, historique, préférences de langue</li>
+  <li><strong>Session</strong> : te garder connecté</li>
   <li><strong>cookieConsent</strong> : ton choix de consentement</li>
-  <li><strong>Analytiques</strong> : trafic général (optionnel, anonyme)</li>
+  <li><strong>Analytiques</strong> : trafic général (optionnel, soumis à ton accord)</li>
 </ul>
-<h3>📤 Export & suppression</h3>
-<p>Tu peux exporter tes analyses en PDF à tout moment. Pour supprimer toutes tes données, effacez les données de site dans les réglages de votre navigateur.</p>
+<h3>📤 Export &amp; suppression</h3>
+<p>Tu peux exporter tes analyses en PDF à tout moment.</p>
+<p>Pour demander la suppression de ton compte et de toutes les données associées, écris à <a href="mailto:contact@qeerah.com?subject=Suppression%20de%20mon%20compte">contact@qeerah.com</a> — nous répondons sous 30 jours, comme le prévoit le RGPD.</p>
 <h3>📧 Questions ?</h3>
-<p>Contactez-nous : <a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+<p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Installer sur iPhone / iPad',
     ios_s1:'Appuie sur <strong style="color:var(--text)">Partager</strong> ⎋ en bas de Safari',
     ios_s2:'Fais défiler et appuie sur <strong style="color:var(--text)">"Sur l\'écran d\'accueil"</strong>',
@@ -182,7 +185,7 @@ const TRANSLATIONS = {
     btn_connect:'Sign in', btn_account:'My account',
     server_waking:'⏳ Server waking up… (~30 sec)',
     pwa_title:'Add to home screen', pwa_desc:'Access the app directly from your phone', pwa_install:'Install',
-    freemium_title:'🎁 Free until official launch', freemium_count:'Analyses used:',
+    freemium_title:'Analyses', freemium_count:'Analyses used:',
     tab_analyze:'🎬 Analyze', tab_history:'📋 History', tab_winning_trends:'🔥 Winning Trends',
     upload_title:'📹 Analyze your TikTok Shop video', upload_sub:'Upload your video',
     upload_hint:'Click here or drag your video', upload_fmt:'MP4, MOV',
@@ -215,26 +218,28 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Try again with a shorter video.',
     saved_ok:'Saved!',
     footer:'© 2026 Dope Ventures · Qeerah · All rights reserved',
-    tb_title:'Your data belongs to you', tb_sub:'stays LOCAL, never sent.', tb_link:'Details →',
+    tb_title:'Your data belongs to you', tb_sub:'never sold, deleted on request.', tb_link:'Details →',
     ck_title:'🍪 We use cookies',
     ck_body:'Your video data always stays local. Cookies help us improve your experience.',
     ck_link:'Privacy policy', ck_accept:'Accept all', ck_reject:'Decline',
     pm_title:'Your privacy', pm_close:'Got it! Close',
     footer_privacy:'Privacy', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Your data stays LOCAL</h3>
-<p>All your analyses (scores, results, history) are stored <strong>only on your device</strong> via localStorage. We never retrieve them on our servers.</p>
-<h3>🤖 What is sent to the AI</h3>
-<p>During an analysis, the <strong>extracted frames</strong> from your video and the <strong>transcribed audio</strong> are sent to Mistral AI to generate scores. No personal data is included.</p>
-<h3>🍪 Cookies used</h3>
+    pm_content:`<h3>🗂️ Where your analyses live</h3>
+<p>Your analyses are stored on our servers, tied to your account. That's what lets you find them under <strong>My analyses</strong> from any device. Only you can see them.</p>
+<h3>🤖 What gets sent for analysis</h3>
+<p>Your video is passed to our AI analysis provider for the duration of processing, and is not retained by them afterwards. No personal data is attached.</p>
+<h3>🔐 What we never do</h3>
+<p>We never sell or share your data, and never use it for advertising.</p>
+<h3>🍪 Cookies</h3>
 <ul>
-  <li><strong>localStorage</strong>: your analyses, history, language preferences</li>
+  <li><strong>Session</strong>: keeping you signed in</li>
   <li><strong>cookieConsent</strong>: your consent choice</li>
-  <li><strong>Analytics</strong>: general traffic (optional, anonymous)</li>
+  <li><strong>Analytics</strong>: general traffic (optional, only with your consent)</li>
 </ul>
-<h3>📤 Export & deletion</h3>
-<p>You can export your analyses as PDF at any time. To delete all your data, clear site data in your browser settings.</p>
+<h3>📤 Export &amp; deletion</h3>
+<p>You can export your analyses to PDF at any time. To request deletion of your account and all associated data, email <a href="mailto:contact@qeerah.com?subject=Account%20deletion">contact@qeerah.com</a> — we reply within 30 days, as required by GDPR.</p>
 <h3>📧 Questions?</h3>
-<p>Contact us: <a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+<p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
     ios_title:'Install on iPhone / iPad',
     ios_s1:'Tap <strong style="color:var(--text)">Share</strong> ⎋ at the bottom of Safari',
     ios_s2:'Scroll down and tap <strong style="color:var(--text)">"Add to Home Screen"</strong>',
@@ -245,7 +250,7 @@ const TRANSLATIONS = {
     btn_connect:'Entrar', btn_account:'Minha conta',
     server_waking:'⏳ Servidor acordando… (~30 seg)',
     pwa_title:'Adicionar à tela inicial', pwa_desc:'Acesse o app do seu celular', pwa_install:'Instalar',
-    freemium_title:'🎁 Gratuito até o lançamento oficial', freemium_count:'Análises usadas:',
+    freemium_title:'Análises', freemium_count:'Análises usadas:',
     tab_analyze:'🎬 Analisar', tab_history:'📋 Histórico', tab_winning_trends:'🔥 Tendências Vencedoras',
     upload_title:'📹 Analise seu vídeo TikTok Shop', upload_sub:'Envie seu vídeo',
     upload_hint:'Clique aqui ou arraste seu vídeo', upload_fmt:'MP4, MOV',
@@ -278,11 +283,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tempo esgotado. Tente com um vídeo mais curto.',
     saved_ok:'Salvo!',
     footer:'© 2026 Dope Ventures · Qeerah · Todos os direitos reservados',
-    tb_title:'Seus dados são seus', tb_sub:'ficam em LOCAL, nunca enviados.', tb_link:'Detalhes →',
+    tb_title:'Seus dados são seus', tb_sub:'nunca vendidos, apagados a pedido.', tb_link:'Detalhes →',
     ck_title:'🍪 Usamos cookies', ck_body:'Seus dados de vídeo ficam SEMPRE em local. Os cookies nos ajudam a melhorar sua experiência.', ck_link:'Política de privacidade', ck_accept:'Aceitar tudo', ck_reject:'Recusar',
     pm_title:'Sua privacidade', pm_close:'Entendido! Fechar',
     footer_privacy:'Privacidade', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Seus dados ficam EM LOCAL</h3><p>Todas as suas análises ficam <strong>apenas no seu dispositivo</strong>. Nunca as recuperamos em nossos servidores.</p><h3>🍪 Cookies usados</h3><ul><li>localStorage: análises, histórico, idioma</li><li>cookieConsent: sua escolha</li></ul><h3>📧 Dúvidas?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+    pm_content:`<h3>🗂️ Onde ficam as suas análises</h3><p>As suas análises são guardadas nos nossos servidores, associadas à sua conta — é o que lhe permite encontrá-las em <strong>Minhas análises</strong> em qualquer aparelho. Só você as vê.</p><h3>🤖 O que é enviado para análise</h3><p>O seu vídeo é enviado ao nosso prestador de análise por IA durante o processamento e não fica guardado por ele. Nenhum dado pessoal é anexado.</p><h3>🔐 O que nunca fazemos</h3><p>Nunca vendemos nem cedemos os seus dados, e nunca os usamos para publicidade.</p><h3>🍪 Cookies usados</h3><ul><li>Sessão: manter-se ligado</li><li>cookieConsent: a sua escolha</li><li>Analíticos: tráfego geral (opcional, mediante consentimento)</li></ul><h3>📤 Exportação e eliminação</h3><p>Para pedir a eliminação da sua conta e de todos os dados associados, escreva para <a href="mailto:contact@qeerah.com">contact@qeerah.com</a> — respondemos em 30 dias, como prevê o RGPD.</p>`,
     ios_title:'Instalar no iPhone / iPad',
     ios_s1:'Toque em <strong style="color:var(--text)">Compartilhar</strong> ⎋ na parte inferior do Safari',
     ios_s2:'Role para baixo e toque em <strong style="color:var(--text)">"Tela de Início"</strong>',
@@ -293,7 +298,7 @@ const TRANSLATIONS = {
     btn_connect:'Iniciar sesión', btn_account:'Mi cuenta',
     server_waking:'⏳ Iniciando servidor… (~30 seg)',
     pwa_title:'Añadir a pantalla de inicio', pwa_desc:'Accede a la app desde tu teléfono', pwa_install:'Instalar',
-    freemium_title:'🎁 Gratuito hasta el lanzamiento oficial', freemium_count:'Análisis utilizados:',
+    freemium_title:'Análisis', freemium_count:'Análisis utilizados:',
     tab_analyze:'🎬 Analizar', tab_history:'📋 Historial', tab_winning_trends:'🔥 Tendencias Ganadoras',
     upload_title:'📹 Analiza tu vídeo TikTok Shop', upload_sub:'Sube tu vídeo',
     upload_hint:'Haz clic aquí o arrastra tu vídeo', upload_fmt:'MP4, MOV',
@@ -326,11 +331,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Tiempo agotado. Intenta con un vídeo más corto.',
     saved_ok:'¡Guardado!',
     footer:'© 2026 Dope Ventures · Qeerah · Todos los derechos reservados',
-    tb_title:'Tus datos son tuyos', tb_sub:'se quedan EN LOCAL, nunca se envían.', tb_link:'Detalles →',
+    tb_title:'Tus datos son tuyos', tb_sub:'nunca se venden, se borran si lo pides.', tb_link:'Detalles →',
     ck_title:'🍪 Usamos cookies', ck_body:'Tus datos de vídeo siempre permanecen en local. Las cookies nos ayudan a mejorar tu experiencia.', ck_link:'Política de privacidad', ck_accept:'Aceptar todo', ck_reject:'Rechazar',
     pm_title:'Tu privacidad', pm_close:'¡Entendido! Cerrar',
     footer_privacy:'Privacidad', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Tus datos EN LOCAL</h3><p>Todos tus análisis se almacenan <strong>solo en tu dispositivo</strong>. Nunca los recuperamos en nuestros servidores.</p><h3>🍪 Cookies usadas</h3><ul><li>localStorage: análisis, historial, idioma</li><li>cookieConsent: tu elección</li></ul><h3>📧 ¿Preguntas?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+    pm_content:`<h3>🗂️ Dónde viven tus análisis</h3><p>Tus análisis se guardan en nuestros servidores, vinculados a tu cuenta — así los encuentras en <strong>Mis análisis</strong> desde cualquier dispositivo. Solo tú puedes verlos.</p><h3>🤖 Qué se envía para el análisis</h3><p>Tu vídeo se transmite a nuestro proveedor de análisis por IA durante el procesamiento, y no lo conserva después. No se adjunta ningún dato personal.</p><h3>🔐 Lo que nunca hacemos</h3><p>Nunca vendemos ni cedemos tus datos, ni los usamos con fines publicitarios.</p><h3>🍪 Cookies usadas</h3><ul><li>Sesión: mantenerte conectado</li><li>cookieConsent: tu elección</li><li>Analíticas: tráfico general (opcional, con tu consentimiento)</li></ul><h3>📤 Exportación y supresión</h3><p>Para solicitar la supresión de tu cuenta y de todos los datos asociados, escribe a <a href="mailto:contact@qeerah.com">contact@qeerah.com</a> — respondemos en 30 días, como exige el RGPD.</p>`,
     ios_title:'Instalar en iPhone / iPad',
     ios_s1:'Pulsa <strong style="color:var(--text)">Compartir</strong> ⎋ en la parte inferior de Safari',
     ios_s2:'Desplázate y pulsa <strong style="color:var(--text)">"En pantalla de inicio"</strong>',
@@ -341,7 +346,7 @@ const TRANSLATIONS = {
     btn_connect:'Accedi', btn_account:'Il mio account',
     server_waking:'⏳ Avvio del server… (~30 sec)',
     pwa_title:'Aggiungi alla schermata iniziale', pwa_desc:'Accedi all\'app dal tuo telefono', pwa_install:'Installa',
-    freemium_title:'🎁 Gratuito fino al lancio ufficiale', freemium_count:'Analisi utilizzate:',
+    freemium_title:'Analisi', freemium_count:'Analisi utilizzate:',
     tab_analyze:'🎬 Analizza', tab_history:'📋 Cronologia', tab_winning_trends:'🔥 Tendenze Vincenti',
     upload_title:'📹 Analizza il tuo video TikTok Shop', upload_sub:'Carica il tuo video',
     upload_hint:'Clicca qui o trascina il tuo video', upload_fmt:'MP4, MOV',
@@ -374,11 +379,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Timeout. Riprova con un video più breve.',
     saved_ok:'Salvato!',
     footer:'© 2026 Dope Ventures · Qeerah · Tutti i diritti riservati',
-    tb_title:'I tuoi dati sono tuoi', tb_sub:'restano IN LOCALE, mai inviati.', tb_link:'Dettagli →',
+    tb_title:'I tuoi dati sono tuoi', tb_sub:'mai venduti, cancellati su richiesta.', tb_link:'Dettagli →',
     ck_title:'🍪 Usiamo i cookie', ck_body:'I tuoi dati video restano SEMPRE in locale. I cookie ci aiutano a migliorare la tua esperienza.', ck_link:'Privacy policy', ck_accept:'Accetta tutto', ck_reject:'Rifiuta',
     pm_title:'La tua privacy', pm_close:'Capito! Chiudi',
     footer_privacy:'Privacy', footer_cookies:'Cookie',
-    pm_content:`<h3>✅ I tuoi dati IN LOCALE</h3><p>Tutte le tue analisi sono memorizzate <strong>solo sul tuo dispositivo</strong>. Non le recuperiamo mai sui nostri server.</p><h3>🍪 Cookie usati</h3><ul><li>localStorage: analisi, cronologia, lingua</li><li>cookieConsent: la tua scelta</li></ul><h3>📧 Domande?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+    pm_content:`<h3>🗂️ Dove vivono le tue analisi</h3><p>Le tue analisi sono conservate sui nostri server, collegate al tuo account — è ciò che ti permette di ritrovarle in <strong>Le mie analisi</strong> da qualsiasi dispositivo. Solo tu puoi vederle.</p><h3>🤖 Cosa viene inviato per l'analisi</h3><p>Il tuo video è trasmesso al nostro fornitore di analisi con IA per il tempo dell'elaborazione e non viene conservato da lui. Nessun dato personale è allegato.</p><h3>🔐 Ciò che non facciamo mai</h3><p>Non vendiamo né cediamo i tuoi dati, e non li usiamo a fini pubblicitari.</p><h3>🍪 Cookie usati</h3><ul><li>Sessione: mantenerti connesso</li><li>cookieConsent: la tua scelta</li><li>Analitici: traffico generale (facoltativo, previo consenso)</li></ul><h3>📤 Esportazione e cancellazione</h3><p>Per chiedere la cancellazione del tuo account e di tutti i dati associati, scrivi a <a href="mailto:contact@qeerah.com">contact@qeerah.com</a> — rispondiamo entro 30 giorni, come previsto dal GDPR.</p>`,
     ios_title:'Installa su iPhone / iPad',
     ios_s1:'Tocca <strong style="color:var(--text)">Condividi</strong> ⎋ in fondo a Safari',
     ios_s2:'Scorri e tocca <strong style="color:var(--text)">"Aggiungi a Home"</strong>',
@@ -389,7 +394,7 @@ const TRANSLATIONS = {
     btn_connect:'Anmelden', btn_account:'Mein Konto',
     server_waking:'⏳ Server wird gestartet… (~30 Sek)',
     pwa_title:'Zum Startbildschirm hinzufügen', pwa_desc:'Greife direkt vom Telefon auf die App zu', pwa_install:'Installieren',
-    freemium_title:'🎁 Kostenlos bis zum offiziellen Launch', freemium_count:'Analysen verwendet:',
+    freemium_title:'Analysen', freemium_count:'Analysen verwendet:',
     tab_analyze:'🎬 Analysieren', tab_history:'📋 Verlauf', tab_winning_trends:'🔥 Gewinnende Trends',
     upload_title:'📹 Analysiere dein TikTok Shop Video', upload_sub:'Lade dein Video hoch',
     upload_hint:'Klick hier oder ziehe dein Video rein', upload_fmt:'MP4, MOV',
@@ -422,11 +427,11 @@ const TRANSLATIONS = {
     err_timeout:'❌ Zeitüberschreitung. Versuche mit einem kürzeren Video.',
     saved_ok:'Gespeichert!',
     footer:'© 2026 Dope Ventures · Qeerah · Alle Rechte vorbehalten',
-    tb_title:'Deine Daten gehören dir', tb_sub:'bleiben LOKAL, werden nie gesendet.', tb_link:'Details →',
+    tb_title:'Deine Daten gehören dir', tb_sub:'nie verkauft, auf Wunsch gelöscht.', tb_link:'Details →',
     ck_title:'🍪 Wir verwenden Cookies', ck_body:'Deine Videodaten bleiben IMMER lokal. Cookies helfen uns, deine Erfahrung zu verbessern.', ck_link:'Datenschutz', ck_accept:'Alle akzeptieren', ck_reject:'Ablehnen',
     pm_title:'Dein Datenschutz', pm_close:'Verstanden! Schließen',
     footer_privacy:'Datenschutz', footer_cookies:'Cookies',
-    pm_content:`<h3>✅ Deine Daten LOKAL</h3><p>Alle deine Analysen werden <strong>nur auf deinem Gerät</strong> gespeichert. Wir rufen sie nie auf unseren Servern ab.</p><h3>🍪 Verwendete Cookies</h3><ul><li>localStorage: Analysen, Verlauf, Sprache</li><li>cookieConsent: deine Wahl</li></ul><h3>📧 Fragen?</h3><p><a href="mailto:contact@qeerah.com">contact@qeerah.com</a></p>`,
+    pm_content:`<h3>🗂️ Wo deine Analysen liegen</h3><p>Deine Analysen werden auf unseren Servern gespeichert und deinem Konto zugeordnet — nur so findest du sie unter <strong>Meine Analysen</strong> auf jedem Gerät wieder. Nur du kannst sie sehen.</p><h3>🤖 Was zur Analyse gesendet wird</h3><p>Dein Video wird für die Dauer der Verarbeitung an unseren KI-Analyseanbieter übermittelt und dort danach nicht aufbewahrt. Es werden keine personenbezogenen Daten beigefügt.</p><h3>🔐 Was wir niemals tun</h3><p>Wir verkaufen deine Daten nicht, geben sie nicht weiter und nutzen sie nicht für Werbung.</p><h3>🍪 Verwendete Cookies</h3><ul><li>Sitzung: angemeldet bleiben</li><li>cookieConsent: deine Wahl</li><li>Analyse: allgemeiner Traffic (optional, nur mit Einwilligung)</li></ul><h3>📤 Export und Löschung</h3><p>Um die Löschung deines Kontos und aller zugehörigen Daten zu beantragen, schreibe an <a href="mailto:contact@qeerah.com">contact@qeerah.com</a> — wir antworten innerhalb von 30 Tagen, wie von der DSGVO vorgesehen.</p>`,
     ios_title:'Auf iPhone / iPad installieren',
     ios_s1:'Tippe auf <strong style="color:var(--text)">Teilen</strong> ⎋ unten in Safari',
     ios_s2:'Scrolle und tippe auf <strong style="color:var(--text)">"Zum Home-Bildschirm"</strong>',
@@ -827,9 +832,13 @@ async function startCheckout(plan) {
   }
 
   try {
+    // Le jeton permet au serveur de facturer l'e-mail de la session plutôt que
+    // celui du corps de requête — et de rattacher le paiement au bon compte.
+    const _tokCk = localStorage.getItem('tts_token') || '';
     const res = await fetch('/create-checkout-session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: Object.assign({ 'Content-Type': 'application/json' },
+                             _tokCk ? { 'Authorization': 'Bearer ' + _tokCk } : {}),
       body: JSON.stringify({ plan, email, billing: BILLING_PERIOD })
     });
 
@@ -1064,6 +1073,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gtok) {
       localStorage.setItem('tts_token', gtok);
       try { localStorage.setItem('tts_email', atob(gtok.split('.')[0])); } catch (e) {}
+      // Le serveur marque `nouveau=1` quand ce retour Google a CRÉÉ le compte :
+      // c'est le seul moment où l'inscription via Google est observable côté client.
+      if (h.get('nouveau') === '1' && window.qTrackCompteCree) qTrackCompteCree('google');
       history.replaceState(null, '', location.pathname + location.search);
     } else if (new URLSearchParams(location.search).get('gauth') === 'error') {
       const reason = new URLSearchParams(location.search).get('reason') || '?';
@@ -1143,15 +1155,25 @@ async function wakeServer() {
 
 // ── CUSTOMER PORTAL ──────────────────────────────────────────
 async function openCustomerPortal() {
-  const email       = SESSION.email || '';
-  const customer_id = (window.__usage || {}).customer_id || '';
+  // Le serveur identifie désormais l'abonné par le jeton de session, jamais par
+  // l'e-mail envoyé dans le corps : c'est ce qui empêche d'ouvrir le portail
+  // de facturation de quelqu'un d'autre. Le corps n'est donc plus utile.
+  const token = localStorage.getItem('tts_token') || '';
+  if (!token) { showToast('Connecte-toi pour gérer ton abonnement.'); return; }
   try {
     const res = await fetch('/customer-portal', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, customer_id }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: '{}',
     });
-    if (!res.ok) { showToast('❌ Portail indisponible.'); return; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast('❌ ' + (err.detail || 'Portail indisponible.'));
+      return;
+    }
     const { url } = await res.json();
     window.location.href = url;
   } catch { showToast('❌ Erreur réseau.'); }
@@ -4012,7 +4034,7 @@ function exportPDF() {
   doc.rect(0, 34, 210, 2, 'F');
   doc.setTextColor(...GOLD);
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
-  doc.text('TikTok Shop Vidéo Analyzer', 105, 14, { align: 'center' });
+  doc.text('Qeerah', 105, 14, { align: 'center' });
   doc.setFontSize(9); doc.setFont('helvetica', 'normal');
   doc.setTextColor(200, 210, 230);
   doc.text('by Dope Ventures', 105, 21, { align: 'center' });
@@ -4106,7 +4128,7 @@ function exportPDF() {
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     doc.setFontSize(7); doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
-    doc.text(`TikTok Shop Vidéo Analyzer · by Dope Ventures · ${i}/${pages}`, 105, 291, { align:'center' });
+    doc.text(`Qeerah · by Dope Ventures · ${i}/${pages}`, 105, 291, { align:'center' });
   }
 
   doc.save(`analyse-dv-${Date.now()}.pdf`);
@@ -4171,6 +4193,9 @@ async function handleAuthSubmit(event) {
 
     const data = await response.json();
 
+    // `created` n'est renvoyé que lorsque le serveur vient de créer le compte.
+    if (data.created && window.qTrackCompteCree) qTrackCompteCree('email');
+
     // Save session (with secure auth token from backend)
     if (data.token) {
       localStorage.setItem('tts_token', data.token);
@@ -4213,6 +4238,7 @@ async function submitLoginOverlay(event) {
       return;
     }
     const data = await response.json();
+    if (data.created && window.qTrackCompteCree) qTrackCompteCree('email');
     saveSession(email, email, data.token); // met à jour l'UI et masque #login-overlay
     if (emailEl) emailEl.value = '';
     if (pwdEl) pwdEl.value = '';
@@ -5122,9 +5148,11 @@ async function buyCredits(pack) {
     return;
   }
   try {
+    const _tokCr = localStorage.getItem('tts_token') || '';
     const res = await fetch('/create-credits-checkout-session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: Object.assign({ 'Content-Type': 'application/json' },
+                             _tokCr ? { 'Authorization': 'Bearer ' + _tokCr } : {}),
       body: JSON.stringify({ pack, email }),
     });
     const data = await res.json().catch(() => ({}));

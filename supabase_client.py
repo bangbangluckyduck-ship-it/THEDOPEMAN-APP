@@ -62,11 +62,24 @@ def get_or_create_user(email: str) -> dict:
 
 def set_user_tier(email: str, tier: str, customer_id: Optional[str] = None,
                   subscription_id: Optional[str] = None, expiry: Optional[str] = None) -> None:
-    """Met à jour le tier d'un utilisateur."""
+    """Met à jour le tier d'un utilisateur, en créant le compte s'il n'existe pas.
+
+    ⚠️ Cette fonction ne faisait qu'un UPDATE ... WHERE email = ?. Quand aucune ligne
+    ne correspondait — un acheteur qui règle depuis /pricing sans être connecté, ou
+    qui saisit une autre adresse dans Stripe Checkout — l'UPDATE touchait zéro ligne
+    et se terminait sans erreur : le client payait et n'obtenait rien, sans trace.
+    On crée donc le compte au besoin. Il naît avec un essai (get_or_create_user)
+    qui sera immédiatement remplacé par le tier payant.
+    """
     if not supabase:
         return
 
+    email = (email or "").lower().strip()
+    if not email:
+        return
+
     try:
+        get_or_create_user(email)   # garantit qu'une ligne existe avant l'UPDATE
         data = {
             "tier": tier,
             "customer_id": customer_id,

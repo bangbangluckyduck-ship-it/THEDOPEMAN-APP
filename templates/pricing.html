@@ -251,8 +251,11 @@
       var btn=document.getElementById('cta');
       btn.disabled=true; var label=btn.textContent; btn.textContent='Redirection…';
       try{
+        var tok=localStorage.getItem('tts_token')||'';
+        var hdr={'Content-Type':'application/json'};
+        if(tok){ hdr['Authorization']='Bearer '+tok; }
         var res=await fetch('/create-checkout-session',{
-          method:'POST', headers:{'Content-Type':'application/json'},
+          method:'POST', headers:hdr,
           body:JSON.stringify({plan:'pro', billing:BILLING, email:sessionEmail()||null})
         });
         var data=await res.json().catch(function(){return {};});

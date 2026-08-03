@@ -8,3 +8,8 @@ static/admin-icon-*.png
 .DS_Store
 exports/
 .vapid_keys.local
+
+# Archives de sauvegarde : elles peuvent contenir un .env complet.
+# Une archive committee le 25/05/2026 exposait une cle API Anthropic vivante.
+*.tar.gz
+*.zip

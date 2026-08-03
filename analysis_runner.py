@@ -22,6 +22,23 @@ import analysis_jobs
 logger = logging.getLogger(__name__)
 
 
+# ── Plafond de concurrence des jobs ──────────────────────────────────────
+# Les routes SYNCHRONES de main.py sont sérialisées par ANALYSIS_SEMAPHORE, mais
+# ce module — le chemin asynchrone, celui vers lequel tous les comptes payants
+# sont dirigés — n'avait AUCUNE limite : chaque job lancé par
+# `asyncio.create_task()` démarrait immédiatement. N jobs simultanés = N ffmpeg
+# de downscale + N envois vidéo en parallèle sur une instance à 1 CPU / 2 Go,
+# c'est-à-dire exactement la cause des OOM de juillet, réintroduite par une autre
+# porte.
+#
+# Le job attend son tour au lieu d'échouer : l'utilisateur est déjà en
+# asynchrone, il ne perçoit qu'un temps de traitement un peu plus long.
+# Réglable sans redéploiement si le profil mémoire réel le permet.
+_MAX_CONCURRENT_JOBS = max(1, int(os.getenv("ANALYSIS_MAX_CONCURRENT_JOBS", "2")))
+_JOB_SEMAPHORE = asyncio.Semaphore(_MAX_CONCURRENT_JOBS)
+_QUEUED_STAGE = "En file d'attente…"
+
+
 # ── Notifications email à la fin du job ──────────────────────────────────
 def _app_url() -> str:
     return os.getenv("APP_PUBLIC_URL", "https://qeerah.com").rstrip("/")
@@ -211,8 +228,13 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
                 _send_done_email(user_email, cached, job_id, title=job_title)
                 return
 
-        analysis_jobs.update_stage(job_id, "vision")
-        result = await _run_url_pipeline(url, product, price, user_tier, user_role)
+        # Le sémaphore est pris APRÈS la recherche en cache : un cache-hit ne
+        # consomme aucune ressource lourde, il ne doit pas attendre son tour.
+        if _JOB_SEMAPHORE.locked():
+            analysis_jobs.update_stage(job_id, _QUEUED_STAGE)
+        async with _JOB_SEMAPHORE:
+            analysis_jobs.update_stage(job_id, "vision")
+            result = await _run_url_pipeline(url, product, price, user_tier, user_role)
         result["from_cache"] = False
 
         # Cache store si autorisé
@@ -253,8 +275,11 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
                 _send_done_email(user_email, cached, job_id, title=job_title)
                 return
 
-        analysis_jobs.update_stage(job_id, "vision")
-        result = await _run_upload_pipeline(video_path, product, price, user_tier, user_role)
+        if _JOB_SEMAPHORE.locked():
+            analysis_jobs.update_stage(job_id, _QUEUED_STAGE)
+        async with _JOB_SEMAPHORE:
+            analysis_jobs.update_stage(job_id, "vision")
+            result = await _run_upload_pipeline(video_path, product, price, user_tier, user_role)
         result["from_cache"] = False
 
         if can_cache and cache_key:
