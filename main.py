@@ -1070,7 +1070,13 @@ async def admin_stats(request: Request):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    # Le commit déployé est exposé ici pour une raison précise : sans lui, face à
+    # une erreur en production, on ne peut pas distinguer « le correctif est en
+    # ligne et ne suffit pas » de « le correctif n'est pas encore déployé ». On a
+    # perdu des allers-retours de diagnostic sur exactement cette ambiguïté.
+    # Render fournit RENDER_GIT_COMMIT ; on n'en publie que les 7 premiers
+    # caractères, de quoi identifier la version sans rien révéler du code.
+    return {"status": "ok", "version": os.getenv("RENDER_GIT_COMMIT", "dev")[:7]}
 
 @app.get("/api/user-info")
 async def user_info(request: Request):
