@@ -164,9 +164,19 @@ def _init_error_monitoring() -> None:
             # Échantillonnage des traces à 0 par défaut : on veut les ERREURS, pas
             # un profil de performance — et le volume gratuit part très vite sinon.
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0")),
-            # Les corps de requête peuvent contenir un mot de passe ou une URL de
-            # vidéo privée : on n'envoie jamais de données personnelles à Sentry.
+            # Ni adresse IP, ni cookies, ni identité d'utilisateur attachés aux erreurs.
             send_default_pii=False,
+            # ⚠️ INDISPENSABLE, et non couvert par send_default_pii : le SDK Python
+            # joint par DÉFAUT les variables locales de chaque frame de la pile
+            # d'appel. Une erreur survenant dans /api/login aurait donc expédié les
+            # variables `email` et `password` de la fonction — c'est-à-dire les
+            # identifiants en clair d'un utilisateur réel. Sentry masque les clés
+            # nommées « password » ou « token », mais PAS « email ».
+            # Les traces restent parfaitement exploitables sans ces valeurs.
+            include_local_variables=False,
+            # Le corps des requêtes n'est jamais transmis (formulaires de connexion,
+            # liens de vidéos privées, contenu d'analyses).
+            max_request_body_size="never",
         )
         print("✅ Supervision des erreurs active (Sentry).")
     except ImportError:
