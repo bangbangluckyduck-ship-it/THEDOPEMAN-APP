@@ -69,6 +69,26 @@ def normalize_tiktok_url(url: str) -> Tuple[str, str]:
         return url, url_hash
 
 
+def is_trustworthy_cache_key(normalized_url: str) -> bool:
+    """La clé désigne-t-elle une vidéo de façon CERTAINE ?
+
+    Seul un identifiant TikTok numérique le garantit. Les deux autres formes de
+    clé produites par normalize_tiktok_url ne désignent pas une vidéo :
+
+    - lien court (vm./vt.tiktok.com) → empreinte du LIEN, pas de la vidéo. Deux
+      liens courts distincts pointant la même vidéo donnent deux entrées ; et
+      rien ne garantit qu'un lien court reste attaché à la même vidéo.
+    - envoi de fichier sans URL → clé « frames_<nombre> ». Deux vidéos ayant le
+      même nombre d'images partagent alors la MÊME entrée : l'utilisateur reçoit
+      l'analyse de la vidéo de quelqu'un d'autre.
+
+    Servir une entrée douteuse est bien pire que de ne pas avoir de cache : le
+    rapport est faux et rien ne le signale. On préfère donc recalculer.
+    """
+    m = re.search(r'/video/(\d+)$', normalized_url or "")
+    return bool(m)
+
+
 async def get_cached_analysis(video_url: str) -> Optional[dict]:
     """
     Check if analysis exists in cache and is not expired.
@@ -78,6 +98,12 @@ async def get_cached_analysis(video_url: str) -> Optional[dict]:
     """
     try:
         normalized_url, video_id = normalize_tiktok_url(video_url)
+
+        # Garde-fou de CORRECTION, pas de performance : une clé qui ne désigne
+        # pas une vidéo de façon certaine ne doit jamais servir de résultat.
+        if not is_trustworthy_cache_key(normalized_url):
+            print(f"[CACHE] IGNORÉ (clé non fiable, on recalcule) : {normalized_url}", flush=True)
+            return None
 
         # Query cache
         response = supabase.table("video_analyses_cache").select(
@@ -124,6 +150,14 @@ async def save_to_cache(
     """
     try:
         normalized_url, video_id = normalize_tiktok_url(video_url)
+
+        # Symétrique de la lecture : on n'ÉCRIT pas sous une clé douteuse. Sinon
+        # on empoisonne la table pour tous les appels suivants qui tomberaient
+        # sur la même clé — c'est ce qui a fait ressortir l'analyse d'une vidéo
+        # à la place d'une autre.
+        if not is_trustworthy_cache_key(normalized_url):
+            print(f"[CACHE] NON STOCKÉ (clé non fiable) : {normalized_url}", flush=True)
+            return False
 
         # ── Étanchéité tier : on ne met JAMAIS en cache la "👑 Stratégie de
         # Conversion (Premium)". Sinon un Gold pourrait remplir le cache d'un
