@@ -12,12 +12,69 @@ def _ffmpeg() -> str:
     return "ffmpeg"
 
 
+def _probe(video_path: str) -> dict:
+    """Caractéristiques de la vidéo, via ffprobe. Dict vide si indisponible.
+
+    Coût : ~0,1 s (lecture d'en-têtes, aucun décodage). À comparer aux dizaines
+    de secondes d'un ré-encodage — d'où l'intérêt de demander avant de faire.
+    """
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries",
+             "stream=codec_name,codec_type,height", "-of", "default=nw=1", video_path],
+            capture_output=True, timeout=15, text=True,
+        )
+        if out.returncode != 0:
+            return {}
+        infos: dict = {"height": 0, "vcodec": "", "acodec": ""}
+        courant = None
+        for ligne in out.stdout.splitlines():
+            cle, _, val = ligne.partition("=")
+            if cle == "codec_type":
+                courant = val
+            elif cle == "codec_name":
+                if courant == "video" and not infos["vcodec"]:
+                    infos["vcodec"] = val
+                elif courant == "audio" and not infos["acodec"]:
+                    infos["acodec"] = val
+            elif cle == "height" and val.isdigit():
+                infos["height"] = max(infos["height"], int(val))
+        return infos
+    except Exception:
+        return {}
+
+
 def downscale_720p(video_path: str) -> str:
     """Downscale une vidéo à 720p H.264 + audio AAC pour réduire le temps d'upload
     et de processing Gemini. Garde le ratio, qualité d'analyse identique.
 
     Retourne le path du fichier downscalé (à supprimer par l'appelant après usage).
     Si la conversion échoue, retourne le path original (jamais bloquant)."""
+    import time as _t
+    _t0 = _t.monotonic()
+
+    # ⚠️ Ce ré-encodage était INCONDITIONNEL. Or le téléchargement demande déjà
+    # `best[height<=720]` : on ré-encodait donc du 720p en 720p, pour rien —
+    # environ 25 s de calcul H.264 sur l'unique processeur de Render, à chaque
+    # analyse. C'était le deuxième poste de temps du pipeline, derrière la
+    # rédaction, et personne ne le voyait.
+    #
+    # On sonde d'abord (~0,1 s). Si la vidéo est DÉJÀ conforme à ce que produirait
+    # la conversion — pas plus haute que 720p, H.264, audio AAC ou muette, dans un
+    # conteneur mp4 — le ré-encodage ne changerait rien d'utile : on la garde.
+    infos = _probe(video_path)
+    deja_conforme = (
+        infos
+        and 0 < infos.get("height", 0) <= 720
+        and infos.get("vcodec") == "h264"
+        and infos.get("acodec", "") in ("aac", "")
+        and video_path.lower().endswith(".mp4")
+    )
+    if deja_conforme:
+        print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — déjà conforme "
+              f"({infos.get('height')}p {infos.get('vcodec')}), ré-encodage évité", flush=True)
+        return video_path
+
     out_fd, out_path = tempfile.mkstemp(suffix="_720p.mp4")
     os.close(out_fd)
     try:
@@ -33,6 +90,8 @@ def downscale_720p(video_path: str) -> str:
             capture_output=True, timeout=60,
         )
         if result.returncode == 0 and os.path.getsize(out_path) > 1024:
+            print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — ré-encodage "
+                  f"(source {infos.get('height') or '?'}p {infos.get('vcodec') or '?'})", flush=True)
             return out_path
     except Exception:
         pass
