@@ -53,27 +53,34 @@ def downscale_720p(video_path: str) -> str:
     import time as _t
     _t0 = _t.monotonic()
 
-    # ⚠️ Ce ré-encodage était INCONDITIONNEL. Or le téléchargement demande déjà
-    # `best[height<=720]` : on ré-encodait donc du 720p en 720p, pour rien —
-    # environ 25 s de calcul H.264 sur l'unique processeur de Render, à chaque
-    # analyse. C'était le deuxième poste de temps du pipeline, derrière la
-    # rédaction, et personne ne le voyait.
+    # ⚠️ Ce ré-encodage était INCONDITIONNEL, et il coûtait 26 s mesurées sur une
+    # vidéo de 5 Mo — pour économiser une seconde ou deux d'envoi vers Google.
+    # Le calcul est perdant d'un ordre de grandeur.
     #
-    # On sonde d'abord (~0,1 s). Si la vidéo est DÉJÀ conforme à ce que produirait
-    # la conversion — pas plus haute que 720p, H.264, audio AAC ou muette, dans un
-    # conteneur mp4 — le ré-encodage ne changerait rien d'utile : on la garde.
-    infos = _probe(video_path)
-    deja_conforme = (
-        infos
-        and 0 < infos.get("height", 0) <= 720
-        and infos.get("vcodec") == "h264"
-        and infos.get("acodec", "") in ("aac", "")
-        and video_path.lower().endswith(".mp4")
-    )
-    if deja_conforme:
-        print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — déjà conforme "
-              f"({infos.get('height')}p {infos.get('vcodec')}), ré-encodage évité", flush=True)
+    # Le critère de décision n'est donc PAS la résolution mais le POIDS, car
+    # c'est le seul coût réel qu'un ré-encodage supprime : le temps de transfert.
+    # Une première version filtrait sur `height <= 720` ; elle ne servait à rien
+    # ici, parce qu'une vidéo TikTok est verticale — 1080×1920 — et que sa
+    # « hauteur » vaut donc 1920. Le filtre ne se déclenchait jamais. (Même
+    # raison pour laquelle le `best[height<=720]` de yt-dlp ne matche jamais et
+    # retombe sur la meilleure qualité disponible.)
+    #
+    # La résolution, elle, ne coûte quasiment rien : le modèle échantillonne la
+    # vidéo à sa propre résolution interne. Lui envoyer du 1080p vertical plutôt
+    # que du 405×720 ne change ni son temps d'analyse ni sa précision.
+    seuil_mo = float(os.getenv("VIDEO_REENCODE_MIN_MB", "25"))
+    try:
+        taille_mo = os.path.getsize(video_path) / (1024 * 1024)
+    except Exception:
+        taille_mo = float("inf")   # taille illisible → on ré-encode, comme avant
+
+    if taille_mo <= seuil_mo:
+        print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — "
+              f"{taille_mo:.1f} Mo, sous le seuil de {seuil_mo:.0f} Mo : "
+              f"ré-encodage évité", flush=True)
         return video_path
+
+    infos = _probe(video_path)
 
     out_fd, out_path = tempfile.mkstemp(suffix="_720p.mp4")
     os.close(out_fd)
