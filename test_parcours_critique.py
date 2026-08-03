@@ -123,11 +123,18 @@ def test_le_webhook_lit_le_payload_brut_et_non_l_objet_stripe():
     avant la moindre logique métier. Le webhook répondait 500 à chaque
     livraison. Ce test vérifie qu'on lit bien le payload JSON brut."""
     import inspect
+
     source = inspect.getsource(main.stripe_webhook_v1)
-    assert "json.loads(payload)" in source, \
+    # On ne regarde que le CODE : le bloc d'explication cite volontairement la
+    # ligne fautive, et un test qui échoue sur sa propre documentation ne
+    # protège de rien.
+    code = "\n".join(l for l in source.splitlines()
+                     if not l.lstrip().startswith("#") and l.strip())
+
+    assert "json.loads(payload)" in code, \
         "Le handler ne relit plus le payload brut : le typage de la bibliothèque " \
         "Stripe peut le recasser silencieusement."
-    assert 'event.get("data"' not in source, \
+    assert 'event.get("data"' not in code, \
         "Accès dictionnaire sur l'objet Stripe : c'est ce qui levait AttributeError."
 
 
