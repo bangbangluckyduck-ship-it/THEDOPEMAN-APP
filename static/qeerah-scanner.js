@@ -165,6 +165,8 @@
       this._lastLabel = 0;
       this._labelIdx = 0;
       this._progress = 0;
+      this._band = null;        // palier réel courant (cf. setStage)
+      this._bandT0 = this._t0;
 
       var self = this;
       this._raf = requestAnimationFrame(function (t) { self._loop(t); });
@@ -216,6 +218,33 @@
       if (this._statusEl && txt) this._statusEl.textContent = String(txt).replace(/^[^\wÀ-ÿ]+/, "").trim();
     },
 
+    // Paliers de progression adossés aux étapes RÉELLES du serveur.
+    // Le pourcentage n'avançait auparavant que par une exponentielle du temps
+    // écoulé : il atteignait 89 % en une trentaine de secondes puis n'était plus
+    // qu'un décor figé, quoi qu'il arrive derrière. Une barre bloquée se lit
+    // comme un plantage, ce qui rallongeait la lenteur RESSENTIE bien au-delà de
+    // la lenteur réelle. Chaque étape a désormais sa plage : on progresse dedans
+    // tant qu'elle dure, et on saute à la plage suivante quand le serveur
+    // annonce vraiment être passé à la suite.
+    BANDS: {
+      "file":       [2, 8],
+      "download":   [8, 28],
+      "downscale":  [28, 42],
+      "vision":     [42, 84],
+      "synthesis":  [84, 97]
+    },
+
+    setStage: function (stage) {
+      var band = this.BANDS[stage];
+      if (!band || !this.active || this._finishing) return;
+      // Jamais de marche arrière : une étape retardataire ne fait pas reculer
+      // l'affichage (l'utilisateur le lirait comme une régression).
+      if (this._band && band[0] < this._band[0]) return;
+      this._band = band;
+      this._bandT0 = now();
+      if (this._progress < band[0]) this._progress = band[0];
+    },
+
     _loop: function (t) {
       if (!this.active) return;
       var elapsed = t - this._t0;
@@ -228,9 +257,16 @@
       this._scan.style.transform = "translateY(" + (y * (h - 3)).toFixed(1) + "px)";
       this._scan.setAttribute("data-dir", cp < 0.5 ? "down" : "up");
 
-      // 2) progression simulée — asymptote vers ~90%, ralentit en approchant
+      // 2) progression : à l'intérieur du palier réel annoncé par le serveur.
+      // Tant qu'aucune étape n'est connue (tout début, ou appel sans setStage),
+      // on reste sous la barre du premier palier plutôt que de filer vers 90 %.
       if (!this._finishing) {
-        this._progress = 90 * (1 - Math.exp(-elapsed / 6000));
+        var band = this._band || [0, this.BANDS.file[0]];
+        var since = t - this._bandT0;
+        // Asymptote vers le haut du palier : on approche sans jamais l'atteindre,
+        // donc on ne prétend jamais avoir fini une étape encore en cours.
+        var p = band[0] + (band[1] - band[0]) * (1 - Math.exp(-since / 9000));
+        if (p > this._progress) this._progress = p;
         this._progressEl.textContent = Math.floor(this._progress) + "%";
       }
 

@@ -2118,6 +2118,27 @@ function setLoadingText(txt) {
   el.textContent = txt;
 }
 
+// Étapes renvoyées par le serveur (colonne progress_stage). Elles étaient
+// affichées BRUTES à l'utilisateur : il lisait « download », « downscale »,
+// « vision » — des noms de code internes, en anglais. On les traduit ici, et on
+// en profite pour caler la barre de progression du scanner sur l'étape réelle.
+const JOB_STAGES = {
+  'download':  { band: 'download',  label: 'Récupération de la vidéo…' },
+  'downscale': { band: 'downscale', label: 'Préparation de la vidéo…' },
+  'vision':    { band: 'vision',    label: "Analyse de l'image et du son…" },
+  'synthesis': { band: 'synthesis', label: 'Rédaction de ton rapport…' }
+};
+
+function applyJobStage(stage) {
+  const known = JOB_STAGES[stage];
+  // Étape inconnue (ex. « En file d'attente… », déjà rédigée côté serveur) :
+  // on l'affiche telle quelle plutôt que de l'avaler.
+  if (window.QeerahScanner && QeerahScanner.active) {
+    try { QeerahScanner.setStage(known ? known.band : 'file'); } catch (_) {}
+  }
+  setLoadingText(known ? known.label : stage);
+}
+
 // Info "sticky" sous le spinner : reste affichée tant qu'on ne l'efface pas
 // explicitement. Permet d'annoncer "L'analyse Pro prend 1-2 min" au début et
 // que ça reste visible pendant tout le download + downscale + vision.
@@ -6033,7 +6054,7 @@ async function _pollJobInline(jobId) {
         throw new Error("Connexion instable. Ton analyse continue en arrière-plan — retrouve-la dans « Mes analyses ».");
       continue;   // coupure ponctuelle : on retente, rien n'est perdu
     }
-    if (job.progress_stage) setLoadingText(job.progress_stage);
+    if (job.progress_stage) applyJobStage(job.progress_stage);
     if (job.status === 'done' && job.result) return job.result;
     if (job.status === 'error') throw new Error(job.error_message || 'Analyse échouée.');
   }

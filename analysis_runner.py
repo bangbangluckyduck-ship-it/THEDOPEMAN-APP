@@ -105,8 +105,15 @@ def _send_error_email(user_email: str, error_message: str, job_id: str,
 
 
 async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[str],
-                            user_tier: str, user_role: Optional[str] = None) -> dict:
-    """Download URL → downscale → Gemini Pro vidéo → synthèse."""
+                            user_tier: str, user_role: Optional[str] = None,
+                            on_stage=None) -> dict:
+    """Download URL → downscale → Gemini vidéo → synthèse.
+
+    `on_stage(nom)` signale les étapes qui se produisent À L'INTÉRIEUR du
+    pipeline. Sans ce rappel, la dernière étape connue du client restait
+    « vision » pendant toute la rédaction : la barre de progression semblait
+    figée alors que le travail avançait.
+    """
     from analyzer import analyze_video_native, synthesize_analysis
     from video_processor import downscale_720p
 
@@ -143,6 +150,9 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
         transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
 
         # 4. Synthèse
+        if on_stage:
+            try: on_stage("synthesis")
+            except Exception: pass
         result = await asyncio.wait_for(
             loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
             timeout=180.0,
@@ -166,9 +176,12 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
 
 async def _run_upload_pipeline(video_path: str, product: Optional[str],
                                price: Optional[str], user_tier: str,
-                               user_role: Optional[str] = None) -> dict:
+                               user_role: Optional[str] = None,
+                               on_stage=None) -> dict:
     """Upload vidéo (déjà sur disque, streamée par la route) → downscale →
-    Gemini Pro → synthèse. Ne charge jamais la vidéo entière en RAM."""
+    Gemini → synthèse. Ne charge jamais la vidéo entière en RAM.
+
+    `on_stage(nom)` : cf. _run_url_pipeline."""
     from analyzer import analyze_video_native, synthesize_analysis
     from video_processor import downscale_720p
 
@@ -186,6 +199,9 @@ async def _run_upload_pipeline(video_path: str, product: Optional[str],
         transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
 
         # 4. Synthèse
+        if on_stage:
+            try: on_stage("synthesis")
+            except Exception: pass
         result = await asyncio.wait_for(
             loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
             timeout=180.0,
@@ -234,7 +250,9 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
             analysis_jobs.update_stage(job_id, _QUEUED_STAGE)
         async with _JOB_SEMAPHORE:
             analysis_jobs.update_stage(job_id, "vision")
-            result = await _run_url_pipeline(url, product, price, user_tier, user_role)
+            result = await _run_url_pipeline(
+                url, product, price, user_tier, user_role,
+                on_stage=lambda s: analysis_jobs.update_stage(job_id, s))
         result["from_cache"] = False
 
         # Cache store si autorisé
@@ -279,7 +297,9 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
             analysis_jobs.update_stage(job_id, _QUEUED_STAGE)
         async with _JOB_SEMAPHORE:
             analysis_jobs.update_stage(job_id, "vision")
-            result = await _run_upload_pipeline(video_path, product, price, user_tier, user_role)
+            result = await _run_upload_pipeline(
+                video_path, product, price, user_tier, user_role,
+                on_stage=lambda s: analysis_jobs.update_stage(job_id, s))
         result["from_cache"] = False
 
         if can_cache and cache_key:
