@@ -1731,14 +1731,58 @@
 
 <!-- ════════════════════ PRICING ════════════════════ -->
 <!-- ════════════════════ TÉMOIGNAGES ════════════════════ -->
-<section id="feedradar-teaser-section" style="display:none;padding:60px 20px;background:var(--bg,#F5F7FA)">
+<style>
+  .fr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; max-width:680px; margin:0 auto; }
+  .fr-card { border-radius:12px; overflow:hidden; background:#fff; border:1px solid var(--border,#e5e7eb); position:relative; }
+  .fr-thumb { width:100%; aspect-ratio:9/16; object-fit:cover; display:block; background:var(--surface2,#EEF1F6); }
+  .fr-body { padding:8px 10px; font-size:12px; }
+  .fr-author { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fr-meta { color:var(--muted,#6b7280); }
+  /* Carte verrouillée : la donnée est masquée VISUELLEMENT et n'est jamais
+     envoyée au navigateur — un flou CSS se retire avec l'inspecteur. */
+  .fr-locked .fr-thumb, .fr-locked .fr-body { filter:blur(7px); user-select:none; }
+  .fr-lock {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:8px; padding:14px;
+    text-align:center; background:rgba(15,23,42,.55); color:#fff;
+  }
+  .fr-lock strong { font-size:13.5px; line-height:1.35; }
+  .fr-lock a {
+    background:#fff; color:#1F3A70; text-decoration:none; font-weight:800;
+    font-size:12.5px; padding:7px 13px; border-radius:9px; white-space:nowrap;
+  }
+</style>
+
+<section id="feedradar-teaser-section" style="padding:60px 20px;background:var(--bg,#F5F7FA)">
   <div style="max-width:1100px;margin:0 auto">
     <h2 class="section-title" style="text-align:center">Feed Radar</h2>
-    <p class="section-subtitle" style="text-align:center;margin-bottom:32px">Les vidéos TikTok Shop qui cartonnent en ce moment — GMV estimé, en temps réel</p>
-    <div id="feedradar-teaser-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;max-width:600px;margin:0 auto"></div>
-    <div style="text-align:center;margin-top:28px">
-      <a href="/pricing" style="color:var(--accent);font-weight:700;text-decoration:none">Voir plus →</a>
+    <p class="section-subtitle" style="text-align:center;margin-bottom:32px">Les vidéos TikTok Shop qui cartonnent en ce moment, avec leur GMV (chiffre d\'affaires généré) estimé</p>
+
+    <div class="fr-grid" id="feedradar-teaser-grid">
+      {#- Repli statique : toujours quelque chose à voir, même si l'appel
+          échoue ou tarde. Remplacé par les vraies vidéos dès leur arrivée. -#}
+      <div class="fr-card"><div class="fr-thumb"></div>
+        <div class="fr-body"><div class="fr-author">Chargement…</div>
+        <div class="fr-meta">Vidéos du jour</div></div></div>
+      <div class="fr-card"><div class="fr-thumb"></div>
+        <div class="fr-body"><div class="fr-author">Chargement…</div>
+        <div class="fr-meta">Vidéos du jour</div></div></div>
+      <div class="fr-card"><div class="fr-thumb"></div>
+        <div class="fr-body"><div class="fr-author">Chargement…</div>
+        <div class="fr-meta">Vidéos du jour</div></div></div>
+      <div class="fr-card fr-locked">
+        <div class="fr-thumb"></div>
+        <div class="fr-body"><div class="fr-author">@creator</div><div class="fr-meta">— vues</div></div>
+        <div class="fr-lock">
+          <strong>Le reste du Feed Radar</strong>
+          <a href="/app">Créer un compte</a>
+        </div>
+      </div>
     </div>
+
+    <p style="text-align:center;margin-top:26px">
+      <a href="/app" style="color:var(--accent);font-weight:700;text-decoration:none">Débloquer le Feed Radar — {{ TRIAL_OFFER }} →</a>
+    </p>
   </div>
 </section>
 <script>
@@ -1746,21 +1790,48 @@
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   var _lang=(document.documentElement.lang||navigator.language||'fr').slice(0,2).toLowerCase();
   var _region=({fr:'FR',en:'US',pt:'BR',es:'ES',it:'IT',de:'DE',id:'ID',ms:'MY'})[_lang]||'US';
-  fetch('/api/feed-radar/teaser?region='+_region).then(function(r){return r.json();}).then(function(d){
-    var items=(d&&d.videos)||[]; if(!items.length) return;
-    var sec=document.getElementById('feedradar-teaser-section'); var g=document.getElementById('feedradar-teaser-grid');
-    g.innerHTML=items.map(function(v){
-      var thumb=v.video_id?('<img src="/api/feed-radar/'+encodeURIComponent(v.video_id)+'/thumb" alt="Miniature vidéo TikTok de @'+esc(v.oembed_author_name||'')+'" loading="lazy" onerror="this.onerror=null;this.src=\'/static/placeholder-thumb.svg\'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">'):'';
-      var isReal=v.gmv_source==='real_attribution' && v.gmv_real!=null;
-      var gmv=(isReal?v.gmv_real:(v.gmv_estimated||0)).toLocaleString();
-      var gmvLabel=isReal?'💰 GMV réel':'💰 GMV estimé (approx.)';
-      return '<div style="border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--border,#e5e7eb)">'+thumb+
-        '<div style="padding:8px 10px;font-size:12px"><div style="font-weight:700">@'+esc(v.oembed_author_name||'')+'</div>'+
-        '<div style="color:var(--muted,#6b7280)">'+ (v.views||0).toLocaleString() +' vues</div>'+
-        '<div style="color:var(--muted,#6b7280)">'+gmvLabel+' : $'+gmv+'</div></div></div>';
-    }).join('');
-    sec.style.display='block';
-  }).catch(function(){});
+
+  var grille = document.getElementById('feedradar-teaser-grid');
+  if (!grille) return;
+
+  fetch('/api/feed-radar/teaser?region='+_region)
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var items = (d && d.videos) || [];
+      if (!items.length) return;            // le repli statique reste en place
+
+      // Trois vidéos ouvertes, puis le verrou. Décision produit : on montre
+      // assez pour donner envie, l'inscription gratuite ouvre le reste.
+      var visibles = items.slice(0, 3);
+      var restantes = Math.max(0, (d.total || items.length) - visibles.length);
+
+      var cartes = visibles.map(function(v){
+        var thumb = v.video_id
+          ? '<img class="fr-thumb" src="/api/feed-radar/'+encodeURIComponent(v.video_id)+'/thumb" '+
+            'alt="Miniature de la vidéo TikTok de @'+esc(v.oembed_author_name||'')+'" loading="lazy" '+
+            'onerror="this.onerror=null;this.src=\'/static/placeholder-thumb.svg\'">'
+          : '<div class="fr-thumb"></div>';
+        var reel = v.gmv_source === 'real_attribution' && v.gmv_real != null;
+        var gmv  = (reel ? v.gmv_real : (v.gmv_estimated || 0)).toLocaleString();
+        return '<div class="fr-card">'+thumb+
+          '<div class="fr-body"><div class="fr-author">@'+esc(v.oembed_author_name||'')+'</div>'+
+          '<div class="fr-meta">'+(v.views||0).toLocaleString()+' vues</div>'+
+          '<div class="fr-meta">'+(reel ? 'GMV réel' : 'GMV estimé')+' : $'+gmv+'</div></div></div>';
+      });
+
+      cartes.push(
+        '<div class="fr-card fr-locked">'+
+          '<div class="fr-thumb"></div>'+
+          '<div class="fr-body"><div class="fr-author">@creator</div><div class="fr-meta">— vues</div></div>'+
+          '<div class="fr-lock"><strong>'+
+            (restantes > 0 ? 'Débloque les '+restantes+' autres' : 'Le reste du Feed Radar') +
+          '</strong><a href="/app">Créer un compte</a></div>'+
+        '</div>'
+      );
+
+      grille.innerHTML = cartes.join('');
+    })
+    .catch(function(){ /* le repli statique reste affiché */ });
 })();
 </script>
 

@@ -12,6 +12,103 @@ const USER_KEY      = 'dv_user';
 const MAX_HISTORY   = 20;
 const FREE_LIMIT    = 999;
 
+// ══════════════════════════════════════════════════════════════════════
+// MODE « EXPLIQUE-MOI SIMPLEMENT » (lot 3.5)
+//
+// Une note seule n'apprend rien à un débutant. Pour chaque dimension : ce que
+// la note veut dire, et quoi faire — le conseil dépend du score, parce qu'à
+// 3/10 il faut refaire, à 8/10 il faut affiner.
+// ══════════════════════════════════════════════════════════════════════
+var MODE_KEY = 'qeerah_mode_lecture';
+
+function modeLecture() {
+  try { return localStorage.getItem(MODE_KEY) || 'simple'; } catch (e) { return 'simple'; }
+}
+function setModeLecture(m) {
+  try { localStorage.setItem(MODE_KEY, m); } catch (e) {}
+}
+
+// Clés telles que renvoyées par l'analyse. Le repli couvre toute dimension
+// ajoutée plus tard sans casser l'affichage.
+var _EXPLICATIONS_DATA = {
+  hook: {
+    quoi: "C'est la capacité de tes 3 premières secondes à stopper le pouce.",
+    bas:  "Refais ton ouverture : annonce le problème ou le résultat dès le premier mot, sans introduction.",
+    moyen:"Ton accroche fonctionne mais démarre trop lentement. Coupe la première seconde.",
+    haut: "Ton accroche tient. Garde cette structure et réutilise-la sur tes prochaines vidéos.",
+  },
+  retention: {
+    quoi: "C'est ta capacité à garder les gens jusqu'au bout.",
+    bas:  "Ajoute une coupe ou un changement de plan toutes les 2 secondes, et annonce ce qui arrive après.",
+    moyen:"Ça décroche au milieu. Place une relance à mi-parcours : une question, un avant/après.",
+    haut: "Bonne rétention. Tu peux allonger un peu la vidéo sans perdre ton audience.",
+  },
+  vente: {
+    quoi: "C'est la force de ton argumentaire produit.",
+    bas:  "Montre le produit en usage réel, pas en présentation. Le bénéfice avant la caractéristique.",
+    moyen:"L'argument est là mais noyé. Concentre-toi sur UN bénéfice, le plus concret.",
+    haut: "Ton argumentaire porte. Décline-le sur d'autres produits de ta niche.",
+  },
+  emotion: {
+    quoi: "C'est ce que ta vidéo fait ressentir — la mémoire passe par là.",
+    bas:  "Raconte une situation vécue plutôt que de décrire un produit.",
+    moyen:"L'émotion est présente mais discrète. Appuie sur la frustration que ton produit règle.",
+    haut: "L'émotion passe bien. C'est ton point fort, capitalise dessus.",
+  },
+  conversion: {
+    quoi: "C'est ce qui pousse au clic vers la boutique.",
+    bas:  "Ajoute un appel à l'action clair et unique, dit à voix haute ET écrit à l'écran.",
+    moyen:"Ton appel à l'action arrive trop tard. Avance-le avant la chute d'attention.",
+    haut: "Ton appel à l'action fonctionne. Teste-le en le répétant une seconde fois en fin de vidéo.",
+  },
+  algo: {
+    quoi: "C'est ta compatibilité avec ce que TikTok pousse en ce moment.",
+    bas:  "Format, durée ou son ne correspondent pas aux codes actuels. Reprends un format qui marche dans ta niche.",
+    moyen:"Corrige les signaux manquants : son tendance, texte à l'écran, format vertical plein cadre.",
+    haut: "Tu coches les bons signaux. Publie régulièrement pour en profiter.",
+  },
+};
+
+function conseilPour(cle, note) {
+  var table = (typeof _EXPLICATIONS_DATA !== 'undefined' && _EXPLICATIONS_DATA) || {};
+  const e = table[cle];
+  if (!e) return null;
+  const niveau = note <= 4 ? 'bas' : (note <= 7 ? 'moyen' : 'haut');
+  return { quoi: e.quoi, action: e[niveau] };
+}
+
+/** Ajoute ou retire les explications selon le mode choisi. */
+function appliquerModeLecture() {
+  const simple = modeLecture() === 'simple';
+  document.querySelectorAll('#scores-grid .score-card').forEach(card => {
+    const aide = card.querySelector('.score-aide');
+    if (aide) aide.hidden = !simple;
+  });
+  const btns = document.querySelectorAll('[data-mode]');
+  btns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === (simple ? 'simple' : 'expert'))));
+}
+
+function injecterSelecteurMode() {
+  const grid = document.getElementById('scores-grid');
+  if (!grid || document.getElementById('mode-lecture')) return;
+  const barre = document.createElement('div');
+  barre.id = 'mode-lecture';
+  barre.setAttribute('role', 'group');
+  barre.setAttribute('aria-label', 'Niveau de détail du rapport');
+  barre.style.cssText = 'display:flex;gap:6px;justify-content:center;margin:0 0 14px;flex-wrap:wrap';
+  barre.innerHTML = `
+    <button type="button" data-mode="simple" aria-pressed="true"
+      style="background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--text)">Explique-moi simplement</button>
+    <button type="button" data-mode="expert" aria-pressed="false"
+      style="background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--text)">Mode expert</button>
+  `;
+  grid.parentNode.insertBefore(barre, grid);
+  barre.querySelectorAll('[data-mode]').forEach(b => {
+    b.addEventListener('click', () => { setModeLecture(b.dataset.mode); appliquerModeLecture(); });
+  });
+}
+
+
 // ── I18N ─────────────────────────────────────────────────────
 const LANG_KEY = 'dv_lang';
 let currentLanguage = 'fr';
@@ -2221,17 +2318,26 @@ function showResults(d) {
       const col = scoreColor(n);
       const card = document.createElement('div');
       card.className = 'score-card';
+      const aide = conseilPour(k, n);
+      const aideHtml = aide ? `
+        <div class="score-aide" style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;font-size:12.5px;line-height:1.5">
+          <div style="color:var(--muted)">${esc(aide.quoi)}</div>
+          <div style="margin-top:6px;font-weight:700">À faire : ${esc(aide.action)}</div>
+        </div>` : '';
       card.innerHTML = `
         <div class="score-label">${LABELS[k] || k}</div>
         <div class="score-value" style="color:${col}">${n}<span style="font-size:16px;color:var(--muted)">/10</span></div>
         <div class="score-bar"><div class="score-bar-fill" style="width:0%;background:${col}"></div></div>
         <div class="score-comment">${v.commentaire || ''}</div>
+        ${aideHtml}
       `;
       grid.appendChild(card);
       requestAnimationFrame(() => requestAnimationFrame(() => {
         card.querySelector('.score-bar-fill').style.width = (n * 10) + '%';
       }));
     });
+    injecterSelecteurMode();
+    appliquerModeLecture();
   }
 
   const detGrid = document.getElementById('detection-grid');
