@@ -393,6 +393,10 @@ _PRIVACY_HTML = _render("privacy.html", bust=False)
 _TERMS_HTML = _render("terms.html", bust=False)
 _CGV_HTML = _render("cgv.html", bust=False)
 _MENTIONS_HTML = _render("mentions_legales.html", bust=False)
+# Pages d'atterrissage par intention de recherche (lot 4.3)
+_LP_ANALYSER_HTML = _render("lp_analyser_video.html", bust=False)
+_LP_PRODUITS_HTML = _render("lp_produits_france.html", bust=False)
+_LP_VUES_HTML     = _render("lp_pas_de_vues.html", bust=False)
 # Pages tarifs/crédits dédiées (dynamiques côté client via /api/plans/*)
 _PRICING_HTML = _render("pricing.html")
 _PRICING_COMPARE_HTML = _render("pricing_compare.html")
@@ -527,6 +531,24 @@ async def credits_page(): return HTMLResponse(_CREDITS_HTML)
 @app.get("/temoignage", response_class=HTMLResponse)
 async def avis_page(): return HTMLResponse(_AVIS_HTML)
 
+@app.get("/analyser-une-video-tiktok-shop", response_class=HTMLResponse)
+async def lp_analyser_video():
+    """Page d'atterrissage — intention « outil »."""
+    return HTMLResponse(_LP_ANALYSER_HTML)
+
+
+@app.get("/produits-qui-vendent-tiktok-shop-france", response_class=HTMLResponse)
+async def lp_produits_france():
+    """Page d'atterrissage — intention « découverte produit »."""
+    return HTMLResponse(_LP_PRODUITS_HTML)
+
+
+@app.get("/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues", response_class=HTMLResponse)
+async def lp_pas_de_vues():
+    """Page d'atterrissage — intention « problème »."""
+    return HTMLResponse(_LP_VUES_HTML)
+
+
 @app.get("/mentions-legales", response_class=HTMLResponse)
 @app.get("/mentions_legales", response_class=HTMLResponse)
 async def mentions_legales_page():
@@ -615,6 +637,9 @@ _SITEMAP_PATHS = [
     # page orpheline pour les moteurs.
     "/avis",
     "/mentions-legales",
+    "/analyser-une-video-tiktok-shop",
+    "/produits-qui-vendent-tiktok-shop-france",
+    "/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues",
     "/about",
     "/contact",
     "/blog",
