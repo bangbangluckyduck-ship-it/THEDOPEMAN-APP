@@ -663,9 +663,12 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     if price:
         prompt += f"\n💶 PRIX INDIQUÉ par l'utilisateur : {price}. Considère-le comme prix de référence."
 
+    # 90s et non 120 : ce timeout ne borne pas une analyse normale (Flash rend sa
+    # réponse en 15-40s sur une vidéo TikTok), il borne un appel qui se fige. Le
+    # descendre ne coupe donc rien d'utile, ça raccourcit juste l'attente inutile.
     raw = ai_providers.video_complete(
         video_path, prompt,
-        timeout=float(os.getenv("VIDEO_NATIVE_TIMEOUT", "120")),
+        timeout=float(os.getenv("VIDEO_NATIVE_TIMEOUT", "90")),
         temperature=0.0,
     )
     try:

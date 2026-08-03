@@ -24,7 +24,12 @@ import httpx
 
 # IDs modèles (overridables par env, sans redéploiement)
 GEMINI_VISION_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-GEMINI_VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-2.5-pro")  # vidéo native (audio + visuel) — Pro pour qualité max, OK car en mode async la latence n'est plus visible par l'utilisateur
+# Vidéo native (audio + visuel). Flash et non Pro, pour DEUX raisons distinctes :
+# la vitesse, et surtout la disponibilité — la capacité Pro est la plus disputée
+# chez Google, c'est elle qui renvoie « high demand » en premier lors des pics.
+# Passer à Flash améliore donc à la fois le délai ET le taux de réussite.
+# Repasser en Pro = variable GEMINI_VIDEO_MODEL sur Render, sans redéploiement.
+GEMINI_VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-2.5-flash")
 CLAUDE_TEXT_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
 CLAUDE_HAIKU_MODEL = os.getenv("CLAUDE_HAIKU_MODEL", "claude-haiku-4-5-20251001")
 MISTRAL_VISION_MODEL = "pixtral-12b-2409"
@@ -223,29 +228,35 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
         models_to_try.append(fallback_model)
 
-    # ⚠️ NE JAMAIS envoyer thinking_budget=0 : les modèles Pro refusent de couper
-    # leur raisonnement et renvoient un 400 « Budget 0 is invalid. This model only
-    # works in thinking mode ». C'était le cas ici à chaque analyse — l'appel
-    # partait perdant d'avance et ne devait sa survie qu'à un retry de rattrapage.
-    # Par défaut on n'envoie donc AUCUN ThinkingConfig : chaque modèle applique son
-    # raisonnement dynamique, ce qu'on veut de toute façon pour la qualité (le mode
-    # async absorbe la latence). GEMINI_VIDEO_THINKING_BUDGET permet de forcer une
-    # valeur si besoin : -1 = dynamique, 128-32768 = budget fixe. 0 est ignoré.
+    # VITESSE : par défaut on COUPE le raisonnement du modèle. Décrire ce qui se
+    # passe dans une vidéo est une tâche d'observation, pas de déduction — le
+    # raisonnement n'y ajoute presque rien et double le temps de réponse.
+    # Deux garde-fous appris à nos dépens :
+    #   - les modèles Pro REFUSENT budget 0 (400 « This model only works in
+    #     thinking mode ») : on ne le leur envoie jamais, ils gardent leur mode
+    #     dynamique — raison de plus pour ne pas les mettre en primaire ;
+    #   - GEMINI_VIDEO_THINKING_BUDGET permet de forcer un réglage :
+    #     0 = coupé (défaut), -1 = dynamique, 128-32768 = budget fixe.
     _budget_env = (os.getenv("GEMINI_VIDEO_THINKING_BUDGET", "") or "").strip()
     try:
-        thinking_budget = int(_budget_env) if _budget_env else None
+        thinking_budget = int(_budget_env) if _budget_env else 0
     except ValueError:
-        thinking_budget = None
-    if thinking_budget == 0:
-        thinking_budget = None
+        thinking_budget = 0
+
+    def _thinking_for(model_name: str) -> Optional[int]:
+        """Budget applicable à ce modèle, ou None s'il ne faut rien envoyer."""
+        if "pro" in model_name.lower():
+            return None
+        return thinking_budget
 
     def _try_call(model_name: str):
         """Appel generate_content ; retry sans ThinkingConfig si le modèle le rejette."""
-        if thinking_budget is None:
+        budget = _thinking_for(model_name)
+        if budget is None:
             cfg = gt.GenerateContentConfig(**base_kwargs) if base_kwargs else None
             return client.models.generate_content(model=model_name, contents=parts, config=cfg)
         try:
-            thinking_cfg = gt.ThinkingConfig(thinking_budget=thinking_budget)
+            thinking_cfg = gt.ThinkingConfig(thinking_budget=budget)
             cfg = gt.GenerateContentConfig(thinking_config=thinking_cfg, **base_kwargs)
             return client.models.generate_content(model=model_name, contents=parts, config=cfg)
         except Exception as e:
@@ -255,11 +266,25 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                 return client.models.generate_content(model=model_name, contents=parts, config=cfg)
             raise
 
+    # Plafond de temps GLOBAL sur la cascade. Sans lui : 3 tentatives × 2 modèles
+    # × le timeout par appel = jusqu'à 12 minutes sur un job condamné, qui
+    # monopolise pendant tout ce temps l'un des 2 créneaux d'analyse simultanés.
+    # Quand Google sature, s'acharner ne sauve presque rien et propage la panne
+    # aux autres utilisateurs : on abandonne vite et on invite à relancer.
+    # 90s : une saturation se manifeste par un refus IMMÉDIAT (503 en moins d'une
+    # seconde), pas par une lenteur — la cascade complète des deux modèles tient
+    # donc largement dans ce budget et rien n'est sacrifié côté fiabilité. Ce
+    # plafond ne borne en réalité qu'un seul cas : un appel qui se fige.
+    # Il n'interrompt JAMAIS un appel en cours : il empêche seulement d'en
+    # démarrer un nouveau. Une analyse lente mais qui va aboutir aboutit.
+    deadline = _t.monotonic() + float(os.getenv("VIDEO_ANALYSIS_DEADLINE", "90"))
+
     last_err = None
     for model_name in models_to_try:
-        # 3 tentatives par modèle avec backoff exponentiel (2s, 5s) avant de
-        # passer au modèle suivant. Couvre les "503 high demand" temporaires.
-        for attempt, delay in enumerate([0, 2, 5]):
+        # 2 tentatives par modèle, reprise courte, puis on passe au suivant.
+        for delay in (0, 1.5):
+            if _t.monotonic() >= deadline:
+                break
             if delay:
                 _t.sleep(delay)
             try:
@@ -271,6 +296,8 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                     continue
                 # Erreur non-récupérable → on passe au modèle suivant directement
                 break
+        if _t.monotonic() >= deadline:
+            break
     # Message lisible pour l'utilisateur (il le reçoit par email), cause technique
     # chaînée pour Sentry. Avant, c'est « 503 UNAVAILABLE. {'error': {...}} » qui
     # partait dans l'email d'échec d'un client payant.
