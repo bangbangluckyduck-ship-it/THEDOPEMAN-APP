@@ -261,7 +261,13 @@
       // Tant qu'aucune étape n'est connue (tout début, ou appel sans setStage),
       // on reste sous la barre du premier palier plutôt que de filer vers 90 %.
       if (!this._finishing) {
-        var band = this._band || [0, this.BANDS.file[0]];
+        // Mode dégradé : tant qu'aucune étape réelle n'est connue, on continue
+        // d'avancer lentement vers un plafond modeste. Adosser la barre aux
+        // étapes réelles ne doit JAMAIS pouvoir la figer — la première version
+        // de ce code plafonnait ici à 2 %, et l'appelant qui n'annonçait pas
+        // ses étapes affichait « 1 % » pendant toute l'analyse. Une barre qui
+        // ment un peu vaut mieux qu'une barre qui a l'air cassée.
+        var band = this._band || [0, 55];
         var since = t - this._bandT0;
         // Asymptote vers le haut du palier : on approche sans jamais l'atteindre,
         // donc on ne prétend jamais avoir fini une étape encore en cours.

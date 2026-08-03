@@ -1608,7 +1608,7 @@ async function analyzeVideo() {
       if (eventType === 'start') {
         console.log('[STREAM] Analysis started');
       } else if (eventType === 'progress') {
-        setLoadingText(eventData.message || '🔄 En cours...');
+        applyJobStage(eventData.stage, eventData.message || '🔄 En cours...');
         // Info "sticky" : reste affichée tant qu'on ne l'efface pas (un nouveau
         // progress event SANS info ne l'écrase pas, contrairement au texte du
         // spinner). Permet d'annoncer "L'analyse Pro prend 1-2 min" au début
@@ -1748,7 +1748,7 @@ async function analyzeSingleUrl() {
     const handle = (ev, dstr) => {
       let o; try { o = JSON.parse(dstr); } catch (_) { return; }
       if (ev === 'progress') {
-        setLoadingText(o.message || '🔄 En cours…');
+        applyJobStage(o.stage, o.message || '🔄 En cours…');
         if (o.info) setLoadingInfo(o.info);
         // Le serveur a identifié la vidéo → vraie vignette dans le scanner.
         // Indispensable pour les liens courts (vm./vt.tiktok.com) : /api/tt-thumb
@@ -2122,21 +2122,53 @@ function setLoadingText(txt) {
 // affichées BRUTES à l'utilisateur : il lisait « download », « downscale »,
 // « vision » — des noms de code internes, en anglais. On les traduit ici, et on
 // en profite pour caler la barre de progression du scanner sur l'étape réelle.
+// Étapes du serveur → plage de progression + libellé lisible.
+//
+// Deux émetteurs alimentent cette table, et OUBLIER LE SECOND est ce qui a
+// figé la jauge à 1 % : le champ `progress_stage` des jobs asynchrones
+// (analysis_runner), et le champ `stage` des événements SSE de l'analyse en
+// direct (main.py) — que le serveur envoyait déjà. Toute nouvelle étape ajoutée
+// d'un côté ou de l'autre doit atterrir ici.
+//
+// Les libellés ne servent qu'au chemin des jobs : en direct, le serveur envoie
+// déjà un message rédigé, plus précis, qu'on préfère.
 const JOB_STAGES = {
-  'download':  { band: 'download',  label: 'Récupération de la vidéo…' },
-  'downscale': { band: 'downscale', label: 'Préparation de la vidéo…' },
-  'vision':    { band: 'vision',    label: "Analyse de l'image et du son…" },
-  'synthesis': { band: 'synthesis', label: 'Rédaction de ton rapport…' }
+  // — communes / démarrage
+  'init':               { band: 'file',      label: 'Initialisation…' },
+  'start':              { band: 'file',      label: 'Démarrage…' },
+  'resolved':           { band: 'file',      label: 'Vidéo identifiée…' },
+  'queue_waiting':      { band: 'file',      label: "En file d'attente…" },
+  'queue_released':     { band: 'download',  label: 'À ton tour…' },
+  // — récupération
+  'download':           { band: 'download',  label: 'Récupération de la vidéo…' },
+  'video_upload':       { band: 'download',  label: 'Envoi de ta vidéo…' },
+  // — préparation
+  'downscale':          { band: 'downscale', label: 'Préparation de la vidéo…' },
+  'audio_processing':   { band: 'downscale', label: 'Préparation de la bande son…' },
+  // — analyse
+  'vision':             { band: 'vision',    label: "Analyse de l'image et du son…" },
+  'parallel_start':     { band: 'vision',    label: "Analyse de l'image et du son…" },
+  'parallel_running':   { band: 'vision',    label: "Analyse de l'image et du son…" },
+  'vision_done':        { band: 'synthesis', label: 'Analyse terminée…' },
+  'transcription_done': { band: 'synthesis', label: 'Transcription terminée…' },
+  'ai_analysis_done':   { band: 'synthesis', label: 'Analyse terminée…' },
+  // — rédaction
+  'synthesis':          { band: 'synthesis', label: 'Rédaction de ton rapport…' },
+  'strategy':           { band: 'synthesis', label: 'Construction de la stratégie…' },
+  'content':            { band: 'synthesis', label: 'Rédaction des contenus…' },
+  'cache_hit':          { band: 'synthesis', label: 'Analyse déjà disponible…' }
 };
 
-function applyJobStage(stage) {
+// `stage` pilote la jauge, `message` (optionnel) est le texte du serveur.
+function applyJobStage(stage, message) {
   const known = JOB_STAGES[stage];
-  // Étape inconnue (ex. « En file d'attente… », déjà rédigée côté serveur) :
-  // on l'affiche telle quelle plutôt que de l'avaler.
-  if (window.QeerahScanner && QeerahScanner.active) {
-    try { QeerahScanner.setStage(known ? known.band : 'file'); } catch (_) {}
+  // Étape inconnue : on NE TOUCHE PAS à la jauge. La caler d'office sur le
+  // premier palier la ferait reculer au moindre nom d'étape non répertorié.
+  if (known && window.QeerahScanner && QeerahScanner.active) {
+    try { QeerahScanner.setStage(known.band); } catch (_) {}
   }
-  setLoadingText(known ? known.label : stage);
+  const txt = message || (known && known.label) || stage;
+  if (txt) setLoadingText(txt);
 }
 
 // Info "sticky" sous le spinner : reste affichée tant qu'on ne l'efface pas

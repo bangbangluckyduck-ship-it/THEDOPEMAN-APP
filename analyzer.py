@@ -813,7 +813,11 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     # le recevait comme une vraie analyse, et la modération passait au vert sur
     # une vidéo que personne n'avait regardée. Un échec franc vaut infiniment
     # mieux qu'un résultat faux qui ne se signale pas.
+    import time as _time
+    _t0 = _time.monotonic()
     data = _observe()
+    logger.info("[analyzer] ⏱ passe 1 (%s) : %.1fs",
+                ai_providers.GEMINI_VIDEO_MODEL, _time.monotonic() - _t0)
 
     # Contrôle qualité + escalade. On ne relance le modèle fin que sur les
     # vidéos où le modèle rapide a démontrablement décroché : coût moyen proche
@@ -822,11 +826,25 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
     if not issues:
         return data
 
+    # ⚠️ L'escalade DOUBLE le temps d'analyse sur les vidéos concernées. Si les
+    # contrôles s'avèrent trop stricts en production, ils déclencheraient sur
+    # presque toutes les vidéos et transformeraient une optimisation en
+    # ralentissement général. VIDEO_ESCALATION=0 la coupe depuis le dashboard,
+    # sans redéploiement, le temps de desserrer les seuils.
+    if (os.getenv("VIDEO_ESCALATION", "1") or "").strip().lower() in ("0", "false", "off", "no"):
+        logger.warning("[analyzer] constats vidéo douteux (%s) — escalade DÉSACTIVÉE, "
+                       "constats conservés tels quels", " ; ".join(issues))
+        return data
+
     escalation_model = os.getenv("GEMINI_VIDEO_ESCALATION_MODEL", "gemini-2.5-pro")
-    logger.warning("[analyzer] constats vidéo douteux (%s) → escalade vers %s",
+    logger.warning("[analyzer] constats vidéo douteux (%s) → escalade vers %s "
+                   "(⏱ double le temps d'analyse de cette vidéo)",
                    " ; ".join(issues), escalation_model)
+    _t1 = _time.monotonic()
     try:
         better = _observe(model=escalation_model)
+        logger.info("[analyzer] ⏱ escalade (%s) : %.1fs", escalation_model,
+                    _time.monotonic() - _t1)
     except Exception as e:
         # L'escalade est un BONUS : si le modèle fin est indisponible ou saturé,
         # on garde les constats de la première passe. Échouer ici reviendrait à
