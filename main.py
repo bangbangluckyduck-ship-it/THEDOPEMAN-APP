@@ -2764,19 +2764,34 @@ def _subscription_period(sub) -> "tuple[Optional[datetime], Optional[datetime]]"
     def _at(ts):
         return datetime.fromtimestamp(ts, tz=timezone.utc) if ts else None
 
-    start = end = None
-    try:
-        items = ((sub.get("items") or {}).get("data") or [])
-        if items:
-            start = _at(items[0].get("current_period_start"))
-            end = _at(items[0].get("current_period_end"))
-    except Exception as e:
-        print(f"_subscription_period: lecture des items impossible: {e}")
+    def _lire(source, *chemin):
+        """Descend un chemin de clés en accès par indice, en tolérant l'absence.
 
+        ⚠️ Uniquement `[...]`, jamais `.get(...)` : les objets de la bibliothèque
+        Stripe n'exposent pas tous `.get` — `sub["items"]` renvoie un `ListObject`
+        qui lève `AttributeError: get`. C'est exactement ce qui s'est produit ici :
+        l'exception était avalée par le try/except, les items restaient vides, et
+        le repli renvoyait None. Le cycle n'était donc jamais enregistré, alors même
+        que le webhook fonctionnait — constaté sur le premier vrai paiement.
+        """
+        courant = source
+        for cle in chemin:
+            try:
+                courant = courant[cle]
+            except Exception:
+                return None
+        return courant
+
+    # Emplacement actuel (API 2025-03-31 « basil » et suivantes) : sur les items.
+    start = _at(_lire(sub, "items", "data", 0, "current_period_start"))
+    end = _at(_lire(sub, "items", "data", 0, "current_period_end"))
+
+    # Repli sur l'ancien emplacement, au cas où le compte repasserait sur une API
+    # antérieure à basil.
     if start is None:
-        start = _at(sub.get("current_period_start"))
+        start = _at(_lire(sub, "current_period_start"))
     if end is None:
-        end = _at(sub.get("current_period_end"))
+        end = _at(_lire(sub, "current_period_end"))
 
     if start is None:
         print(f"⚠️ _subscription_period: aucun cycle lisible sur l'abonnement "

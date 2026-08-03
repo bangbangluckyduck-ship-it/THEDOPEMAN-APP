@@ -88,6 +88,26 @@ def _periode_pour(ligne_users: dict) -> dict:
 # 2. STRIPE — la rupture d'API qui a rendu `invoice.paid` inopérant
 # ══════════════════════════════════════════════════════════════════════════
 
+class _ListeStripe(list):
+    """Imite un `ListObject` de la bibliothèque Stripe : indexable, mais SANS
+    `.get()`. C'est ce détail qui a fait échouer le premier vrai paiement —
+    `sub.get("items").get("data")` levait `AttributeError: get`, l'exception
+    était avalée, et le cycle n'était jamais enregistré."""
+    def get(self, *a, **k):
+        raise AttributeError("get")
+
+
+def test_le_cycle_est_lu_meme_quand_l_objet_stripe_refuse_get():
+    debut = int(datetime(2026, 8, 3, tzinfo=timezone.utc).timestamp())
+    fin = int(datetime(2026, 9, 3, tzinfo=timezone.utc).timestamp())
+    faux_sub = {"id": "sub_reel", "items": {"data": _ListeStripe([
+        {"current_period_start": debut, "current_period_end": fin}])}}
+    d, f = main._subscription_period(faux_sub)
+    assert d is not None and f is not None, \
+        "Le cycle n'est pas lu : l'abonné n'aura pas de période de facturation."
+    assert d.day == 3 and d.month == 8
+
+
 def test_le_cycle_de_facturation_est_lu_sur_les_items():
     """Depuis l'API 2025-03-31 « basil », current_period_* vit sur les items de
     l'abonnement, plus sur l'abonnement lui-même."""
