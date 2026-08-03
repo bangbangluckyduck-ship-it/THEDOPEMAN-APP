@@ -204,6 +204,47 @@ except Exception as _e_startup:
 
 app = FastAPI(title="Qeerah")
 
+
+# Le nettoyage au démarrage ne suffit PAS, et un cas réel l'a montré :
+#
+#   22:35:28  démarrage du nouveau processus → nettoyage exécuté
+#   22:35:37  un job est créé sur l'ancien processus, encore en drainage
+#   22:36:29  l'ancien processus est retiré, le job meurt avec lui
+#
+# Le ménage était passé 9 secondes trop tôt, et comme plus aucun processus n'a
+# démarré ensuite, il n'est jamais repassé : le job est resté « en cours » pour
+# l'éternité. L'utilisateur a attendu devant une barre qui ne bougeait plus, sans
+# email d'erreur, sans moyen de savoir que son analyse était morte.
+#
+# Une ronde périodique ferme définitivement ce trou : plus aucun job ne peut
+# rester bloqué au-delà du seuil, qu'un processus redémarre ou non.
+_SWEEP_INTERVAL_S = 120
+# 12 min : au-dessus de TOUTE durée légitime. Un job cumule au pire l'attente en
+# file (2 places), le téléchargement (90s), la préparation (60s), l'analyse
+# (240s) et la rédaction (180s). Le seuil de 2 min du démarrage serait ici
+# catastrophique — il tuerait les analyses en cours, qui durent ~2 min.
+_SWEEP_STALE_MIN = int(os.getenv("JOBS_SWEEP_STALE_MIN", "12"))
+
+
+@app.on_event("startup")
+async def _demarrer_ronde_jobs_orphelins() -> None:
+    async def _ronde() -> None:
+        while True:
+            await asyncio.sleep(_SWEEP_INTERVAL_S)
+            try:
+                import analysis_jobs as _aj
+                n = _aj.cleanup_stale_running(timeout_minutes=_SWEEP_STALE_MIN)
+                if n:
+                    print(f"[jobs] ronde : {n} job(s) orphelin(s) libéré(s) "
+                          f"(bloqués depuis plus de {_SWEEP_STALE_MIN} min)", flush=True)
+            except Exception as e:
+                # Une ronde qui échoue ne doit jamais emporter l'application.
+                print(f"[jobs] ronde KO : {e}", flush=True)
+
+    asyncio.create_task(_ronde())
+    print(f"[startup] ronde jobs orphelins active (toutes les {_SWEEP_INTERVAL_S}s, "
+          f"seuil {_SWEEP_STALE_MIN} min).", flush=True)
+
 # --- PROTECTION ANTI-CRASH : FILE D'ATTENTE GLOBALE ---
 # Sérialise les analyses SYNCHRONES. À 1, une seule analyse tourne à la fois pour
 # toute la plateforme : à 1-2 min par analyse, cela plafonne Qeerah autour de
