@@ -254,9 +254,13 @@
         var tok=localStorage.getItem('tts_token')||'';
         var hdr={'Content-Type':'application/json'};
         if(tok){ hdr['Authorization']='Bearer '+tok; }
+        // Contexte publicitaire TikTok : {} sans consentement publicité.
+        // Permet au webhook Stripe d'envoyer CompletePayment côté serveur.
+        var tt=(window.QeerahTikTok && QeerahTikTok.checkoutContext())||{};
         var res=await fetch('/create-checkout-session',{
           method:'POST', headers:hdr,
-          body:JSON.stringify({plan:'pro', billing:BILLING, email:sessionEmail()||null})
+          body:JSON.stringify(Object.assign(
+            {plan:'pro', billing:BILLING, email:sessionEmail()||null}, tt))
         });
         var data=await res.json().catch(function(){return {};});
         if(!res.ok){ toast(data.detail || "Le paiement est momentanément indisponible."); return; }

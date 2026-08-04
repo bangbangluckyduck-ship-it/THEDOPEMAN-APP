@@ -445,7 +445,8 @@ def _asset_version() -> str:
     visiteurs conservaient d'anciennes versions du JS.
     """
     stamps = []
-    for name in ("app_v3.js", "qeerah-scanner.js", "qeerah-consent.js"):
+    for name in ("app_v3.js", "qeerah-scanner.js", "qeerah-consent.js",
+                 "qeerah-tiktok.js"):
         try:
             stamps.append(int(Path("static", name).stat().st_mtime))
         except Exception:
@@ -486,24 +487,66 @@ _JINJA_ENV = _jinja2.Environment(
 )
 
 
+# ── PIXEL TIKTOK ADS ─────────────────────────────────────────────────────
+# L'identifiant vient de l'environnement (TIKTOK_PIXEL_ID). Variable absente =
+# aucune injection : le site tourne exactement comme avant, sans pixel.
+#
+# Pourquoi une injection SERVEUR et pas une balise dans un gabarit de base : il
+# n'existe pas de gabarit de base ici (aucun {% extends %} dans templates/) —
+# chaque page est un fichier HTML autonome. Coller le pixel à la main dans 26
+# fichiers garantirait qu'on en oublie un, et qu'un ajout futur de page reparte
+# sans suivi. Le même motif est déjà utilisé pour la balise de vérification de
+# domaine TikTok (_inject_tiktok_verification, plus bas).
+#
+# ⚠️ Ce qui est injecté n'est PAS le snippet TikTok : c'est l'identifiant du
+# pixel plus le chargeur static/qeerah-tiktok.js, qui ne contacte TikTok
+# qu'après consentement publicitaire explicite. Injecter le snippet officiel ici
+# le ferait partir au chargement, avant tout choix de l'utilisateur.
+TIKTOK_PIXEL_ID = "".join(
+    c for c in os.getenv("TIKTOK_PIXEL_ID", "").strip()
+    if c.isalnum() or c in "-_"
+)
+
+
+def _inject_tiktok_pixel(html: str) -> str:
+    """Ajoute le chargeur du pixel juste avant </head>. No-op sans pixel configuré."""
+    if not TIKTOK_PIXEL_ID or "</head>" not in html:
+        return html
+    tag = (
+        f'<script>window.QEERAH_TIKTOK_PIXEL_ID="{TIKTOK_PIXEL_ID}";</script>\n'
+        f'<script src="/static/qeerah-tiktok.js?v={_ASSET_V}" defer></script>\n'
+    )
+    # Après qeerah-consent.js et qeerah-analytics.js, qui sont plus haut dans le
+    # <head> : l'ordre compte, le chargeur enveloppe qTrackCompteCree() défini
+    # par qeerah-analytics.js.
+    return html.replace("</head>", tag + "</head>", 1)
+
+
 def _render(filename: str, bust: bool = True) -> str:
     """Rend un gabarit avec le contexte global du site."""
     import site_content
     html = _JINJA_ENV.get_template(filename).render(**site_content.context())
-    return _bust(html) if bust else html
+    html = _bust(html) if bust else html
+    return _inject_tiktok_pixel(html)
 
 
 _HOMEPAGE_HTML = _render("homepage.html")
 _APP_HTML = _render("index.html")
 _CAROUSEL_PAGE_HTML = _render("carousel.html")
 _SCRIPTS_PAGE_HTML = _render("scripts.html")
-_BLOG_HTML = Path("templates/blog.html").read_text(encoding="utf-8")
-_BLOG_HISTOIRE_HTML = Path("templates/blog_histoire.html").read_text(encoding="utf-8")
-_BLOG_CREATEURS_HTML = Path("templates/blog_createurs.html").read_text(encoding="utf-8")
-_BLOG_TENDANCES_HTML = Path("templates/blog_tendances.html").read_text(encoding="utf-8")
-_BLOG_GUIDE_HTML = Path("templates/blog_guide.html").read_text(encoding="utf-8")
-_BLOG_EXPANSION_HTML = Path("templates/blog_expansion_mondiale.html").read_text(encoding="utf-8")
-_BLOG_TTS_EN_HTML = Path("templates/blog_what_is_tiktok_shop_en.html").read_text(encoding="utf-8")
+# Articles de blog : lus tels quels (pas de variable Jinja à l'intérieur), mais
+# ils passent tout de même par l'injection du pixel — ce sont des pages
+# publiques, souvent la première visite après un clic publicitaire.
+def _lire_page(chemin: str) -> str:
+    return _inject_tiktok_pixel(Path(chemin).read_text(encoding="utf-8"))
+
+_BLOG_HTML = _lire_page("templates/blog.html")
+_BLOG_HISTOIRE_HTML = _lire_page("templates/blog_histoire.html")
+_BLOG_CREATEURS_HTML = _lire_page("templates/blog_createurs.html")
+_BLOG_TENDANCES_HTML = _lire_page("templates/blog_tendances.html")
+_BLOG_GUIDE_HTML = _lire_page("templates/blog_guide.html")
+_BLOG_EXPANSION_HTML = _lire_page("templates/blog_expansion_mondiale.html")
+_BLOG_TTS_EN_HTML = _lire_page("templates/blog_what_is_tiktok_shop_en.html")
 _CONTACT_HTML = _render("contact.html", bust=False)
 _ABOUT_HTML = _render("about.html", bust=False)
 _ANALYTICS_HTML = Path("templates/analytics.html").read_text(encoding="utf-8")
@@ -2846,6 +2889,58 @@ def _subscription_period(sub) -> "tuple[Optional[datetime], Optional[datetime]]"
     return start, end
 
 
+async def _tiktok_complete_payment(obj: dict, email: str) -> None:
+    """Envoie la conversion CompletePayment à TikTok depuis le webhook Stripe.
+
+    Silencieux et sans effet si :
+      - le pixel / le jeton Events API ne sont pas configurés ;
+      - le visiteur n'avait pas accordé la finalité publicité (tt_consent).
+
+    L'`event_id` vient du navigateur (métadonnées de la session Stripe). À
+    défaut, on retombe sur l'identifiant de la session Stripe : il est stable
+    d'une redistribution de webhook à l'autre, donc TikTok dédoublonne quand
+    même si Stripe rejoue l'événement.
+    """
+    try:
+        import tiktok_events
+        if not tiktok_events.est_configure():
+            return
+
+        meta = obj.get("metadata") or {}
+        if meta.get("tt_consent") != "1":
+            return
+
+        # Montant réellement payé, en euros. `amount_total` est en centimes et
+        # tient compte d'un éventuel code promo — plus juste que le tarif
+        # catalogue, qui surestimerait le chiffre d'affaires remonté à TikTok.
+        montant = obj.get("amount_total")
+        if isinstance(montant, (int, float)):
+            valeur = round(montant / 100, 2)
+        else:
+            import feature_flags
+            valeur = (feature_flags.PRO_YEARLY_PRICE
+                      if meta.get("billing") == "year"
+                      else feature_flags.PRO_MONTHLY_PRICE)
+
+        await tiktok_events.envoyer_complete_payment(
+            event_id=meta.get("tt_event_id") or obj.get("id") or "",
+            email=email or "",
+            value=valeur,
+            currency=(obj.get("currency") or "eur").upper(),
+            url=meta.get("tt_url") or "",
+            ttp=meta.get("tt_ttp") or "",
+            ttclid=meta.get("tt_ttclid") or "",
+            ip=meta.get("tt_ip") or "",
+            user_agent=meta.get("tt_ua") or "",
+            content_id=("qeerah_pro_year" if meta.get("billing") == "year"
+                        else "qeerah_pro_month"),
+        )
+    except Exception as e:
+        # Un incident de suivi publicitaire ne doit JAMAIS faire échouer le
+        # webhook : un 500 ici ferait rejouer le paiement par Stripe.
+        print(f"[tiktok_events] CompletePayment ignoré : {e}")
+
+
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook_v1(request: Request):
     """
@@ -2953,6 +3048,19 @@ async def stripe_webhook_v1(request: Request):
             set_user_tier(email_norm, plan, customer_id=cust_id, subscription_id=sub_id, expiry=expiry)
             if period_start:
                 analysis_quota.set_billing_period(email_norm, period_start, period_end)
+
+        # 5) Conversion TikTok Ads — CompletePayment, envoyé depuis le SERVEUR.
+        #
+        # Ici et pas dans le navigateur : au retour de Stripe, un bloqueur de
+        # publicités, une navigation privée ou un onglet fermé suffisent à perdre
+        # l'événement. Ce webhook est le seul point où l'on sait qu'un paiement a
+        # abouti. Il ne bloque jamais : toute erreur est avalée par
+        # tiktok_events, sinon Stripe rejouerait le paiement en boucle.
+        #
+        # `tt_consent` est posé par le navigateur au moment du checkout, et
+        # uniquement si la finalité publicité a été acceptée. Sans lui, on
+        # n'envoie rien — un envoi serveur reste un traitement publicitaire.
+        await _tiktok_complete_payment(obj, email)
 
     # ── Renouvellement payé → le quota repart sur le nouveau cycle ──
     # Sans cet événement, un abonné mensuel restait bloqué sur la fenêtre de

@@ -835,11 +835,16 @@ async function startCheckout(plan) {
     // Le jeton permet au serveur de facturer l'e-mail de la session plutôt que
     // celui du corps de requête — et de rattacher le paiement au bon compte.
     const _tokCk = localStorage.getItem('tts_token') || '';
+    // Contexte publicitaire TikTok : {} tant que la publicité n'est pas
+    // acceptée, ou si le pixel n'est pas configuré. Le serveur s'en sert pour
+    // envoyer CompletePayment depuis le webhook Stripe, avec un event_id
+    // commun aux deux côtés (pas de double comptage).
+    const _ttCk = (window.QeerahTikTok && QeerahTikTok.checkoutContext()) || {};
     const res = await fetch('/create-checkout-session', {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' },
                              _tokCk ? { 'Authorization': 'Bearer ' + _tokCk } : {}),
-      body: JSON.stringify({ plan, email, billing: BILLING_PERIOD })
+      body: JSON.stringify(Object.assign({ plan, email, billing: BILLING_PERIOD }, _ttCk))
     });
 
     if (!res.ok) {

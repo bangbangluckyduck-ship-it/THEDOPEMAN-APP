@@ -87,6 +87,51 @@ class CheckoutRequest(BaseModel):
     email:   Optional[str] = None
     billing: Optional[str] = "month"   # "month" | "year"
 
+    # ── Suivi publicitaire TikTok ────────────────────────────────────────
+    # Renseignés par static/qeerah-tiktok.js UNIQUEMENT si le visiteur a
+    # accordé la finalité « publicité ». Recopiés dans les métadonnées Stripe
+    # pour que le webhook puisse envoyer CompletePayment à TikTok : c'est le
+    # seul endroit qui sait qu'un paiement a réellement abouti.
+    # Sans tt_consent="1", le webhook n'envoie rien.
+    tt_consent:  Optional[str] = None
+    tt_event_id: Optional[str] = None   # identifiant de dédoublonnage navigateur ↔ serveur
+    tt_ttp:      Optional[str] = None   # cookie _ttp posé par le pixel
+    tt_ttclid:   Optional[str] = None   # identifiant de clic publicitaire
+    tt_url:      Optional[str] = None   # page d'où part le paiement
+
+
+def _tiktok_metadata(body: CheckoutRequest, request: Request) -> dict:
+    """Métadonnées Stripe portant le contexte publicitaire TikTok.
+
+    Renvoie un dictionnaire VIDE tant que le visiteur n'a pas accordé la
+    finalité publicité : sans consentement, aucune donnée ne doit être stockée
+    ni, plus tard, transmise à TikTok.
+
+    L'adresse IP et le user-agent viennent d'ICI et pas du webhook : le webhook
+    est appelé par Stripe, son IP est celle de Stripe. Ils améliorent la mise en
+    correspondance côté TikTok — sans eux, seuls l'empreinte de l'e-mail et le
+    cookie _ttp permettent de rattacher la conversion à une publicité.
+
+    Stripe plafonne chaque valeur de métadonnée à 500 caractères : on tronque.
+    """
+    if (body.tt_consent or "") != "1":
+        return {}
+
+    entetes = request.headers
+    ip = (entetes.get("x-forwarded-for", "").split(",")[0].strip()
+          or (request.client.host if request.client else ""))
+
+    donnees = {
+        "tt_consent":  "1",
+        "tt_event_id": body.tt_event_id or "",
+        "tt_ttp":      body.tt_ttp or "",
+        "tt_ttclid":   body.tt_ttclid or "",
+        "tt_url":      body.tt_url or "",
+        "tt_ua":       entetes.get("user-agent", ""),
+        "tt_ip":       ip,
+    }
+    return {k: v[:500] for k, v in donnees.items() if v}
+
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(body: CheckoutRequest, request: Request):
@@ -123,7 +168,7 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         # commercial avec un paramètre orphelin dans l'URL, sans confirmation.
         "success_url":  f"{base}/app?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url":   f"{base}/pricing?checkout=cancel",
-        "metadata":     {"plan": plan, "billing": billing},
+        "metadata":     {"plan": plan, "billing": billing, **_tiktok_metadata(body, request)},
         # ── Facturation entreprise ────────────────────────────────────────
         # Sans ces deux options, la facture d'abonnement générée par Stripe ne
         # portait que l'e-mail : ni raison sociale, ni adresse, ni n° de TVA —
