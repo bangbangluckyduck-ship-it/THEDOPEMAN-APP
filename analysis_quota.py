@@ -283,6 +283,43 @@ def increment(email: str, tier: str) -> int:
         return 0
 
 
+def decrement(email: str, tier: str) -> int:
+    """Rend une unité au compteur du cycle courant.
+
+    Le flux async débite à la CRÉATION du job (anti-spam), pas à la fin. Sans ce
+    remboursement, une panne fournisseur — TikTok qui bloque, une réponse IA
+    tronquée — coûte des analyses à l'utilisateur pour un écran vide. Constaté le
+    04/09/2026 : 5 échecs d'affilée, 5 crédits perdus.
+
+    Ne descend jamais sous zéro. Sans effet sur un plan illimité.
+    """
+    if not supabase or not email:
+        return 0
+
+    period = resolve_period(email, tier)
+    if period["kind"] == "unlimited" or not period["start"]:
+        return 0
+
+    user_id = _get_user_id(email)
+    if not user_id:
+        return 0
+
+    start_iso = period["start"].isoformat()
+    try:
+        existing = supabase.table("analysis_quota_periods").select("id,count") \
+            .eq("user_id", user_id).eq("period_start", start_iso).execute()
+        if not existing.data:
+            return 0
+        new_count = max(0, (existing.data[0].get("count") or 0) - 1)
+        supabase.table("analysis_quota_periods").update(
+            {"count": new_count, "updated_at": _now().isoformat()}
+        ).eq("id", existing.data[0]["id"]).execute()
+        return new_count
+    except Exception as e:
+        print(f"analysis_quota.decrement error: {e}")
+        return 0
+
+
 # ── Cycle de facturation (appelé par le webhook Stripe) ───────────────────
 
 def set_billing_period(email: str, start: Optional[datetime],

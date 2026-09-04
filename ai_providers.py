@@ -366,6 +366,15 @@ def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
     if temperature is not None:
         kwargs["temperature"] = temperature
     msg = client.messages.create(**kwargs)
+    # Une réponse coupée au plafond ne lève AUCUNE erreur : elle revient
+    # tronquée, silencieusement, et casse tout parsing JSON en aval. On le dit
+    # haut et fort (incident du 04/09/2026 : analyse livrée vide, marquée réussie).
+    if getattr(msg, "stop_reason", None) == "max_tokens":
+        print(f"[ai] ⚠️ RÉPONSE TRONQUÉE : Claude a atteint max_tokens={max_tokens}. "
+              f"Augmente SYNTHESIS_MAX_TOKENS.", flush=True)
+        _LAST["text_truncated"] = True
+    else:
+        _LAST["text_truncated"] = False
     return "".join(p.text for p in msg.content if getattr(p, "type", "") == "text")
 
 

@@ -81,6 +81,30 @@ def _send_done_email(user_email: str, result: dict, job_id: str,
     _safe_send_email(user_email, "✅ Ton analyse Qeerah est prête", html)
 
 
+def _result_utilisable(result) -> bool:
+    """Un résultat sans contenu ne doit JAMAIS être présenté comme une analyse.
+
+    Incident du 04/09/2026 : la synthèse est revenue tronquée, le parsing a
+    rendu `{"error": ...}`, et le job a quand même été marqué « réussi » avec
+    l'email « ✅ ton analyse est prête ». L'utilisateur a reçu un écran vide, en
+    plein démarchage, sans le moindre signal d'erreur nulle part. Un échec doit
+    ressembler à un échec : job en erreur, email d'échec, crédit rendu.
+    """
+    if not isinstance(result, dict) or result.get("error"):
+        return False
+    return any(result.get(k) for k in
+               ("analyse_8_dimensions", "scores", "detection", "score_global"))
+
+
+def _rendre_le_credit(user_email: str, user_tier: str) -> None:
+    """Le quota est débité à la CRÉATION du job (anti-spam) : sur échec, on rend."""
+    try:
+        import analysis_quota
+        analysis_quota.decrement(user_email, user_tier)
+    except Exception as e:
+        logger.warning("[analysis_runner] remboursement quota impossible : %s", e)
+
+
 def _send_error_email(user_email: str, error_message: str, job_id: str,
                       title: Optional[str] = None) -> None:
     """Email à l'utilisateur : l'analyse a échoué."""
@@ -265,12 +289,17 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
 
         duration_ms = int((time.time() - started) * 1000)
         result["analysis_duration_ms"] = duration_ms
+        # Dernier verrou avant livraison : rien de vide ne sort d'ici en « réussi ».
+        if not _result_utilisable(result):
+            raise Exception(result.get("error") if isinstance(result, dict) and result.get("error")
+                            else "L'analyse n'a rien produit d'exploitable.")
         analysis_jobs.mark_done(job_id, result, duration_ms=duration_ms)
         _send_done_email(user_email, result, job_id, title=job_title)
     except Exception as e:
         logger.exception("[analysis_runner] URL job %s failed", job_id)
         err_msg = str(e)[:500]
         analysis_jobs.mark_error(job_id, err_msg)
+        _rendre_le_credit(user_email, user_tier)
         _send_error_email(user_email, err_msg, job_id, title=job_title)
 
 
@@ -311,12 +340,17 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
 
         duration_ms = int((time.time() - started) * 1000)
         result["analysis_duration_ms"] = duration_ms
+        # Dernier verrou avant livraison : rien de vide ne sort d'ici en « réussi ».
+        if not _result_utilisable(result):
+            raise Exception(result.get("error") if isinstance(result, dict) and result.get("error")
+                            else "L'analyse n'a rien produit d'exploitable.")
         analysis_jobs.mark_done(job_id, result, duration_ms=duration_ms)
         _send_done_email(user_email, result, job_id, title=job_title)
     except Exception as e:
         logger.exception("[analysis_runner] Upload job %s failed", job_id)
         err_msg = str(e)[:500]
         analysis_jobs.mark_error(job_id, err_msg)
+        _rendre_le_credit(user_email, user_tier)
         _send_error_email(user_email, err_msg, job_id, title=job_title)
     finally:
         # Cache-hit / erreur avant le pipeline : le tmpfile n'a pas encore été

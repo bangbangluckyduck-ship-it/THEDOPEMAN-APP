@@ -515,9 +515,53 @@ def _mistral_call(api_key: str, model: str, content_or_messages, timeout: float 
     return response.json()["choices"][0]["message"]["content"]
 
 
+def _repair_truncated_json(txt: str, start: int) -> dict:
+    """Récupère ce qui est exploitable dans un JSON coupé en plein vol.
+
+    Une réponse LLM stoppée net au plafond de tokens (`stop_reason=max_tokens`)
+    laisse un objet non refermé : `json.loads` refuse tout, et l'analyse entière
+    part à la poubelle alors que 90 % des sections étaient écrites. Le 04/09/2026,
+    une analyse a ainsi été livrée VIDE à l'utilisateur, et marquée « réussie ».
+
+    On recule donc jusqu'au dernier point de coupe propre (une virgule ou une
+    fermeture), on jette la paire clé/valeur inachevée, puis on referme les
+    conteneurs restés ouverts. Rend un objet avec toutes les sections COMPLÈTES —
+    très supérieur à un écran vide.
+    """
+    stack: list = []               # conteneurs ouverts, dans l'ordre
+    in_str = esc = False
+    safe = None                    # (index de coupe, état de la pile à cet instant)
+    for i in range(start, len(txt)):
+        c = txt[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c in "{[":
+            stack.append(c)
+        elif c in "}]":
+            if stack:
+                stack.pop()
+            safe = (i + 1, tuple(stack))     # juste après une valeur complète
+        elif c == ",":
+            safe = (i, tuple(stack))         # on coupera AVANT la virgule
+    if not safe:
+        raise ValueError("Rien de récupérable dans le JSON tronqué")
+    cut, open_at_cut = safe
+    closers = "".join("}" if ch == "{" else "]" for ch in reversed(open_at_cut))
+    return json.loads(txt[start:cut] + closers)
+
+
 def _extract_json(raw: str) -> dict:
     """Extraction JSON robuste : retire les fences ```json, tente le bloc {…} glouton,
-    puis (si invalide) un scan d'accolades équilibrées (gère préambule/postambule/troncature)."""
+    puis un scan d'accolades équilibrées, puis — en dernier recours — la
+    réparation d'une réponse tronquée (cf. _repair_truncated_json)."""
     if not raw:
         raise ValueError("Empty response")
     txt = raw.strip()
@@ -556,7 +600,12 @@ def _extract_json(raw: str) -> dict:
                 depth -= 1
                 if depth == 0:
                     return json.loads(txt[start:i + 1])
-    raise ValueError("No balanced JSON object")
+    # 3) Réponse coupée au plafond de tokens : on sauve les sections complètes
+    #    plutôt que de tout perdre. Jamais silencieux : log + clé `_json_repare`.
+    repaired = _repair_truncated_json(txt, start)
+    print(f"[analyzer] ⚠️ réponse IA tronquée — JSON réparé, {len(repaired)} sections récupérées", flush=True)
+    repaired["_json_repare"] = True
+    return repaired
 
 
 def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: Optional[str] = None) -> dict:
@@ -1377,10 +1426,15 @@ def synthesize_analysis(
     # rédaction dépend surtout du volume à écrire et à lire.
     import time as _time
     _t_synth = _time.monotonic()
+    # ⚠️ 8192 était EXACTEMENT la taille des réponses d'aujourd'hui : 24 659
+    # caractères mesurés en prod le 04/09/2026, soit 3,01 car./token = une coupure
+    # nette au plafond, JSON invalide, analyse livrée vide. Depuis l'injection des
+    # 31 leviers et le bloc premium systématique, la synthèse a grossi. Haiku 4.5
+    # accepte largement au-delà de 16384.
     raw = ai_providers.text_complete(
         full_prompt,
         timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
-        max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")),
+        max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "16384")),
         provider=_atp,
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
         temperature=0.0,
@@ -1395,7 +1449,7 @@ def synthesize_analysis(
             try:
                 raw2 = ai_providers.text_complete(
                     full_prompt, timeout=float(os.getenv("SYNTHESIS_TIMEOUT", "120")),
-                    max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "8192")), provider="mistral",
+                    max_tokens=int(os.getenv("SYNTHESIS_MAX_TOKENS", "16384")), provider="mistral",
                     temperature=0.0)
                 parsed = _extract_json(raw2)
             except Exception:
