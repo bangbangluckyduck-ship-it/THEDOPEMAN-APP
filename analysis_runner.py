@@ -115,7 +115,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
     figée alors que le travail avançait.
     """
     from analyzer import analyze_video_native, synthesize_analysis
-    from video_processor import downscale_720p
+    from video_processor import downscale_720p, YDL_TIKTOK_EXTRACTOR_ARGS
 
     loop = asyncio.get_event_loop()
     tmpdir = tempfile.mkdtemp(prefix="async_url_")
@@ -130,6 +130,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
                 "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
                 "quiet": True, "no_warnings": True, "noplaylist": True,
                 "max_filesize": 80 * 1024 * 1024,
+                "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS,   # contourne le challenge anti-bot TikTok
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)

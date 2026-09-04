@@ -7,6 +7,21 @@ import tempfile
 from typing import List, Optional
 
 
+# TikTok sert un challenge anti-bot aux IP de datacenter (Render) : la voie
+# « page web » de yt-dlp n'y trouve ni les données du challenge ni le marqueur
+# d'attente et abandonne sur « Unexpected response from webpage request »
+# (diagnostiqué le 2026-09-04 : 5 analyses par lien sur 5, alors que la MÊME
+# vidéo se télécharge sans erreur depuis une IP résidentielle, et que la prod
+# tourne déjà le dernier yt-dlp — le « mettez-vous à jour » du message est un
+# faux ami).
+#
+# `app_info` fait tenter D'ABORD l'API mobile, qui ne passe jamais par cette
+# page. Si elle échoue, yt-dlp retombe tout seul sur la voie web : l'option ne
+# peut donc rien casser, seulement ajouter une chance de réussite.
+# À passer tel quel dans les `ydl_opts` de TOUT appel yt-dlp sur TikTok.
+YDL_TIKTOK_EXTRACTOR_ARGS = {"tiktok": {"app_info": [""]}}
+
+
 def _ffmpeg() -> str:
     # Use system ffmpeg (installed via apt on Render)
     return "ffmpeg"

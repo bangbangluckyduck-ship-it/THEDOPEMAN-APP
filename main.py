@@ -32,6 +32,7 @@ import tiktok_oauth
 import google_oauth
 import market_creators
 import recherche_quota
+from video_processor import YDL_TIKTOK_EXTRACTOR_ARGS
 import photo_slide
 import product_store
 import credits as credits_mod
@@ -2186,6 +2187,7 @@ async def analyze_url(request: Request):
                 "no_warnings": True,
                 "noplaylist": True,
                 "max_filesize": 150 * 1024 * 1024,  # 150 Mo garde-fou (instance 2 Go)
+                "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS,   # contourne le challenge anti-bot TikTok
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
@@ -2390,7 +2392,8 @@ async def analyze_url_stream(request: Request):
             def _probe() -> dict:
                 import yt_dlp
                 with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True,
-                                       "noplaylist": True, "skip_download": True}) as ydl:
+                                       "noplaylist": True, "skip_download": True,
+                                       "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS}) as ydl:
                     i = ydl.extract_info(url, download=False)
                     return {
                         "id":            str(i.get("id") or ""),
@@ -2439,6 +2442,7 @@ async def analyze_url_stream(request: Request):
                     "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
                     "quiet": True, "no_warnings": True, "noplaylist": True,
                     "max_filesize": 150 * 1024 * 1024,
+                    "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS,   # contourne le challenge anti-bot TikTok
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=True)
