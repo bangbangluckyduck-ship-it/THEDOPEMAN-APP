@@ -29,7 +29,14 @@ bcrypt>=4.0.0,<6.0.0
 sendgrid>=6.10.0,<7.0.0
 email-validator>=2.0.0,<3.0.0
 jinja2>=3.1.0,<4.0.0
-yt-dlp>=2024.0.0
+# [curl-cffi] n'est PAS un confort : l'extracteur TikTok demande explicitement
+# `impersonate=True` (tiktok.py, _extract_web_data_and_status). Sans curl_cffi,
+# yt-dlp avertit « attempting impersonation, but no impersonate target is
+# available » et repart sur une requête TLS Python ordinaire — que TikTok
+# reconnaît et à qui il sert sa page anti-bot, d'où « Unexpected response from
+# webpage request ». L'extra installe curl_cffi et rend 31 empreintes de
+# navigateur disponibles. Vérifié le 2026-09-04.
+yt-dlp[curl-cffi]>=2024.0.0
 opencv-python-headless>=4.8.0,<5.0.0
 google-genai>=1.0.0,<2.0.0
 anthropic>=0.40.0,<1.0.0
