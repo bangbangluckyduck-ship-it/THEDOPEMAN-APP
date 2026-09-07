@@ -630,3 +630,343 @@ T_BLOG_TENDANCES["pt-br"] = {
 
 T_BLOG_TENDANCES["en-ie"] = dict(T_BLOG_TENDANCES["en"])
 T_BLOG_TENDANCES["es-mx"] = dict(T_BLOG_TENDANCES["es"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /blog/createurs-millionnaires
+# Les pseudonymes (@stylebymariana…) et les montants ne sont pas traduits :
+# un compte renommé devient introuvable, et un chiffre doit rester le même
+# dans les huit langues.
+# ═══════════════════════════════════════════════════════════════════════════
+T_BLOG_CREATEURS: dict[str, dict[str, str]] = {}
+
+T_BLOG_CREATEURS["en"] = {
+    "{0} Créateurs TikTok Shop Devenus Millionnaires - Qeerah":
+        "{0} TikTok Shop creators who became millionaires - Qeerah",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}. Découvrez leurs stratégies, leurs secrets et ce que vous pouvez en apprendre.":
+        "{0} TikTok Shop creators who became millionaires in {1}. Their strategies, what they did differently, and what you can take from it.",
+    "{0} créateurs TikTok Shop devenus millionnaires": "{0} TikTok Shop creators who became millionaires",
+    "Les stratégies et patterns communs des créateurs qui ont transformé leurs vidéos en empires commerciaux sur TikTok Shop.":
+        "The strategies and shared patterns of creators who turned their videos into commercial empires on TikTok Shop.",
+    "← Retour au blog": "← Back to the blog",
+    "💰 SUCCESS STORIES": "💰 SUCCESS STORIES",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}":
+        "{0} TikTok Shop creators who became millionaires in {1}",
+    "📅 Avril {0}": "📅 April {0}",
+    "👤 Par l'équipe Qeerah": "👤 By the Qeerah team",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "Vous vous demandez si c'est vraiment possible de devenir millionnaire sur TikTok Shop ? La réponse est oui. Voici les histoires de {0} créateurs qui l'ont fait, et ce que nous pouvons en apprendre.":
+        "Wondering whether it's really possible to become a millionaire on TikTok Shop? It is. Here are the stories of {0} creators who did it, and what we can learn from them.",
+    "{0}. 👗 @stylebymariana - Beauté & Mode": "{0}. 👗 @stylebymariana — beauty & fashion",
+    "La créatrice qui a disrupta la mode française": "The creator who shook up French fashion",
+    "Followers": "Followers",
+    "GMV {0}": "GMV {0}",
+    "{0} mois": "{0} months",
+    "Pour {0}M€": "To reach €{0}M",
+    "Mariana a commencé sans produits propres. Elle revenait des accessoires de mode éthiques et les présentait dans ses vidéos. En {0} mois, elle a atteint {1} figures. Son secret : l'authententicité. Elle montre vraiment comment porter les pièces, des hauls complets, des réactions honnêtes.":
+        "Mariana started with no products of her own. She resold ethical fashion accessories and showed them in her videos. In {0} months she reached {1} figures. Her secret: authenticity. She really shows how to wear the pieces — full hauls, honest reactions.",
+    "🔑 Le Secret :": "🔑 The secret:",
+    "Elle crée du contenu {0}-{1} fois par jour. Chaque vidéo teste une angle différent. Elle analyse immédiatement ce qui fonctionne et duplique les meilleures performances.":
+        "She makes content {0}-{1} times a day. Each video tests a different angle. She looks straight away at what worked and doubles down on the best performers.",
+    "{0}. 💪 @fitbyalexis - Fitness & Nutrition": "{0}. 💪 @fitbyalexis — fitness & nutrition",
+    "Du coach personnel à l'empire fitness": "From personal trainer to fitness empire",
+    "Alexis vendait des guides de fitness et de nutrition. Rien de spectaculaire. Mais il a compris quelque chose : la transformation. Les vidéos \"before/after\" d'une journée avec ses produits généraient {0}% plus de ventes. Il a pivotté complètement vers le storytelling de transformation.":
+        "Alexis sold fitness and nutrition guides. Nothing spectacular. But he understood one thing: transformation. Before/after videos of a single day with his products generated {0}% more sales. He pivoted entirely to transformation storytelling.",
+    "\"Voici mon produit\".": "“here's my product”.",
+    "{0}. 🏠 @homedesignbysarah - Décoration & Mobilier": "{0}. 🏠 @homedesignbysarah — interiors & furniture",
+    "Comment vendre des meubles sur TikTok": "How to sell furniture on TikTok",
+    "Sarah montrait les mêmes meubles en {0} contextes différents. \"Voici ce meuble dans mon salon moderne\" → \"Voici le même dans un loft industriel\" → \"Voici dans un petit appartement\". Elle a compris que le problème n'était pas le produit, mais les doutes du client : \"Est-ce que ça va match mon intérieur ?\"":
+        "Sarah showed the same furniture in {0} different settings. “Here's this piece in my modern living room” → “here's the same one in an industrial loft” → “here it is in a small flat”. She worked out that the problem wasn't the product but the customer's doubt: “will it fit my place?”",
+    "Elle crée des \"inspiration rooms\" complètes. Pas juste un meuble, un mood board entier. Le client voit où ça va, comment ça s'assortit, pourquoi c'est beau.":
+        "She builds complete “inspiration rooms”. Not one piece of furniture — a whole mood board. The customer sees where it goes, what it sits with, why it looks good.",
+    "{0}. 💼 @techreviewjean - Électronique & Tech": "{0}. 💼 @techreviewjean — electronics & tech",
+    "Devenir l'expert qui vend": "Becoming the expert who sells",
+    "Jean revend des téléphones, ordinateurs, et gadgets tech. Mais il ne les vend pas — il les explique. Comparaisons détaillées, cas d'usage spécifiques, alternatives considérées. Il est devenu la source de confiance #{0} pour la tech en France sur TikTok.":
+        "Jean resells phones, computers and tech gadgets. But he doesn't sell them — he explains them. Detailed comparisons, specific use cases, alternatives weighed up. He became the #{0} trusted source for tech in France on TikTok.",
+    "Il crée des vidéos \"FAQ\" anticipées. Il devine les objections avant que le client les ait. \"Oui, je sais que c'est cher, mais voici pourquoi c'est le seul choix logique...\"":
+        "He makes pre-emptive FAQ videos. He guesses the objections before the customer has them. “Yes, I know it's expensive, but here's why it's the only sensible choice…”",
+    "💡 Les Patterns Communs": "💡 What they have in common",
+    "Si vous analysez ces {0} créateurs (et les {1} autres qu'on aurait pu inclure), des patterns clairs émergent :":
+        "Look at these {0} creators (and the {1} others we could have included) and clear patterns emerge:",
+    "{0}. Spécialisation extrême": "{0}. Extreme specialisation",
+    "Aucun d'eux ne vend \"tout\". Ils sont devenus experts reconnus dans une niche étroite. Mariana = mode éthique. Alexis = transformation fitness. Sarah = décoration accessible. Jean = tech simplifiée.":
+        "None of them sells “everything”. Each became a recognised expert in a narrow niche. Mariana = ethical fashion. Alexis = fitness transformation. Sarah = affordable interiors. Jean = tech made simple.",
+    "Produit": "Product",
+    "Ils passent {0}% de leur attention sur le contenu et {1}% sur le produit. La plupart des créateurs échouent font l'inverse : {2}% contenu, {3}% promotion produit.":
+        "They put {0}% of their attention on the content and {1}% on the product. Most creators who fail do the opposite: {2}% content, {3}% product promotion.",
+    "{0}. Vitesse d'itération": "{0}. Speed of iteration",
+    "Ils publient beaucoup. Mariana publie {0}-{1} fois par jour. Cela veut dire qu'elle teste {2}-{3} angles différents. En une semaine, elle a {4}-{5} variables testées. Elle peut ajuster rapidement ce qui fonctionne.":
+        "They publish a lot. Mariana posts {0}-{1} times a day, which means she tests {2}-{3} different angles. In a week that's {4}-{5} variables tested. She can adjust fast around what works.",
+    "{0}. Humanité authentique": "{0}. Genuine humanity",
+    "Aucun n'est parfait. Ils montrent leurs faiblesses, leurs échecs, leur processus. Les gens n'achètent pas aux experts parfaits, ils achètent aux humains qu'ils reconnaissent et en qui ils ont confiance.":
+        "None of them is perfect. They show their weak spots, their failures, how they work. People don't buy from flawless experts, they buy from humans they recognise and trust.",
+    "Devenez-vous le prochain créateur millionnaire ?": "Will you be the next creator to get there?",
+    "Utilisez Qeerah pour analyser vos vidéos comme le font les top créateurs.":
+        "Use Qeerah to analyse your videos the way the top creators do.",
+    "Commencer l'analyse →": "Start analysing →",
+}
+
+T_BLOG_CREATEURS["de"] = {
+    "{0} Créateurs TikTok Shop Devenus Millionnaires - Qeerah":
+        "{0} TikTok-Shop-Creators, die Millionäre wurden - Qeerah",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}. Découvrez leurs stratégies, leurs secrets et ce que vous pouvez en apprendre.":
+        "{0} TikTok-Shop-Creators, die {1} Millionäre wurden. Ihre Strategien, was sie anders gemacht haben, und was du daraus mitnimmst.",
+    "{0} créateurs TikTok Shop devenus millionnaires": "{0} TikTok-Shop-Creators, die Millionäre wurden",
+    "Les stratégies et patterns communs des créateurs qui ont transformé leurs vidéos en empires commerciaux sur TikTok Shop.":
+        "Die Strategien und gemeinsamen Muster von Creators, die ihre Videos auf TikTok Shop in Handelsimperien verwandelt haben.",
+    "← Retour au blog": "← Zurück zum Blog",
+    "💰 SUCCESS STORIES": "💰 ERFOLGSGESCHICHTEN",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}":
+        "{0} TikTok-Shop-Creators, die {1} Millionäre wurden",
+    "📅 Avril {0}": "📅 April {0}",
+    "👤 Par l'équipe Qeerah": "👤 Vom Qeerah-Team",
+    "⏱️ {0} min": "⏱️ {0} Min.",
+    "Vous vous demandez si c'est vraiment possible de devenir millionnaire sur TikTok Shop ? La réponse est oui. Voici les histoires de {0} créateurs qui l'ont fait, et ce que nous pouvons en apprendre.":
+        "Du fragst dich, ob man auf TikTok Shop wirklich Millionär werden kann? Ja, kann man. Hier sind die Geschichten von {0} Creators, die es geschafft haben, und was sich daraus lernen lässt.",
+    "{0}. 👗 @stylebymariana - Beauté & Mode": "{0}. 👗 @stylebymariana — Beauty & Mode",
+    "La créatrice qui a disrupta la mode française": "Die Creatorin, die die französische Mode aufgemischt hat",
+    "Followers": "Follower",
+    "GMV {0}": "GMV {0}",
+    "{0} mois": "{0} Monate",
+    "Pour {0}M€": "Bis zu {0} Mio. €",
+    "Mariana a commencé sans produits propres. Elle revenait des accessoires de mode éthiques et les présentait dans ses vidéos. En {0} mois, elle a atteint {1} figures. Son secret : l'authententicité. Elle montre vraiment comment porter les pièces, des hauls complets, des réactions honnêtes.":
+        "Mariana fing ohne eigene Produkte an. Sie verkaufte faire Modeaccessoires weiter und zeigte sie in ihren Videos. In {0} Monaten kam sie auf {1} Stellen. Ihr Geheimnis: Echtheit. Sie zeigt wirklich, wie man die Teile trägt — komplette Hauls, ehrliche Reaktionen.",
+    "🔑 Le Secret :": "🔑 Das Geheimnis:",
+    "Elle crée du contenu {0}-{1} fois par jour. Chaque vidéo teste une angle différent. Elle analyse immédiatement ce qui fonctionne et duplique les meilleures performances.":
+        "Sie macht {0}- bis {1}-mal am Tag Inhalte. Jedes Video testet einen anderen Winkel. Sie schaut sofort, was funktioniert, und legt bei den besten nach.",
+    "{0}. 💪 @fitbyalexis - Fitness & Nutrition": "{0}. 💪 @fitbyalexis — Fitness & Ernährung",
+    "Du coach personnel à l'empire fitness": "Vom Personal Trainer zum Fitness-Imperium",
+    "Alexis vendait des guides de fitness et de nutrition. Rien de spectaculaire. Mais il a compris quelque chose : la transformation. Les vidéos \"before/after\" d'une journée avec ses produits généraient {0}% plus de ventes. Il a pivotté complètement vers le storytelling de transformation.":
+        "Alexis verkaufte Fitness- und Ernährungsguides. Nichts Spektakuläres. Aber er hat eines verstanden: Verwandlung. Vorher/Nachher-Videos von einem einzigen Tag mit seinen Produkten brachten {0} % mehr Verkäufe. Er stellte komplett auf Verwandlungsgeschichten um.",
+    "\"Voici mon produit\".": "„hier ist mein Produkt“.",
+    "{0}. 🏠 @homedesignbysarah - Décoration & Mobilier": "{0}. 🏠 @homedesignbysarah — Einrichtung & Möbel",
+    "Comment vendre des meubles sur TikTok": "Wie man auf TikTok Möbel verkauft",
+    "Sarah montrait les mêmes meubles en {0} contextes différents. \"Voici ce meuble dans mon salon moderne\" → \"Voici le même dans un loft industriel\" → \"Voici dans un petit appartement\". Elle a compris que le problème n'était pas le produit, mais les doutes du client : \"Est-ce que ça va match mon intérieur ?\"":
+        "Sarah zeigte dieselben Möbel in {0} verschiedenen Umgebungen. „Hier das Stück in meinem modernen Wohnzimmer“ → „hier dasselbe in einem Industrieloft“ → „hier in einer kleinen Wohnung“. Sie begriff, dass nicht das Produkt das Problem war, sondern der Zweifel der Kundschaft: „Passt das zu mir zu Hause?“",
+    "Elle crée des \"inspiration rooms\" complètes. Pas juste un meuble, un mood board entier. Le client voit où ça va, comment ça s'assortit, pourquoi c'est beau.":
+        "Sie baut ganze „Inspiration Rooms“. Nicht nur ein Möbelstück, ein komplettes Moodboard. Die Kundschaft sieht, wohin es passt, womit es sich verträgt, warum es gut aussieht.",
+    "{0}. 💼 @techreviewjean - Électronique & Tech": "{0}. 💼 @techreviewjean — Elektronik & Technik",
+    "Devenir l'expert qui vend": "Der Experte werden, der verkauft",
+    "Jean revend des téléphones, ordinateurs, et gadgets tech. Mais il ne les vend pas — il les explique. Comparaisons détaillées, cas d'usage spécifiques, alternatives considérées. Il est devenu la source de confiance #{0} pour la tech en France sur TikTok.":
+        "Jean verkauft Handys, Computer und Technikspielzeug weiter. Aber er verkauft sie nicht — er erklärt sie. Ausführliche Vergleiche, konkrete Anwendungsfälle, abgewogene Alternativen. Er wurde die Vertrauensquelle Nr. {0} für Technik in Frankreich auf TikTok.",
+    "Il crée des vidéos \"FAQ\" anticipées. Il devine les objections avant que le client les ait. \"Oui, je sais que c'est cher, mais voici pourquoi c'est le seul choix logique...\"":
+        "Er macht vorweggenommene FAQ-Videos. Er errät die Einwände, bevor die Kundschaft sie hat. „Ja, ich weiß, es ist teuer, aber hier ist, warum es die einzig vernünftige Wahl ist …“",
+    "💡 Les Patterns Communs": "💡 Was sie gemeinsam haben",
+    "Si vous analysez ces {0} créateurs (et les {1} autres qu'on aurait pu inclure), des patterns clairs émergent :":
+        "Sieht man sich diese {0} Creators an (und die {1} weiteren, die wir hätten aufnehmen können), treten klare Muster hervor:",
+    "{0}. Spécialisation extrême": "{0}. Radikale Spezialisierung",
+    "Aucun d'eux ne vend \"tout\". Ils sont devenus experts reconnus dans une niche étroite. Mariana = mode éthique. Alexis = transformation fitness. Sarah = décoration accessible. Jean = tech simplifiée.":
+        "Keiner von ihnen verkauft „alles“. Jeder wurde anerkannter Fachmensch in einer engen Nische. Mariana = faire Mode. Alexis = Fitness-Verwandlung. Sarah = bezahlbare Einrichtung. Jean = Technik einfach erklärt.",
+    "Produit": "Produkt",
+    "Ils passent {0}% de leur attention sur le contenu et {1}% sur le produit. La plupart des créateurs échouent font l'inverse : {2}% contenu, {3}% promotion produit.":
+        "Sie stecken {0} % ihrer Aufmerksamkeit in den Inhalt und {1} % in das Produkt. Die meisten Creators, die scheitern, machen es umgekehrt: {2} % Inhalt, {3} % Produktwerbung.",
+    "{0}. Vitesse d'itération": "{0}. Tempo beim Ausprobieren",
+    "Ils publient beaucoup. Mariana publie {0}-{1} fois par jour. Cela veut dire qu'elle teste {2}-{3} angles différents. En une semaine, elle a {4}-{5} variables testées. Elle peut ajuster rapidement ce qui fonctionne.":
+        "Sie veröffentlichen viel. Mariana postet {0}- bis {1}-mal am Tag, testet also {2} bis {3} verschiedene Winkel. In einer Woche sind das {4} bis {5} getestete Variablen. So kann sie schnell nachsteuern.",
+    "{0}. Humanité authentique": "{0}. Echte Menschlichkeit",
+    "Aucun n'est parfait. Ils montrent leurs faiblesses, leurs échecs, leur processus. Les gens n'achètent pas aux experts parfaits, ils achètent aux humains qu'ils reconnaissent et en qui ils ont confiance.":
+        "Keiner ist perfekt. Sie zeigen ihre Schwächen, ihre Fehlschläge, ihren Weg. Die Leute kaufen nicht bei makellosen Fachleuten, sie kaufen bei Menschen, die sie wiedererkennen und denen sie vertrauen.",
+    "Devenez-vous le prochain créateur millionnaire ?": "Bist du der oder die Nächste?",
+    "Utilisez Qeerah pour analyser vos vidéos comme le font les top créateurs.":
+        "Nutz Qeerah, um deine Videos so zu analysieren wie die Top-Creators.",
+    "Commencer l'analyse →": "Analyse starten →",
+}
+
+T_BLOG_CREATEURS["es"] = {
+    "{0} Créateurs TikTok Shop Devenus Millionnaires - Qeerah":
+        "{0} creadores de TikTok Shop que se hicieron millonarios - Qeerah",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}. Découvrez leurs stratégies, leurs secrets et ce que vous pouvez en apprendre.":
+        "{0} creadores de TikTok Shop que se hicieron millonarios en {1}. Sus estrategias, qué hicieron distinto y qué puedes aprender de ello.",
+    "{0} créateurs TikTok Shop devenus millionnaires": "{0} creadores de TikTok Shop que se hicieron millonarios",
+    "Les stratégies et patterns communs des créateurs qui ont transformé leurs vidéos en empires commerciaux sur TikTok Shop.":
+        "Las estrategias y los patrones comunes de creadores que convirtieron sus vídeos en imperios comerciales en TikTok Shop.",
+    "← Retour au blog": "← Volver al blog",
+    "💰 SUCCESS STORIES": "💰 HISTORIAS DE ÉXITO",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}":
+        "{0} creadores de TikTok Shop que se hicieron millonarios en {1}",
+    "📅 Avril {0}": "📅 Abril de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Por el equipo de Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "Vous vous demandez si c'est vraiment possible de devenir millionnaire sur TikTok Shop ? La réponse est oui. Voici les histoires de {0} créateurs qui l'ont fait, et ce que nous pouvons en apprendre.":
+        "¿Te preguntas si de verdad se puede llegar a millonario en TikTok Shop? Sí se puede. Estas son las historias de {0} creadores que lo lograron y lo que podemos aprender de ellas.",
+    "{0}. 👗 @stylebymariana - Beauté & Mode": "{0}. 👗 @stylebymariana — belleza y moda",
+    "La créatrice qui a disrupta la mode française": "La creadora que sacudió la moda francesa",
+    "Followers": "Seguidores",
+    "GMV {0}": "GMV {0}",
+    "{0} mois": "{0} meses",
+    "Pour {0}M€": "Hasta {0} M€",
+    "Mariana a commencé sans produits propres. Elle revenait des accessoires de mode éthiques et les présentait dans ses vidéos. En {0} mois, elle a atteint {1} figures. Son secret : l'authententicité. Elle montre vraiment comment porter les pièces, des hauls complets, des réactions honnêtes.":
+        "Mariana empezó sin productos propios. Revendía accesorios de moda éticos y los enseñaba en sus vídeos. En {0} meses llegó a {1} cifras. Su secreto: la autenticidad. Enseña de verdad cómo se llevan las prendas, hauls completos, reacciones honestas.",
+    "🔑 Le Secret :": "🔑 El secreto:",
+    "Elle crée du contenu {0}-{1} fois par jour. Chaque vidéo teste une angle différent. Elle analyse immédiatement ce qui fonctionne et duplique les meilleures performances.":
+        "Crea contenido {0}-{1} veces al día. Cada vídeo prueba un ángulo distinto. Mira enseguida qué funciona y repite lo que mejor rinde.",
+    "{0}. 💪 @fitbyalexis - Fitness & Nutrition": "{0}. 💪 @fitbyalexis — fitness y nutrición",
+    "Du coach personnel à l'empire fitness": "De entrenador personal a imperio del fitness",
+    "Alexis vendait des guides de fitness et de nutrition. Rien de spectaculaire. Mais il a compris quelque chose : la transformation. Les vidéos \"before/after\" d'une journée avec ses produits généraient {0}% plus de ventes. Il a pivotté complètement vers le storytelling de transformation.":
+        "Alexis vendía guías de fitness y nutrición. Nada espectacular. Pero entendió una cosa: la transformación. Los vídeos de antes y después de un solo día con sus productos generaban un {0} % más de ventas. Giró por completo hacia el relato de transformación.",
+    "\"Voici mon produit\".": "«aquí está mi producto».",
+    "{0}. 🏠 @homedesignbysarah - Décoration & Mobilier": "{0}. 🏠 @homedesignbysarah — decoración y muebles",
+    "Comment vendre des meubles sur TikTok": "Cómo vender muebles en TikTok",
+    "Sarah montrait les mêmes meubles en {0} contextes différents. \"Voici ce meuble dans mon salon moderne\" → \"Voici le même dans un loft industriel\" → \"Voici dans un petit appartement\". Elle a compris que le problème n'était pas le produit, mais les doutes du client : \"Est-ce que ça va match mon intérieur ?\"":
+        "Sarah enseñaba los mismos muebles en {0} contextos distintos. «Aquí este mueble en mi salón moderno» → «aquí el mismo en un loft industrial» → «aquí en un piso pequeño». Entendió que el problema no era el producto, sino la duda del cliente: «¿pegará con mi casa?»",
+    "Elle crée des \"inspiration rooms\" complètes. Pas juste un meuble, un mood board entier. Le client voit où ça va, comment ça s'assortit, pourquoi c'est beau.":
+        "Crea «inspiration rooms» completas. No un mueble suelto, sino un mood board entero. El cliente ve dónde encaja, con qué combina y por qué queda bien.",
+    "{0}. 💼 @techreviewjean - Électronique & Tech": "{0}. 💼 @techreviewjean — electrónica y tecnología",
+    "Devenir l'expert qui vend": "Convertirse en el experto que vende",
+    "Jean revend des téléphones, ordinateurs, et gadgets tech. Mais il ne les vend pas — il les explique. Comparaisons détaillées, cas d'usage spécifiques, alternatives considérées. Il est devenu la source de confiance #{0} pour la tech en France sur TikTok.":
+        "Jean revende móviles, ordenadores y gadgets. Pero no los vende: los explica. Comparativas detalladas, casos de uso concretos, alternativas valoradas. Se convirtió en la fuente de confianza n.º {0} de tecnología en Francia dentro de TikTok.",
+    "Il crée des vidéos \"FAQ\" anticipées. Il devine les objections avant que le client les ait. \"Oui, je sais que c'est cher, mais voici pourquoi c'est le seul choix logique...\"":
+        "Hace vídeos de preguntas frecuentes por adelantado. Adivina las objeciones antes de que el cliente las tenga. «Sí, ya sé que es caro, pero mira por qué es la única opción lógica…»",
+    "💡 Les Patterns Communs": "💡 Lo que tienen en común",
+    "Si vous analysez ces {0} créateurs (et les {1} autres qu'on aurait pu inclure), des patterns clairs émergent :":
+        "Si miras a estos {0} creadores (y los {1} más que podríamos haber incluido), aparecen patrones claros:",
+    "{0}. Spécialisation extrême": "{0}. Especialización extrema",
+    "Aucun d'eux ne vend \"tout\". Ils sont devenus experts reconnus dans une niche étroite. Mariana = mode éthique. Alexis = transformation fitness. Sarah = décoration accessible. Jean = tech simplifiée.":
+        "Ninguno vende «de todo». Cada uno se hizo experto reconocido en un nicho estrecho. Mariana = moda ética. Alexis = transformación fitness. Sarah = decoración asequible. Jean = tecnología explicada fácil.",
+    "Produit": "Producto",
+    "Ils passent {0}% de leur attention sur le contenu et {1}% sur le produit. La plupart des créateurs échouent font l'inverse : {2}% contenu, {3}% promotion produit.":
+        "Dedican el {0} % de su atención al contenido y el {1} % al producto. La mayoría de los creadores que fracasan hacen lo contrario: {2} % contenido, {3} % promoción del producto.",
+    "{0}. Vitesse d'itération": "{0}. Velocidad de iteración",
+    "Ils publient beaucoup. Mariana publie {0}-{1} fois par jour. Cela veut dire qu'elle teste {2}-{3} angles différents. En une semaine, elle a {4}-{5} variables testées. Elle peut ajuster rapidement ce qui fonctionne.":
+        "Publican mucho. Mariana publica {0}-{1} veces al día, o sea que prueba {2}-{3} ángulos distintos. En una semana lleva {4}-{5} variables probadas. Puede ajustar rápido en torno a lo que funciona.",
+    "{0}. Humanité authentique": "{0}. Humanidad auténtica",
+    "Aucun n'est parfait. Ils montrent leurs faiblesses, leurs échecs, leur processus. Les gens n'achètent pas aux experts parfaits, ils achètent aux humains qu'ils reconnaissent et en qui ils ont confiance.":
+        "Ninguno es perfecto. Enseñan sus debilidades, sus fracasos, su proceso. La gente no compra a expertos impecables: compra a personas en las que se reconoce y en las que confía.",
+    "Devenez-vous le prochain créateur millionnaire ?": "¿Serás tú el próximo?",
+    "Utilisez Qeerah pour analyser vos vidéos comme le font les top créateurs.":
+        "Usa Qeerah para analizar tus vídeos como hacen los mejores creadores.",
+    "Commencer l'analyse →": "Empezar el análisis →",
+}
+
+T_BLOG_CREATEURS["it"] = {
+    "{0} Créateurs TikTok Shop Devenus Millionnaires - Qeerah":
+        "{0} creator di TikTok Shop diventati milionari - Qeerah",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}. Découvrez leurs stratégies, leurs secrets et ce que vous pouvez en apprendre.":
+        "{0} creator di TikTok Shop diventati milionari nel {1}. Le loro strategie, cosa hanno fatto di diverso e cosa puoi imparare.",
+    "{0} créateurs TikTok Shop devenus millionnaires": "{0} creator di TikTok Shop diventati milionari",
+    "Les stratégies et patterns communs des créateurs qui ont transformé leurs vidéos en empires commerciaux sur TikTok Shop.":
+        "Le strategie e gli schemi comuni dei creator che hanno trasformato i loro video in imperi commerciali su TikTok Shop.",
+    "← Retour au blog": "← Torna al blog",
+    "💰 SUCCESS STORIES": "💰 STORIE DI SUCCESSO",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}": "{0} creator di TikTok Shop diventati milionari nel {1}",
+    "📅 Avril {0}": "📅 Aprile {0}",
+    "👤 Par l'équipe Qeerah": "👤 Dal team Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "Vous vous demandez si c'est vraiment possible de devenir millionnaire sur TikTok Shop ? La réponse est oui. Voici les histoires de {0} créateurs qui l'ont fait, et ce que nous pouvons en apprendre.":
+        "Ti chiedi se si possa davvero diventare milionari su TikTok Shop? Sì. Ecco le storie di {0} creator che ce l'hanno fatta e cosa se ne può imparare.",
+    "{0}. 👗 @stylebymariana - Beauté & Mode": "{0}. 👗 @stylebymariana — bellezza e moda",
+    "La créatrice qui a disrupta la mode française": "La creator che ha scosso la moda francese",
+    "Followers": "Follower",
+    "GMV {0}": "GMV {0}",
+    "{0} mois": "{0} mesi",
+    "Pour {0}M€": "Fino a {0} mln €",
+    "Mariana a commencé sans produits propres. Elle revenait des accessoires de mode éthiques et les présentait dans ses vidéos. En {0} mois, elle a atteint {1} figures. Son secret : l'authententicité. Elle montre vraiment comment porter les pièces, des hauls complets, des réactions honnêtes.":
+        "Mariana ha iniziato senza prodotti propri. Rivendeva accessori di moda etica e li mostrava nei suoi video. In {0} mesi è arrivata a {1} cifre. Il suo segreto: l'autenticità. Mostra davvero come si indossano i capi, haul completi, reazioni sincere.",
+    "🔑 Le Secret :": "🔑 Il segreto:",
+    "Elle crée du contenu {0}-{1} fois par jour. Chaque vidéo teste une angle différent. Elle analyse immédiatement ce qui fonctionne et duplique les meilleures performances.":
+        "Pubblica contenuti {0}-{1} volte al giorno. Ogni video prova un taglio diverso. Guarda subito cosa funziona e replica i risultati migliori.",
+    "{0}. 💪 @fitbyalexis - Fitness & Nutrition": "{0}. 💪 @fitbyalexis — fitness e nutrizione",
+    "Du coach personnel à l'empire fitness": "Da personal trainer a impero del fitness",
+    "Alexis vendait des guides de fitness et de nutrition. Rien de spectaculaire. Mais il a compris quelque chose : la transformation. Les vidéos \"before/after\" d'une journée avec ses produits généraient {0}% plus de ventes. Il a pivotté complètement vers le storytelling de transformation.":
+        "Alexis vendeva guide di fitness e nutrizione. Niente di clamoroso. Ma ha capito una cosa: la trasformazione. I video prima/dopo di una sola giornata con i suoi prodotti generavano il {0} % di vendite in più. Ha virato del tutto sul racconto della trasformazione.",
+    "\"Voici mon produit\".": "«ecco il mio prodotto».",
+    "{0}. 🏠 @homedesignbysarah - Décoration & Mobilier": "{0}. 🏠 @homedesignbysarah — arredo e mobili",
+    "Comment vendre des meubles sur TikTok": "Come vendere mobili su TikTok",
+    "Sarah montrait les mêmes meubles en {0} contextes différents. \"Voici ce meuble dans mon salon moderne\" → \"Voici le même dans un loft industriel\" → \"Voici dans un petit appartement\". Elle a compris que le problème n'était pas le produit, mais les doutes du client : \"Est-ce que ça va match mon intérieur ?\"":
+        "Sarah mostrava gli stessi mobili in {0} contesti diversi. «Ecco questo pezzo nel mio salotto moderno» → «ecco lo stesso in un loft industriale» → «ecco in un piccolo appartamento». Ha capito che il problema non era il prodotto ma il dubbio del cliente: «starà bene a casa mia?»",
+    "Elle crée des \"inspiration rooms\" complètes. Pas juste un meuble, un mood board entier. Le client voit où ça va, comment ça s'assortit, pourquoi c'est beau.":
+        "Costruisce intere «inspiration room». Non un mobile soltanto, un moodboard completo. Il cliente vede dove sta bene, con cosa si abbina, perché funziona.",
+    "{0}. 💼 @techreviewjean - Électronique & Tech": "{0}. 💼 @techreviewjean — elettronica e tecnologia",
+    "Devenir l'expert qui vend": "Diventare l'esperto che vende",
+    "Jean revend des téléphones, ordinateurs, et gadgets tech. Mais il ne les vend pas — il les explique. Comparaisons détaillées, cas d'usage spécifiques, alternatives considérées. Il est devenu la source de confiance #{0} pour la tech en France sur TikTok.":
+        "Jean rivende telefoni, computer e gadget tecnologici. Ma non li vende: li spiega. Confronti dettagliati, casi d'uso concreti, alternative valutate. È diventato la fonte di fiducia n. {0} per la tecnologia in Francia su TikTok.",
+    "Il crée des vidéos \"FAQ\" anticipées. Il devine les objections avant que le client les ait. \"Oui, je sais que c'est cher, mais voici pourquoi c'est le seul choix logique...\"":
+        "Fa video di FAQ anticipate. Indovina le obiezioni prima che il cliente le abbia. «Sì, lo so che costa, ma ecco perché è l'unica scelta sensata…»",
+    "💡 Les Patterns Communs": "💡 Cosa hanno in comune",
+    "Si vous analysez ces {0} créateurs (et les {1} autres qu'on aurait pu inclure), des patterns clairs émergent :":
+        "Se guardi questi {0} creator (e gli altri {1} che avremmo potuto includere), emergono schemi chiari:",
+    "{0}. Spécialisation extrême": "{0}. Specializzazione estrema",
+    "Aucun d'eux ne vend \"tout\". Ils sont devenus experts reconnus dans une niche étroite. Mariana = mode éthique. Alexis = transformation fitness. Sarah = décoration accessible. Jean = tech simplifiée.":
+        "Nessuno di loro vende «tutto». Ognuno è diventato un riferimento in una nicchia stretta. Mariana = moda etica. Alexis = trasformazione fitness. Sarah = arredo accessibile. Jean = tecnologia spiegata semplice.",
+    "Produit": "Prodotto",
+    "Ils passent {0}% de leur attention sur le contenu et {1}% sur le produit. La plupart des créateurs échouent font l'inverse : {2}% contenu, {3}% promotion produit.":
+        "Mettono il {0} % dell'attenzione sul contenuto e il {1} % sul prodotto. La maggior parte dei creator che falliscono fa il contrario: {2} % contenuto, {3} % promozione del prodotto.",
+    "{0}. Vitesse d'itération": "{0}. Velocità di iterazione",
+    "Ils publient beaucoup. Mariana publie {0}-{1} fois par jour. Cela veut dire qu'elle teste {2}-{3} angles différents. En une semaine, elle a {4}-{5} variables testées. Elle peut ajuster rapidement ce qui fonctionne.":
+        "Pubblicano molto. Mariana pubblica {0}-{1} volte al giorno, quindi prova {2}-{3} tagli diversi. In una settimana sono {4}-{5} variabili testate. Può correggere in fretta puntando su ciò che funziona.",
+    "{0}. Humanité authentique": "{0}. Umanità autentica",
+    "Aucun n'est parfait. Ils montrent leurs faiblesses, leurs échecs, leur processus. Les gens n'achètent pas aux experts parfaits, ils achètent aux humains qu'ils reconnaissent et en qui ils ont confiance.":
+        "Nessuno è perfetto. Mostrano i loro limiti, i fallimenti, il processo. La gente non compra dagli esperti impeccabili: compra da persone in cui si riconosce e di cui si fida.",
+    "Devenez-vous le prochain créateur millionnaire ?": "Sarai tu il prossimo?",
+    "Utilisez Qeerah pour analyser vos vidéos comme le font les top créateurs.":
+        "Usa Qeerah per analizzare i tuoi video come fanno i migliori creator.",
+    "Commencer l'analyse →": "Inizia l'analisi →",
+}
+
+T_BLOG_CREATEURS["pt-br"] = {
+    "{0} Créateurs TikTok Shop Devenus Millionnaires - Qeerah":
+        "{0} criadores do TikTok Shop que viraram milionários - Qeerah",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}. Découvrez leurs stratégies, leurs secrets et ce que vous pouvez en apprendre.":
+        "{0} criadores do TikTok Shop que viraram milionários em {1}. As estratégias deles, o que fizeram de diferente e o que dá para aprender.",
+    "{0} créateurs TikTok Shop devenus millionnaires": "{0} criadores do TikTok Shop que viraram milionários",
+    "Les stratégies et patterns communs des créateurs qui ont transformé leurs vidéos en empires commerciaux sur TikTok Shop.":
+        "As estratégias e os padrões em comum de criadores que transformaram seus vídeos em impérios comerciais no TikTok Shop.",
+    "← Retour au blog": "← Voltar ao blog",
+    "💰 SUCCESS STORIES": "💰 HISTÓRIAS DE SUCESSO",
+    "{0} créateurs TikTok Shop devenus millionnaires en {1}": "{0} criadores do TikTok Shop que viraram milionários em {1}",
+    "📅 Avril {0}": "📅 Abril de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Pelo time da Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "Vous vous demandez si c'est vraiment possible de devenir millionnaire sur TikTok Shop ? La réponse est oui. Voici les histoires de {0} créateurs qui l'ont fait, et ce que nous pouvons en apprendre.":
+        "Você se pergunta se dá mesmo para ficar milionário no TikTok Shop? Dá. Estas são as histórias de {0} criadores que conseguiram e o que dá para aprender com elas.",
+    "{0}. 👗 @stylebymariana - Beauté & Mode": "{0}. 👗 @stylebymariana — beleza e moda",
+    "La créatrice qui a disrupta la mode française": "A criadora que sacudiu a moda francesa",
+    "Followers": "Seguidores",
+    "GMV {0}": "GMV {0}",
+    "{0} mois": "{0} meses",
+    "Pour {0}M€": "Até € {0} mi",
+    "Mariana a commencé sans produits propres. Elle revenait des accessoires de mode éthiques et les présentait dans ses vidéos. En {0} mois, elle a atteint {1} figures. Son secret : l'authententicité. Elle montre vraiment comment porter les pièces, des hauls complets, des réactions honnêtes.":
+        "Mariana começou sem produtos próprios. Revendia acessórios de moda ética e mostrava nos vídeos. Em {0} meses chegou a {1} dígitos. O segredo dela: autenticidade. Ela mostra de verdade como usar as peças, hauls completos, reações honestas.",
+    "🔑 Le Secret :": "🔑 O segredo:",
+    "Elle crée du contenu {0}-{1} fois par jour. Chaque vidéo teste une angle différent. Elle analyse immédiatement ce qui fonctionne et duplique les meilleures performances.":
+        "Ela cria conteúdo {0}-{1} vezes por dia. Cada vídeo testa um ângulo diferente. Olha na hora o que funcionou e repete o que rende mais.",
+    "{0}. 💪 @fitbyalexis - Fitness & Nutrition": "{0}. 💪 @fitbyalexis — fitness e nutrição",
+    "Du coach personnel à l'empire fitness": "De personal trainer a império fitness",
+    "Alexis vendait des guides de fitness et de nutrition. Rien de spectaculaire. Mais il a compris quelque chose : la transformation. Les vidéos \"before/after\" d'une journée avec ses produits généraient {0}% plus de ventes. Il a pivotté complètement vers le storytelling de transformation.":
+        "Alexis vendia guias de treino e nutrição. Nada de espetacular. Mas entendeu uma coisa: transformação. Vídeos de antes e depois de um único dia com os produtos dele geravam {0} % mais vendas. Ele virou de vez para a narrativa de transformação.",
+    "\"Voici mon produit\".": "“aqui está o meu produto”.",
+    "{0}. 🏠 @homedesignbysarah - Décoration & Mobilier": "{0}. 🏠 @homedesignbysarah — decoração e móveis",
+    "Comment vendre des meubles sur TikTok": "Como vender móveis no TikTok",
+    "Sarah montrait les mêmes meubles en {0} contextes différents. \"Voici ce meuble dans mon salon moderne\" → \"Voici le même dans un loft industriel\" → \"Voici dans un petit appartement\". Elle a compris que le problème n'était pas le produit, mais les doutes du client : \"Est-ce que ça va match mon intérieur ?\"":
+        "Sarah mostrava os mesmos móveis em {0} contextos diferentes. “Aqui essa peça na minha sala moderna” → “aqui a mesma num loft industrial” → “aqui num apartamento pequeno”. Ela entendeu que o problema não era o produto, e sim a dúvida do cliente: “vai combinar com a minha casa?”",
+    "Elle crée des \"inspiration rooms\" complètes. Pas juste un meuble, un mood board entier. Le client voit où ça va, comment ça s'assortit, pourquoi c'est beau.":
+        "Ela monta “inspiration rooms” inteiras. Não um móvel solto, um mood board completo. O cliente vê onde encaixa, com o que combina e por que fica bonito.",
+    "{0}. 💼 @techreviewjean - Électronique & Tech": "{0}. 💼 @techreviewjean — eletrônicos e tecnologia",
+    "Devenir l'expert qui vend": "Virar o especialista que vende",
+    "Jean revend des téléphones, ordinateurs, et gadgets tech. Mais il ne les vend pas — il les explique. Comparaisons détaillées, cas d'usage spécifiques, alternatives considérées. Il est devenu la source de confiance #{0} pour la tech en France sur TikTok.":
+        "Jean revende celulares, computadores e gadgets. Mas ele não vende: ele explica. Comparações detalhadas, casos de uso concretos, alternativas avaliadas. Virou a fonte de confiança n.º {0} de tecnologia na França dentro do TikTok.",
+    "Il crée des vidéos \"FAQ\" anticipées. Il devine les objections avant que le client les ait. \"Oui, je sais que c'est cher, mais voici pourquoi c'est le seul choix logique...\"":
+        "Ele faz vídeos de perguntas frequentes antecipadas. Adivinha as objeções antes de o cliente ter. “Sim, eu sei que é caro, mas olha por que é a única escolha lógica…”",
+    "💡 Les Patterns Communs": "💡 O que eles têm em comum",
+    "Si vous analysez ces {0} créateurs (et les {1} autres qu'on aurait pu inclure), des patterns clairs émergent :":
+        "Se você olhar esses {0} criadores (e os outros {1} que dariam para incluir), aparecem padrões claros:",
+    "{0}. Spécialisation extrême": "{0}. Especialização extrema",
+    "Aucun d'eux ne vend \"tout\". Ils sont devenus experts reconnus dans une niche étroite. Mariana = mode éthique. Alexis = transformation fitness. Sarah = décoration accessible. Jean = tech simplifiée.":
+        "Nenhum deles vende “tudo”. Cada um virou referência reconhecida num nicho estreito. Mariana = moda ética. Alexis = transformação fitness. Sarah = decoração acessível. Jean = tecnologia explicada fácil.",
+    "Produit": "Produto",
+    "Ils passent {0}% de leur attention sur le contenu et {1}% sur le produit. La plupart des créateurs échouent font l'inverse : {2}% contenu, {3}% promotion produit.":
+        "Eles colocam {0} % da atenção no conteúdo e {1} % no produto. A maioria dos criadores que fracassa faz o contrário: {2} % conteúdo, {3} % divulgação do produto.",
+    "{0}. Vitesse d'itération": "{0}. Velocidade de teste",
+    "Ils publient beaucoup. Mariana publie {0}-{1} fois par jour. Cela veut dire qu'elle teste {2}-{3} angles différents. En une semaine, elle a {4}-{5} variables testées. Elle peut ajuster rapidement ce qui fonctionne.":
+        "Eles publicam muito. Mariana posta {0}-{1} vezes por dia, ou seja, testa {2}-{3} ângulos diferentes. Em uma semana são {4}-{5} variáveis testadas. Dá para ajustar rápido em cima do que funciona.",
+    "{0}. Humanité authentique": "{0}. Humanidade de verdade",
+    "Aucun n'est parfait. Ils montrent leurs faiblesses, leurs échecs, leur processus. Les gens n'achètent pas aux experts parfaits, ils achètent aux humains qu'ils reconnaissent et en qui ils ont confiance.":
+        "Nenhum é perfeito. Eles mostram as fraquezas, os fracassos, o processo. As pessoas não compram de especialistas impecáveis: compram de gente com quem se identificam e em quem confiam.",
+    "Devenez-vous le prochain créateur millionnaire ?": "Você vai ser o próximo?",
+    "Utilisez Qeerah pour analyser vos vidéos comme le font les top créateurs.":
+        "Use a Qeerah para analisar seus vídeos como fazem os melhores criadores.",
+    "Commencer l'analyse →": "Começar a análise →",
+}
+
+T_BLOG_CREATEURS["en-ie"] = dict(T_BLOG_CREATEURS["en"])
+T_BLOG_CREATEURS["es-mx"] = dict(T_BLOG_CREATEURS["es"])

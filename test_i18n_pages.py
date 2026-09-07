@@ -71,6 +71,7 @@ def _sources() -> dict:
         "/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues": (main._LP_VUES_HTML, S.T_LP_VUES),
         "/blog": (main._BLOG_HTML, B.T_BLOG),
         "/blog/tendances-2026": (main._BLOG_TENDANCES_HTML, B.T_BLOG_TENDANCES),
+        "/blog/createurs-millionnaires": (main._BLOG_CREATEURS_HTML, B.T_BLOG_CREATEURS),
     }
 
 
