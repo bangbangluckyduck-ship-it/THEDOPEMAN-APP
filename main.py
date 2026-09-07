@@ -719,19 +719,19 @@ async def avis_page(): return HTMLResponse(page_traduite("/avis", _AVIS_HTML))
 @app.get("/analyser-une-video-tiktok-shop", response_class=HTMLResponse)
 async def lp_analyser_video():
     """Page d'atterrissage — intention « outil »."""
-    return HTMLResponse(_LP_ANALYSER_HTML)
+    return HTMLResponse(page_traduite("/analyser-une-video-tiktok-shop", _LP_ANALYSER_HTML))
 
 
 @app.get("/produits-qui-vendent-tiktok-shop-france", response_class=HTMLResponse)
 async def lp_produits_france():
     """Page d'atterrissage — intention « découverte produit »."""
-    return HTMLResponse(_LP_PRODUITS_HTML)
+    return HTMLResponse(page_traduite("/produits-qui-vendent-tiktok-shop-france", _LP_PRODUITS_HTML))
 
 
 @app.get("/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues", response_class=HTMLResponse)
 async def lp_pas_de_vues():
     """Page d'atterrissage — intention « problème »."""
-    return HTMLResponse(_LP_VUES_HTML)
+    return HTMLResponse(page_traduite("/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues", _LP_VUES_HTML))
 
 
 @app.get("/mentions-legales", response_class=HTMLResponse)
@@ -861,6 +861,18 @@ _traduire_page("/cgv", _CGV_HTML, _pt_legal.T_CGV,
                avis=_pt_legal.avis_pour("/cgv"))
 _traduire_page("/privacy", _PRIVACY_HTML, _pt_legal.T_PRIVACY,
                avis=_pt_legal.avis_pour("/privacy"))
+
+# Pages d'atterrissage. Réserve assumée et écrite dans pages_translations_seo :
+# ces pages visent des mots-clefs FRANÇAIS ; les traduire rend le site cohérent
+# mais ne remplace pas un article écrit pour chaque marché.
+import pages_translations_seo as _pt_seo
+
+_traduire_page("/analyser-une-video-tiktok-shop", _LP_ANALYSER_HTML,
+               _pt_seo.T_LP_ANALYSER)
+_traduire_page("/produits-qui-vendent-tiktok-shop-france", _LP_PRODUITS_HTML,
+               _pt_seo.T_LP_PRODUITS)
+_traduire_page("/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues", _LP_VUES_HTML,
+               _pt_seo.T_LP_VUES)
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────
