@@ -772,7 +772,7 @@ if _TIKTOK_VERIFY_FILENAME and _TIKTOK_VERIFY_CONTENT:
         return Response(content=_TIKTOK_VERIFY_CONTENT, media_type="text/plain")
 
 @app.get("/blog", response_class=HTMLResponse)
-async def blog(): return HTMLResponse(_BLOG_HTML)
+async def blog(): return HTMLResponse(page_traduite("/blog", _BLOG_HTML))
 
 @app.get("/blog/histoire-tiktok-shop", response_class=HTMLResponse)
 async def blog_histoire(): return HTMLResponse(_BLOG_HISTOIRE_HTML)
@@ -781,7 +781,7 @@ async def blog_histoire(): return HTMLResponse(_BLOG_HISTOIRE_HTML)
 async def blog_createurs(): return HTMLResponse(_BLOG_CREATEURS_HTML)
 
 @app.get("/blog/tendances-2026", response_class=HTMLResponse)
-async def blog_tendances(): return HTMLResponse(_BLOG_TENDANCES_HTML)
+async def blog_tendances(): return HTMLResponse(page_traduite("/blog/tendances-2026", _BLOG_TENDANCES_HTML))
 
 @app.get("/blog/guide-complet", response_class=HTMLResponse)
 async def blog_guide(): return HTMLResponse(_BLOG_GUIDE_HTML)
@@ -873,6 +873,12 @@ _traduire_page("/produits-qui-vendent-tiktok-shop-france", _LP_PRODUITS_HTML,
                _pt_seo.T_LP_PRODUITS)
 _traduire_page("/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues", _LP_VUES_HTML,
                _pt_seo.T_LP_VUES)
+
+# Blog. Même réserve éditoriale que les pages d'atterrissage.
+import pages_translations_blog as _pt_blog
+
+_traduire_page("/blog", _BLOG_HTML, _pt_blog.T_BLOG)
+_traduire_page("/blog/tendances-2026", _BLOG_TENDANCES_HTML, _pt_blog.T_BLOG_TENDANCES)
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────

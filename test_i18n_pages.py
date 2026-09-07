@@ -53,6 +53,7 @@ def _sources() -> dict:
     import pages_translations_confiance as C
     import pages_translations_legal as L
     import pages_translations_seo as S
+    import pages_translations_blog as B
 
     return {
         "/pricing": (main._PRICING_HTML, T.T_PRICING),
@@ -68,6 +69,8 @@ def _sources() -> dict:
         "/analyser-une-video-tiktok-shop": (main._LP_ANALYSER_HTML, S.T_LP_ANALYSER),
         "/produits-qui-vendent-tiktok-shop-france": (main._LP_PRODUITS_HTML, S.T_LP_PRODUITS),
         "/pourquoi-ma-video-tiktok-shop-ne-fait-pas-de-vues": (main._LP_VUES_HTML, S.T_LP_VUES),
+        "/blog": (main._BLOG_HTML, B.T_BLOG),
+        "/blog/tendances-2026": (main._BLOG_TENDANCES_HTML, B.T_BLOG_TENDANCES),
     }
 
 
