@@ -882,8 +882,27 @@ _traduire_page("/blog/tendances-2026", _BLOG_TENDANCES_HTML, _pt_blog.T_BLOG_TEN
 _traduire_page("/blog/createurs-millionnaires", _BLOG_CREATEURS_HTML, _pt_blog.T_BLOG_CREATEURS)
 _traduire_page("/blog/histoire-tiktok-shop", _BLOG_HISTOIRE_HTML, _pt_blog.T_BLOG_HISTOIRE)
 _traduire_page("/blog/guide-complet", _BLOG_GUIDE_HTML, _pt_blog.T_BLOG_GUIDE)
+# L'anglais de cet article existe déjà, écrit à la main pour le marché
+# (/en/blog/what-is-tiktok-shop). On ne fabrique donc PAS de traduction
+# anglaise : deux pages anglaises du même article se seraient concurrencées,
+# avec des hreflang contradictoires. Cf. pages_i18n.poser_alias.
+pages_i18n.poser_alias("/blog/expansion-mondiale-tiktok-shop", {
+    "en": "/en/blog/what-is-tiktok-shop",
+    "en-ie": "/en/blog/what-is-tiktok-shop",
+})
 _traduire_page("/blog/expansion-mondiale-tiktok-shop", _BLOG_EXPANSION_HTML,
                _pt_blog.T_BLOG_EXPANSION)
+
+# La page anglaise écrite à la main reçoit le même bloc d'alternates que les
+# autres : elle en portait trois, incomplets, qui contredisaient ceux de
+# l'article français.
+_BLOG_TTS_EN_HTML = pages_i18n.poser_alternates(
+    _BLOG_TTS_EN_HTML, "/blog/expansion-mondiale-tiktok-shop", _seo_base_url())
+# Ses liens internes menaient tous vers le français : « ← Back to blog »
+# renvoyait un lecteur anglophone sur le blog français. Ils passent par la même
+# réécriture que le reste — sauf « Lire en français », qui déclare hreflang="fr"
+# et reste donc intact. La passe a lieu plus bas, une fois tous les chemins
+# connus (cf. « Passe finale »).
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────
@@ -908,6 +927,7 @@ pages_i18n.enregistrer_chemin("/")
 _HOMEPAGE_BY_LANG = pages_i18n.reecrire_les_liens(_HOMEPAGE_BY_LANG)
 for _chemin, _variantes in _PAGES_TRADUITES.items():
     _PAGES_TRADUITES[_chemin] = pages_i18n.reecrire_les_liens(_variantes)
+_BLOG_TTS_EN_HTML = pages_i18n.liens_internes(_BLOG_TTS_EN_HTML, "en")
 
 
 # Cookie de langue. Il existe pour une raison précise : les analyses sont
@@ -917,6 +937,10 @@ for _chemin, _variantes in _PAGES_TRADUITES.items():
 # page d'accueil et l'app. `dv_lang` (localStorage) reste la référence côté
 # navigateur ; ce cookie en est le reflet lisible par le serveur.
 LANG_COOKIE = "qeerah_lang"
+
+# Drapeau `Secure` du cookie de langue. Actif par défaut ; on ne le coupe qu'en
+# développement local, où le serveur écoute en HTTP.
+COOKIE_SECURE = os.getenv("QEERAH_COOKIE_NON_SECURISE", "") != "1"
 
 
 def _langue_requete(request: Request) -> str:
@@ -945,26 +969,27 @@ def _reponse_langue(html: str, lang: str) -> HTMLResponse:
     reponse = HTMLResponse(
         html, headers={"Content-Language": homepage_i18n.HTML_LANG.get(lang, "fr")}
     )
+    # Posé côté serveur : un visiteur qui arrive directement sur /de par un lien
+    # ou depuis Google n'a jamais touché le sélecteur. Sans ça, il lirait une
+    # page allemande puis recevrait une analyse en français.
+    #
+    # `secure` : le cookie ne part pas en clair. L'apport est faible ici (le site
+    # est en HSTS, un navigateur n'ouvre plus de connexion HTTP vers ce domaine)
+    # mais il ne coûte rien. Le drapeau se désactive en local, où le serveur de
+    # développement écoute en HTTP et où le navigateur refuserait donc de le
+    # stocker : QEERAH_COOKIE_NON_SECURISE=1.
     reponse.set_cookie(
         LANG_COOKIE, lang, max_age=60 * 60 * 24 * 365,
-        samesite="lax", path="/",
+        samesite="lax", path="/", secure=COOKIE_SECURE,
     )
     return reponse
 
 
 def _page_langue(lang: str) -> HTMLResponse:
+    """Variante de l'accueil. Passe par `_reponse_langue` — les deux posaient le
+    même cookie côté à côté, il n'y a plus qu'un endroit où le régler."""
     html = _HOMEPAGE_BY_LANG.get(lang) or _HOMEPAGE_BY_LANG.get("fr") or _HOMEPAGE_HTML
-    reponse = HTMLResponse(
-        html, headers={"Content-Language": homepage_i18n.HTML_LANG.get(lang, "fr")}
-    )
-    # Posé côté serveur : un visiteur qui arrive directement sur /de par un lien
-    # ou depuis Google n'a jamais touché le sélecteur. Sans ça, il lirait une
-    # page allemande puis recevrait une analyse en français.
-    reponse.set_cookie(
-        LANG_COOKIE, lang, max_age=60 * 60 * 24 * 365,
-        samesite="lax", path="/",
-    )
-    return reponse
+    return _reponse_langue(html, lang)
 
 
 @app.get("/en", response_class=HTMLResponse, include_in_schema=False)
@@ -1023,6 +1048,8 @@ def _enregistrer_routes_traduites() -> None:
         for lang in homepage_i18n.LANGS:
             if lang == homepage_i18n.DEFAULT:
                 continue
+            if pages_i18n.langue_aliasee(chemin_fr, lang):
+                continue        # servie par une page écrite à la main
             url = homepage_i18n.chemin_langue(lang, chemin_fr)
 
             async def _servir(request: Request, _v=variantes, _l=lang, _c=chemin_fr):
@@ -1047,6 +1074,11 @@ _enregistrer_routes_traduites()
 
 
 # Pages publiques indexables (chemin canonique unique par page).
+# ⚠️ « /app » n'y figure plus (retiré le 08/09/2026). Un sitemap est la liste
+# des pages qu'on DEMANDE à indexer ; /app est la coquille de l'application,
+# sans contenu propre, et elle renvoie vers l'accueil quand personne n'est
+# connecté. La soumettre revenait à faire indexer une page qui rebondit. Elle
+# reste évidemment accessible et suivable — elle n'est simplement plus proposée.
 _SITEMAP_PATHS = [
     "/",
     # Les cinq traductions de la page d'accueil. Chacune est une URL à part
@@ -1059,7 +1091,6 @@ _SITEMAP_PATHS = [
     "/es-mx",
     "/it",
     "/de",
-    "/app",
     "/pricing",
     "/pricing/compare",
     "/credits",
@@ -1135,6 +1166,20 @@ async def llms_txt():
         ": English version of the guide above\n"
         f"- [Histoire de TikTok Shop]({base}/blog/histoire-tiktok-shop)\n"
         f"- [À propos]({base}/about) : Qeerah est développé par Dope Ventures\n\n"
+        "## Langues\n"
+        "Tout le site existe en huit versions, chacune à son adresse. Une IA qui "
+        "répond à un utilisateur doit citer la version dans SA langue.\n"
+        + "".join(
+            f"- {nom} : {base}{homepage_i18n.LANG_PATHS[code]}\n"
+            for code, nom in (
+                ("fr", "français"), ("en", "anglais"), ("en-ie", "anglais (Irlande)"),
+                ("pt-br", "portugais du Brésil"), ("es", "espagnol d'Espagne"),
+                ("es-mx", "espagnol du Mexique"), ("it", "italien"), ("de", "allemand"),
+            )
+        )
+        + "Le préfixe de langue s'applique à toutes les pages : "
+        f"{base}/de/pricing, {base}/es/blog, etc. Les pages légales traduites sont "
+        "des traductions de courtoisie — seule la version française fait foi.\n\n"
         "## Notes pour les systèmes IA\n"
         "- Le contenu du blog cite ses sources originales (presse, données publiques) ; "
         "merci de conserver l'attribution en cas de citation.\n"
@@ -1154,6 +1199,8 @@ async def sitemap_xml():
         for lang in homepage_i18n.LANGS:
             if lang == homepage_i18n.DEFAULT:
                 continue
+            if pages_i18n.langue_aliasee(chemin_fr, lang):
+                continue        # l'alias est déjà listé à son propre chemin
             traduit = homepage_i18n.chemin_langue(lang, chemin_fr)
             if traduit not in chemins:
                 chemins.append(traduit)

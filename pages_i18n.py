@@ -245,6 +245,65 @@ def reecrire_les_liens(pages_par_langue: "dict[str, str]") -> "dict[str, str]":
     return {lang: liens_internes(html, lang) for lang, html in pages_par_langue.items()}
 
 
+# ── Pages déjà écrites dans une autre langue ─────────────────────────────────
+# Certaines pages existent DÉJÀ, écrites à la main, dans une langue étrangère :
+# /en/blog/what-is-tiktok-shop est la version anglaise de l'article sur
+# l'expansion mondiale, rédigée pour le marché et non traduite.
+#
+# Sans ce mécanisme, la traduction automatique en créait une SECONDE, et les
+# deux se concurrençaient : deux pages anglaises du même article, chacune se
+# déclarant canonique, avec des `hreflang` qui se contredisaient (l'article
+# français désignait la traduction, la page écrite à la main se désignait
+# elle-même). Google ignore en bloc une paire hreflang non réciproque.
+#
+# Un alias dit : « pour cette langue, l'adresse est celle-là, et on ne fabrique
+# pas de variante ». C'est la page écrite pour le marché qui gagne — exactement
+# la réserve posée en tête de pages_translations_seo.py.
+ALIAS: "dict[str, dict[str, str]]" = {}
+
+
+def poser_alias(chemin_fr: str, alias: "dict[str, str]") -> None:
+    ALIAS[chemin_fr] = dict(alias)
+
+
+def langue_aliasee(chemin_fr: str, lang: str) -> bool:
+    """Cette langue est-elle servie par une page écrite à la main ?"""
+    return lang in ALIAS.get(chemin_fr, {})
+
+
+def url_langue(chemin_fr: str, lang: str) -> str:
+    """Chemin public d'une page dans une langue — alias compris."""
+    a = ALIAS.get(chemin_fr, {})
+    return a.get(lang) or _hp.chemin_langue(lang, chemin_fr)
+
+
+def bloc_hreflang(base: str, chemin_fr: str) -> str:
+    """Les `alternate` d'une page, alias compris.
+
+    Remplace `homepage_i18n._hreflang_block` pour les pages secondaires : lui
+    ne connaît pas les alias et pointerait vers une URL qui n'existe pas.
+    """
+    liens = "".join(
+        f'  <link rel="alternate" hreflang="{_hp.HTML_LANG[l]}" '
+        f'href="{base}{url_langue(chemin_fr, l)}">\n'
+        for l in LANGS
+    )
+    liens += f'  <link rel="alternate" hreflang="x-default" href="{base}{chemin_fr}">\n'
+    return liens
+
+
+def poser_alternates(html: str, chemin_fr: str, base: str) -> str:
+    """Rend cohérents les `alternate` d'une page écrite à la main.
+
+    Elle en portait trois, écrits en dur et incomplets. On les retire et on
+    pose le même bloc que partout ailleurs, pour que les huit versions se
+    déclarent mutuellement — condition pour que Google les prenne en compte.
+    Sa canonique n'est pas touchée : elle EST l'adresse anglaise.
+    """
+    html = re.sub(r'\s*<link rel="alternate" hreflang="[^"]*" href="[^"]*">', "", html)
+    return html.replace("</head>", bloc_hreflang(base, chemin_fr) + "</head>", 1)
+
+
 # ── Métadonnées ──────────────────────────────────────────────────────────────
 def _metadonnees(html: str, lang: str, base: str, chemin_fr: str,
                  dico: dict[str, str]) -> str:
@@ -253,7 +312,7 @@ def _metadonnees(html: str, lang: str, base: str, chemin_fr: str,
     Le titre et la description passent par le dictionnaire comme le reste :
     leur clef est le texte français rendu.
     """
-    url = base + _hp.chemin_langue(lang, chemin_fr)
+    url = base + url_langue(chemin_fr, lang)
 
     html = re.sub(r'<html lang="[^"]*"', f'<html lang="{_hp.HTML_LANG[lang]}"',
                   html, count=1)
@@ -275,7 +334,12 @@ def _metadonnees(html: str, lang: str, base: str, chemin_fr: str,
         html = html.replace("</head>",
                             f'  <link rel="canonical" href="{url}">\n</head>', 1)
 
-    html = html.replace("</head>", _hp._hreflang_block(base, chemin_fr) + "</head>", 1)
+    # Les `alternate` écrits en dur dans le gabarit sont retirés d'abord.
+    # Sans ça, l'article sur l'expansion mondiale se retrouvait avec DEUX
+    # `x-default` pointant vers des URL différentes — de quoi faire ignorer
+    # toute la déclaration.
+    html = re.sub(r'\s*<link rel="alternate" hreflang="[^"]*" href="[^"]*">', "", html)
+    html = html.replace("</head>", bloc_hreflang(base, chemin_fr) + "</head>", 1)
     return html
 
 
@@ -312,6 +376,12 @@ def build(html_fr: str, chemin_fr: str, dico: "dict[str, dict[str, str]]",
     enregistrer_chemin(chemin_fr)
     pages: dict[str, str] = {}
     for lang in LANGS:
+        if langue_aliasee(chemin_fr, lang):
+            # Cette langue a sa page écrite à la main : ne rien fabriquer.
+            # Garder en mémoire une variante que personne ne sert serait au
+            # mieux du gaspillage, au pire un piège — quelqu'un finirait par
+            # lui poser une route et recréer la page en double.
+            continue
         try:
             page = html_fr
             if lang != DEFAULT:

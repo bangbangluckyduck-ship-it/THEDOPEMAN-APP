@@ -86,9 +86,18 @@ def test_chaque_page_traduite_est_couverte_par_les_tests():
 
 
 
+def langues_servies(chemin: str) -> list:
+    """Langues pour lesquelles une variante est réellement fabriquée.
+
+    Une langue aliasée (servie par une page écrite à la main) n'en a pas :
+    c'est voulu, cf. pages_i18n.poser_alias.
+    """
+    return [l for l in homepage_i18n.LANGS if not pages_i18n.langue_aliasee(chemin, l)]
+
+
 def test_chaque_page_existe_dans_chaque_langue():
     for chemin, variantes in PAGES.items():
-        manquantes = [l for l in homepage_i18n.LANGS if l not in variantes]
+        manquantes = [l for l in langues_servies(chemin) if l not in variantes]
         assert not manquantes, f"{chemin} : variantes absentes {manquantes}"
 
 
@@ -97,7 +106,8 @@ def test_aucune_variante_nest_un_repli_francais():
     catastrophique si personne ne le remarque."""
     for chemin, variantes in PAGES.items():
         fr = variantes["fr"]
-        identiques = [l for l in AUTRES if variantes[l] == fr]
+        identiques = [l for l in langues_servies(chemin)
+                      if l != "fr" and variantes[l] == fr]
         assert not identiques, f"{chemin} : non traduit en {identiques}"
 
 
@@ -127,7 +137,7 @@ def test_les_dictionnaires_couvrent_les_memes_clefs():
 # ── Ce que lit Google ────────────────────────────────────────────────────────
 def test_html_lang_par_variante():
     for chemin, variantes in PAGES.items():
-        for lang in homepage_i18n.LANGS:
+        for lang in langues_servies(chemin):
             attendu = homepage_i18n.HTML_LANG[lang]
             trouve = re.search(r'<html[^>]*lang="([^"]+)"', variantes[lang])
             assert trouve and trouve.group(1) == attendu, (
@@ -136,7 +146,7 @@ def test_html_lang_par_variante():
 
 def test_canonical_pointe_sur_la_page_elle_meme():
     for chemin, variantes in PAGES.items():
-        for lang in homepage_i18n.LANGS:
+        for lang in langues_servies(chemin):
             attendu = BASE + homepage_i18n.chemin_langue(lang, chemin)
             trouve = re.search(r'<link rel="canonical" href="([^"]+)"', variantes[lang])
             assert trouve, f"{chemin}/{lang} : aucune canonique"
@@ -148,12 +158,60 @@ def test_hreflang_complet_sur_chaque_variante():
     """Google ignore EN BLOC une déclaration hreflang partielle : chaque page
     doit se déclarer elle-même et déclarer toutes les autres."""
     for chemin, variantes in PAGES.items():
-        for lang in homepage_i18n.LANGS:
+        for lang in langues_servies(chemin):
             html = variantes[lang]
             for autre in homepage_i18n.LANGS:
-                url = BASE + homepage_i18n.chemin_langue(autre, chemin)
+                url = BASE + pages_i18n.url_langue(chemin, autre)
                 assert f'href="{url}"' in html, (
                     f"{chemin}/{lang} : hreflang manquant vers {url}")
+
+
+def test_un_seul_x_default_par_page():
+    """Deux `x-default` pointant vers des URL différentes font ignorer toute la
+    déclaration. C'est ce qui arrivait à l'article sur l'expansion mondiale :
+    son gabarit en portait un, écrit en dur, et la construction en ajoutait un
+    second."""
+    for chemin, variantes in PAGES.items():
+        for lang, html in variantes.items():
+            xd = re.findall(r'hreflang="x-default" href="([^"]+)"', html)
+            assert len(xd) == 1, f"{chemin}/{lang} : {len(xd)} x-default → {xd}"
+            assert xd[0] == BASE + chemin, (
+                f"{chemin}/{lang} : x-default pointe sur {xd[0]}")
+
+
+def test_les_alias_ne_sont_pas_dupliques():
+    """Une langue servie par une page écrite à la main ne doit PAS avoir aussi
+    une traduction automatique : deux pages de la même langue pour le même
+    article se concurrenceraient, avec des hreflang contradictoires."""
+    from fastapi.testclient import TestClient
+
+    client = TestClient(main.app)
+    for chemin, alias in pages_i18n.ALIAS.items():
+        for lang, cible in alias.items():
+            fabriquee = homepage_i18n.chemin_langue(lang, chemin)
+            assert client.get(fabriquee).status_code == 404, (
+                f"{fabriquee} existe alors que {lang} est servi par {cible}")
+            assert client.get(cible).status_code == 200, f"{cible} ne répond pas"
+
+
+def test_les_pages_aliasees_declarent_les_memes_alternates():
+    """La réciprocité est la condition pour que Google prenne en compte une
+    paire hreflang : la page écrite à la main doit déclarer exactement les
+    mêmes alternates que l'article qu'elle traduit."""
+    from fastapi.testclient import TestClient
+
+    client = TestClient(main.app)
+    for chemin, alias in pages_i18n.ALIAS.items():
+        attendus = sorted(set(re.findall(
+            r'<link rel="alternate" hreflang="[^"]*" href="([^"]+)"', PAGES[chemin]["fr"])))
+        for cible in set(alias.values()):
+            html = client.get(cible).text
+            trouves = sorted(set(re.findall(
+                r'<link rel="alternate" hreflang="[^"]*" href="([^"]+)"', html)))
+            assert trouves == attendus, (
+                f"{cible} : alternates différents de {chemin}\n"
+                f"  manque   : {sorted(set(attendus) - set(trouves))}\n"
+                f"  en trop  : {sorted(set(trouves) - set(attendus))}")
 
 
 def test_une_route_repond_par_langue():
@@ -162,7 +220,7 @@ def test_une_route_repond_par_langue():
     client = TestClient(main.app)
     for chemin in PAGES:
         for lang in homepage_i18n.LANGS:
-            url = homepage_i18n.chemin_langue(lang, chemin)
+            url = pages_i18n.url_langue(chemin, lang)
             r = client.get(url)
             assert r.status_code == 200, f"{url} → {r.status_code}"
 
@@ -173,7 +231,7 @@ def test_toutes_les_urls_traduites_sont_au_sitemap():
     xml = TestClient(main.app).get("/sitemap.xml").text
     for chemin in PAGES:
         for lang in homepage_i18n.LANGS:
-            url = BASE + homepage_i18n.chemin_langue(lang, chemin)
+            url = BASE + pages_i18n.url_langue(chemin, lang)
             assert f"<loc>{url}</loc>" in xml, f"absent du sitemap : {url}"
 
 
@@ -185,7 +243,7 @@ def test_les_liens_internes_restent_dans_la_langue():
     simplement parce qu'elles n'étaient pas encore construites."""
     traduits = set(PAGES) | {"/"}
     for chemin, variantes in PAGES.items():
-        for lang in AUTRES:
+        for lang in [l for l in langues_servies(chemin) if l != "fr"]:
             prefixe = homepage_i18n.LANG_PATHS[lang]
             for balise in re.findall(r"<a\b[^>]*>", variantes[lang]):
                 # Un lien qui déclare `hreflang` vise une langue précise : c'est
@@ -220,7 +278,7 @@ def test_les_pages_legales_traduites_portent_lavertissement():
     import pages_translations_legal as L
 
     for chemin in LEGALES:
-        for lang in AUTRES:
+        for lang in [l for l in langues_servies(chemin) if l != "fr"]:
             html = PAGES[chemin][lang]
             assert L.AVIS[lang][:60] in html, (
                 f"{chemin}/{lang} : avertissement « le français fait foi » absent")
