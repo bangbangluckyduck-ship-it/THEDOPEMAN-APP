@@ -714,7 +714,7 @@ async def credits_page(): return HTMLResponse(page_traduite("/credits", _CREDITS
 
 @app.get("/avis", response_class=HTMLResponse)
 @app.get("/temoignage", response_class=HTMLResponse)
-async def avis_page(): return HTMLResponse(_AVIS_HTML)
+async def avis_page(): return HTMLResponse(page_traduite("/avis", _AVIS_HTML))
 
 @app.get("/analyser-une-video-tiktok-shop", response_class=HTMLResponse)
 async def lp_analyser_video():
@@ -793,10 +793,10 @@ async def blog_expansion(): return HTMLResponse(_BLOG_EXPANSION_HTML)
 async def blog_tts_en(): return HTMLResponse(_BLOG_TTS_EN_HTML)
 
 @app.get("/contact", response_class=HTMLResponse)
-async def contact(): return HTMLResponse(_CONTACT_HTML)
+async def contact(): return HTMLResponse(page_traduite("/contact", _CONTACT_HTML))
 
 @app.get("/about", response_class=HTMLResponse)
-async def about(): return HTMLResponse(_ABOUT_HTML)
+async def about(): return HTMLResponse(page_traduite("/about", _ABOUT_HTML))
 
 
 # ── SEO : robots.txt + sitemap.xml ────────────────────────────────────────────
@@ -836,6 +836,12 @@ def _traduire_page(chemin_fr: str, html_fr: str, dico: dict) -> None:
 _traduire_page("/pricing", _PRICING_HTML, pages_translations.T_PRICING)
 _traduire_page("/pricing/compare", _PRICING_COMPARE_HTML, pages_translations.T_COMPARE)
 _traduire_page("/credits", _CREDITS_HTML, pages_translations.T_CREDITS)
+
+import pages_translations_confiance as _pt_confiance
+
+_traduire_page("/about", _ABOUT_HTML, _pt_confiance.T_ABOUT)
+_traduire_page("/contact", _CONTACT_HTML, _pt_confiance.T_CONTACT)
+_traduire_page("/avis", _AVIS_HTML, _pt_confiance.T_AVIS)
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────

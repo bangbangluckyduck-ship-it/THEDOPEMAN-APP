@@ -43,6 +43,33 @@ AUTRES = [l for l in homepage_i18n.LANGS if l != "fr"]
 
 
 # ── Construction ─────────────────────────────────────────────────────────────
+def _sources() -> dict:
+    """Page française source + son dictionnaire, pour chaque page traduite.
+
+    Tenu à jour ici et nulle part ailleurs : une page ajoutée à main.py sans
+    entrée ici échoue au test de couverture juste en dessous.
+    """
+    import pages_translations as T
+    import pages_translations_confiance as C
+
+    return {
+        "/pricing": (main._PRICING_HTML, T.T_PRICING),
+        "/pricing/compare": (main._PRICING_COMPARE_HTML, T.T_COMPARE),
+        "/credits": (main._CREDITS_HTML, T.T_CREDITS),
+        "/about": (main._ABOUT_HTML, C.T_ABOUT),
+        "/contact": (main._CONTACT_HTML, C.T_CONTACT),
+        "/avis": (main._AVIS_HTML, C.T_AVIS),
+    }
+
+
+def test_chaque_page_traduite_est_couverte_par_les_tests():
+    """Sans ça, une page ajoutée à main.py échapperait aux contrôles de
+    dictionnaire — et pourrait partir en production à moitié traduite."""
+    manquantes = sorted(set(PAGES) - set(_sources()))
+    assert not manquantes, f"pages non couvertes par _sources() : {manquantes}"
+
+
+
 def test_chaque_page_existe_dans_chaque_langue():
     for chemin, variantes in PAGES.items():
         manquantes = [l for l in homepage_i18n.LANGS if l not in variantes]
@@ -62,13 +89,7 @@ def test_aucune_clef_orpheline():
     """Le garde-fou du choix « la clef est le texte ». Une entrée qui ne
     correspond plus à rien signale une phrase française reformulée — et donc
     sept langues devenues muettes à cet endroit."""
-    import pages_translations as T
-
-    sources = {
-        "/pricing": (main._PRICING_HTML, T.T_PRICING),
-        "/pricing/compare": (main._PRICING_COMPARE_HTML, T.T_COMPARE),
-        "/credits": (main._CREDITS_HTML, T.T_CREDITS),
-    }
+    sources = _sources()
     for chemin, (html, dico) in sources.items():
         orphelines = pages_i18n.clefs_orphelines(html, dico)
         assert not orphelines, (
@@ -79,10 +100,7 @@ def test_aucune_clef_orpheline():
 def test_les_dictionnaires_couvrent_les_memes_clefs():
     """Une clef présente en allemand et absente en italien = un trou de langue
     invisible : la page reste partiellement française."""
-    import pages_translations as T
-
-    for nom, dico in (("pricing", T.T_PRICING), ("compare", T.T_COMPARE),
-                      ("credits", T.T_CREDITS)):
+    for nom, (_html, dico) in _sources().items():
         reference = set(dico["en"])
         for lang in AUTRES:
             assert lang in dico, f"{nom} : langue {lang} absente du dictionnaire"

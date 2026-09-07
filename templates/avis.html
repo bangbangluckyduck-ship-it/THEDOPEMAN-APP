@@ -61,7 +61,10 @@
     </div>
   </main>
 
-  <script>var note = 0;
+  {#- `data-i18n-js` : ce script porte des messages lus par le visiteur (alertes
+      et libellés du bouton), pas seulement du code. Le serveur y traduit les
+      chaînes déclarées au dictionnaire de la page ; le reste est laissé tel quel. -#}
+  <script data-i18n-js>var note = 0;
     document.querySelectorAll('#t-stars span').forEach(function (s) {
       s.onclick = function () {
         note = parseInt(s.getAttribute('data-n'));
