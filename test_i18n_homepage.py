@@ -297,6 +297,45 @@ def test_les_emails_danalyse_couvrent_toutes_les_langues():
         assert not manquantes, f"e-mail {lang} : clefs manquantes {manquantes}"
 
 
+# ── Modale connexion / inscription ──────────────────────────────────────────
+def test_la_modale_de_connexion_est_traduite():
+    """C'était le dernier écran resté en français : un visiteur allemand
+    cliquait « Anmelden » et tombait sur un formulaire français — au moment
+    précis où on lui demande de créer un compte."""
+    def titre(lang: str) -> str:
+        m = re.search(r'<h2 id="hp-auth-heading"[^>]*>([^<]*)<', PAGES[lang])
+        assert m, f"{lang} : modale de connexion introuvable"
+        return m.group(1).strip()
+
+    fr = titre("fr")
+    for lang in homepage_i18n.LANGS:
+        if lang == "fr":
+            continue
+        assert titre(lang) != fr, f"{lang} : modale de connexion restée en français"
+
+
+def test_les_libelles_du_script_dauth_sont_traduits():
+    """Le script réécrit la modale quand on bascule vers l'inscription. Il relit
+    #auth-labels : si ce bloc n'est pas traduit, le formulaire repasse en
+    français au premier clic."""
+    def labels(lang: str) -> list[str]:
+        bloc = re.search(r'<div id="auth-labels" hidden>(.*?)</div>',
+                         PAGES[lang], re.S)
+        assert bloc, f"{lang} : bloc #auth-labels absent"
+        return [t.strip() for t in re.findall(r">([^<>]+)</span>", bloc.group(1))]
+
+    fr = labels("fr")
+    assert fr, "aucun libellé d'authentification dans la version française"
+    for lang in homepage_i18n.LANGS:
+        if lang == "fr":
+            continue
+        autres = labels(lang)
+        assert len(autres) == len(fr), (
+            f"{lang} : {len(autres)} libellés d'auth pour {len(fr)} en français")
+        identiques = [v for v, f in zip(autres, fr) if v == f]
+        assert not identiques, f"{lang} : libellés d'auth restés en français : {identiques}"
+
+
 # ── Données structurées (JSON-LD) ───────────────────────────────────────────
 def _jsonld(lang: str) -> dict:
     bloc = re.search(r'<script type="application/ld\+json">(.*?)</script>',

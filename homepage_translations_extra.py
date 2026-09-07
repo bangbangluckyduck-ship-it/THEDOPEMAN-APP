@@ -225,6 +225,31 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "ft_social": "Redes",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. Todos los derechos reservados",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # Cf. homepage_i18n.py : la modale d'authentification, dernier écran
+        # resté en français sur les pages traduites.
+        "au_title": "Entrar a mi cuenta",
+        "au_sub": "Entra a tu cuenta de Qeerah.",
+        "au_title_signup": "Crear mi cuenta",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "tu@email.com",
+        "au_pwd_ph": "Contraseña",
+        "au_pwd_ph_signup": "Elige una contraseña (mín. 6 caracteres)",
+        "au_forgot": "¿Olvidaste tu contraseña?",
+        "au_submit": "Entrar",
+        "au_cancel": "Cancelar",
+        "au_switch_label": "¿Todavía no tienes cuenta?",
+        "au_switch_label_login": "¿Ya tienes cuenta?",
+        "au_switch_btn": "Crear una cuenta",
+        "au_err_email": "Correo no válido",
+        "au_err_pwd": "La contraseña debe tener al menos 6 caracteres",
+        "au_err_captcha": "⏳ Verificación de seguridad en curso — espera la palomita verde e inténtalo de nuevo.",
+        "au_err_auth": "Error de autenticación",
+        "fp_title": "Restablecer tu contraseña",
+        "fp_submit": "Recibir el enlace para restablecerla",
+        "fp_note": "Enlace seguro enviado por correo (válido 24 h).",
+        "hd_account": "👤 Mi cuenta",
     },
 
     # ═══════════════════════════ INDONÉSIEN ═══════════════════════════

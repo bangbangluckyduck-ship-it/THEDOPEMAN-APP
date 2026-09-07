@@ -324,6 +324,33 @@ T: dict[str, dict[str, str]] = {
         "ft_social": "Social",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. All rights reserved",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # La modale d'authentification était le dernier écran resté en français
+        # sur les pages traduites : un visiteur cliquait « Konto erstellen » et
+        # se retrouvait devant un formulaire français. Le script qui bascule
+        # entre connexion et inscription relit ces mêmes clefs dans #auth-labels.
+        "au_title": "Sign in to your account",
+        "au_sub": "Log in to your Qeerah account.",
+        "au_title_signup": "Create my account",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "you@email.com",
+        "au_pwd_ph": "Password",
+        "au_pwd_ph_signup": "Choose a password (min. 6 characters)",
+        "au_forgot": "Forgot your password?",
+        "au_submit": "Log in",
+        "au_cancel": "Cancel",
+        "au_switch_label": "No account yet?",
+        "au_switch_label_login": "Already have an account?",
+        "au_switch_btn": "Create an account",
+        "au_err_email": "Invalid email",
+        "au_err_pwd": "Password must be at least 6 characters",
+        "au_err_captcha": "⏳ Security check in progress — wait for the green tick, then try again.",
+        "au_err_auth": "Authentication error",
+        "fp_title": "Reset your password",
+        "fp_submit": "Send me the reset link",
+        "fp_note": "Secure link sent by email (valid for 24h).",
+        "hd_account": "👤 My account",
     },
 
     # ═══════════════════════════ PORTUGAIS (BRÉSIL) ═══════════════════════════
@@ -518,6 +545,33 @@ T: dict[str, dict[str, str]] = {
         "ft_social": "Redes",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. Todos os direitos reservados",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # La modale d'authentification était le dernier écran resté en français
+        # sur les pages traduites : un visiteur cliquait « Konto erstellen » et
+        # se retrouvait devant un formulaire français. Le script qui bascule
+        # entre connexion et inscription relit ces mêmes clefs dans #auth-labels.
+        "au_title": "Acessar minha conta",
+        "au_sub": "Entre na sua conta Qeerah.",
+        "au_title_signup": "Criar minha conta",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "voce@email.com",
+        "au_pwd_ph": "Senha",
+        "au_pwd_ph_signup": "Escolha uma senha (mín. 6 caracteres)",
+        "au_forgot": "Esqueceu a senha?",
+        "au_submit": "Entrar",
+        "au_cancel": "Cancelar",
+        "au_switch_label": "Ainda não tem conta?",
+        "au_switch_label_login": "Já tem uma conta?",
+        "au_switch_btn": "Criar uma conta",
+        "au_err_email": "E-mail inválido",
+        "au_err_pwd": "A senha precisa ter no mínimo 6 caracteres",
+        "au_err_captcha": "⏳ Verificação de segurança em andamento — espere o sinal verde e tente de novo.",
+        "au_err_auth": "Erro de autenticação",
+        "fp_title": "Redefinir sua senha",
+        "fp_submit": "Receber o link de redefinição",
+        "fp_note": "Link seguro enviado por e-mail (válido por 24h).",
+        "hd_account": "👤 Minha conta",
     },
 
     # ═══════════════════════════ ESPAGNOL ═══════════════════════════
@@ -710,6 +764,33 @@ T: dict[str, dict[str, str]] = {
         "ft_social": "Redes",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. Todos los derechos reservados",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # La modale d'authentification était le dernier écran resté en français
+        # sur les pages traduites : un visiteur cliquait « Konto erstellen » et
+        # se retrouvait devant un formulaire français. Le script qui bascule
+        # entre connexion et inscription relit ces mêmes clefs dans #auth-labels.
+        "au_title": "Acceder a mi cuenta",
+        "au_sub": "Entra en tu cuenta de Qeerah.",
+        "au_title_signup": "Crear mi cuenta",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "tu@email.com",
+        "au_pwd_ph": "Contraseña",
+        "au_pwd_ph_signup": "Elige una contraseña (mín. 6 caracteres)",
+        "au_forgot": "¿Has olvidado la contraseña?",
+        "au_submit": "Iniciar sesión",
+        "au_cancel": "Cancelar",
+        "au_switch_label": "¿Aún no tienes cuenta?",
+        "au_switch_label_login": "¿Ya tienes cuenta?",
+        "au_switch_btn": "Crear una cuenta",
+        "au_err_email": "Correo no válido",
+        "au_err_pwd": "La contraseña debe tener al menos 6 caracteres",
+        "au_err_captcha": "⏳ Verificación de seguridad en curso — espera la marca verde y vuelve a intentarlo.",
+        "au_err_auth": "Error de autenticación",
+        "fp_title": "Restablecer tu contraseña",
+        "fp_submit": "Recibir el enlace de restablecimiento",
+        "fp_note": "Enlace seguro enviado por correo (válido 24 h).",
+        "hd_account": "👤 Mi cuenta",
     },
 
     # ═══════════════════════════ ITALIEN ═══════════════════════════
@@ -903,6 +984,33 @@ T: dict[str, dict[str, str]] = {
         "ft_social": "Social",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. Tutti i diritti riservati",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # La modale d'authentification était le dernier écran resté en français
+        # sur les pages traduites : un visiteur cliquait « Konto erstellen » et
+        # se retrouvait devant un formulaire français. Le script qui bascule
+        # entre connexion et inscription relit ces mêmes clefs dans #auth-labels.
+        "au_title": "Accedi al tuo spazio",
+        "au_sub": "Entra nel tuo account Qeerah.",
+        "au_title_signup": "Crea il mio account",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "tu@email.com",
+        "au_pwd_ph": "Password",
+        "au_pwd_ph_signup": "Scegli una password (min. 6 caratteri)",
+        "au_forgot": "Password dimenticata?",
+        "au_submit": "Accedi",
+        "au_cancel": "Annulla",
+        "au_switch_label": "Non hai ancora un account?",
+        "au_switch_label_login": "Hai già un account?",
+        "au_switch_btn": "Crea un account",
+        "au_err_email": "Email non valida",
+        "au_err_pwd": "La password deve avere almeno 6 caratteri",
+        "au_err_captcha": "⏳ Verifica di sicurezza in corso — aspetta la spunta verde e riprova.",
+        "au_err_auth": "Errore di autenticazione",
+        "fp_title": "Reimposta la tua password",
+        "fp_submit": "Ricevi il link di reimpostazione",
+        "fp_note": "Link sicuro inviato per email (valido 24 h).",
+        "hd_account": "👤 Il mio account",
     },
 
     # ═══════════════════════════ ALLEMAND ═══════════════════════════
@@ -1096,6 +1204,33 @@ T: dict[str, dict[str, str]] = {
         "ft_social": "Netzwerke",
         "ft_copy": "© 2026 Qeerah - Dope Ventures. Alle Rechte vorbehalten",
         "ft_made": "Made with ❤️ in France 🇫🇷",
+
+        # ── Connexion / inscription ──────────────────────────────────────────
+        # La modale d'authentification était le dernier écran resté en français
+        # sur les pages traduites : un visiteur cliquait « Konto erstellen » et
+        # se retrouvait devant un formulaire français. Le script qui bascule
+        # entre connexion et inscription relit ces mêmes clefs dans #auth-labels.
+        "au_title": "Zu meinem Konto",
+        "au_sub": "Melde dich bei deinem Qeerah-Konto an.",
+        "au_title_signup": "Konto erstellen",
+        "au_sub_signup": "{trial_full}.",
+        "au_email_ph": "du@email.com",
+        "au_pwd_ph": "Passwort",
+        "au_pwd_ph_signup": "Passwort wählen (mind. 6 Zeichen)",
+        "au_forgot": "Passwort vergessen?",
+        "au_submit": "Anmelden",
+        "au_cancel": "Abbrechen",
+        "au_switch_label": "Noch kein Konto?",
+        "au_switch_label_login": "Du hast schon ein Konto?",
+        "au_switch_btn": "Konto erstellen",
+        "au_err_email": "Ungültige E-Mail",
+        "au_err_pwd": "Das Passwort braucht mindestens 6 Zeichen",
+        "au_err_captcha": "⏳ Sicherheitsprüfung läuft — warte auf den grünen Haken und versuch es nochmal.",
+        "au_err_auth": "Anmeldung fehlgeschlagen",
+        "fp_title": "Passwort zurücksetzen",
+        "fp_submit": "Link zum Zurücksetzen schicken",
+        "fp_note": "Sicherer Link per E-Mail (24 Std. gültig).",
+        "hd_account": "👤 Mein Konto",
     },
 }
 

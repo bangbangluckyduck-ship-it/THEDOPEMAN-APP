@@ -2298,7 +2298,7 @@
     if (loginBtn) {
       const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
       if (session.email) {
-        loginBtn.textContent = '👤 Mon compte';
+        loginBtn.textContent = auth('l-hd-account', '👤 Mon compte');
         loginBtn.onclick = () => window.location.href = '/app';
       }
     }
@@ -2307,21 +2307,40 @@
   // Bascule connexion ↔ inscription de la modale d'accueil.
   window.__hpAuthMode = 'login';
 
+  // Libellés déposés dans #auth-labels et traduits par le serveur. Repli sur le
+  // français passé en second argument si l'élément venait à manquer.
+  function auth(id, replifr) {
+    var el = document.getElementById(id);
+    var v = el && el.textContent ? el.textContent.trim() : '';
+    return v || replifr;
+  }
+  window.__authLibelle = auth;
+
   function setHomeAuthMode(mode) {
     window.__hpAuthMode = (mode === 'signup') ? 'signup' : 'login';
     var inscription = window.__hpAuthMode === 'signup';
     function set(id, prop, val) { var el = document.getElementById(id); if (el) el[prop] = val; }
-    set('hp-auth-heading', 'textContent', inscription ? 'Créer mon compte' : 'Accès à mon espace');
+    set('hp-auth-heading', 'textContent', inscription
+        ? auth('l-au-title-signup', 'Créer mon compte')
+        : auth('l-au-title', 'Accès à mon espace'));
     set('hp-auth-sub',     'textContent', inscription
-        ? "7 jours d'accès complet, sans carte bancaire."
-        : 'Connecte-toi à ton compte Qeerah.');
-    set('hp-submit-btn',   'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
-    set('hp-switch-label', 'textContent', inscription ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?');
-    set('hp-switch-btn',   'textContent', inscription ? 'Se connecter' : 'Créer un compte');
+        ? auth('l-au-sub-signup', "7 jours d'accès complet, sans carte bancaire.")
+        : auth('l-au-sub', 'Connecte-toi à ton compte Qeerah.'));
+    set('hp-submit-btn',   'textContent', inscription
+        ? auth('l-au-title-signup', 'Créer mon compte')
+        : auth('l-au-submit', 'Se connecter'));
+    set('hp-switch-label', 'textContent', inscription
+        ? auth('l-au-switch-label-login', 'Tu as déjà un compte ?')
+        : auth('l-au-switch-label', 'Pas encore de compte ?'));
+    set('hp-switch-btn',   'textContent', inscription
+        ? auth('l-au-submit', 'Se connecter')
+        : auth('l-au-switch-btn', 'Créer un compte'));
     var forgot = document.getElementById('hp-forgot-wrap');
     if (forgot) forgot.style.display = inscription ? 'none' : 'block';
     var pwd = document.getElementById('login-password');
-    if (pwd) pwd.placeholder = inscription ? 'Choisis un mot de passe (min. 6 caractères)' : 'Mot de passe';
+    if (pwd) pwd.placeholder = inscription
+        ? auth('l-au-pwd-signup', 'Choisis un mot de passe (min. 6 caractères)')
+        : auth('l-au-pwd', 'Mot de passe');
     var msg = document.getElementById('login-message');
     if (msg) msg.style.display = 'none';
   }
@@ -2336,13 +2355,13 @@
     const messageDiv = document.getElementById('login-message');
 
     if (!email || !email.includes('@')) {
-      messageDiv.textContent = 'Email invalide';
+      messageDiv.textContent = window.__authLibelle('l-au-err-email', 'Email invalide');
       messageDiv.style.display = 'block';
       return;
     }
 
     if (!password || password.length < 6) {
-      messageDiv.textContent = 'Mot de passe min 6 caractères';
+      messageDiv.textContent = window.__authLibelle('l-au-err-pwd', 'Mot de passe min 6 caractères');
       messageDiv.style.display = 'block';
       return;
     }
@@ -2355,7 +2374,7 @@
 
       // Widget affiché mais pas encore validé → on évite une requête vouée à l'échec
       if (document.querySelector('.cf-turnstile') && !cfToken) {
-        messageDiv.textContent = '⏳ Vérification de sécurité en cours — attends la coche verte puis réessaie.';
+        messageDiv.textContent = window.__authLibelle('l-au-err-captcha', '⏳ Vérification de sécurité en cours — attends la coche verte puis réessaie.');
         messageDiv.style.display = 'block';
         return;
       }
@@ -2369,7 +2388,7 @@
 
       const data = await res.json().catch(function () { return {}; });
       if (!res.ok) {
-        messageDiv.textContent = data.detail || 'Erreur d\'authentification';
+        messageDiv.textContent = data.detail || window.__authLibelle('l-au-err-auth', 'Erreur d\'authentification');
         messageDiv.style.display = 'block';
         // Bascule vers le bon écran : 401 en connexion = pas de compte,
         // 409 en inscription = compte déjà existant.
@@ -3011,40 +3030,58 @@
 </script>
 
 <!-- Login Modal -->
+{#- Libellés que le script pose lui-même quand on bascule entre connexion et
+    inscription, ou quand une erreur s'affiche. Ils sont écrits ici en français
+    avec leur clef : le serveur les traduit comme le reste de la page, le script
+    les relit. Sans ça, un visiteur allemand cliquant « Konto erstellen » voyait
+    le formulaire repasser en français. -#}
+<div id="auth-labels" hidden>
+  <span id="l-au-title-signup" data-i18n="au_title_signup">Créer mon compte</span>
+  <span id="l-au-title" data-i18n="au_title">Accès à mon espace</span>
+  <span id="l-au-sub-signup" data-i18n="au_sub_signup" data-var-trial_full="{{ TRIAL_OFFER_FULL }}">{{ TRIAL_OFFER_FULL }}.</span>
+  <span id="l-au-sub" data-i18n="au_sub">Connecte-toi à ton compte Qeerah.</span>
+  <span id="l-au-submit" data-i18n="au_submit">Se connecter</span>
+  <span id="l-au-switch-label-login" data-i18n="au_switch_label_login">Tu as déjà un compte ?</span>
+  <span id="l-au-switch-label" data-i18n="au_switch_label">Pas encore de compte ?</span>
+  <span id="l-au-switch-btn" data-i18n="au_switch_btn">Créer un compte</span>
+  <span id="l-au-pwd-signup" data-i18n="au_pwd_ph_signup">Choisis un mot de passe (min. 6 caractères)</span>
+  <span id="l-au-pwd" data-i18n="au_pwd_ph">Mot de passe</span>
+  <span id="l-au-err-email" data-i18n="au_err_email">Email invalide</span>
+  <span id="l-au-err-pwd" data-i18n="au_err_pwd">Mot de passe min 6 caractères</span>
+  <span id="l-au-err-captcha" data-i18n="au_err_captcha">⏳ Vérification de sécurité en cours — attends la coche verte puis réessaie.</span>
+  <span id="l-au-err-auth" data-i18n="au_err_auth">Erreur d'authentification</span>
+  <span id="l-hd-account" data-i18n="hd_account">👤 Mon compte</span>
+</div>
+
 <div id="login-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.6); z-index: 9999; display: none; align-items: center;
   justify-content: center; overflow-y: auto; padding: 20px;">
   <div style="background: var(--surface); padding: 32px; border-radius: 12px; max-width: 420px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; margin: auto;">
-    <h2 id="hp-auth-heading" style="margin: 0 0 8px 0; font-size: 20px">Accès à mon espace</h2>
-    <p id="hp-auth-sub" style="color: var(--muted); font-size: 14px; margin: 0 0 24px 0;">Connecte-toi à ton compte Qeerah.
-    </p>
-    <input type="email" id="login-email" placeholder="ton@email.com"
+    <h2 id="hp-auth-heading" style="margin: 0 0 8px 0; font-size: 20px" data-i18n="au_title">Accès à mon espace</h2>
+    <p id="hp-auth-sub" style="color: var(--muted); font-size: 14px; margin: 0 0 24px 0;" data-i18n="au_sub">Connecte-toi à ton compte Qeerah.</p>
+    <input type="email" id="login-email" placeholder="ton@email.com" data-i18n-ph="au_email_ph"
       style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
       font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 12px;">
-    <input type="password" id="login-password" placeholder="Mot de passe"
+    <input type="password" id="login-password" placeholder="Mot de passe" data-i18n-ph="au_pwd_ph"
       style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
       font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 16px;">
     <div id="hp-forgot-wrap" style="text-align:center;margin:12px 0;padding:10px;background:#fff3cd;border-radius:6px;border:1px solid #ffc107">
-      <button type="button" onclick="openForgotPasswordModal(); closeLoginModal()" style="background:none;border:none;color:#d39e00;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0">Mot de passe oublié?
-      </button>
+      <button type="button" onclick="openForgotPasswordModal(); closeLoginModal()" style="background:none;border:none;color:#d39e00;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0" data-i18n="au_forgot">Mot de passe oublié ?</button>
     </div>
     <div id="login-message" style="color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none;"></div>
     <!--TURNSTILE_WIDGET-->
     <button id="hp-submit-btn" onclick="submitLoginModal()" style="width: 100%; padding: 12px; background: var(--primary);
-      color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;">Se connecter
-    </button>
+      color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;" data-i18n="au_submit">Se connecter</button>
     <button onclick="closeLoginModal()" style="width: 100%; padding: 12px; background: transparent;
-      color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Annuler
-    </button>
+      color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;" data-i18n="au_cancel">Annuler</button>
     <!-- « Connexion / Inscription » dans un seul formulaire : c'est cette ambiguïté
          qui faisait qu'une adresse mal saisie créait un compte au lieu de le dire. -->
     <p style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--muted)">
-      <span id="hp-switch-label">Pas encore de compte ?</span>
+      <span id="hp-switch-label" data-i18n="au_switch_label">Pas encore de compte ?</span>
       <button type="button" id="hp-switch-btn" onclick="toggleHomeAuthMode()"
-              style="background:none;border:none;color:var(--accent,#2563EB);font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:13.5px">
-        Créer un compte
-      </button>
+              style="background:none;border:none;color:var(--accent,#2563EB);font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:13.5px"
+              data-i18n="au_switch_btn">Créer un compte</button>
     </p>
   </div>
 </div>
@@ -3055,19 +3092,17 @@
   justify-content: center; overflow-y: auto; padding: 20px;">
   <div style="background: var(--surface); padding: 32px; border-radius: 12px; max-width: 420px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; margin: auto;">
-    <h2 style="margin: 0 0 20px 0; font-size: 20px">Réinitialiser ton mot de passe</h2>
+    <h2 style="margin: 0 0 20px 0; font-size: 20px" data-i18n="fp_title">Réinitialiser ton mot de passe</h2>
     <form id="forgot-password-form" onsubmit="submitForgotPassword(event)">
-      <input type="email" id="forgot-email-input" placeholder="ton@email.com" required
+      <input type="email" id="forgot-email-input" placeholder="ton@email.com" required data-i18n-ph="au_email_ph"
         style="width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
         font-size: 14px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 12px;">
       <button type="submit" style="width: 100%; padding: 12px; background: var(--primary);
-        color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;">Recevoir le lien de réinitialisation
-      </button>
-      <p style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 4px">Lien sécurisé envoyé par email (valable 24h).</p>
+        color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 8px;" data-i18n="fp_submit">Recevoir le lien de réinitialisation</button>
+      <p style="font-size:12px;color:var(--muted);text-align:center;margin:0 0 4px" data-i18n="fp_note">Lien sécurisé envoyé par email (valable 24h).</p>
     </form>
     <button onclick="closeForgotPasswordModal()" style="width: 100%; padding: 12px; background: transparent;
-      color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Annuler
-    </button>
+      color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;" data-i18n="au_cancel">Annuler</button>
   </div>
 </div>
 
