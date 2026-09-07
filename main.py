@@ -376,24 +376,44 @@ _SECURITY_HEADERS = [
 ]
 
 
-# Extensions cache pour lesquelles un cache long+immutable est sûr sur /static.
-_STATIC_LONG_CACHE_EXT = (".js", ".css", ".png", ".jpg", ".jpeg", ".webp",
-                          ".avif", ".svg", ".ico", ".gif", ".woff", ".woff2")
+# Fichiers dont le CONTENU ne change jamais sous le même nom : une image
+# optimisée ou une police portent un nom dédié, on peut les figer un an.
+_STATIC_IMMUABLE_EXT = (".png", ".jpg", ".jpeg", ".webp", ".avif", ".svg",
+                        ".ico", ".gif", ".woff", ".woff2")
 
 
 def _static_cache_control(path: str, query: bytes) -> "bytes | None":
-    """Politique de cache pour /static :
-      - sw.js (service worker) → no-cache (doit toujours revalider pour se mettre à jour).
-      - assets versionnés (?v=…) ou fichiers immuables (js/css/images/fonts) → 1 an immutable.
-        Sûr car les JS/CSS sont cache-bustés par ?v=<mtime> (nouvelle version = nouvelle URL)
-        et les images optimisées portent un nom de fichier dédié.
-      - le reste → 1h."""
+    """Politique de cache pour /static.
+
+    ⚠️ CORRIGÉ le 07/09/2026 — le `.js` et le `.css` étaient dans la liste
+    « immuable ». Le commentaire d'alors disait « sûr car cache-busté par
+    ?v=<mtime> » : ce n'était pas vrai. Aucun gabarit ne pose de `?v=` sur ses
+    scripts (`<script src="/static/app_v3.js">`, qeerah-consent.js…). Résultat,
+    depuis le 15/07/2026 chaque navigateur déjà venu gardait le JS un an, sans
+    jamais revalider — `immutable` interdit même le 304. Tous les correctifs
+    front livrés depuis n'atteignaient que les nouveaux visiteurs et ceux qui
+    forçaient le rechargement. C'est aussi ce qui aurait empêché la traduction
+    de l'interface d'arriver chez les utilisateurs existants.
+
+    Désormais :
+      - sw.js → no-cache (le service worker doit toujours pouvoir se remplacer) ;
+      - URL versionnée (?v=…) → 1 an immutable : le nom change à chaque version,
+        c'est le seul cas où figer est réellement sûr ;
+      - images et polices → 1 an immutable (nom de fichier dédié) ;
+      - JS et CSS sans version → 10 minutes, puis revalidation. Le coût est
+        quasi nul (un 304 sans corps) et une mise en ligne devient visible tout
+        de suite, ce qui est la seule chose qui compte ici ;
+      - le reste → 1 h."""
     if not path.startswith("/static/"):
         return None
     if path.endswith("/sw.js"):
         return b"no-cache"
-    if (b"v=" in query) or path.endswith(_STATIC_LONG_CACHE_EXT):
+    if b"v=" in query:
         return b"public, max-age=31536000, immutable"
+    if path.endswith(_STATIC_IMMUABLE_EXT):
+        return b"public, max-age=31536000, immutable"
+    if path.endswith((".js", ".css")):
+        return b"public, max-age=600, must-revalidate"
     return b"public, max-age=3600"
 
 
