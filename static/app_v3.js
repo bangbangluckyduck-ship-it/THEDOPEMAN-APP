@@ -5403,6 +5403,24 @@ async function runRechercheSearch(refresh) {
   }
 }
 
+// Vues compactes façon FR : 1,2 M · 340 k · 8 500.
+function _fmtVues(n) {
+  n = Math.round(Number(n) || 0);
+  if (n >= 999500) return (n / 1e6).toFixed(1).replace('.0', '').replace('.', ',') + ' M';
+  if (n >= 10000) return Math.round(n / 1000) + ' k';
+  return n.toLocaleString('fr-FR');
+}
+
+// Ventes pour 1000 vues. null → "—" (vues absentes ou nulles) : jamais un 0,0 de
+// repli. Un vrai zéro vente s'écrit "0", et un ratio réel mais minuscule
+// (ex : 0,03 pour un gros compte) s'écrit "< 0,1" plutôt que de s'arrondir en 0,0.
+function _fmtRatio(r) {
+  if (r === null || r === undefined) return '—';
+  if (r === 0) return '0';
+  if (r < 0.1) return '< 0,1';
+  return r.toFixed(1).replace('.', ',');
+}
+
 function renderRechercheResult(data) {
   const p = data.profile || {};
   const gmv = data.gmv || {};
@@ -5448,6 +5466,36 @@ function renderRechercheResult(data) {
       : `Aucune vidéo TikTok Shop récente avec produit taggé sur ce compte — on ne peut donc pas attribuer de vente à une vidéo précise. Ça n'exclut pas d'autres ventes hors de cette fenêtre.`}</p>
     ${attribution.videos_analyzed ? `<div style="display:grid;grid-template-columns:1fr;gap:8px;width:100%;min-width:0;margin-bottom:18px">${attrProductsHtml}</div>` : ''}`;
 
+  // ── Vues 30j (estimées) + ventes / 1000 vues ────────────────────────────
+  // La source ne date PAS les vues (compteur cumulé à vie, cf.
+  // _estimate_views_30d côté serveur) → le chiffre est une estimation, dite
+  // comme telle. Ventes 30j inconnues (compte non couvert, ou plus de données
+  // récentes) → pas de ratio inventé : "—".
+  const vues30 = gmv.views_30d;
+  const salesKnown = gmv.reliable !== false && !gmv.last_sale_date;
+  const ratio = (salesKnown && vues30) ? gmv.sales_per_1k_views : null;
+  const vuesFenetre = gmv.views_span_days && gmv.views_first_day && gmv.views_last_day
+    ? `du ${_frDate(gmv.views_first_day)} au ${_frDate(gmv.views_last_day)} (${gmv.views_span_days} j)`
+    : null;
+  const vuesNote = !vuesFenetre
+    ? `Vues indisponibles pour ce compte : notre source ne renvoie pas assez de jours pour estimer la période.`
+    : vues30
+      ? `Vues estimées : notre source ne date pas les vues, on mesure la progression du compteur ${vuesFenetre}, ramenée à 30 j.`
+      : `Compteur de vues à l'arrêt sur la période mesurée ${vuesFenetre} — notre source ne remonte aucune vue gagnée, ce qui n'est pas forcément la réalité du compte.`;
+
+  const statsHtml = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+      <div style="background:var(--surface2);border-radius:14px;padding:14px;text-align:center;min-width:0">
+        <div style="font-size:12px;color:var(--muted)">Vues 30j <span style="opacity:.8">(estimation)</span></div>
+        <div style="font-size:26px;font-weight:900">${vues30 ? escapeHtml(_fmtVues(vues30)) : '—'}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:14px;padding:14px;text-align:center;min-width:0">
+        <div style="font-size:12px;color:var(--muted)">Ventes / 1000 vues</div>
+        <div style="font-size:26px;font-weight:900">${escapeHtml(_fmtRatio(ratio))}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.45">${escapeHtml(vuesNote)}</div>`;
+
   const fetchedAt = data._fetched_at
     ? new Date(data._fetched_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
     : null;
@@ -5478,6 +5526,7 @@ function renderRechercheResult(data) {
         <div style="font-size:12px;color:var(--muted)">${(gmv.sales_30d || 0).toLocaleString()} ventes sur la période</div>
       `}
     </div>
+    ${statsHtml}
     ${attrSectionHtml}`;
 }
 

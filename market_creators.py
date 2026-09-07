@@ -748,6 +748,51 @@ async def get_influencer_profile(handle: str) -> Optional[dict]:
     return _clean_influencer_profile(user)
 
 
+def _estimate_views_30d(by_day: dict, days: int = 30) -> dict:
+    """Vues sur la fenêtre — ESTIMATION assumée, pas une donnée fournie.
+
+    KeyAPI n'expose AUCUN total de vues daté : dans /influencer/trends/analytics,
+    les champs journaliers portent tous `_1d_` (ventes, GMV, likes, abonnés) sauf
+    les vues, qui n'existent que sous `total_views_cnt` — un compteur CUMULÉ à vie.
+    Il n'y a pas de `total_views_1d_cnt`, et ni /influencer/detail ni
+    /influencer/ranking/analytics ne portent la moindre vue (vérifié en live le
+    04/09/2026). On dérive donc la fenêtre par différence entre les deux bouts de
+    la série, ramenée à `days` jours.
+
+    Ce que ça mesure : les vues gagnées par TOUT le catalogue du créateur pendant
+    la fenêtre — pas les vues des vidéos publiées dedans. C'est bien le
+    dénominateur voulu pour un taux de conversion.
+
+    Mesuré le 04/09/2026 sur les tops FR + US (20 créateurs, ~450 transitions) :
+    compteur toujours croissant (0 retour en arrière), série trouée (19 à 29 jours
+    renvoyés sur 30 demandés) mais trous au MILIEU, jamais aux bords → le span
+    reste de 27-28 jours et la normalisation redresse honnêtement.
+
+    Renvoie views_30d=None dès qu'on ne peut pas estimer (moins de 2 jours,
+    span nul, compteur qui recule) — jamais un chiffre de repli.
+    """
+    points = []
+    for dt in sorted(by_day):
+        v = by_day[dt].get("total_views_cnt")
+        if isinstance(v, (int, float)) and v > 0:
+            points.append((dt, v))
+    out = {"views_30d": None, "views_estimated": True,
+           "views_span_days": None, "views_first_day": None, "views_last_day": None}
+    if len(points) < 2:
+        return out
+    (first_dt, first_v), (last_dt, last_v) = points[0], points[-1]
+    span = (date.fromisoformat(last_dt) - date.fromisoformat(first_dt)).days
+    if span <= 0 or last_v < first_v:   # compteur qui recule = donnée inexploitable
+        return out
+    out.update({
+        "views_30d": round((last_v - first_v) * days / span),
+        "views_span_days": span,
+        "views_first_day": first_dt,
+        "views_last_day": last_dt,
+    })
+    return out
+
+
 async def get_creator_gmv_30d(uid: str, days: int = 30) -> dict:
     """Étape 2 : uid → GMV/ventes RÉELS sur une fenêtre glissante de `days` jours.
     Pagine /influencer/trends/analytics (page_size plafonné à 10 par l'API →
@@ -792,7 +837,15 @@ async def get_creator_gmv_30d(uid: str, days: int = 30) -> dict:
         })
         cur += timedelta(days=1)
 
-    return {"gmv_30d": gmv_total, "sales_30d": sales_total, "days": days, "series": series}
+    views = _estimate_views_30d(by_day, days=days)
+    # Ventes pour 1000 vues : le taux de conversion réel du créateur. None (→ "—"
+    # côté UI) dès que les vues manquent ou sont à zéro — jamais de division par
+    # zéro, jamais un 0,0 de repli qui se lirait comme une vraie mesure.
+    v30 = views.get("views_30d")
+    sales_per_1k = round(sales_total * 1000 / v30, 2) if v30 else None
+
+    return {"gmv_30d": gmv_total, "sales_30d": sales_total, "days": days, "series": series,
+            "sales_per_1k_views": sales_per_1k, **views}
 
 
 async def get_creator_prior_activity(uid: str, days_back: int = 90, skip_recent: int = 30) -> dict:
