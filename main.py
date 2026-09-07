@@ -702,15 +702,15 @@ async def apple_touch(): return FileResponse("static/apple-touch-icon.png")
 
 @app.get("/pricing", response_class=HTMLResponse)
 @app.get("/tarifs", response_class=HTMLResponse)
-async def pricing_page(): return HTMLResponse(_PRICING_HTML)
+async def pricing_page(): return HTMLResponse(page_traduite("/pricing", _PRICING_HTML))
 
 @app.get("/pricing/compare", response_class=HTMLResponse)
 @app.get("/tarifs/comparer", response_class=HTMLResponse)
-async def pricing_compare_page(): return HTMLResponse(_PRICING_COMPARE_HTML)
+async def pricing_compare_page(): return HTMLResponse(page_traduite("/pricing/compare", _PRICING_COMPARE_HTML))
 
 @app.get("/credits", response_class=HTMLResponse)
 @app.get("/credits.html", response_class=HTMLResponse)
-async def credits_page(): return HTMLResponse(_CREDITS_HTML)
+async def credits_page(): return HTMLResponse(page_traduite("/credits", _CREDITS_HTML))
 
 @app.get("/avis", response_class=HTMLResponse)
 @app.get("/temoignage", response_class=HTMLResponse)
@@ -811,6 +811,33 @@ def _seo_base_url() -> str:
     return f"https://{host}"
 
 
+# ── PAGES SECONDAIRES MULTILINGUES ───────────────────────────────────────────
+# Même principe que l'accueil, autre mécanique : ces pages-là ne portent pas de
+# clefs `data-i18n`, leur clef est le texte français lui-même (pages_i18n.py).
+# Aucun gabarit n'est modifié — ce qui compte particulièrement pour les pages
+# légales, où l'on ne va pas glisser des attributs dans un contrat.
+#
+# Ce bloc est placé AVANT la construction de l'accueil, et ce n'est pas un
+# hasard : il enregistre au passage les chemins traduits, dont l'accueil a
+# besoin pour réécrire ses propres liens (« Tarifs » depuis /de doit mener à
+# /de/pricing, pas à la page française).
+import pages_i18n
+import pages_translations
+
+_PAGES_TRADUITES: "dict[str, dict[str, str]]" = {}
+
+
+def _traduire_page(chemin_fr: str, html_fr: str, dico: dict) -> None:
+    """Fabrique les huit variantes d'une page et les garde en mémoire."""
+    _PAGES_TRADUITES[chemin_fr] = pages_i18n.build(
+        html_fr, chemin_fr, dico, _seo_base_url())
+
+
+_traduire_page("/pricing", _PRICING_HTML, pages_translations.T_PRICING)
+_traduire_page("/pricing/compare", _PRICING_COMPARE_HTML, pages_translations.T_COMPARE)
+_traduire_page("/credits", _CREDITS_HTML, pages_translations.T_CREDITS)
+
+
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────
 # La traduction était posée par JavaScript : Googlebot lisait le HTML servi, donc
 # six fois la même page française — aucune des cinq autres langues n'était
@@ -822,6 +849,17 @@ def _seo_base_url() -> str:
 import homepage_i18n
 
 _HOMEPAGE_BY_LANG = homepage_i18n.build(_HOMEPAGE_HTML, _seo_base_url())
+
+# ── Passe finale : les liens internes restent dans la langue lue ─────────────
+# Elle vient APRÈS la construction de toutes les pages, et c'est indispensable :
+# réécrire au fil de l'eau donnait une page tarifs allemande qui renvoyait vers
+# un /credits français, faute d'avoir déjà construit /credits.
+# L'accueil est enregistré ici pour que « ← Retour à l'accueil » depuis
+# /de/pricing mène à /de et non à la page française.
+pages_i18n.enregistrer_chemin("/")
+_HOMEPAGE_BY_LANG = pages_i18n.reecrire_les_liens(_HOMEPAGE_BY_LANG)
+for _chemin, _variantes in _PAGES_TRADUITES.items():
+    _PAGES_TRADUITES[_chemin] = pages_i18n.reecrire_les_liens(_variantes)
 
 
 # Cookie de langue. Il existe pour une raison précise : les analyses sont
@@ -847,6 +885,23 @@ def _langue_requete(request: Request) -> str:
         entete = request.headers.get("accept-language", "")
         brut = homepage_i18n.match_accept_language(entete) or ""
     return analyzer.normaliser_langue(brut)
+
+
+def _reponse_langue(html: str, lang: str) -> HTMLResponse:
+    """Réponse HTML dans une langue donnée, cookie de langue posé.
+
+    Partagée par l'accueil et par toutes les pages secondaires : un visiteur
+    arrivé directement sur /de/pricing depuis Google n'a jamais touché le
+    sélecteur, et doit malgré tout recevoir ses analyses en allemand.
+    """
+    reponse = HTMLResponse(
+        html, headers={"Content-Language": homepage_i18n.HTML_LANG.get(lang, "fr")}
+    )
+    reponse.set_cookie(
+        LANG_COOKIE, lang, max_age=60 * 60 * 24 * 365,
+        samesite="lax", path="/",
+    )
+    return reponse
 
 
 def _page_langue(lang: str) -> HTMLResponse:
@@ -904,6 +959,43 @@ async def home_it(request: Request):
 async def home_de(request: Request):
     await track_visitor("/de", request)
     return _page_langue("de")
+
+
+# ── ROUTES DES PAGES SECONDAIRES TRADUITES ───────────────────────────────────
+# Une route par langue et par page — /en/pricing, /de/credits… Elles sont
+# enregistrées en boucle plutôt qu'écrites à la main : à sept langues, chaque
+# page ajoutée en réclamerait sept, et la première oubliée serait un 404
+# silencieux annoncé par les balises hreflang des sept autres.
+#
+# La version française, elle, garde son URL historique et continue d'être
+# servie par sa route d'origine — mais avec la variante fabriquée ici, qui
+# porte en plus sa canonique et ses hreflang.
+def _enregistrer_routes_traduites() -> None:
+    for chemin_fr, variantes in _PAGES_TRADUITES.items():
+        for lang in homepage_i18n.LANGS:
+            if lang == homepage_i18n.DEFAULT:
+                continue
+            url = homepage_i18n.chemin_langue(lang, chemin_fr)
+
+            async def _servir(request: Request, _v=variantes, _l=lang, _c=chemin_fr):
+                await track_visitor(_c, request)
+                return _reponse_langue(_v.get(_l) or _v[homepage_i18n.DEFAULT], _l)
+
+            app.add_api_route(url, _servir, methods=["GET"],
+                              response_class=HTMLResponse, include_in_schema=False)
+
+
+def page_traduite(chemin_fr: str, defaut: str) -> str:
+    """Variante française d'une page traduite — celle qui porte les hreflang.
+
+    Repli sur le HTML d'origine si la page n'a pas (encore) de traduction :
+    une page non traduite doit rester servie, pas tomber.
+    """
+    variantes = _PAGES_TRADUITES.get(chemin_fr)
+    return (variantes or {}).get(homepage_i18n.DEFAULT, defaut)
+
+
+_enregistrer_routes_traduites()
 
 
 # Pages publiques indexables (chemin canonique unique par page).
@@ -1006,9 +1098,20 @@ async def llms_txt():
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap_xml():
     base = _seo_base_url()
+    # Les traductions des pages secondaires s'ajoutent d'elles-mêmes : le
+    # sitemap se déduit de ce qui a réellement été construit au démarrage, il ne
+    # peut donc pas annoncer une URL qui n'existe pas, ni en oublier une.
+    chemins = list(_SITEMAP_PATHS)
+    for chemin_fr in sorted(_PAGES_TRADUITES):
+        for lang in homepage_i18n.LANGS:
+            if lang == homepage_i18n.DEFAULT:
+                continue
+            traduit = homepage_i18n.chemin_langue(lang, chemin_fr)
+            if traduit not in chemins:
+                chemins.append(traduit)
     urls = "".join(
         f"  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq></url>\n"
-        for p in _SITEMAP_PATHS
+        for p in chemins
     )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
