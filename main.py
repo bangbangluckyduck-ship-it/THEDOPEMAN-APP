@@ -784,7 +784,7 @@ async def blog_createurs(): return HTMLResponse(page_traduite("/blog/createurs-m
 async def blog_tendances(): return HTMLResponse(page_traduite("/blog/tendances-2026", _BLOG_TENDANCES_HTML))
 
 @app.get("/blog/guide-complet", response_class=HTMLResponse)
-async def blog_guide(): return HTMLResponse(_BLOG_GUIDE_HTML)
+async def blog_guide(): return HTMLResponse(page_traduite("/blog/guide-complet", _BLOG_GUIDE_HTML))
 
 @app.get("/blog/expansion-mondiale-tiktok-shop", response_class=HTMLResponse)
 async def blog_expansion(): return HTMLResponse(_BLOG_EXPANSION_HTML)
@@ -881,6 +881,7 @@ _traduire_page("/blog", _BLOG_HTML, _pt_blog.T_BLOG)
 _traduire_page("/blog/tendances-2026", _BLOG_TENDANCES_HTML, _pt_blog.T_BLOG_TENDANCES)
 _traduire_page("/blog/createurs-millionnaires", _BLOG_CREATEURS_HTML, _pt_blog.T_BLOG_CREATEURS)
 _traduire_page("/blog/histoire-tiktok-shop", _BLOG_HISTOIRE_HTML, _pt_blog.T_BLOG_HISTOIRE)
+_traduire_page("/blog/guide-complet", _BLOG_GUIDE_HTML, _pt_blog.T_BLOG_GUIDE)
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────

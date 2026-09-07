@@ -73,6 +73,7 @@ def _sources() -> dict:
         "/blog/tendances-2026": (main._BLOG_TENDANCES_HTML, B.T_BLOG_TENDANCES),
         "/blog/createurs-millionnaires": (main._BLOG_CREATEURS_HTML, B.T_BLOG_CREATEURS),
         "/blog/histoire-tiktok-shop": (main._BLOG_HISTOIRE_HTML, B.T_BLOG_HISTOIRE),
+        "/blog/guide-complet": (main._BLOG_GUIDE_HTML, B.T_BLOG_GUIDE),
     }
 
 
