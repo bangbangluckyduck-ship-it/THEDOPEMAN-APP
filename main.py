@@ -775,7 +775,7 @@ if _TIKTOK_VERIFY_FILENAME and _TIKTOK_VERIFY_CONTENT:
 async def blog(): return HTMLResponse(page_traduite("/blog", _BLOG_HTML))
 
 @app.get("/blog/histoire-tiktok-shop", response_class=HTMLResponse)
-async def blog_histoire(): return HTMLResponse(_BLOG_HISTOIRE_HTML)
+async def blog_histoire(): return HTMLResponse(page_traduite("/blog/histoire-tiktok-shop", _BLOG_HISTOIRE_HTML))
 
 @app.get("/blog/createurs-millionnaires", response_class=HTMLResponse)
 async def blog_createurs(): return HTMLResponse(page_traduite("/blog/createurs-millionnaires", _BLOG_CREATEURS_HTML))
@@ -880,6 +880,7 @@ import pages_translations_blog as _pt_blog
 _traduire_page("/blog", _BLOG_HTML, _pt_blog.T_BLOG)
 _traduire_page("/blog/tendances-2026", _BLOG_TENDANCES_HTML, _pt_blog.T_BLOG_TENDANCES)
 _traduire_page("/blog/createurs-millionnaires", _BLOG_CREATEURS_HTML, _pt_blog.T_BLOG_CREATEURS)
+_traduire_page("/blog/histoire-tiktok-shop", _BLOG_HISTOIRE_HTML, _pt_blog.T_BLOG_HISTOIRE)
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────

@@ -970,3 +970,522 @@ T_BLOG_CREATEURS["pt-br"] = {
 
 T_BLOG_CREATEURS["en-ie"] = dict(T_BLOG_CREATEURS["en"])
 T_BLOG_CREATEURS["es-mx"] = dict(T_BLOG_CREATEURS["es"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /blog/histoire-tiktok-shop
+# ═══════════════════════════════════════════════════════════════════════════
+T_BLOG_HISTOIRE: dict[str, dict[str, str]] = {}
+
+T_BLOG_HISTOIRE["en"] = {
+    "Histoire de TikTok Shop : De la Chine à la France - Qeerah":
+        "The story of TikTok Shop: from China to France - Qeerah",
+    "L'histoire complète de TikTok Shop : Du lancement à la domination mondiale. Découvrez comment TikTok Shop a révolutionné le e-commerce.":
+        "The full story of TikTok Shop, from launch to global reach — and how it turned e-commerce on its head.",
+    "L'histoire complète de TikTok Shop : de la Chine à la domination mondiale":
+        "The full story of TikTok Shop: from China to global reach",
+    "Comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce, de {0} à aujourd'hui.":
+        "How TikTok Shop went from an Asian experiment to a worldwide shake-up of e-commerce, from {0} to today.",
+    "← Retour au blog": "← Back to the blog",
+    "📖 HISTOIRE": "📖 HISTORY",
+    "L'histoire complète de TikTok Shop : De la Chine à la domination mondiale":
+        "The full story of TikTok Shop: from China to global reach",
+    "📅 Mis à jour mai {0}": "📅 Updated May {0}",
+    "👤 Par l'équipe Qeerah": "👤 By the Qeerah team",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "🌍 Prologue : L'ère du e-commerce social": "🌍 Prologue: the age of social commerce",
+    "Le e-commerce a longtemps été dominé par les marketplaces traditionnelles : Amazon, eBay, Alibaba. Mais depuis quelques années, une révolution s'opère. Le shopping social — la fusion du divertissement et du commerce — est devenu la norme. TikTok Shop en est la manifestation la plus claire et la plus puissante.":
+        "For a long time e-commerce belonged to the traditional marketplaces: Amazon, eBay, Alibaba. But over the last few years something has shifted. Social shopping — entertainment and commerce fused together — has become the norm. TikTok Shop is its clearest and most powerful form.",
+    "📱 {0} : Les débuts en Asie du Sud-Est": "📱 {0}: the start in Southeast Asia",
+    "ByteDance, la société mère de TikTok, lance": "ByteDance, TikTok's parent company, launches",
+    "en {0} en Thaïlande et en Indonésie. L'objectif était simple : transformer la plateforme de divertissement en machine de vente e-commerce. Les résultats ont été spectaculaires.":
+        "in {0} in Thailand and Indonesia. The goal was simple: turn an entertainment platform into a selling machine. The results were spectacular.",
+    "En quelques mois, les créateurs thaïlandais et indonésiens ont généré des millions en ventes directement depuis leurs vidéos. C'était une révolution pour ces marchés — plus besoin de site e-commerce complexe, plus besoin de publicité coûteuse. Juste du contenu, et des ventes instantanées.":
+        "Within months, Thai and Indonesian creators were making millions in sales straight from their videos. For those markets it changed everything — no complicated online shop, no expensive advertising. Just content, and sales on the spot.",
+    "💡 Insight :": "💡 The insight:",
+    "Les premiers testeurs asiatiques ont rapidement compris que le secret n'était pas le produit, mais le contenu. Un créateur avec une audience fidèle et du contenu authentique pouvait vendre presque n'importe quoi.":
+        "The first Asian testers quickly worked out that the secret wasn't the product but the content. A creator with a loyal audience and honest content could sell almost anything.",
+    "🇨🇳 {0}-{1} : La domination chinoise": "🇨🇳 {0}-{1}: China takes the lead",
+    "Douyin (la version chinoise de TikTok) intègre déjà le live shopping depuis des années. ByteDance étend ces capacités à TikTok Shop sur le marché chinois. Les chiffres deviennent fous :":
+        "Douyin (TikTok's Chinese version) had been doing live shopping for years. ByteDance brought those capabilities to TikTok Shop in the Chinese market. The numbers went wild:",
+    "Des centaines de milliards en GMV (Gross Merchandise Value) annuels":
+        "Hundreds of billions in annual GMV (gross merchandise value)",
+    "Des millions de créateurs générant des revenus six ou sept chiffres":
+        "Millions of creators earning six or seven figures",
+    "La naissance de la catégorie \"live shopping\" comme format dominant":
+        "The birth of live shopping as the dominant format",
+    "La Chine devient le laboratoire d'innovation de TikTok Shop, établissant les patterns que le reste du monde suivrait.":
+        "China became TikTok Shop's laboratory, setting the patterns the rest of the world would follow.",
+    "🇺🇸 {0} : L'arrivée chaotique aux USA": "🇺🇸 {0}: a messy arrival in the US",
+    "TikTok Shop arrive finalement aux États-Unis en {0}, mais avec des obstacles politiques et réglementaires. Malgré les défis législatifs, la plateforme gagne rapidement du terrain aux USA, principalement parmi la Génération Z et les créateurs de niche.":
+        "TikTok Shop finally reached the United States in {0}, but with political and regulatory obstacles in the way. Despite the legislative fights, the platform gained ground fast, mostly among Gen Z and niche creators.",
+    "Les créateurs américains découvrent rapidement que la formule fonctionne : contenu authentique + audience engagée = ventes directes. Des créateurs de mode, beauté, fitness et bien-être dominent les premiers mois.":
+        "American creators quickly found the formula worked: honest content + an engaged audience = direct sales. Fashion, beauty, fitness and wellness creators led the first months.",
+    "🇫🇷 Fin {0} - Aujourd'hui : L'explosion française": "🇫🇷 Late {0} to today: France takes off",
+    "TikTok Shop arrive en France fin {0} et le marché explose. En {1}, la France est l'un des plus grands marchés TikTok Shop en Europe. Voici pourquoi :":
+        "TikTok Shop landed in France in late {0} and the market took off. By {1} France is one of the largest TikTok Shop markets in Europe. Here's why:",
+    "Audience jeune :": "A young audience:",
+    "TikTok a une base d'utilisateurs énorme en France ({0}+ millions)":
+        "TikTok has a huge user base in France ({0}+ million)",
+    "Culture créative :": "A creative culture:",
+    "Les Français embrassent les créateurs et les influenceurs": "French audiences take to creators and influencers",
+    "Marché de niche :": "Room for niches:",
+    "Les petites marques et créateurs trouvent un canal direct sans coûts publicitaires énormes":
+        "Small brands and creators get a direct channel without huge ad budgets",
+    "Beauté et Mode :": "Beauty and fashion:",
+    "Deux catégories où la France excelle": "Two categories where France is strong",
+    "💰 L'impact économique": "💰 The economic impact",
+    "En {0}, TikTok Shop représente une part significative du e-commerce en France. Des chiffres estimés :":
+        "In {0}, TikTok Shop accounts for a meaningful share of French e-commerce. Estimated figures:",
+    "Plus de {0} créateurs vendant activement sur TikTok Shop en France":
+        "More than {0} creators actively selling on TikTok Shop in France",
+    "Des transactions quotidiennes dans les milliards d'euros": "Daily transactions in the billions of euros",
+    "Plus de {0} PME françaises intégrées à la plateforme": "More than {0} French small businesses on the platform",
+    "🔮 Qu'est-ce qui a changé ?": "🔮 What actually changed",
+    "TikTok Shop n'a pas inventé le shopping social, mais c'est la plateforme qui l'a démocratisé. Avant, il fallait :":
+        "TikTok Shop didn't invent social shopping, but it is the platform that opened it to everyone. Before, you needed:",
+    "Un site e-commerce": "An online shop",
+    "Un budget marketing": "A marketing budget",
+    "Une expertise technique": "Technical know-how",
+    "Des infrastructures logistiques": "Logistics behind you",
+    "Avec TikTok Shop, il te faut juste :": "With TikTok Shop, all you need is:",
+    "Un téléphone": "A phone",
+    "Du contenu authentique": "Honest content",
+    "Une audience engagée": "An engaged audience",
+    "🚀 Les leçons clés": "🚀 The lessons that matter",
+    "{0}. Le contenu est roi": "{0}. Content rules",
+    "Les meilleurs vendeurs sur TikTok Shop ne sont pas nécessairement les meilleurs marketers. Ce sont les créateurs qui font du contenu authentique et divertissant. Le produit vient en second.":
+        "The best sellers on TikTok Shop aren't necessarily the best marketers. They're the creators who make honest, entertaining content. The product comes second.",
+    "la promotion": "promotion",
+    "Vous ne pouvez pas \"acheter\" une audience sur TikTok Shop. Vous devez la construire. Les créateurs avec une vraie communauté vendent {0}x plus que ceux avec simplement des followers.":
+        "You can't buy an audience on TikTok Shop. You have to build one. Creators with a real community sell {0}× more than those who merely have followers.",
+    "{0}. La niche c'est l'argent": "{0}. The niche is where the money is",
+    "Les plus grands vendeurs se concentrent sur une niche spécifique et deviennent incontournables dans cette niche. Pas de généralistes, seulement des spécialistes.":
+        "The biggest sellers pick one narrow niche and become impossible to ignore within it. No generalists, only specialists.",
+    "📊 Les chiffres aujourd'hui (mai {0})": "📊 Where the numbers stand (May {0})",
+    "TikTok Shop France : ~{0} milliards € annuels estimés": "TikTok Shop France: an estimated €{0} billion a year",
+    "Créateurs gagnant {0} chiffres+ : ~{1}": "Creators earning {0} figures or more: ~{1}",
+    "Catégories dominantes : Mode, Beauté, Bien-être, Électronique, Maison":
+        "Leading categories: fashion, beauty, wellness, electronics, home",
+    "Âge moyen des vendeurs : {0}-{1} ans": "Average age of sellers: {0}-{1}",
+    "🎯 Conclusion : Ce n'est que le début": "🎯 In closing: this is only the beginning",
+    "TikTok Shop ne va que croître. Les prédictions pour {0}-{1} ? Des intégrations plus profondes, plus de tools d'analyse (comme Qeerah 😉), et potentiellement le plus grand changement : les agences et les marques établies qui vont entièrement réviser leur stratégie autour de TikTok Shop.":
+        "TikTok Shop is only going to grow. Predictions for {0}-{1}? Deeper integrations, more analysis tools (like Qeerah 😉), and possibly the biggest shift of all: agencies and established brands rebuilding their whole strategy around TikTok Shop.",
+    "L'histoire de TikTok Shop n'est qu'au chapitre {0}. Nous sommes au moment clé où les créateurs peut devenir millionnaire, où les agences peuvent scaler leurs clients, et où les marques peuvent atteindre leur audience de manière directe et authentique.":
+        "The story of TikTok Shop is only at chapter {0}. This is the moment where creators can get rich, where agencies can scale their clients, and where brands can reach their audience directly and honestly.",
+    "Prêt à analyser vos vidéos TikTok Shop ?": "Ready to analyse your TikTok Shop videos?",
+    "Utilisez Qeerah pour comprendre exactement ce qui fonctionne dans votre contenu.":
+        "Use Qeerah to see exactly what's working in your content.",
+    "Commencer gratuitement →": "Start free →",
+}
+
+T_BLOG_HISTOIRE["de"] = {
+    "Histoire de TikTok Shop : De la Chine à la France - Qeerah":
+        "Die Geschichte von TikTok Shop: von China nach Frankreich - Qeerah",
+    "L'histoire complète de TikTok Shop : Du lancement à la domination mondiale. Découvrez comment TikTok Shop a révolutionné le e-commerce.":
+        "Die ganze Geschichte von TikTok Shop, vom Start bis zur weltweiten Reichweite — und wie es den E-Commerce umgekrempelt hat.",
+    "L'histoire complète de TikTok Shop : de la Chine à la domination mondiale":
+        "Die ganze Geschichte von TikTok Shop: von China zur weltweiten Reichweite",
+    "Comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce, de {0} à aujourd'hui.":
+        "Wie TikTok Shop von einem asiatischen Versuch zu einem weltweiten Umbruch im E-Commerce wurde, von {0} bis heute.",
+    "← Retour au blog": "← Zurück zum Blog",
+    "📖 HISTOIRE": "📖 GESCHICHTE",
+    "L'histoire complète de TikTok Shop : De la Chine à la domination mondiale":
+        "Die ganze Geschichte von TikTok Shop: von China zur weltweiten Reichweite",
+    "📅 Mis à jour mai {0}": "📅 Aktualisiert im Mai {0}",
+    "👤 Par l'équipe Qeerah": "👤 Vom Qeerah-Team",
+    "⏱️ {0} min": "⏱️ {0} Min.",
+    "🌍 Prologue : L'ère du e-commerce social": "🌍 Vorspann: die Zeit des Social Commerce",
+    "Le e-commerce a longtemps été dominé par les marketplaces traditionnelles : Amazon, eBay, Alibaba. Mais depuis quelques années, une révolution s'opère. Le shopping social — la fusion du divertissement et du commerce — est devenu la norme. TikTok Shop en est la manifestation la plus claire et la plus puissante.":
+        "Lange gehörte der E-Commerce den klassischen Marktplätzen: Amazon, eBay, Alibaba. Doch seit einigen Jahren verschiebt sich etwas. Social Shopping — Unterhaltung und Handel verschmolzen — ist zur Norm geworden. TikTok Shop ist davon die klarste und stärkste Ausprägung.",
+    "📱 {0} : Les débuts en Asie du Sud-Est": "📱 {0}: der Anfang in Südostasien",
+    "ByteDance, la société mère de TikTok, lance": "ByteDance, die Muttergesellschaft von TikTok, startet",
+    "en {0} en Thaïlande et en Indonésie. L'objectif était simple : transformer la plateforme de divertissement en machine de vente e-commerce. Les résultats ont été spectaculaires.":
+        "{0} in Thailand und Indonesien. Das Ziel war einfach: aus einer Unterhaltungsplattform eine Verkaufsmaschine machen. Die Ergebnisse waren spektakulär.",
+    "En quelques mois, les créateurs thaïlandais et indonésiens ont généré des millions en ventes directement depuis leurs vidéos. C'était une révolution pour ces marchés — plus besoin de site e-commerce complexe, plus besoin de publicité coûteuse. Juste du contenu, et des ventes instantanées.":
+        "Binnen Monaten machten thailändische und indonesische Creators Millionen an Umsatz direkt aus ihren Videos. Für diese Märkte änderte das alles — kein aufwendiger Onlineshop mehr, keine teure Werbung. Nur Inhalt, und Verkäufe auf der Stelle.",
+    "💡 Insight :": "💡 Die Erkenntnis:",
+    "Les premiers testeurs asiatiques ont rapidement compris que le secret n'était pas le produit, mais le contenu. Un créateur avec une audience fidèle et du contenu authentique pouvait vendre presque n'importe quoi.":
+        "Die ersten asiatischen Tester begriffen schnell, dass das Geheimnis nicht das Produkt war, sondern der Inhalt. Ein Creator mit treuem Publikum und ehrlichen Inhalten konnte fast alles verkaufen.",
+    "🇨🇳 {0}-{1} : La domination chinoise": "🇨🇳 {0}-{1}: China übernimmt die Führung",
+    "Douyin (la version chinoise de TikTok) intègre déjà le live shopping depuis des années. ByteDance étend ces capacités à TikTok Shop sur le marché chinois. Les chiffres deviennent fous :":
+        "Douyin (die chinesische Version von TikTok) machte seit Jahren Live-Shopping. ByteDance brachte diese Möglichkeiten auf TikTok Shop im chinesischen Markt. Die Zahlen wurden verrückt:",
+    "Des centaines de milliards en GMV (Gross Merchandise Value) annuels":
+        "Hunderte Milliarden GMV (Gross Merchandise Value) pro Jahr",
+    "Des millions de créateurs générant des revenus six ou sept chiffres":
+        "Millionen Creators mit sechs- oder siebenstelligen Einnahmen",
+    "La naissance de la catégorie \"live shopping\" comme format dominant":
+        "Die Geburt des Live-Shoppings als bestimmendes Format",
+    "La Chine devient le laboratoire d'innovation de TikTok Shop, établissant les patterns que le reste du monde suivrait.":
+        "China wurde zum Labor von TikTok Shop und setzte die Muster, denen der Rest der Welt folgte.",
+    "🇺🇸 {0} : L'arrivée chaotique aux USA": "🇺🇸 {0}: ein holpriger Start in den USA",
+    "TikTok Shop arrive finalement aux États-Unis en {0}, mais avec des obstacles politiques et réglementaires. Malgré les défis législatifs, la plateforme gagne rapidement du terrain aux USA, principalement parmi la Génération Z et les créateurs de niche.":
+        "TikTok Shop kam {0} endlich in die USA, aber mit politischen und regulatorischen Hürden. Trotz der Gesetzeskämpfe legte die Plattform schnell zu, vor allem bei der Gen Z und bei Nischen-Creators.",
+    "Les créateurs américains découvrent rapidement que la formule fonctionne : contenu authentique + audience engagée = ventes directes. Des créateurs de mode, beauté, fitness et bien-être dominent les premiers mois.":
+        "Amerikanische Creators merkten schnell, dass die Formel aufgeht: ehrliche Inhalte + engagiertes Publikum = direkte Verkäufe. Mode, Beauty, Fitness und Wellness bestimmten die ersten Monate.",
+    "🇫🇷 Fin {0} - Aujourd'hui : L'explosion française": "🇫🇷 Ende {0} bis heute: Frankreich hebt ab",
+    "TikTok Shop arrive en France fin {0} et le marché explose. En {1}, la France est l'un des plus grands marchés TikTok Shop en Europe. Voici pourquoi :":
+        "TikTok Shop kam Ende {0} nach Frankreich, und der Markt explodierte. {1} ist Frankreich einer der größten TikTok-Shop-Märkte Europas. Warum:",
+    "Audience jeune :": "Junges Publikum:",
+    "TikTok a une base d'utilisateurs énorme en France ({0}+ millions)":
+        "TikTok hat in Frankreich eine riesige Nutzerbasis (über {0} Millionen)",
+    "Culture créative :": "Kreative Kultur:",
+    "Les Français embrassent les créateurs et les influenceurs": "Das französische Publikum nimmt Creators und Influencer an",
+    "Marché de niche :": "Platz für Nischen:",
+    "Les petites marques et créateurs trouvent un canal direct sans coûts publicitaires énormes":
+        "Kleine Marken und Creators bekommen einen Direktkanal ohne riesige Werbebudgets",
+    "Beauté et Mode :": "Beauty und Mode:",
+    "Deux catégories où la France excelle": "Zwei Kategorien, in denen Frankreich stark ist",
+    "💰 L'impact économique": "💰 Die wirtschaftliche Wirkung",
+    "En {0}, TikTok Shop représente une part significative du e-commerce en France. Des chiffres estimés :":
+        "{0} macht TikTok Shop einen spürbaren Teil des französischen E-Commerce aus. Geschätzte Zahlen:",
+    "Plus de {0} créateurs vendant activement sur TikTok Shop en France":
+        "Mehr als {0} Creators verkaufen in Frankreich aktiv über TikTok Shop",
+    "Des transactions quotidiennes dans les milliards d'euros": "Tägliche Transaktionen im Milliardenbereich",
+    "Plus de {0} PME françaises intégrées à la plateforme": "Mehr als {0} französische Kleinbetriebe auf der Plattform",
+    "🔮 Qu'est-ce qui a changé ?": "🔮 Was sich wirklich geändert hat",
+    "TikTok Shop n'a pas inventé le shopping social, mais c'est la plateforme qui l'a démocratisé. Avant, il fallait :":
+        "TikTok Shop hat Social Shopping nicht erfunden, aber es für alle geöffnet. Vorher brauchte man:",
+    "Un site e-commerce": "Einen Onlineshop",
+    "Un budget marketing": "Ein Marketingbudget",
+    "Une expertise technique": "Technisches Können",
+    "Des infrastructures logistiques": "Logistik im Rücken",
+    "Avec TikTok Shop, il te faut juste :": "Mit TikTok Shop brauchst du nur:",
+    "Un téléphone": "Ein Handy",
+    "Du contenu authentique": "Ehrliche Inhalte",
+    "Une audience engagée": "Ein engagiertes Publikum",
+    "🚀 Les leçons clés": "🚀 Die Lehren, auf die es ankommt",
+    "{0}. Le contenu est roi": "{0}. Der Inhalt regiert",
+    "Les meilleurs vendeurs sur TikTok Shop ne sont pas nécessairement les meilleurs marketers. Ce sont les créateurs qui font du contenu authentique et divertissant. Le produit vient en second.":
+        "Die besten Verkäufer auf TikTok Shop sind nicht unbedingt die besten Marketer. Es sind die Creators, die ehrliche, unterhaltsame Inhalte machen. Das Produkt kommt danach.",
+    "la promotion": "Werbung",
+    "Vous ne pouvez pas \"acheter\" une audience sur TikTok Shop. Vous devez la construire. Les créateurs avec une vraie communauté vendent {0}x plus que ceux avec simplement des followers.":
+        "Ein Publikum lässt sich auf TikTok Shop nicht kaufen. Man muss es aufbauen. Creators mit echter Community verkaufen {0}× mehr als solche, die bloß Follower haben.",
+    "{0}. La niche c'est l'argent": "{0}. In der Nische liegt das Geld",
+    "Les plus grands vendeurs se concentrent sur une niche spécifique et deviennent incontournables dans cette niche. Pas de généralistes, seulement des spécialistes.":
+        "Die größten Verkäufer suchen sich eine enge Nische und werden darin unumgänglich. Keine Generalisten, nur Spezialisten.",
+    "📊 Les chiffres aujourd'hui (mai {0})": "📊 Wo die Zahlen stehen (Mai {0})",
+    "TikTok Shop France : ~{0} milliards € annuels estimés": "TikTok Shop Frankreich: geschätzt rund {0} Milliarden € im Jahr",
+    "Créateurs gagnant {0} chiffres+ : ~{1}": "Creators mit {0} Stellen oder mehr: ~{1}",
+    "Catégories dominantes : Mode, Beauté, Bien-être, Électronique, Maison":
+        "Führende Kategorien: Mode, Beauty, Wellness, Elektronik, Haushalt",
+    "Âge moyen des vendeurs : {0}-{1} ans": "Durchschnittsalter der Verkäufer: {0}-{1} Jahre",
+    "🎯 Conclusion : Ce n'est que le début": "🎯 Zum Schluss: das ist erst der Anfang",
+    "TikTok Shop ne va que croître. Les prédictions pour {0}-{1} ? Des intégrations plus profondes, plus de tools d'analyse (comme Qeerah 😉), et potentiellement le plus grand changement : les agences et les marques établies qui vont entièrement réviser leur stratégie autour de TikTok Shop.":
+        "TikTok Shop wird nur größer. Prognosen für {0}-{1}? Tiefere Integrationen, mehr Analysewerkzeuge (wie Qeerah 😉) und vielleicht die größte Verschiebung überhaupt: Agenturen und etablierte Marken, die ihre gesamte Strategie um TikTok Shop herum neu bauen.",
+    "L'histoire de TikTok Shop n'est qu'au chapitre {0}. Nous sommes au moment clé où les créateurs peut devenir millionnaire, où les agences peuvent scaler leurs clients, et où les marques peuvent atteindre leur audience de manière directe et authentique.":
+        "Die Geschichte von TikTok Shop steht erst bei Kapitel {0}. Wir sind an dem Punkt, an dem Creators reich werden können, Agenturen ihre Kunden skalieren können und Marken ihr Publikum direkt und ehrlich erreichen.",
+    "Prêt à analyser vos vidéos TikTok Shop ?": "Bereit, deine TikTok-Shop-Videos zu analysieren?",
+    "Utilisez Qeerah pour comprendre exactement ce qui fonctionne dans votre contenu.":
+        "Nutz Qeerah, um genau zu sehen, was in deinen Inhalten funktioniert.",
+    "Commencer gratuitement →": "Kostenlos starten →",
+}
+
+T_BLOG_HISTOIRE["es"] = {
+    "Histoire de TikTok Shop : De la Chine à la France - Qeerah":
+        "La historia de TikTok Shop: de China a Francia - Qeerah",
+    "L'histoire complète de TikTok Shop : Du lancement à la domination mondiale. Découvrez comment TikTok Shop a révolutionné le e-commerce.":
+        "La historia completa de TikTok Shop, del lanzamiento al alcance mundial, y cómo puso patas arriba el comercio electrónico.",
+    "L'histoire complète de TikTok Shop : de la Chine à la domination mondiale":
+        "La historia completa de TikTok Shop: de China al alcance mundial",
+    "Comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce, de {0} à aujourd'hui.":
+        "Cómo TikTok Shop pasó de ser un experimento asiático a una revolución mundial del comercio electrónico, de {0} a hoy.",
+    "← Retour au blog": "← Volver al blog",
+    "📖 HISTOIRE": "📖 HISTORIA",
+    "L'histoire complète de TikTok Shop : De la Chine à la domination mondiale":
+        "La historia completa de TikTok Shop: de China al alcance mundial",
+    "📅 Mis à jour mai {0}": "📅 Actualizado en mayo de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Por el equipo de Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "🌍 Prologue : L'ère du e-commerce social": "🌍 Prólogo: la era del comercio social",
+    "Le e-commerce a longtemps été dominé par les marketplaces traditionnelles : Amazon, eBay, Alibaba. Mais depuis quelques années, une révolution s'opère. Le shopping social — la fusion du divertissement et du commerce — est devenu la norme. TikTok Shop en est la manifestation la plus claire et la plus puissante.":
+        "Durante mucho tiempo el comercio electrónico fue cosa de los marketplaces clásicos: Amazon, eBay, Alibaba. Pero desde hace unos años algo ha cambiado. Las compras sociales —entretenimiento y comercio fundidos— se han vuelto la norma. TikTok Shop es su forma más clara y más potente.",
+    "📱 {0} : Les débuts en Asie du Sud-Est": "📱 {0}: los inicios en el Sudeste Asiático",
+    "ByteDance, la société mère de TikTok, lance": "ByteDance, la empresa matriz de TikTok, lanza",
+    "en {0} en Thaïlande et en Indonésie. L'objectif était simple : transformer la plateforme de divertissement en machine de vente e-commerce. Les résultats ont été spectaculaires.":
+        "en {0} en Tailandia e Indonesia. El objetivo era simple: convertir una plataforma de entretenimiento en una máquina de vender. Los resultados fueron espectaculares.",
+    "En quelques mois, les créateurs thaïlandais et indonésiens ont généré des millions en ventes directement depuis leurs vidéos. C'était une révolution pour ces marchés — plus besoin de site e-commerce complexe, plus besoin de publicité coûteuse. Juste du contenu, et des ventes instantanées.":
+        "En pocos meses, los creadores tailandeses e indonesios generaron millones en ventas directamente desde sus vídeos. Para esos mercados lo cambió todo: se acabaron las tiendas online complicadas y la publicidad cara. Solo contenido, y ventas al instante.",
+    "💡 Insight :": "💡 La clave:",
+    "Les premiers testeurs asiatiques ont rapidement compris que le secret n'était pas le produit, mais le contenu. Un créateur avec une audience fidèle et du contenu authentique pouvait vendre presque n'importe quoi.":
+        "Los primeros en probarlo en Asia entendieron rápido que el secreto no era el producto, sino el contenido. Un creador con público fiel y contenido honesto podía vender casi cualquier cosa.",
+    "🇨🇳 {0}-{1} : La domination chinoise": "🇨🇳 {0}-{1}: China toma la delantera",
+    "Douyin (la version chinoise de TikTok) intègre déjà le live shopping depuis des années. ByteDance étend ces capacités à TikTok Shop sur le marché chinois. Les chiffres deviennent fous :":
+        "Douyin (la versión china de TikTok) llevaba años con el live shopping. ByteDance llevó esas capacidades a TikTok Shop en el mercado chino. Las cifras se dispararon:",
+    "Des centaines de milliards en GMV (Gross Merchandise Value) annuels":
+        "Cientos de miles de millones de GMV (valor bruto de mercancía) al año",
+    "Des millions de créateurs générant des revenus six ou sept chiffres":
+        "Millones de creadores con ingresos de seis o siete cifras",
+    "La naissance de la catégorie \"live shopping\" comme format dominant":
+        "El nacimiento del live shopping como formato dominante",
+    "La Chine devient le laboratoire d'innovation de TikTok Shop, établissant les patterns que le reste du monde suivrait.":
+        "China se convirtió en el laboratorio de TikTok Shop y fijó los patrones que seguiría el resto del mundo.",
+    "🇺🇸 {0} : L'arrivée chaotique aux USA": "🇺🇸 {0}: una llegada accidentada a EE. UU.",
+    "TikTok Shop arrive finalement aux États-Unis en {0}, mais avec des obstacles politiques et réglementaires. Malgré les défis législatifs, la plateforme gagne rapidement du terrain aux USA, principalement parmi la Génération Z et les créateurs de niche.":
+        "TikTok Shop llegó por fin a Estados Unidos en {0}, pero con obstáculos políticos y regulatorios. Pese a las batallas legislativas, la plataforma ganó terreno rápido, sobre todo entre la Generación Z y los creadores de nicho.",
+    "Les créateurs américains découvrent rapidement que la formule fonctionne : contenu authentique + audience engagée = ventes directes. Des créateurs de mode, beauté, fitness et bien-être dominent les premiers mois.":
+        "Los creadores estadounidenses vieron rápido que la fórmula funcionaba: contenido honesto + público implicado = ventas directas. Moda, belleza, fitness y bienestar dominaron los primeros meses.",
+    "🇫🇷 Fin {0} - Aujourd'hui : L'explosion française": "🇫🇷 Finales de {0} hasta hoy: el despegue francés",
+    "TikTok Shop arrive en France fin {0} et le marché explose. En {1}, la France est l'un des plus grands marchés TikTok Shop en Europe. Voici pourquoi :":
+        "TikTok Shop llegó a Francia a finales de {0} y el mercado se disparó. En {1}, Francia es uno de los mayores mercados de TikTok Shop en Europa. Por esto:",
+    "Audience jeune :": "Público joven:",
+    "TikTok a une base d'utilisateurs énorme en France ({0}+ millions)":
+        "TikTok tiene una base de usuarios enorme en Francia (más de {0} millones)",
+    "Culture créative :": "Cultura creativa:",
+    "Les Français embrassent les créateurs et les influenceurs": "El público francés acoge a creadores e influencers",
+    "Marché de niche :": "Sitio para nichos:",
+    "Les petites marques et créateurs trouvent un canal direct sans coûts publicitaires énormes":
+        "Las marcas pequeñas y los creadores encuentran un canal directo sin grandes costes publicitarios",
+    "Beauté et Mode :": "Belleza y moda:",
+    "Deux catégories où la France excelle": "Dos categorías donde Francia destaca",
+    "💰 L'impact économique": "💰 El impacto económico",
+    "En {0}, TikTok Shop représente une part significative du e-commerce en France. Des chiffres estimés :":
+        "En {0}, TikTok Shop supone una parte considerable del comercio electrónico francés. Cifras estimadas:",
+    "Plus de {0} créateurs vendant activement sur TikTok Shop en France":
+        "Más de {0} creadores vendiendo activamente en TikTok Shop en Francia",
+    "Des transactions quotidiennes dans les milliards d'euros": "Transacciones diarias de miles de millones de euros",
+    "Plus de {0} PME françaises intégrées à la plateforme": "Más de {0} pymes francesas integradas en la plataforma",
+    "🔮 Qu'est-ce qui a changé ?": "🔮 Qué cambió de verdad",
+    "TikTok Shop n'a pas inventé le shopping social, mais c'est la plateforme qui l'a démocratisé. Avant, il fallait :":
+        "TikTok Shop no inventó las compras sociales, pero es la plataforma que las abrió a todo el mundo. Antes hacía falta:",
+    "Un site e-commerce": "Una tienda online",
+    "Un budget marketing": "Un presupuesto de marketing",
+    "Une expertise technique": "Conocimientos técnicos",
+    "Des infrastructures logistiques": "Una logística detrás",
+    "Avec TikTok Shop, il te faut juste :": "Con TikTok Shop solo necesitas:",
+    "Un téléphone": "Un teléfono",
+    "Du contenu authentique": "Contenido honesto",
+    "Une audience engagée": "Un público implicado",
+    "🚀 Les leçons clés": "🚀 Las lecciones que cuentan",
+    "{0}. Le contenu est roi": "{0}. El contenido manda",
+    "Les meilleurs vendeurs sur TikTok Shop ne sont pas nécessairement les meilleurs marketers. Ce sont les créateurs qui font du contenu authentique et divertissant. Le produit vient en second.":
+        "Los que más venden en TikTok Shop no son necesariamente los mejores en marketing. Son los creadores que hacen contenido honesto y entretenido. El producto va después.",
+    "la promotion": "la promoción",
+    "Vous ne pouvez pas \"acheter\" une audience sur TikTok Shop. Vous devez la construire. Les créateurs avec une vraie communauté vendent {0}x plus que ceux avec simplement des followers.":
+        "En TikTok Shop no se puede «comprar» público. Hay que construirlo. Los creadores con comunidad real venden {0} veces más que los que solo tienen seguidores.",
+    "{0}. La niche c'est l'argent": "{0}. El dinero está en el nicho",
+    "Les plus grands vendeurs se concentrent sur une niche spécifique et deviennent incontournables dans cette niche. Pas de généralistes, seulement des spécialistes.":
+        "Los que más venden se centran en un nicho concreto y se vuelven imprescindibles dentro de él. Nada de generalistas, solo especialistas.",
+    "📊 Les chiffres aujourd'hui (mai {0})": "📊 Dónde están las cifras (mayo de {0})",
+    "TikTok Shop France : ~{0} milliards € annuels estimés": "TikTok Shop Francia: unos {0} mil millones de euros al año estimados",
+    "Créateurs gagnant {0} chiffres+ : ~{1}": "Creadores con {0} cifras o más: ~{1}",
+    "Catégories dominantes : Mode, Beauté, Bien-être, Électronique, Maison":
+        "Categorías dominantes: moda, belleza, bienestar, electrónica, hogar",
+    "Âge moyen des vendeurs : {0}-{1} ans": "Edad media de los vendedores: {0}-{1} años",
+    "🎯 Conclusion : Ce n'est que le début": "🎯 Para terminar: esto acaba de empezar",
+    "TikTok Shop ne va que croître. Les prédictions pour {0}-{1} ? Des intégrations plus profondes, plus de tools d'analyse (comme Qeerah 😉), et potentiellement le plus grand changement : les agences et les marques établies qui vont entièrement réviser leur stratégie autour de TikTok Shop.":
+        "TikTok Shop solo va a crecer. ¿Previsiones para {0}-{1}? Integraciones más profundas, más herramientas de análisis (como Qeerah 😉) y, quizá el mayor cambio de todos: agencias y marcas consolidadas rehaciendo toda su estrategia en torno a TikTok Shop.",
+    "L'histoire de TikTok Shop n'est qu'au chapitre {0}. Nous sommes au moment clé où les créateurs peut devenir millionnaire, où les agences peuvent scaler leurs clients, et où les marques peuvent atteindre leur audience de manière directe et authentique.":
+        "La historia de TikTok Shop va apenas por el capítulo {0}. Estamos en el momento en que los creadores pueden hacerse ricos, las agencias pueden escalar a sus clientes y las marcas pueden llegar a su público de forma directa y honesta.",
+    "Prêt à analyser vos vidéos TikTok Shop ?": "¿List@ para analizar tus vídeos de TikTok Shop?",
+    "Utilisez Qeerah pour comprendre exactement ce qui fonctionne dans votre contenu.":
+        "Usa Qeerah para entender exactamente qué funciona en tu contenido.",
+    "Commencer gratuitement →": "Empezar gratis →",
+}
+
+T_BLOG_HISTOIRE["it"] = {
+    "Histoire de TikTok Shop : De la Chine à la France - Qeerah":
+        "La storia di TikTok Shop: dalla Cina alla Francia - Qeerah",
+    "L'histoire complète de TikTok Shop : Du lancement à la domination mondiale. Découvrez comment TikTok Shop a révolutionné le e-commerce.":
+        "La storia completa di TikTok Shop, dal lancio alla portata mondiale, e come ha rivoltato l'e-commerce.",
+    "L'histoire complète de TikTok Shop : de la Chine à la domination mondiale":
+        "La storia completa di TikTok Shop: dalla Cina alla portata mondiale",
+    "Comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce, de {0} à aujourd'hui.":
+        "Come TikTok Shop è passato da esperimento asiatico a rivoluzione mondiale dell'e-commerce, dal {0} a oggi.",
+    "← Retour au blog": "← Torna al blog",
+    "📖 HISTOIRE": "📖 STORIA",
+    "L'histoire complète de TikTok Shop : De la Chine à la domination mondiale":
+        "La storia completa di TikTok Shop: dalla Cina alla portata mondiale",
+    "📅 Mis à jour mai {0}": "📅 Aggiornato a maggio {0}",
+    "👤 Par l'équipe Qeerah": "👤 Dal team Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "🌍 Prologue : L'ère du e-commerce social": "🌍 Prologo: l'era del social commerce",
+    "Le e-commerce a longtemps été dominé par les marketplaces traditionnelles : Amazon, eBay, Alibaba. Mais depuis quelques années, une révolution s'opère. Le shopping social — la fusion du divertissement et du commerce — est devenu la norme. TikTok Shop en est la manifestation la plus claire et la plus puissante.":
+        "Per anni l'e-commerce è stato dei marketplace classici: Amazon, eBay, Alibaba. Ma da qualche anno qualcosa si è spostato. Lo shopping sociale — intrattenimento e commercio fusi insieme — è diventato la norma. TikTok Shop ne è la forma più chiara e più potente.",
+    "📱 {0} : Les débuts en Asie du Sud-Est": "📱 {0}: gli inizi nel Sud-est asiatico",
+    "ByteDance, la société mère de TikTok, lance": "ByteDance, la società madre di TikTok, lancia",
+    "en {0} en Thaïlande et en Indonésie. L'objectif était simple : transformer la plateforme de divertissement en machine de vente e-commerce. Les résultats ont été spectaculaires.":
+        "nel {0} in Thailandia e Indonesia. L'obiettivo era semplice: trasformare una piattaforma di intrattenimento in una macchina da vendita. I risultati sono stati clamorosi.",
+    "En quelques mois, les créateurs thaïlandais et indonésiens ont généré des millions en ventes directement depuis leurs vidéos. C'était une révolution pour ces marchés — plus besoin de site e-commerce complexe, plus besoin de publicité coûteuse. Juste du contenu, et des ventes instantanées.":
+        "In pochi mesi i creator thailandesi e indonesiani hanno generato milioni di vendite direttamente dai loro video. Per quei mercati è cambiato tutto: niente più negozio online complicato, niente pubblicità costosa. Solo contenuti, e vendite immediate.",
+    "💡 Insight :": "💡 L'intuizione:",
+    "Les premiers testeurs asiatiques ont rapidement compris que le secret n'était pas le produit, mais le contenu. Un créateur avec une audience fidèle et du contenu authentique pouvait vendre presque n'importe quoi.":
+        "I primi a provarlo in Asia hanno capito in fretta che il segreto non era il prodotto ma il contenuto. Un creator con un pubblico fedele e contenuti sinceri poteva vendere quasi qualsiasi cosa.",
+    "🇨🇳 {0}-{1} : La domination chinoise": "🇨🇳 {0}-{1}: la Cina prende il comando",
+    "Douyin (la version chinoise de TikTok) intègre déjà le live shopping depuis des années. ByteDance étend ces capacités à TikTok Shop sur le marché chinois. Les chiffres deviennent fous :":
+        "Douyin (la versione cinese di TikTok) faceva live shopping già da anni. ByteDance ha portato quelle funzioni su TikTok Shop nel mercato cinese. I numeri sono impazziti:",
+    "Des centaines de milliards en GMV (Gross Merchandise Value) annuels":
+        "Centinaia di miliardi di GMV (Gross Merchandise Value) all'anno",
+    "Des millions de créateurs générant des revenus six ou sept chiffres":
+        "Milioni di creator con entrate a sei o sette cifre",
+    "La naissance de la catégorie \"live shopping\" comme format dominant":
+        "La nascita del live shopping come formato dominante",
+    "La Chine devient le laboratoire d'innovation de TikTok Shop, établissant les patterns que le reste du monde suivrait.":
+        "La Cina è diventata il laboratorio di TikTok Shop, fissando gli schemi che il resto del mondo avrebbe seguito.",
+    "🇺🇸 {0} : L'arrivée chaotique aux USA": "🇺🇸 {0}: un arrivo accidentato negli USA",
+    "TikTok Shop arrive finalement aux États-Unis en {0}, mais avec des obstacles politiques et réglementaires. Malgré les défis législatifs, la plateforme gagne rapidement du terrain aux USA, principalement parmi la Génération Z et les créateurs de niche.":
+        "TikTok Shop è arrivato negli Stati Uniti nel {0}, ma con ostacoli politici e regolatori. Nonostante le battaglie legislative, la piattaforma ha guadagnato terreno in fretta, soprattutto tra la Generazione Z e i creator di nicchia.",
+    "Les créateurs américains découvrent rapidement que la formule fonctionne : contenu authentique + audience engagée = ventes directes. Des créateurs de mode, beauté, fitness et bien-être dominent les premiers mois.":
+        "I creator americani hanno capito subito che la formula funziona: contenuti sinceri + pubblico coinvolto = vendite dirette. Moda, bellezza, fitness e benessere hanno dominato i primi mesi.",
+    "🇫🇷 Fin {0} - Aujourd'hui : L'explosion française": "🇫🇷 Fine {0} a oggi: il decollo francese",
+    "TikTok Shop arrive en France fin {0} et le marché explose. En {1}, la France est l'un des plus grands marchés TikTok Shop en Europe. Voici pourquoi :":
+        "TikTok Shop è arrivato in Francia a fine {0} e il mercato è esploso. Nel {1} la Francia è uno dei mercati TikTok Shop più grandi d'Europa. Ecco perché:",
+    "Audience jeune :": "Pubblico giovane:",
+    "TikTok a une base d'utilisateurs énorme en France ({0}+ millions)":
+        "TikTok ha una base di utenti enorme in Francia (oltre {0} milioni)",
+    "Culture créative :": "Cultura creativa:",
+    "Les Français embrassent les créateurs et les influenceurs": "Il pubblico francese accoglie creator e influencer",
+    "Marché de niche :": "Spazio per le nicchie:",
+    "Les petites marques et créateurs trouvent un canal direct sans coûts publicitaires énormes":
+        "Piccoli marchi e creator trovano un canale diretto senza budget pubblicitari enormi",
+    "Beauté et Mode :": "Bellezza e moda:",
+    "Deux catégories où la France excelle": "Due categorie in cui la Francia va forte",
+    "💰 L'impact économique": "💰 L'impatto economico",
+    "En {0}, TikTok Shop représente une part significative du e-commerce en France. Des chiffres estimés :":
+        "Nel {0} TikTok Shop pesa in modo significativo sull'e-commerce francese. Cifre stimate:",
+    "Plus de {0} créateurs vendant activement sur TikTok Shop en France":
+        "Oltre {0} creator che vendono attivamente su TikTok Shop in Francia",
+    "Des transactions quotidiennes dans les milliards d'euros": "Transazioni quotidiane nell'ordine dei miliardi di euro",
+    "Plus de {0} PME françaises intégrées à la plateforme": "Oltre {0} piccole imprese francesi sulla piattaforma",
+    "🔮 Qu'est-ce qui a changé ?": "🔮 Cosa è cambiato davvero",
+    "TikTok Shop n'a pas inventé le shopping social, mais c'est la plateforme qui l'a démocratisé. Avant, il fallait :":
+        "TikTok Shop non ha inventato lo shopping sociale, ma è la piattaforma che lo ha aperto a tutti. Prima servivano:",
+    "Un site e-commerce": "Un negozio online",
+    "Un budget marketing": "Un budget di marketing",
+    "Une expertise technique": "Competenze tecniche",
+    "Des infrastructures logistiques": "Una logistica alle spalle",
+    "Avec TikTok Shop, il te faut juste :": "Con TikTok Shop ti serve solo:",
+    "Un téléphone": "Un telefono",
+    "Du contenu authentique": "Contenuti sinceri",
+    "Une audience engagée": "Un pubblico coinvolto",
+    "🚀 Les leçons clés": "🚀 Le lezioni che contano",
+    "{0}. Le contenu est roi": "{0}. Comanda il contenuto",
+    "Les meilleurs vendeurs sur TikTok Shop ne sont pas nécessairement les meilleurs marketers. Ce sont les créateurs qui font du contenu authentique et divertissant. Le produit vient en second.":
+        "Chi vende di più su TikTok Shop non è per forza il migliore nel marketing. Sono i creator che fanno contenuti sinceri e divertenti. Il prodotto viene dopo.",
+    "la promotion": "la promozione",
+    "Vous ne pouvez pas \"acheter\" une audience sur TikTok Shop. Vous devez la construire. Les créateurs avec une vraie communauté vendent {0}x plus que ceux avec simplement des followers.":
+        "Su TikTok Shop il pubblico non si compra. Va costruito. I creator con una vera community vendono {0} volte più di chi ha solo follower.",
+    "{0}. La niche c'est l'argent": "{0}. I soldi stanno nella nicchia",
+    "Les plus grands vendeurs se concentrent sur une niche spécifique et deviennent incontournables dans cette niche. Pas de généralistes, seulement des spécialistes.":
+        "Chi vende di più si concentra su una nicchia precisa e ci diventa imprescindibile. Niente generalisti, solo specialisti.",
+    "📊 Les chiffres aujourd'hui (mai {0})": "📊 Dove sono i numeri (maggio {0})",
+    "TikTok Shop France : ~{0} milliards € annuels estimés": "TikTok Shop Francia: circa {0} miliardi € l'anno stimati",
+    "Créateurs gagnant {0} chiffres+ : ~{1}": "Creator con {0} cifre o più: ~{1}",
+    "Catégories dominantes : Mode, Beauté, Bien-être, Électronique, Maison":
+        "Categorie dominanti: moda, bellezza, benessere, elettronica, casa",
+    "Âge moyen des vendeurs : {0}-{1} ans": "Età media dei venditori: {0}-{1} anni",
+    "🎯 Conclusion : Ce n'est que le début": "🎯 Per chiudere: è solo l'inizio",
+    "TikTok Shop ne va que croître. Les prédictions pour {0}-{1} ? Des intégrations plus profondes, plus de tools d'analyse (comme Qeerah 😉), et potentiellement le plus grand changement : les agences et les marques établies qui vont entièrement réviser leur stratégie autour de TikTok Shop.":
+        "TikTok Shop non farà che crescere. Previsioni per il {0}-{1}? Integrazioni più profonde, più strumenti di analisi (come Qeerah 😉) e forse il cambiamento più grosso: agenzie e marchi affermati che rifanno tutta la loro strategia attorno a TikTok Shop.",
+    "L'histoire de TikTok Shop n'est qu'au chapitre {0}. Nous sommes au moment clé où les créateurs peut devenir millionnaire, où les agences peuvent scaler leurs clients, et où les marques peuvent atteindre leur audience de manière directe et authentique.":
+        "La storia di TikTok Shop è appena al capitolo {0}. Siamo nel momento in cui i creator possono diventare ricchi, le agenzie possono far crescere i clienti e i marchi possono raggiungere il pubblico in modo diretto e sincero.",
+    "Prêt à analyser vos vidéos TikTok Shop ?": "Pronto ad analizzare i tuoi video TikTok Shop?",
+    "Utilisez Qeerah pour comprendre exactement ce qui fonctionne dans votre contenu.":
+        "Usa Qeerah per capire esattamente cosa funziona nei tuoi contenuti.",
+    "Commencer gratuitement →": "Inizia gratis →",
+}
+
+T_BLOG_HISTOIRE["pt-br"] = {
+    "Histoire de TikTok Shop : De la Chine à la France - Qeerah":
+        "A história do TikTok Shop: da China à França - Qeerah",
+    "L'histoire complète de TikTok Shop : Du lancement à la domination mondiale. Découvrez comment TikTok Shop a révolutionné le e-commerce.":
+        "A história completa do TikTok Shop, do lançamento ao alcance mundial, e como ele virou o e-commerce de cabeça para baixo.",
+    "L'histoire complète de TikTok Shop : de la Chine à la domination mondiale":
+        "A história completa do TikTok Shop: da China ao alcance mundial",
+    "Comment TikTok Shop est passé d'une expérience asiatique à une révolution mondiale du e-commerce, de {0} à aujourd'hui.":
+        "Como o TikTok Shop passou de experimento asiático a uma virada mundial no e-commerce, de {0} até hoje.",
+    "← Retour au blog": "← Voltar ao blog",
+    "📖 HISTOIRE": "📖 HISTÓRIA",
+    "L'histoire complète de TikTok Shop : De la Chine à la domination mondiale":
+        "A história completa do TikTok Shop: da China ao alcance mundial",
+    "📅 Mis à jour mai {0}": "📅 Atualizado em maio de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Pelo time da Qeerah",
+    "⏱️ {0} min": "⏱️ {0} min",
+    "🌍 Prologue : L'ère du e-commerce social": "🌍 Prólogo: a era do comércio social",
+    "Le e-commerce a longtemps été dominé par les marketplaces traditionnelles : Amazon, eBay, Alibaba. Mais depuis quelques années, une révolution s'opère. Le shopping social — la fusion du divertissement et du commerce — est devenu la norme. TikTok Shop en est la manifestation la plus claire et la plus puissante.":
+        "Por muito tempo o e-commerce foi dos marketplaces clássicos: Amazon, eBay, Alibaba. Mas há alguns anos algo mudou. As compras sociais — entretenimento e comércio fundidos — viraram a norma. O TikTok Shop é a forma mais clara e mais forte disso.",
+    "📱 {0} : Les débuts en Asie du Sud-Est": "📱 {0}: o começo no Sudeste Asiático",
+    "ByteDance, la société mère de TikTok, lance": "A ByteDance, dona do TikTok, lança o",
+    "en {0} en Thaïlande et en Indonésie. L'objectif était simple : transformer la plateforme de divertissement en machine de vente e-commerce. Les résultats ont été spectaculaires.":
+        "em {0} na Tailândia e na Indonésia. O objetivo era simples: transformar uma plataforma de entretenimento numa máquina de vendas. Os resultados foram impressionantes.",
+    "En quelques mois, les créateurs thaïlandais et indonésiens ont généré des millions en ventes directement depuis leurs vidéos. C'était une révolution pour ces marchés — plus besoin de site e-commerce complexe, plus besoin de publicité coûteuse. Juste du contenu, et des ventes instantanées.":
+        "Em poucos meses, criadores tailandeses e indonésios geraram milhões em vendas direto dos vídeos. Para aqueles mercados mudou tudo: nada de loja online complicada, nada de publicidade cara. Só conteúdo, e venda na hora.",
+    "💡 Insight :": "💡 A sacada:",
+    "Les premiers testeurs asiatiques ont rapidement compris que le secret n'était pas le produit, mais le contenu. Un créateur avec une audience fidèle et du contenu authentique pouvait vendre presque n'importe quoi.":
+        "Quem testou primeiro na Ásia entendeu rápido que o segredo não era o produto, e sim o conteúdo. Um criador com público fiel e conteúdo honesto conseguia vender quase qualquer coisa.",
+    "🇨🇳 {0}-{1} : La domination chinoise": "🇨🇳 {0}-{1}: a China assume a dianteira",
+    "Douyin (la version chinoise de TikTok) intègre déjà le live shopping depuis des années. ByteDance étend ces capacités à TikTok Shop sur le marché chinois. Les chiffres deviennent fous :":
+        "O Douyin (a versão chinesa do TikTok) já fazia live shopping havia anos. A ByteDance levou esses recursos ao TikTok Shop no mercado chinês. Os números explodiram:",
+    "Des centaines de milliards en GMV (Gross Merchandise Value) annuels":
+        "Centenas de bilhões de GMV (valor bruto de mercadoria) por ano",
+    "Des millions de créateurs générant des revenus six ou sept chiffres":
+        "Milhões de criadores com receita de seis ou sete dígitos",
+    "La naissance de la catégorie \"live shopping\" comme format dominant":
+        "O nascimento do live shopping como formato dominante",
+    "La Chine devient le laboratoire d'innovation de TikTok Shop, établissant les patterns que le reste du monde suivrait.":
+        "A China virou o laboratório do TikTok Shop e definiu os padrões que o resto do mundo seguiria.",
+    "🇺🇸 {0} : L'arrivée chaotique aux USA": "🇺🇸 {0}: uma chegada conturbada aos EUA",
+    "TikTok Shop arrive finalement aux États-Unis en {0}, mais avec des obstacles politiques et réglementaires. Malgré les défis législatifs, la plateforme gagne rapidement du terrain aux USA, principalement parmi la Génération Z et les créateurs de niche.":
+        "O TikTok Shop enfim chegou aos Estados Unidos em {0}, mas com obstáculos políticos e regulatórios. Apesar das brigas legislativas, a plataforma ganhou terreno rápido, principalmente na Geração Z e entre criadores de nicho.",
+    "Les créateurs américains découvrent rapidement que la formule fonctionne : contenu authentique + audience engagée = ventes directes. Des créateurs de mode, beauté, fitness et bien-être dominent les premiers mois.":
+        "Os criadores americanos viram rápido que a fórmula funciona: conteúdo honesto + público engajado = venda direta. Moda, beleza, fitness e bem-estar dominaram os primeiros meses.",
+    "🇫🇷 Fin {0} - Aujourd'hui : L'explosion française": "🇫🇷 Fim de {0} até hoje: a explosão francesa",
+    "TikTok Shop arrive en France fin {0} et le marché explose. En {1}, la France est l'un des plus grands marchés TikTok Shop en Europe. Voici pourquoi :":
+        "O TikTok Shop chegou à França no fim de {0} e o mercado explodiu. Em {1}, a França é um dos maiores mercados do TikTok Shop na Europa. Veja por quê:",
+    "Audience jeune :": "Público jovem:",
+    "TikTok a une base d'utilisateurs énorme en France ({0}+ millions)":
+        "O TikTok tem uma base de usuários enorme na França (mais de {0} milhões)",
+    "Culture créative :": "Cultura criativa:",
+    "Les Français embrassent les créateurs et les influenceurs": "O público francês abraça criadores e influenciadores",
+    "Marché de niche :": "Espaço para nichos:",
+    "Les petites marques et créateurs trouvent un canal direct sans coûts publicitaires énormes":
+        "Marcas pequenas e criadores encontram um canal direto sem gastos enormes com publicidade",
+    "Beauté et Mode :": "Beleza e moda:",
+    "Deux catégories où la France excelle": "Duas categorias em que a França é forte",
+    "💰 L'impact économique": "💰 O impacto econômico",
+    "En {0}, TikTok Shop représente une part significative du e-commerce en France. Des chiffres estimés :":
+        "Em {0}, o TikTok Shop já responde por uma fatia relevante do e-commerce francês. Números estimados:",
+    "Plus de {0} créateurs vendant activement sur TikTok Shop en France":
+        "Mais de {0} criadores vendendo ativamente no TikTok Shop na França",
+    "Des transactions quotidiennes dans les milliards d'euros": "Transações diárias na casa dos bilhões de euros",
+    "Plus de {0} PME françaises intégrées à la plateforme": "Mais de {0} pequenas empresas francesas na plataforma",
+    "🔮 Qu'est-ce qui a changé ?": "🔮 O que mudou de verdade",
+    "TikTok Shop n'a pas inventé le shopping social, mais c'est la plateforme qui l'a démocratisé. Avant, il fallait :":
+        "O TikTok Shop não inventou as compras sociais, mas foi a plataforma que abriu isso para todo mundo. Antes era preciso:",
+    "Un site e-commerce": "Uma loja online",
+    "Un budget marketing": "Verba de marketing",
+    "Une expertise technique": "Conhecimento técnico",
+    "Des infrastructures logistiques": "Logística por trás",
+    "Avec TikTok Shop, il te faut juste :": "Com o TikTok Shop, você só precisa de:",
+    "Un téléphone": "Um celular",
+    "Du contenu authentique": "Conteúdo honesto",
+    "Une audience engagée": "Um público engajado",
+    "🚀 Les leçons clés": "🚀 As lições que importam",
+    "{0}. Le contenu est roi": "{0}. Quem manda é o conteúdo",
+    "Les meilleurs vendeurs sur TikTok Shop ne sont pas nécessairement les meilleurs marketers. Ce sont les créateurs qui font du contenu authentique et divertissant. Le produit vient en second.":
+        "Quem mais vende no TikTok Shop não é necessariamente quem é melhor de marketing. São os criadores que fazem conteúdo honesto e divertido. O produto vem depois.",
+    "la promotion": "a divulgação",
+    "Vous ne pouvez pas \"acheter\" une audience sur TikTok Shop. Vous devez la construire. Les créateurs avec une vraie communauté vendent {0}x plus que ceux avec simplement des followers.":
+        "No TikTok Shop não dá para comprar público. Tem que construir. Criadores com comunidade de verdade vendem {0}× mais do que quem só tem seguidores.",
+    "{0}. La niche c'est l'argent": "{0}. O dinheiro está no nicho",
+    "Les plus grands vendeurs se concentrent sur une niche spécifique et deviennent incontournables dans cette niche. Pas de généralistes, seulement des spécialistes.":
+        "Quem mais vende foca num nicho específico e vira referência ali dentro. Nada de generalistas, só especialistas.",
+    "📊 Les chiffres aujourd'hui (mai {0})": "📊 Onde estão os números (maio de {0})",
+    "TikTok Shop France : ~{0} milliards € annuels estimés": "TikTok Shop França: cerca de € {0} bilhões por ano, estimado",
+    "Créateurs gagnant {0} chiffres+ : ~{1}": "Criadores com {0} dígitos ou mais: ~{1}",
+    "Catégories dominantes : Mode, Beauté, Bien-être, Électronique, Maison":
+        "Categorias dominantes: moda, beleza, bem-estar, eletrônicos, casa",
+    "Âge moyen des vendeurs : {0}-{1} ans": "Idade média dos vendedores: {0}-{1} anos",
+    "🎯 Conclusion : Ce n'est que le début": "🎯 Para fechar: isso é só o começo",
+    "TikTok Shop ne va que croître. Les prédictions pour {0}-{1} ? Des intégrations plus profondes, plus de tools d'analyse (comme Qeerah 😉), et potentiellement le plus grand changement : les agences et les marques établies qui vont entièrement réviser leur stratégie autour de TikTok Shop.":
+        "O TikTok Shop só vai crescer. Previsões para {0}-{1}? Integrações mais profundas, mais ferramentas de análise (como a Qeerah 😉) e, talvez a maior virada de todas: agências e marcas consolidadas refazendo toda a estratégia em torno do TikTok Shop.",
+    "L'histoire de TikTok Shop n'est qu'au chapitre {0}. Nous sommes au moment clé où les créateurs peut devenir millionnaire, où les agences peuvent scaler leurs clients, et où les marques peuvent atteindre leur audience de manière directe et authentique.":
+        "A história do TikTok Shop está só no capítulo {0}. Estamos no momento em que criadores podem ficar ricos, agências podem escalar seus clientes e marcas podem falar com o público de forma direta e honesta.",
+    "Prêt à analyser vos vidéos TikTok Shop ?": "Pronto para analisar seus vídeos do TikTok Shop?",
+    "Utilisez Qeerah pour comprendre exactement ce qui fonctionne dans votre contenu.":
+        "Use a Qeerah para entender exatamente o que funciona no seu conteúdo.",
+    "Commencer gratuitement →": "Começar de graça →",
+}
+
+T_BLOG_HISTOIRE["en-ie"] = dict(T_BLOG_HISTOIRE["en"])
+T_BLOG_HISTOIRE["es-mx"] = dict(T_BLOG_HISTOIRE["es"])
