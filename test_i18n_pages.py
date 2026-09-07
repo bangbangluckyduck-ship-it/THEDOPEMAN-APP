@@ -51,6 +51,7 @@ def _sources() -> dict:
     """
     import pages_translations as T
     import pages_translations_confiance as C
+    import pages_translations_legal as L
 
     return {
         "/pricing": (main._PRICING_HTML, T.T_PRICING),
@@ -59,6 +60,10 @@ def _sources() -> dict:
         "/about": (main._ABOUT_HTML, C.T_ABOUT),
         "/contact": (main._CONTACT_HTML, C.T_CONTACT),
         "/avis": (main._AVIS_HTML, C.T_AVIS),
+        "/terms": (main._TERMS_HTML, L.T_TERMS),
+        "/mentions-legales": (main._MENTIONS_HTML, L.T_MENTIONS),
+        "/cgv": (main._CGV_HTML, L.T_CGV),
+        "/privacy": (main._PRIVACY_HTML, L.T_PRIVACY),
     }
 
 
@@ -171,8 +176,15 @@ def test_les_liens_internes_restent_dans_la_langue():
     for chemin, variantes in PAGES.items():
         for lang in AUTRES:
             prefixe = homepage_i18n.LANG_PATHS[lang]
-            for lien in set(re.findall(r'href="(/[^"#?]*)', variantes[lang])):
-                if lien in traduits:
+            for balise in re.findall(r"<a\b[^>]*>", variantes[lang]):
+                # Un lien qui déclare `hreflang` vise une langue précise : c'est
+                # le cas de l'avertissement des pages légales, qui DOIT renvoyer
+                # au français. Il est exempté, ici comme dans la réécriture.
+                if re.search(r"\bhreflang=", balise):
+                    continue
+                m = re.search(r'href="(/[^"#?]*)', balise)
+                if m and m.group(1) in traduits:
+                    lien = m.group(1)
                     assert False, (
                         f"{chemin}/{lang} : le lien {lien} renvoie à la version "
                         f"française (attendu : {prefixe}{'' if lien == '/' else lien})")
@@ -183,6 +195,45 @@ def test_le_francais_garde_ses_urls_historiques():
     sont indexées depuis le début, on ne les déplace pas."""
     for chemin, variantes in PAGES.items():
         assert "/fr/" not in variantes["fr"], f"{chemin} : lien /fr/ apparu"
+
+
+# ── Pages légales : le français fait foi ────────────────────────────────────
+LEGALES = ["/terms", "/mentions-legales", "/cgv", "/privacy"]
+
+
+def test_les_pages_legales_traduites_portent_lavertissement():
+    """Décision du 07/09/2026 : on traduit pour être compris, pas pour créer
+    sept contrats opposables. Sans cet avertissement, les sept traductions
+    vaudraient autant que le français — une nuance mal rendue dans des CGV
+    deviendrait la règle applicable."""
+    import pages_translations_legal as L
+
+    for chemin in LEGALES:
+        for lang in AUTRES:
+            html = PAGES[chemin][lang]
+            assert L.AVIS[lang][:60] in html, (
+                f"{chemin}/{lang} : avertissement « le français fait foi » absent")
+            assert f'href="{chemin}"' in html, (
+                f"{chemin}/{lang} : l'avertissement ne renvoie pas à la page française")
+
+
+def test_la_page_legale_francaise_ne_porte_pas_lavertissement():
+    """Il n'aurait aucun sens sur l'original : c'est LUI qui fait foi."""
+    import pages_translations_legal as L
+
+    for chemin in LEGALES:
+        assert L.AVIS["en"][:60] not in PAGES[chemin]["fr"]
+        assert "fait foi" not in PAGES[chemin]["fr"].replace("faits", "")
+
+
+def test_lavertissement_est_place_avant_le_texte_legal():
+    """En pied de page, personne ne le lit. Il doit être sous le titre."""
+    for chemin in LEGALES:
+        html = PAGES[chemin]["de"]
+        position_avis = html.find("Übersetzung nur zur Information")
+        position_corps = html.find("<h2")
+        assert 0 < position_avis < position_corps, (
+            f"{chemin} : l'avertissement n'est pas au-dessus du texte")
 
 
 # ── Le tableau de /pricing/compare, construit en JavaScript ──────────────────

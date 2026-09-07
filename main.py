@@ -684,15 +684,15 @@ async def scripts_page(request: Request):
 
 @app.get("/confidentialite", response_class=HTMLResponse)
 @app.get("/privacy", response_class=HTMLResponse)
-async def privacy_page(): return HTMLResponse(_PRIVACY_HTML)
+async def privacy_page(): return HTMLResponse(page_traduite("/privacy", _PRIVACY_HTML))
 
 @app.get("/conditions", response_class=HTMLResponse)
 @app.get("/terms", response_class=HTMLResponse)
-async def terms_page(): return HTMLResponse(_TERMS_HTML)
+async def terms_page(): return HTMLResponse(page_traduite("/terms", _TERMS_HTML))
 
 @app.get("/cgv", response_class=HTMLResponse)
 @app.get("/conditions-de-vente", response_class=HTMLResponse)
-async def cgv_page(): return HTMLResponse(_CGV_HTML)
+async def cgv_page(): return HTMLResponse(page_traduite("/cgv", _CGV_HTML))
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon(): return FileResponse("static/favicon.ico")
@@ -741,7 +741,7 @@ async def mentions_legales_page():
 
     Le pied de page renvoyait auparavant vers /terms (les CGU), qui ne portent
     ni l'identité de l'éditeur, ni celle de l'hébergeur."""
-    return HTMLResponse(_MENTIONS_HTML)
+    return HTMLResponse(page_traduite("/mentions-legales", _MENTIONS_HTML))
 
 
 @app.get("/temoignages", response_class=HTMLResponse)
@@ -827,10 +827,15 @@ import pages_translations
 _PAGES_TRADUITES: "dict[str, dict[str, str]]" = {}
 
 
-def _traduire_page(chemin_fr: str, html_fr: str, dico: dict) -> None:
-    """Fabrique les huit variantes d'une page et les garde en mémoire."""
+def _traduire_page(chemin_fr: str, html_fr: str, dico: dict,
+                   avis: "dict[str, str] | None" = None) -> None:
+    """Fabrique les huit variantes d'une page et les garde en mémoire.
+
+    `avis` : fragment HTML inséré sous le titre des variantes traduites — c'est
+    par là que les pages légales rappellent que le français fait foi.
+    """
     _PAGES_TRADUITES[chemin_fr] = pages_i18n.build(
-        html_fr, chemin_fr, dico, _seo_base_url())
+        html_fr, chemin_fr, dico, _seo_base_url(), avis=avis)
 
 
 _traduire_page("/pricing", _PRICING_HTML, pages_translations.T_PRICING)
@@ -842,6 +847,20 @@ import pages_translations_confiance as _pt_confiance
 _traduire_page("/about", _ABOUT_HTML, _pt_confiance.T_ABOUT)
 _traduire_page("/contact", _CONTACT_HTML, _pt_confiance.T_CONTACT)
 _traduire_page("/avis", _AVIS_HTML, _pt_confiance.T_AVIS)
+
+# Pages légales — traduites POUR ÊTRE COMPRISES, pas pour faire foi. Chaque
+# variante non française porte, sous son titre, l'avertissement rappelant que
+# seule la version française est opposable (cf. pages_translations_legal).
+import pages_translations_legal as _pt_legal
+
+_traduire_page("/terms", _TERMS_HTML, _pt_legal.T_TERMS,
+               avis=_pt_legal.avis_pour("/terms"))
+_traduire_page("/mentions-legales", _MENTIONS_HTML, _pt_legal.T_MENTIONS,
+               avis=_pt_legal.avis_pour("/mentions-legales"))
+_traduire_page("/cgv", _CGV_HTML, _pt_legal.T_CGV,
+               avis=_pt_legal.avis_pour("/cgv"))
+_traduire_page("/privacy", _PRIVACY_HTML, _pt_legal.T_PRIVACY,
+               avis=_pt_legal.avis_pour("/privacy"))
 
 
 # ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────

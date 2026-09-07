@@ -203,21 +203,35 @@ def enregistrer_chemin(chemin_fr: str) -> None:
 
 
 def liens_internes(html: str, lang: str) -> str:
-    """Préfixe les liens internes déjà traduits par le code de langue."""
+    """Préfixe les liens internes déjà traduits par le code de langue.
+
+    Exception : un lien qui déclare `hreflang` désigne explicitement une
+    version linguistique et n'est jamais réécrit. C'est ce qui permet à
+    l'avertissement des pages légales — « seule la version française fait
+    foi » — de renvoyer réellement au français, et non à la traduction que le
+    visiteur est déjà en train de lire.
+    """
     if lang == DEFAULT or not CHEMINS_TRADUITS:
         return html
     prefixe = _hp.LANG_PATHS[lang]
 
     def repl(m: re.Match) -> str:
-        avant, chemin, apres = m.group(1), m.group(2), m.group(3)
-        base = chemin.split("#")[0].split("?")[0]
-        if base not in CHEMINS_TRADUITS:
-            return m.group(0)
-        suite = chemin[len(base):]           # ancre ou requête conservée
-        cible = prefixe if base == "/" else prefixe + base
-        return f'{avant}{cible}{suite}{apres}'
+        balise = m.group(0)
+        if re.search(r"\bhreflang=", balise):
+            return balise
 
-    return re.sub(r'(href=")(/[^"]*)(")', repl, html)
+        def href(hm: re.Match) -> str:
+            chemin = hm.group(2)
+            base = chemin.split("#")[0].split("?")[0]
+            if base not in CHEMINS_TRADUITS:
+                return hm.group(0)
+            suite = chemin[len(base):]       # ancre ou requête conservée
+            cible = prefixe if base == "/" else prefixe + base
+            return f"{hm.group(1)}{cible}{suite}{hm.group(3)}"
+
+        return re.sub(r'(href=")(/[^"]*)(")', href, balise)
+
+    return re.sub(r"<a\b[^>]*>", repl, html)
 
 
 def reecrire_les_liens(pages_par_langue: "dict[str, str]") -> "dict[str, str]":
@@ -266,8 +280,25 @@ def _metadonnees(html: str, lang: str, base: str, chemin_fr: str,
 
 
 # ── Construction ─────────────────────────────────────────────────────────────
+def inserer_apres_entete(html: str, fragment: str) -> str:
+    """Glisse un fragment juste après le titre de la page (`</header>`).
+
+    Sert à poser l'avertissement des pages légales — « en cas de divergence,
+    la version française fait foi » — là où il est lu : au-dessus du texte,
+    pas en bas de page. Si le gabarit n'a pas d'en-tête, on retombe sur le
+    premier `<h1>` ; s'il n'en a pas non plus, on ne pose rien plutôt que de
+    placer l'avis n'importe où.
+    """
+    if "</header>" in html:
+        return html.replace("</header>", "</header>\n" + fragment, 1)
+    m = re.search(r"</h1>", html)
+    if m:
+        return html[:m.end()] + "\n" + fragment + html[m.end():]
+    return html
+
+
 def build(html_fr: str, chemin_fr: str, dico: "dict[str, dict[str, str]]",
-          base_url: str) -> dict[str, str]:
+          base_url: str, avis: "dict[str, str] | None" = None) -> dict[str, str]:
     """Fabrique une variante par langue. Le français est la source et le repli.
 
     Comme pour l'accueil, tout se joue AU DÉMARRAGE : aucune requête ne paie le
@@ -289,6 +320,8 @@ def build(html_fr: str, chemin_fr: str, dico: "dict[str, dict[str, str]]",
                 page = traduire_attributs(page, d)
                 page = traduire_script(page, d)
                 page = _titre(page, d)
+                if avis and avis.get(lang):
+                    page = inserer_apres_entete(page, avis[lang])
             page = _metadonnees(page, lang, base_url, chemin_fr, dico.get(lang) or {})
             pages[lang] = page
         except Exception as e:  # pragma: no cover - filet au démarrage
