@@ -74,6 +74,7 @@ def _sources() -> dict:
         "/blog/createurs-millionnaires": (main._BLOG_CREATEURS_HTML, B.T_BLOG_CREATEURS),
         "/blog/histoire-tiktok-shop": (main._BLOG_HISTOIRE_HTML, B.T_BLOG_HISTOIRE),
         "/blog/guide-complet": (main._BLOG_GUIDE_HTML, B.T_BLOG_GUIDE),
+        "/blog/expansion-mondiale-tiktok-shop": (main._BLOG_EXPANSION_HTML, B.T_BLOG_EXPANSION),
     }
 
 

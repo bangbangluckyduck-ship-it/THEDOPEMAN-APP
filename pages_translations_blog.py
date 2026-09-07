@@ -2096,3 +2096,849 @@ T_BLOG_GUIDE["pt-br"] = {
 
 T_BLOG_GUIDE["en-ie"] = dict(T_BLOG_GUIDE["en"])
 T_BLOG_GUIDE["es-mx"] = dict(T_BLOG_GUIDE["es"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# /blog/expansion-mondiale-tiktok-shop
+# ⚠️ LES TITRES DES SOURCES NE SONT PAS TRADUITS. Ce sont des citations : le
+# titre d'un article de ContentGrip ou de Forbes doit rester tel qu'il a été
+# publié, sinon la référence devient invérifiable. Seuls les noms de PAYS et le
+# texte rédactionnel sont traduits.
+# ═══════════════════════════════════════════════════════════════════════════
+T_BLOG_EXPANSION: dict[str, dict[str, str]] = {}
+
+T_BLOG_EXPANSION["en"] = {
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ? - Qeerah":
+        "TikTok Shop: what is it, and can you make money with it? - Qeerah",
+    "TikTok Shop, c'est quoi et comment ça marche ? Peut-on vraiment gagner de l'argent avec ? Pays disponibles, chiffres de GMV et créateurs devenus millionnaires, avec sources vérifiées.":
+        "What TikTok Shop is and how it works. Can you really make money with it? Countries covered, GMV figures and creators who got rich, with checked sources.",
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ?":
+        "TikTok Shop: what is it, and can you make money with it?",
+    "Ce qu'est TikTok Shop, comment ça marche, dans quels pays c'est disponible, et si on peut vraiment en vivre. Chiffres et créateurs millionnaires, sources à l'appui.":
+        "What TikTok Shop is, how it works, which countries have it, and whether you can live off it. Figures and millionaire creators, with sources.",
+    "← Retour au blog": "← Back to the blog",
+    "💡 GUIDE TIKTOK SHOP": "💡 TIKTOK SHOP GUIDE",
+    "TikTok Shop : c'est quoi, et peut-on vraiment gagner de l'argent avec ?":
+        "TikTok Shop: what is it, and can you really make money with it?",
+    "📅 Juillet {0}": "📅 July {0}",
+    "👤 Par l'équipe Qeerah": "👤 By the Qeerah team",
+    "⏱️ {0} min de lecture": "⏱️ {0} min read",
+    "🇬🇧 Read in English": "🇬🇧 Read in English",
+    "🔎 En bref :": "🔎 In short:",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter directement depuis l'app, via vidéos, lives ou vitrine boutique. Lancée en {0}, elle est aujourd'hui disponible dans une vingtaine de pays et a généré {1} milliards de dollars de ventes en {2}.":
+        "TikTok Shop is the e-commerce layer built into TikTok, letting people buy straight from the app through videos, live streams or a shop front. Launched in {0}, it now runs in around twenty countries and generated ${1} billion in sales in {2}.",
+    "Oui, on peut gagner de l'argent avec": "Yes, you can make money with it",
+    "— en tant que créateur affilié (commissions) ou en tant que vendeur — mais la réalité est à deux vitesses : le créateur médian touche environ {0} $/mois, quand une minorité de top créateurs ou marques génèrent plusieurs millions.":
+        "— as an affiliate creator (commissions) or as a seller — but it's a two-speed reality: the median creator makes around ${0} a month, while a small group of top creators and brands pull in millions.",
+    "En un peu moins de quatre ans, TikTok Shop est passé d'un test discret en Asie du Sud-Est à l'une des plus grosses machines de social commerce au monde. Voici, chiffres et sources à l'appui, ce qu'est réellement TikTok Shop, comment ça fonctionne, dans quels pays c'est disponible, et qui sont les créateurs américains qui en ont déjà fait des fortunes.":
+        "In just under four years, TikTok Shop went from a quiet test in Southeast Asia to one of the biggest social commerce machines in the world. Here, with figures and sources, is what TikTok Shop actually is, how it works, which countries have it, and which American creators have already made fortunes on it.",
+    "📊 Les chiffres qui résument l'explosion": "📊 The figures that sum up the boom",
+    "Le GMV (volume de marchandises vendues) mondial de TikTok Shop a atteint":
+        "TikTok Shop's global GMV (gross merchandise value) reached",
+    "{0} milliards de dollars en {1}": "${0} billion in {1}",
+    ", en hausse de {0} % sur un an, réparti sur une quinzaine de marchés actifs cette année-là (":
+        ", up {0}% year on year, across the fifteen or so markets active that year (",
+    "). Pour donner une idée de la vitesse : il a fallu {0} ans à Amazon pour atteindre {1} milliards de dollars de GMV annuel ; TikTok Shop est en passe de franchir ce seuil dès sa quatrième année pleine (":
+        "). For a sense of the pace: it took Amazon {0} years to reach ${1} billion in annual GMV; TikTok Shop is on course to pass that in its fourth full year (",
+    "{0} Md$": "${0}B",
+    "GMV mondial {0} (+{1}%)": "Global GMV {0} (+{1}%)",
+    "GMV mondial projeté {0}": "Projected global GMV {0}",
+    "GMV USA {0} (+{1}%)": "US GMV {0} (+{1}%)",
+    "GMV Asie du Sud-Est {0}": "Southeast Asia GMV {0}",
+    "Sources :": "Sources:",
+    "Aux États-Unis, TikTok Shop captait déjà": "In the United States, TikTok Shop was already taking",
+    "{0} % de toutes les ventes de social commerce en {1}": "{0}% of all social commerce sales in {1}",
+    "). Certaines projections à long terme évoquent même une plateforme capable de peser près de {0} milliards de dollars de ventes d'ici {1}, ce qui en ferait un top {2} mondial du commerce en ligne derrière Amazon (":
+        "). Some long-range projections even put the platform near ${0} billion in sales by {1}, which would make it a global top {2} in online commerce behind Amazon (",
+    "🗓️ La timeline de l'expansion internationale": "🗓️ A timeline of the international rollout",
+    "TikTok Shop n'a pas explosé partout en même temps. Son ouverture s'est faite marché par marché, sur un rythme qui s'est nettement accéléré depuis {0}.":
+        "TikTok Shop didn't take off everywhere at once. It opened market by market, at a pace that has picked up sharply since {0}.",
+    "Premiers tests d'e-commerce intégré, dont un partenariat pilote avec Shopify qui ne prendra finalement pas (":
+        "First tests of built-in e-commerce, including a pilot partnership with Shopify that ultimately went nowhere (",
+    "{0} avril {1} —": "{0} April {1} —",
+    "Lancement officiel du e-commerce transfrontalier dans quatre pays d'Asie du Sud-Est : Thaïlande, Vietnam, Malaisie et Philippines (":
+        "Official launch of cross-border e-commerce in four Southeast Asian countries: Thailand, Vietnam, Malaysia and the Philippines (",
+    "Novembre {0} —": "November {0} —",
+    "Début des tests beta au Royaume-Uni, en parallèle de plusieurs marchés d'Asie du Sud-Est (":
+        "Beta testing begins in the United Kingdom, alongside several Southeast Asian markets (",
+    "Fin {0} —": "Late {0} —",
+    "TikTok Shop est actif dans six pays d'Asie (Chine, Indonésie compris) et au Royaume-Uni (":
+        "TikTok Shop is live in six Asian countries (including China and Indonesia) and in the UK (",
+    "{0} septembre {1} —": "{0} September {1} —",
+    "Lancement officiel aux États-Unis, l'ouverture qui fera basculer TikTok Shop dans une autre dimension (":
+        "Official launch in the United States — the opening that would take TikTok Shop to another scale (",
+    "Consolidation en Asie du Sud-Est (Singapour, Japon) et premières ouvertures en Amérique latine, au Mexique et au Brésil.":
+        "Consolidation in Southeast Asia (Singapore, Japan) and first openings in Latin America, in Mexico and Brazil.",
+    "Vague européenne : France, Allemagne, Espagne, Italie, Irlande et Royaume-Uni s'établissent comme marchés matures.":
+        "The European wave: France, Germany, Spain, Italy, Ireland and the UK settle in as mature markets.",
+    "{0} juin {1} —": "{0} June {1} —",
+    "L'Autriche, la Belgique, les Pays-Bas et la Pologne rejoignent l'Europe TikTok Shop, avec un nouvel outil « Sell Across Europe » qui permet à un vendeur de couvrir plusieurs pays européens avec une seule inscription (":
+        "Austria, Belgium, the Netherlands and Poland join TikTok Shop's Europe, with a new “Sell Across Europe” tool that lets one seller cover several European countries from a single registration (",
+    "🗺️ Les marchés ouverts aujourd'hui, région par région": "🗺️ The markets open today, region by region",
+    "Mi-{0}, TikTok Shop Seller Center est officiellement actif dans une vingtaine de marchés répartis sur trois continents (":
+        "As of mid-{0}, TikTok Shop Seller Center is officially live in around twenty markets across three continents (",
+    "🌎 Amériques": "🌎 Americas",
+    "États-Unis": "United States",
+    "Mexique": "Mexico",
+    "Brésil": "Brazil",
+    "🇪🇺 Europe": "🇪🇺 Europe",
+    "Royaume-Uni": "United Kingdom",
+    "France": "France",
+    "Allemagne": "Germany",
+    "Espagne": "Spain",
+    "Italie": "Italy",
+    "Irlande": "Ireland",
+    "Autriche": "Austria",
+    "(juin {0})": "(June {0})",
+    "Belgique": "Belgium",
+    "Pays-Bas": "Netherlands",
+    "Pologne": "Poland",
+    "🌏 Asie-Pacifique": "🌏 Asia-Pacific",
+    "Indonésie": "Indonesia",
+    "Thaïlande": "Thailand",
+    "Vietnam": "Vietnam",
+    "Malaisie": "Malaysia",
+    "Philippines": "Philippines",
+    "Singapour": "Singapore",
+    "Japon": "Japan",
+    "Pas encore ouvert :": "Not open yet:",
+    "l'Australie n'a toujours pas accès à TikTok Shop Seller Center mi-{0}, et malgré des rumeurs récurrentes, aucun lancement natif n'est confirmé dans le Golfe (Arabie saoudite, Émirats) à cette date (":
+        "Australia still has no access to TikTok Shop Seller Center as of mid-{0}, and despite recurring rumours, no native launch is confirmed in the Gulf (Saudi Arabia, UAE) at that date (",
+    "🇮🇩 L'Indonésie, nouveau rival direct des États-Unis": "🇮🇩 Indonesia, now a direct rival to the US",
+    "C'est l'un des faits les plus frappants de {0} : sur le premier semestre, l'": "One of the most striking facts of {0}: over the first half of the year,",
+    "Indonésie a dépassé les États-Unis": "Indonesia overtook the United States",
+    "comme premier marché de TikTok Shop, avec {0} milliards de dollars de GMV contre {1} milliards pour les USA (":
+        "as TikTok Shop's largest market, with ${0} billion in GMV against ${1} billion for the US (",
+    "). Sur l'année {0} complète, les États-Unis reprennent la tête ({1} Md$ contre {2} Md$ pour l'Indonésie), mais l'Indonésie reste le deuxième marché mondial de la plateforme, et toute la région Asie du Sud-Est a doublé son GMV en un an pour atteindre {3} milliards de dollars (":
+        "). Over the full year {0}, the United States takes the lead back (${1}B against ${2}B for Indonesia), but Indonesia remains the platform's second market worldwide, and the whole Southeast Asia region doubled its GMV in a year to ${3} billion (",
+    "💰 Les créateurs américains devenus millionnaires grâce à TikTok Shop":
+        "💰 The American creators who got rich on TikTok Shop",
+    "Derrière les chiffres macro, il y a des histoires individuelles très concrètes. Voici trois créateurs américains dont la réussite sur TikTok Shop est documentée dans la presse.":
+        "Behind the macro figures are very concrete individual stories. Here are three American creators whose TikTok Shop results are documented in the press.",
+    "Stormi Steele — Canvas Beauty (Body Glaze)": "Stormi Steele — Canvas Beauty (Body Glaze)",
+    "{0}M$": "${0}M",
+    "en un seul live ({0} juin {1})": "in a single live stream ({0} June {1})",
+    "en une journée (Black Friday)": "in one day (Black Friday)",
+    "de ventes mensuelles visées": "in monthly sales, the target",
+    "Fondatrice de Canvas Beauty et de sa gamme Body Glaze (huile de soin corporel), Stormi Steele est devenue la première créatrice à dépasser {0} million de dollars de ventes lors d'un seul live TikTok Shop, le {1} juin {2} (":
+        "Founder of Canvas Beauty and its Body Glaze line (body care oil), Stormi Steele became the first creator to pass ${0} million in sales during a single TikTok Shop live stream, on {1} June {2} (",
+    "). Lors du Black Friday, sa marque a généré {0} millions de dollars de ventes en une journée, dont {1} millions via un « mega live » de {2} heures organisé depuis son entrepôt en Alabama (":
+        "). On Black Friday, her brand generated ${0} million in sales in one day, ${1} million of it through a {2}-hour “mega live” run from her warehouse in Alabama (",
+    "). Canvas Beauty a depuis été désignée marque n°{0} en ventes sur TikTok Shop aux États-Unis, avec une trajectoire vers {1} millions de dollars de ventes mensuelles (":
+        "). Canvas Beauty has since been named the #{0} brand by sales on TikTok Shop in the United States, on a path towards ${1} million in monthly sales (",
+    "Logan Walter — Beauté & self-care masculin": "Logan Walter — men's beauty and self-care",
+    "{0} ans": "{0} years old",
+    "au moment de devenir millionnaire": "when he became a millionaire",
+    "pour atteindre ce statut": "to get there",
+    "{0} chiffres": "{0} figures",
+    "de revenu mensuel": "in monthly income",
+    "Logan Walter a quitté l'université à {0} ans pour se consacrer à TikTok Shop, où il s'est imposé comme l'un des rares hommes affiliés dans le créneau beauté/self-care, en vendant des marques comme Medicube ou Neutrogena. Sa première vidéo virale lui a fait gagner plus de {1} dollars en un mois ; deux ans après ses débuts, il touchait un revenu mensuel à sept chiffres (":
+        "Logan Walter dropped out of university at {0} to go all in on TikTok Shop, where he became one of the few male affiliates in the beauty and self-care lane, selling brands like Medicube and Neutrogena. His first viral video earned him more than ${1} in a month; two years after starting, he was making a seven-figure monthly income (",
+    "Katrina Dimiele — Mode en direct (try-on livestreams)": "Katrina Dimiele — fashion live streams (try-on hauls)",
+    "cumulés en {0} ans": "over {0} years",
+    "heures de vente en direct": "hours of live selling",
+    "Créatrice mode spécialisée dans les « try-on hauls » en direct, Katrina Dimiele a cumulé {0} millions de dollars de ventes en neuf ans via ses lives sur TikTok Shop et Facebook (":
+        "A fashion creator who specialises in live try-on hauls, Katrina Dimiele has done ${0} million in sales over nine years through her live streams on TikTok Shop and Facebook (",
+    "). Son parcours illustre une réalité importante : la plupart des plus gros succès viennent de créateurs qui ont accumulé des milliers d'heures de pratique avant d'exploser, pas d'un coup de chance isolé.":
+        "). Her path shows something worth noting: most of the biggest successes come from creators who put in thousands of hours before breaking through, not from one lucky moment.",
+    "🔑 À retenir :": "🔑 Worth keeping:",
+    "ces trois parcours partagent un point commun — le live shopping. C'est le format qui génère les pics de revenus les plus spectaculaires sur TikTok Shop, bien plus que les vidéos courtes seules.":
+        "all three paths share one thing — live shopping. It's the format that produces the most spectacular revenue spikes on TikTok Shop, far more than short videos alone.",
+    "📉 Et pour un créateur « normal » ?": "📉 And for an ordinary creator?",
+    "Ces histoires sont réelles, mais elles ne représentent pas la moyenne. Selon les données de monétisation {0}, le créateur médian sur TikTok gagne environ {1} dollars par mois toutes sources confondues, tandis que les {2} % les plus performants combinent plusieurs revenus pour atteindre {3} à {4} dollars par mois (":
+        "These stories are real, but they aren't the average. According to {0} monetisation data, the median TikTok creator makes around ${1} a month across all sources, while the top {2}% combine several income streams to reach ${3} to ${4} a month (",
+    "). Les millions de Stormi Steele, Logan Walter ou Katrina Dimiele sont le sommet visible d'une pyramide beaucoup plus large.":
+        "). The millions made by Stormi Steele, Logan Walter or Katrina Dimiele are the visible top of a much wider pyramid.",
+    "🔮 Ce qui s'annonce ensuite": "🔮 What's coming next",
+    "Le rythme d'expansion ne ralentit pas : après la vague européenne de juin {0}, TikTok Shop teste déjà des abonnements payants qui rappellent le modèle Amazon Prime (":
+        "The pace isn't slowing: after the European wave of June {0}, TikTok Shop is already testing paid subscriptions that look a lot like Amazon Prime (",
+    "), et des enseignes historiques comme Ulta Beauty ont rejoint la plateforme aux États-Unis en misant sur sa capacité à transformer la découverte en achat (":
+        "), and long-established retailers like Ulta Beauty have joined the platform in the United States, betting on its ability to turn discovery into purchase (",
+    "❓ Questions fréquentes": "❓ Frequently asked questions",
+    "Qu'est-ce que TikTok Shop ?": "What is TikTok Shop?",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter des produits directement depuis l'application, via des vidéos courtes, des lives shopping ou une vitrine boutique. Lancée en {0}, elle est disponible mi-{1} dans une vingtaine de pays dont les États-Unis, le Royaume-Uni, la France, l'Allemagne, l'Espagne, l'Italie, l'Irlande, l'Indonésie, la Thaïlande, le Vietnam, la Malaisie, les Philippines, Singapour, le Japon, le Mexique et le Brésil.":
+        "TikTok Shop is the e-commerce layer built into TikTok, letting people buy products straight from the app through short videos, live shopping or a shop front. Launched in {0}, as of mid-{1} it is available in around twenty countries including the United States, the United Kingdom, France, Germany, Spain, Italy, Ireland, Indonesia, Thailand, Vietnam, Malaysia, the Philippines, Singapore, Japan, Mexico and Brazil.",
+    "Peut-on vraiment gagner de l'argent avec TikTok Shop ?": "Can you really make money with TikTok Shop?",
+    "Oui : les créateurs peuvent toucher des commissions d'affiliation en recommandant des produits, et les vendeurs peuvent gérer leur propre boutique. Certains créateurs comme Stormi Steele (Canvas Beauty) ou Logan Walter sont devenus millionnaires grâce à TikTok Shop. Mais la réalité reste à deux vitesses : le créateur médian gagne environ {0} dollars par mois, et seule une minorité de top créateurs atteint des revenus à sept chiffres.":
+        "Yes: creators can earn affiliate commissions by recommending products, and sellers can run their own shop. Some creators, like Stormi Steele (Canvas Beauty) or Logan Walter, have become millionaires through TikTok Shop. But it stays a two-speed reality: the median creator makes around ${0} a month, and only a small minority of top creators reach seven figures.",
+    "Dans quels pays TikTok Shop est-il disponible ?": "Which countries have TikTok Shop?",
+    "Mi-{0}, TikTok Shop est actif dans une vingtaine de marchés : aux Amériques (États-Unis, Mexique, Brésil), en Europe (Royaume-Uni, France, Allemagne, Espagne, Italie, Irlande, et depuis juin {1} l'Autriche, la Belgique, les Pays-Bas et la Pologne), et en Asie-Pacifique (Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon). L'Australie et les pays du Golfe n'ont pas encore de lancement officiel.":
+        "As of mid-{0}, TikTok Shop is live in around twenty markets: in the Americas (United States, Mexico, Brazil), in Europe (United Kingdom, France, Germany, Spain, Italy, Ireland, and since June {1} Austria, Belgium, the Netherlands and Poland), and in Asia-Pacific (Indonesia, Thailand, Vietnam, Malaysia, the Philippines, Singapore, Japan). Australia and the Gulf states have no official launch yet.",
+    "Vous voulez percer sur TikTok Shop ?": "Want to break through on TikTok Shop?",
+    "Utilisez Qeerah pour analyser vos vidéos et copier ce qui fonctionne vraiment chez les créateurs qui cartonnent.":
+        "Use Qeerah to analyse your videos and copy what actually works for the creators who are winning.",
+    "Analyser mes vidéos →": "Analyse my videos →",
+    "📚 Sources": "📚 Sources",
+    "interview vidéo, TikTok Shop Millionaire": "video interview, TikTok Shop Millionaire",
+    "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (interview vidéo)":
+        "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (video interview)",
+}
+
+T_BLOG_EXPANSION["de"] = {
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ? - Qeerah":
+        "TikTok Shop: Was ist das, und kann man damit Geld verdienen? - Qeerah",
+    "TikTok Shop, c'est quoi et comment ça marche ? Peut-on vraiment gagner de l'argent avec ? Pays disponibles, chiffres de GMV et créateurs devenus millionnaires, avec sources vérifiées.":
+        "Was TikTok Shop ist und wie es funktioniert. Kann man damit wirklich Geld verdienen? Verfügbare Länder, GMV-Zahlen und Creators, die reich geworden sind — mit geprüften Quellen.",
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ?":
+        "TikTok Shop: Was ist das, und kann man damit Geld verdienen?",
+    "Ce qu'est TikTok Shop, comment ça marche, dans quels pays c'est disponible, et si on peut vraiment en vivre. Chiffres et créateurs millionnaires, sources à l'appui.":
+        "Was TikTok Shop ist, wie es funktioniert, in welchen Ländern es verfügbar ist und ob man davon leben kann. Zahlen und Millionen-Creators, mit Quellen.",
+    "← Retour au blog": "← Zurück zum Blog",
+    "💡 GUIDE TIKTOK SHOP": "💡 TIKTOK-SHOP-GUIDE",
+    "TikTok Shop : c'est quoi, et peut-on vraiment gagner de l'argent avec ?":
+        "TikTok Shop: Was ist das, und kann man damit wirklich Geld verdienen?",
+    "📅 Juillet {0}": "📅 Juli {0}",
+    "👤 Par l'équipe Qeerah": "👤 Vom Qeerah-Team",
+    "⏱️ {0} min de lecture": "⏱️ {0} Min. Lesezeit",
+    "🇬🇧 Read in English": "🇬🇧 Read in English",
+    "🔎 En bref :": "🔎 Kurz gesagt:",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter directement depuis l'app, via vidéos, lives ou vitrine boutique. Lancée en {0}, elle est aujourd'hui disponible dans une vingtaine de pays et a généré {1} milliards de dollars de ventes en {2}.":
+        "TikTok Shop ist die in TikTok eingebaute Verkaufsfunktion: Man kauft direkt in der App, über Videos, Livestreams oder eine Shop-Seite. {0} gestartet, läuft sie heute in rund zwanzig Ländern und hat {2} Verkäufe von {1} Milliarden Dollar erzeugt.",
+    "Oui, on peut gagner de l'argent avec": "Ja, man kann damit Geld verdienen",
+    "— en tant que créateur affilié (commissions) ou en tant que vendeur — mais la réalité est à deux vitesses : le créateur médian touche environ {0} $/mois, quand une minorité de top créateurs ou marques génèrent plusieurs millions.":
+        "— als Affiliate-Creator (Provisionen) oder als Verkäufer — aber die Wirklichkeit hat zwei Geschwindigkeiten: Der mittlere Creator kommt auf etwa {0} $ im Monat, während eine kleine Gruppe von Top-Creators und Marken Millionen macht.",
+    "En un peu moins de quatre ans, TikTok Shop est passé d'un test discret en Asie du Sud-Est à l'une des plus grosses machines de social commerce au monde. Voici, chiffres et sources à l'appui, ce qu'est réellement TikTok Shop, comment ça fonctionne, dans quels pays c'est disponible, et qui sont les créateurs américains qui en ont déjà fait des fortunes.":
+        "In knapp vier Jahren wurde aus einem stillen Test in Südostasien eine der größten Social-Commerce-Maschinen der Welt. Hier steht, mit Zahlen und Quellen, was TikTok Shop wirklich ist, wie es funktioniert, in welchen Ländern es läuft und welche amerikanischen Creators damit schon Vermögen gemacht haben.",
+    "📊 Les chiffres qui résument l'explosion": "📊 Die Zahlen, die den Boom zusammenfassen",
+    "Le GMV (volume de marchandises vendues) mondial de TikTok Shop a atteint":
+        "Der weltweite GMV (verkauftes Warenvolumen) von TikTok Shop erreichte",
+    "{0} milliards de dollars en {1}": "{0} Milliarden Dollar im Jahr {1}",
+    ", en hausse de {0} % sur un an, réparti sur une quinzaine de marchés actifs cette année-là (":
+        ", ein Plus von {0} % gegenüber dem Vorjahr, verteilt auf die rund fünfzehn Märkte, die in dem Jahr aktiv waren (",
+    "). Pour donner une idée de la vitesse : il a fallu {0} ans à Amazon pour atteindre {1} milliards de dollars de GMV annuel ; TikTok Shop est en passe de franchir ce seuil dès sa quatrième année pleine (":
+        "). Zum Tempo: Amazon brauchte {0} Jahre für {1} Milliarden Dollar Jahres-GMV; TikTok Shop dürfte diese Schwelle schon im vierten vollen Jahr reißen (",
+    "{0} Md$": "{0} Mrd. $",
+    "GMV mondial {0} (+{1}%)": "Weltweiter GMV {0} (+{1} %)",
+    "GMV mondial projeté {0}": "Prognostizierter weltweiter GMV {0}",
+    "GMV USA {0} (+{1}%)": "GMV USA {0} (+{1} %)",
+    "GMV Asie du Sud-Est {0}": "GMV Südostasien {0}",
+    "Sources :": "Quellen:",
+    "Aux États-Unis, TikTok Shop captait déjà": "In den USA holte TikTok Shop bereits",
+    "{0} % de toutes les ventes de social commerce en {1}": "{0} % aller Social-Commerce-Verkäufe im Jahr {1}",
+    "). Certaines projections à long terme évoquent même une plateforme capable de peser près de {0} milliards de dollars de ventes d'ici {1}, ce qui en ferait un top {2} mondial du commerce en ligne derrière Amazon (":
+        "). Manche Langfristprognosen sehen die Plattform bis {1} sogar bei fast {0} Milliarden Dollar Umsatz — damit wäre sie weltweit in den Top {2} des Onlinehandels, hinter Amazon (",
+    "🗓️ La timeline de l'expansion internationale": "🗓️ Die Zeitleiste der internationalen Ausbreitung",
+    "TikTok Shop n'a pas explosé partout en même temps. Son ouverture s'est faite marché par marché, sur un rythme qui s'est nettement accéléré depuis {0}.":
+        "TikTok Shop ist nicht überall gleichzeitig durchgestartet. Die Öffnung lief Markt für Markt, in einem Tempo, das sich seit {0} deutlich beschleunigt hat.",
+    "Premiers tests d'e-commerce intégré, dont un partenariat pilote avec Shopify qui ne prendra finalement pas (":
+        "Erste Tests mit eingebautem Handel, darunter eine Pilotpartnerschaft mit Shopify, aus der am Ende nichts wurde (",
+    "{0} avril {1} —": "{0}. April {1} —",
+    "Lancement officiel du e-commerce transfrontalier dans quatre pays d'Asie du Sud-Est : Thaïlande, Vietnam, Malaisie et Philippines (":
+        "Offizieller Start des grenzüberschreitenden Handels in vier südostasiatischen Ländern: Thailand, Vietnam, Malaysia und den Philippinen (",
+    "Novembre {0} —": "November {0} —",
+    "Début des tests beta au Royaume-Uni, en parallèle de plusieurs marchés d'Asie du Sud-Est (":
+        "Beginn der Beta-Tests im Vereinigten Königreich, parallel zu mehreren südostasiatischen Märkten (",
+    "Fin {0} —": "Ende {0} —",
+    "TikTok Shop est actif dans six pays d'Asie (Chine, Indonésie compris) et au Royaume-Uni (":
+        "TikTok Shop läuft in sechs asiatischen Ländern (China und Indonesien inbegriffen) und im Vereinigten Königreich (",
+    "{0} septembre {1} —": "{0}. September {1} —",
+    "Lancement officiel aux États-Unis, l'ouverture qui fera basculer TikTok Shop dans une autre dimension (":
+        "Offizieller Start in den USA — die Öffnung, die TikTok Shop in eine andere Größenordnung bringt (",
+    "Consolidation en Asie du Sud-Est (Singapour, Japon) et premières ouvertures en Amérique latine, au Mexique et au Brésil.":
+        "Festigung in Südostasien (Singapur, Japan) und erste Öffnungen in Lateinamerika, in Mexiko und Brasilien.",
+    "Vague européenne : France, Allemagne, Espagne, Italie, Irlande et Royaume-Uni s'établissent comme marchés matures.":
+        "Die europäische Welle: Frankreich, Deutschland, Spanien, Italien, Irland und das Vereinigte Königreich etablieren sich als reife Märkte.",
+    "{0} juin {1} —": "{0}. Juni {1} —",
+    "L'Autriche, la Belgique, les Pays-Bas et la Pologne rejoignent l'Europe TikTok Shop, avec un nouvel outil « Sell Across Europe » qui permet à un vendeur de couvrir plusieurs pays européens avec une seule inscription (":
+        "Österreich, Belgien, die Niederlande und Polen kommen zum europäischen TikTok Shop dazu, mit dem neuen Werkzeug „Sell Across Europe“, mit dem ein Verkäufer mehrere europäische Länder über eine einzige Anmeldung bedienen kann (",
+    "🗺️ Les marchés ouverts aujourd'hui, région par région": "🗺️ Die heute offenen Märkte, Region für Region",
+    "Mi-{0}, TikTok Shop Seller Center est officiellement actif dans une vingtaine de marchés répartis sur trois continents (":
+        "Mitte {0} ist das TikTok Shop Seller Center offiziell in rund zwanzig Märkten auf drei Kontinenten aktiv (",
+    "🌎 Amériques": "🌎 Amerika",
+    "États-Unis": "Vereinigte Staaten",
+    "Mexique": "Mexiko",
+    "Brésil": "Brasilien",
+    "🇪🇺 Europe": "🇪🇺 Europa",
+    "Royaume-Uni": "Vereinigtes Königreich",
+    "France": "Frankreich",
+    "Allemagne": "Deutschland",
+    "Espagne": "Spanien",
+    "Italie": "Italien",
+    "Irlande": "Irland",
+    "Autriche": "Österreich",
+    "(juin {0})": "(Juni {0})",
+    "Belgique": "Belgien",
+    "Pays-Bas": "Niederlande",
+    "Pologne": "Polen",
+    "🌏 Asie-Pacifique": "🌏 Asien-Pazifik",
+    "Indonésie": "Indonesien",
+    "Thaïlande": "Thailand",
+    "Vietnam": "Vietnam",
+    "Malaisie": "Malaysia",
+    "Philippines": "Philippinen",
+    "Singapour": "Singapur",
+    "Japon": "Japan",
+    "Pas encore ouvert :": "Noch nicht offen:",
+    "l'Australie n'a toujours pas accès à TikTok Shop Seller Center mi-{0}, et malgré des rumeurs récurrentes, aucun lancement natif n'est confirmé dans le Golfe (Arabie saoudite, Émirats) à cette date (":
+        "Australien hat Mitte {0} noch immer keinen Zugang zum TikTok Shop Seller Center, und trotz wiederkehrender Gerüchte ist zu diesem Zeitpunkt kein eigener Start am Golf (Saudi-Arabien, Emirate) bestätigt (",
+    "🇮🇩 L'Indonésie, nouveau rival direct des États-Unis": "🇮🇩 Indonesien, inzwischen direkter Rivale der USA",
+    "C'est l'un des faits les plus frappants de {0} : sur le premier semestre, l'": "Eine der auffälligsten Tatsachen aus {0}: Im ersten Halbjahr hat",
+    "Indonésie a dépassé les États-Unis": "Indonesien die Vereinigten Staaten überholt",
+    "comme premier marché de TikTok Shop, avec {0} milliards de dollars de GMV contre {1} milliards pour les USA (":
+        "als größter Markt von TikTok Shop, mit {0} Milliarden Dollar GMV gegenüber {1} Milliarden für die USA (",
+    "). Sur l'année {0} complète, les États-Unis reprennent la tête ({1} Md$ contre {2} Md$ pour l'Indonésie), mais l'Indonésie reste le deuxième marché mondial de la plateforme, et toute la région Asie du Sud-Est a doublé son GMV en un an pour atteindre {3} milliards de dollars (":
+        "). Über das gesamte Jahr {0} holen sich die USA die Spitze zurück ({1} Mrd. $ gegenüber {2} Mrd. $ für Indonesien), doch Indonesien bleibt der zweitgrößte Markt der Plattform, und ganz Südostasien hat seinen GMV binnen eines Jahres auf {3} Milliarden Dollar verdoppelt (",
+    "💰 Les créateurs américains devenus millionnaires grâce à TikTok Shop":
+        "💰 Die amerikanischen Creators, die mit TikTok Shop reich wurden",
+    "Derrière les chiffres macro, il y a des histoires individuelles très concrètes. Voici trois créateurs américains dont la réussite sur TikTok Shop est documentée dans la presse.":
+        "Hinter den großen Zahlen stehen sehr konkrete Einzelgeschichten. Hier sind drei amerikanische Creators, deren Erfolg auf TikTok Shop in der Presse belegt ist.",
+    "Stormi Steele — Canvas Beauty (Body Glaze)": "Stormi Steele — Canvas Beauty (Body Glaze)",
+    "{0}M$": "{0} Mio. $",
+    "en un seul live ({0} juin {1})": "in einem einzigen Livestream ({0}. Juni {1})",
+    "en une journée (Black Friday)": "an einem Tag (Black Friday)",
+    "de ventes mensuelles visées": "angepeilter Monatsumsatz",
+    "Fondatrice de Canvas Beauty et de sa gamme Body Glaze (huile de soin corporel), Stormi Steele est devenue la première créatrice à dépasser {0} million de dollars de ventes lors d'un seul live TikTok Shop, le {1} juin {2} (":
+        "Als Gründerin von Canvas Beauty und der Linie Body Glaze (Körperpflegeöl) war Stormi Steele die erste Creatorin, die in einem einzigen TikTok-Shop-Livestream über {0} Million Dollar Umsatz machte, am {1}. Juni {2} (",
+    "). Lors du Black Friday, sa marque a généré {0} millions de dollars de ventes en une journée, dont {1} millions via un « mega live » de {2} heures organisé depuis son entrepôt en Alabama (":
+        "). Am Black Friday machte ihre Marke {0} Millionen Dollar Umsatz an einem Tag, davon {1} Millionen über einen {2}-stündigen „Mega-Live“ aus ihrem Lager in Alabama (",
+    "). Canvas Beauty a depuis été désignée marque n°{0} en ventes sur TikTok Shop aux États-Unis, avec une trajectoire vers {1} millions de dollars de ventes mensuelles (":
+        "). Canvas Beauty gilt seither als Marke Nr. {0} nach Umsatz auf TikTok Shop in den USA, auf dem Weg zu {1} Millionen Dollar Monatsumsatz (",
+    "Logan Walter — Beauté & self-care masculin": "Logan Walter — Beauty und Selbstpflege für Männer",
+    "{0} ans": "{0} Jahre alt",
+    "au moment de devenir millionnaire": "als er Millionär wurde",
+    "pour atteindre ce statut": "bis dahin",
+    "{0} chiffres": "{0} Stellen",
+    "de revenu mensuel": "Monatseinkommen",
+    "Logan Walter a quitté l'université à {0} ans pour se consacrer à TikTok Shop, où il s'est imposé comme l'un des rares hommes affiliés dans le créneau beauté/self-care, en vendant des marques comme Medicube ou Neutrogena. Sa première vidéo virale lui a fait gagner plus de {1} dollars en un mois ; deux ans après ses débuts, il touchait un revenu mensuel à sept chiffres (":
+        "Logan Walter brach mit {0} das Studium ab, um voll auf TikTok Shop zu setzen. Dort wurde er einer der wenigen männlichen Affiliates im Bereich Beauty und Selbstpflege und verkaufte Marken wie Medicube oder Neutrogena. Sein erstes virales Video brachte ihm in einem Monat über {1} Dollar; zwei Jahre nach dem Start lag sein Monatseinkommen im siebenstelligen Bereich (",
+    "Katrina Dimiele — Mode en direct (try-on livestreams)": "Katrina Dimiele — Mode im Livestream (Try-on-Hauls)",
+    "cumulés en {0} ans": "über {0} Jahre",
+    "heures de vente en direct": "Stunden Live-Verkauf",
+    "Créatrice mode spécialisée dans les « try-on hauls » en direct, Katrina Dimiele a cumulé {0} millions de dollars de ventes en neuf ans via ses lives sur TikTok Shop et Facebook (":
+        "Als Mode-Creatorin, die auf Live-Try-on-Hauls spezialisiert ist, hat Katrina Dimiele in neun Jahren {0} Millionen Dollar Umsatz über ihre Livestreams auf TikTok Shop und Facebook gemacht (",
+    "). Son parcours illustre une réalité importante : la plupart des plus gros succès viennent de créateurs qui ont accumulé des milliers d'heures de pratique avant d'exploser, pas d'un coup de chance isolé.":
+        "). Ihr Weg zeigt etwas Wichtiges: Die größten Erfolge kommen meist von Creators, die tausende Stunden geübt haben, bevor es losging — nicht von einem einzelnen Glücksmoment.",
+    "🔑 À retenir :": "🔑 Zum Merken:",
+    "ces trois parcours partagent un point commun — le live shopping. C'est le format qui génère les pics de revenus les plus spectaculaires sur TikTok Shop, bien plus que les vidéos courtes seules.":
+        "Diese drei Wege haben eines gemeinsam — Live-Shopping. Das ist das Format, das auf TikTok Shop die spektakulärsten Umsatzspitzen erzeugt, weit mehr als kurze Videos allein.",
+    "📉 Et pour un créateur « normal » ?": "📉 Und für einen ganz normalen Creator?",
+    "Ces histoires sont réelles, mais elles ne représentent pas la moyenne. Selon les données de monétisation {0}, le créateur médian sur TikTok gagne environ {1} dollars par mois toutes sources confondues, tandis que les {2} % les plus performants combinent plusieurs revenus pour atteindre {3} à {4} dollars par mois (":
+        "Diese Geschichten sind echt, aber sie sind nicht der Durchschnitt. Nach den Monetarisierungsdaten von {0} verdient der mittlere TikTok-Creator über alle Quellen hinweg rund {1} Dollar im Monat, während die besten {2} % mehrere Einnahmequellen kombinieren und auf {3} bis {4} Dollar im Monat kommen (",
+    "). Les millions de Stormi Steele, Logan Walter ou Katrina Dimiele sont le sommet visible d'une pyramide beaucoup plus large.":
+        "). Die Millionen von Stormi Steele, Logan Walter oder Katrina Dimiele sind die sichtbare Spitze einer sehr viel breiteren Pyramide.",
+    "🔮 Ce qui s'annonce ensuite": "🔮 Was als Nächstes kommt",
+    "Le rythme d'expansion ne ralentit pas : après la vague européenne de juin {0}, TikTok Shop teste déjà des abonnements payants qui rappellent le modèle Amazon Prime (":
+        "Das Tempo lässt nicht nach: Nach der europäischen Welle im Juni {0} testet TikTok Shop bereits kostenpflichtige Abos, die stark an Amazon Prime erinnern (",
+    "), et des enseignes historiques comme Ulta Beauty ont rejoint la plateforme aux États-Unis en misant sur sa capacité à transformer la découverte en achat (":
+        "), und altgediente Händler wie Ulta Beauty sind in den USA auf die Plattform gekommen — im Vertrauen darauf, dass sie Entdecken in Kaufen verwandelt (",
+    "❓ Questions fréquentes": "❓ Häufige Fragen",
+    "Qu'est-ce que TikTok Shop ?": "Was ist TikTok Shop?",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter des produits directement depuis l'application, via des vidéos courtes, des lives shopping ou une vitrine boutique. Lancée en {0}, elle est disponible mi-{1} dans une vingtaine de pays dont les États-Unis, le Royaume-Uni, la France, l'Allemagne, l'Espagne, l'Italie, l'Irlande, l'Indonésie, la Thaïlande, le Vietnam, la Malaisie, les Philippines, Singapour, le Japon, le Mexique et le Brésil.":
+        "TikTok Shop ist die in TikTok eingebaute Verkaufsfunktion: Man kauft Produkte direkt in der App, über kurze Videos, Live-Shopping oder eine Shop-Seite. {0} gestartet, ist sie Mitte {1} in rund zwanzig Ländern verfügbar, darunter die USA, das Vereinigte Königreich, Frankreich, Deutschland, Spanien, Italien, Irland, Indonesien, Thailand, Vietnam, Malaysia, die Philippinen, Singapur, Japan, Mexiko und Brasilien.",
+    "Peut-on vraiment gagner de l'argent avec TikTok Shop ?": "Kann man mit TikTok Shop wirklich Geld verdienen?",
+    "Oui : les créateurs peuvent toucher des commissions d'affiliation en recommandant des produits, et les vendeurs peuvent gérer leur propre boutique. Certains créateurs comme Stormi Steele (Canvas Beauty) ou Logan Walter sont devenus millionnaires grâce à TikTok Shop. Mais la réalité reste à deux vitesses : le créateur médian gagne environ {0} dollars par mois, et seule une minorité de top créateurs atteint des revenus à sept chiffres.":
+        "Ja: Creators können Affiliate-Provisionen verdienen, indem sie Produkte empfehlen, und Verkäufer können einen eigenen Shop führen. Manche Creators wie Stormi Steele (Canvas Beauty) oder Logan Walter sind über TikTok Shop Millionäre geworden. Aber die Wirklichkeit bleibt zweigeteilt: Der mittlere Creator verdient rund {0} Dollar im Monat, und nur eine kleine Minderheit erreicht siebenstellige Einnahmen.",
+    "Dans quels pays TikTok Shop est-il disponible ?": "In welchen Ländern gibt es TikTok Shop?",
+    "Mi-{0}, TikTok Shop est actif dans une vingtaine de marchés : aux Amériques (États-Unis, Mexique, Brésil), en Europe (Royaume-Uni, France, Allemagne, Espagne, Italie, Irlande, et depuis juin {1} l'Autriche, la Belgique, les Pays-Bas et la Pologne), et en Asie-Pacifique (Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon). L'Australie et les pays du Golfe n'ont pas encore de lancement officiel.":
+        "Mitte {0} läuft TikTok Shop in rund zwanzig Märkten: in Amerika (USA, Mexiko, Brasilien), in Europa (Vereinigtes Königreich, Frankreich, Deutschland, Spanien, Italien, Irland und seit Juni {1} Österreich, Belgien, die Niederlande und Polen) sowie in Asien-Pazifik (Indonesien, Thailand, Vietnam, Malaysia, Philippinen, Singapur, Japan). Für Australien und die Golfstaaten gibt es noch keinen offiziellen Start.",
+    "Vous voulez percer sur TikTok Shop ?": "Willst du auf TikTok Shop durchstarten?",
+    "Utilisez Qeerah pour analyser vos vidéos et copier ce qui fonctionne vraiment chez les créateurs qui cartonnent.":
+        "Nutz Qeerah, um deine Videos zu analysieren und das nachzubauen, was bei den erfolgreichen Creators wirklich funktioniert.",
+    "Analyser mes vidéos →": "Meine Videos analysieren →",
+    "📚 Sources": "📚 Quellen",
+    "interview vidéo, TikTok Shop Millionaire": "Videointerview, TikTok Shop Millionaire",
+    "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (interview vidéo)":
+        "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (Videointerview)",
+}
+
+T_BLOG_EXPANSION["es"] = {
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ? - Qeerah":
+        "TikTok Shop: qué es y si se puede ganar dinero con ello - Qeerah",
+    "TikTok Shop, c'est quoi et comment ça marche ? Peut-on vraiment gagner de l'argent avec ? Pays disponibles, chiffres de GMV et créateurs devenus millionnaires, avec sources vérifiées.":
+        "Qué es TikTok Shop y cómo funciona. ¿De verdad se puede ganar dinero? Países disponibles, cifras de GMV y creadores que se hicieron millonarios, con fuentes verificadas.",
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ?":
+        "TikTok Shop: qué es y si se puede ganar dinero con ello",
+    "Ce qu'est TikTok Shop, comment ça marche, dans quels pays c'est disponible, et si on peut vraiment en vivre. Chiffres et créateurs millionnaires, sources à l'appui.":
+        "Qué es TikTok Shop, cómo funciona, en qué países está disponible y si se puede vivir de ello. Cifras y creadores millonarios, con fuentes.",
+    "← Retour au blog": "← Volver al blog",
+    "💡 GUIDE TIKTOK SHOP": "💡 GUÍA DE TIKTOK SHOP",
+    "TikTok Shop : c'est quoi, et peut-on vraiment gagner de l'argent avec ?":
+        "TikTok Shop: qué es y si de verdad se puede ganar dinero con ello",
+    "📅 Juillet {0}": "📅 Julio de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Por el equipo de Qeerah",
+    "⏱️ {0} min de lecture": "⏱️ {0} min de lectura",
+    "🇬🇧 Read in English": "🇬🇧 Read in English",
+    "🔎 En bref :": "🔎 En resumen:",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter directement depuis l'app, via vidéos, lives ou vitrine boutique. Lancée en {0}, elle est aujourd'hui disponible dans une vingtaine de pays et a généré {1} milliards de dollars de ventes en {2}.":
+        "TikTok Shop es la función de comercio integrada en TikTok que permite comprar directamente desde la app, a través de vídeos, directos o un escaparate de tienda. Lanzada en {0}, hoy está disponible en una veintena de países y generó {1} mil millones de dólares en ventas en {2}.",
+    "Oui, on peut gagner de l'argent avec": "Sí, se puede ganar dinero con ello",
+    "— en tant que créateur affilié (commissions) ou en tant que vendeur — mais la réalité est à deux vitesses : le créateur médian touche environ {0} $/mois, quand une minorité de top créateurs ou marques génèrent plusieurs millions.":
+        "—como creador afiliado (comisiones) o como vendedor—, pero la realidad va a dos velocidades: el creador mediano ingresa unos {0} $ al mes, mientras que una minoría de creadores y marcas top genera varios millones.",
+    "En un peu moins de quatre ans, TikTok Shop est passé d'un test discret en Asie du Sud-Est à l'une des plus grosses machines de social commerce au monde. Voici, chiffres et sources à l'appui, ce qu'est réellement TikTok Shop, comment ça fonctionne, dans quels pays c'est disponible, et qui sont les créateurs américains qui en ont déjà fait des fortunes.":
+        "En poco menos de cuatro años, TikTok Shop pasó de ser una prueba discreta en el Sudeste Asiático a una de las mayores máquinas de comercio social del mundo. Aquí tienes, con cifras y fuentes, qué es realmente TikTok Shop, cómo funciona, en qué países está disponible y quiénes son los creadores estadounidenses que ya han hecho fortunas con ello.",
+    "📊 Les chiffres qui résument l'explosion": "📊 Las cifras que resumen la explosión",
+    "Le GMV (volume de marchandises vendues) mondial de TikTok Shop a atteint":
+        "El GMV (volumen de mercancía vendida) mundial de TikTok Shop alcanzó",
+    "{0} milliards de dollars en {1}": "{0} mil millones de dólares en {1}",
+    ", en hausse de {0} % sur un an, réparti sur une quinzaine de marchés actifs cette année-là (":
+        ", un {0} % más que el año anterior, repartido entre la quincena de mercados activos ese año (",
+    "). Pour donner une idée de la vitesse : il a fallu {0} ans à Amazon pour atteindre {1} milliards de dollars de GMV annuel ; TikTok Shop est en passe de franchir ce seuil dès sa quatrième année pleine (":
+        "). Para hacerse una idea de la velocidad: Amazon tardó {0} años en llegar a {1} mil millones de dólares de GMV anual; TikTok Shop va camino de cruzar ese umbral ya en su cuarto año completo (",
+    "{0} Md$": "{0} MM$",
+    "GMV mondial {0} (+{1}%)": "GMV mundial {0} (+{1} %)",
+    "GMV mondial projeté {0}": "GMV mundial previsto {0}",
+    "GMV USA {0} (+{1}%)": "GMV EE. UU. {0} (+{1} %)",
+    "GMV Asie du Sud-Est {0}": "GMV Sudeste Asiático {0}",
+    "Sources :": "Fuentes:",
+    "Aux États-Unis, TikTok Shop captait déjà": "En Estados Unidos, TikTok Shop ya se llevaba",
+    "{0} % de toutes les ventes de social commerce en {1}": "el {0} % de todas las ventas de comercio social en {1}",
+    "). Certaines projections à long terme évoquent même une plateforme capable de peser près de {0} milliards de dollars de ventes d'ici {1}, ce qui en ferait un top {2} mondial du commerce en ligne derrière Amazon (":
+        "). Algunas previsiones a largo plazo hablan incluso de una plataforma capaz de mover cerca de {0} mil millones de dólares en ventas para {1}, lo que la situaría entre los {2} primeros del comercio online mundial, por detrás de Amazon (",
+    "🗓️ La timeline de l'expansion internationale": "🗓️ La cronología de la expansión internacional",
+    "TikTok Shop n'a pas explosé partout en même temps. Son ouverture s'est faite marché par marché, sur un rythme qui s'est nettement accéléré depuis {0}.":
+        "TikTok Shop no explotó en todas partes a la vez. Se abrió mercado a mercado, a un ritmo que se ha acelerado claramente desde {0}.",
+    "Premiers tests d'e-commerce intégré, dont un partenariat pilote avec Shopify qui ne prendra finalement pas (":
+        "Primeras pruebas de comercio integrado, incluida una alianza piloto con Shopify que al final no cuajó (",
+    "{0} avril {1} —": "{0} de abril de {1} —",
+    "Lancement officiel du e-commerce transfrontalier dans quatre pays d'Asie du Sud-Est : Thaïlande, Vietnam, Malaisie et Philippines (":
+        "Lanzamiento oficial del comercio transfronterizo en cuatro países del Sudeste Asiático: Tailandia, Vietnam, Malasia y Filipinas (",
+    "Novembre {0} —": "Noviembre de {0} —",
+    "Début des tests beta au Royaume-Uni, en parallèle de plusieurs marchés d'Asie du Sud-Est (":
+        "Comienzan las pruebas beta en el Reino Unido, en paralelo a varios mercados del Sudeste Asiático (",
+    "Fin {0} —": "Finales de {0} —",
+    "TikTok Shop est actif dans six pays d'Asie (Chine, Indonésie compris) et au Royaume-Uni (":
+        "TikTok Shop está activo en seis países de Asia (China e Indonesia incluidas) y en el Reino Unido (",
+    "{0} septembre {1} —": "{0} de septiembre de {1} —",
+    "Lancement officiel aux États-Unis, l'ouverture qui fera basculer TikTok Shop dans une autre dimension (":
+        "Lanzamiento oficial en Estados Unidos, la apertura que lleva a TikTok Shop a otra escala (",
+    "Consolidation en Asie du Sud-Est (Singapour, Japon) et premières ouvertures en Amérique latine, au Mexique et au Brésil.":
+        "Consolidación en el Sudeste Asiático (Singapur, Japón) y primeras aperturas en América Latina, en México y Brasil.",
+    "Vague européenne : France, Allemagne, Espagne, Italie, Irlande et Royaume-Uni s'établissent comme marchés matures.":
+        "Ola europea: Francia, Alemania, España, Italia, Irlanda y el Reino Unido se consolidan como mercados maduros.",
+    "{0} juin {1} —": "{0} de junio de {1} —",
+    "L'Autriche, la Belgique, les Pays-Bas et la Pologne rejoignent l'Europe TikTok Shop, avec un nouvel outil « Sell Across Europe » qui permet à un vendeur de couvrir plusieurs pays européens avec une seule inscription (":
+        "Austria, Bélgica, Países Bajos y Polonia se suman a la Europa de TikTok Shop, con una nueva herramienta «Sell Across Europe» que permite a un vendedor cubrir varios países europeos con un solo registro (",
+    "🗺️ Les marchés ouverts aujourd'hui, région par région": "🗺️ Los mercados abiertos hoy, región por región",
+    "Mi-{0}, TikTok Shop Seller Center est officiellement actif dans une vingtaine de marchés répartis sur trois continents (":
+        "A mediados de {0}, TikTok Shop Seller Center está oficialmente activo en una veintena de mercados repartidos en tres continentes (",
+    "🌎 Amériques": "🌎 América",
+    "États-Unis": "Estados Unidos",
+    "Mexique": "México",
+    "Brésil": "Brasil",
+    "🇪🇺 Europe": "🇪🇺 Europa",
+    "Royaume-Uni": "Reino Unido",
+    "France": "Francia",
+    "Allemagne": "Alemania",
+    "Espagne": "España",
+    "Italie": "Italia",
+    "Irlande": "Irlanda",
+    "Autriche": "Austria",
+    "(juin {0})": "(junio de {0})",
+    "Belgique": "Bélgica",
+    "Pays-Bas": "Países Bajos",
+    "Pologne": "Polonia",
+    "🌏 Asie-Pacifique": "🌏 Asia-Pacífico",
+    "Indonésie": "Indonesia",
+    "Thaïlande": "Tailandia",
+    "Vietnam": "Vietnam",
+    "Malaisie": "Malasia",
+    "Philippines": "Filipinas",
+    "Singapour": "Singapur",
+    "Japon": "Japón",
+    "Pas encore ouvert :": "Todavía sin abrir:",
+    "l'Australie n'a toujours pas accès à TikTok Shop Seller Center mi-{0}, et malgré des rumeurs récurrentes, aucun lancement natif n'est confirmé dans le Golfe (Arabie saoudite, Émirats) à cette date (":
+        "Australia sigue sin acceso a TikTok Shop Seller Center a mediados de {0} y, pese a los rumores recurrentes, no hay ningún lanzamiento propio confirmado en el Golfo (Arabia Saudí, Emiratos) en esa fecha (",
+    "🇮🇩 L'Indonésie, nouveau rival direct des États-Unis": "🇮🇩 Indonesia, nuevo rival directo de Estados Unidos",
+    "C'est l'un des faits les plus frappants de {0} : sur le premier semestre, l'": "Es uno de los datos más llamativos de {0}: en el primer semestre,",
+    "Indonésie a dépassé les États-Unis": "Indonesia superó a Estados Unidos",
+    "comme premier marché de TikTok Shop, avec {0} milliards de dollars de GMV contre {1} milliards pour les USA (":
+        "como primer mercado de TikTok Shop, con {0} mil millones de dólares de GMV frente a {1} mil millones de EE. UU. (",
+    "). Sur l'année {0} complète, les États-Unis reprennent la tête ({1} Md$ contre {2} Md$ pour l'Indonésie), mais l'Indonésie reste le deuxième marché mondial de la plateforme, et toute la région Asie du Sud-Est a doublé son GMV en un an pour atteindre {3} milliards de dollars (":
+        "). En el conjunto de {0}, Estados Unidos recupera la delantera ({1} MM$ frente a {2} MM$ de Indonesia), pero Indonesia sigue siendo el segundo mercado mundial de la plataforma, y todo el Sudeste Asiático duplicó su GMV en un año hasta {3} mil millones de dólares (",
+    "💰 Les créateurs américains devenus millionnaires grâce à TikTok Shop":
+        "💰 Los creadores estadounidenses que se hicieron millonarios con TikTok Shop",
+    "Derrière les chiffres macro, il y a des histoires individuelles très concrètes. Voici trois créateurs américains dont la réussite sur TikTok Shop est documentée dans la presse.":
+        "Detrás de las cifras macro hay historias individuales muy concretas. Estos son tres creadores estadounidenses cuyos resultados en TikTok Shop están documentados en prensa.",
+    "Stormi Steele — Canvas Beauty (Body Glaze)": "Stormi Steele — Canvas Beauty (Body Glaze)",
+    "{0}M$": "{0} M$",
+    "en un seul live ({0} juin {1})": "en un solo directo ({0} de junio de {1})",
+    "en une journée (Black Friday)": "en un día (Black Friday)",
+    "de ventes mensuelles visées": "de ventas mensuales como objetivo",
+    "Fondatrice de Canvas Beauty et de sa gamme Body Glaze (huile de soin corporel), Stormi Steele est devenue la première créatrice à dépasser {0} million de dollars de ventes lors d'un seul live TikTok Shop, le {1} juin {2} (":
+        "Fundadora de Canvas Beauty y de su línea Body Glaze (aceite corporal), Stormi Steele fue la primera creadora en superar {0} millón de dólares en ventas durante un solo directo de TikTok Shop, el {1} de junio de {2} (",
+    "). Lors du Black Friday, sa marque a généré {0} millions de dollars de ventes en une journée, dont {1} millions via un « mega live » de {2} heures organisé depuis son entrepôt en Alabama (":
+        "). En Black Friday, su marca generó {0} millones de dólares en ventas en un día, {1} millones de ellos en un «mega directo» de {2} horas desde su almacén de Alabama (",
+    "). Canvas Beauty a depuis été désignée marque n°{0} en ventes sur TikTok Shop aux États-Unis, avec une trajectoire vers {1} millions de dollars de ventes mensuelles (":
+        "). Canvas Beauty ha sido designada desde entonces marca n.º {0} en ventas en TikTok Shop en Estados Unidos, camino de {1} millones de dólares en ventas mensuales (",
+    "Logan Walter — Beauté & self-care masculin": "Logan Walter — belleza y autocuidado masculino",
+    "{0} ans": "{0} años",
+    "au moment de devenir millionnaire": "al hacerse millonario",
+    "pour atteindre ce statut": "para llegar ahí",
+    "{0} chiffres": "{0} cifras",
+    "de revenu mensuel": "de ingresos mensuales",
+    "Logan Walter a quitté l'université à {0} ans pour se consacrer à TikTok Shop, où il s'est imposé comme l'un des rares hommes affiliés dans le créneau beauté/self-care, en vendant des marques comme Medicube ou Neutrogena. Sa première vidéo virale lui a fait gagner plus de {1} dollars en un mois ; deux ans après ses débuts, il touchait un revenu mensuel à sept chiffres (":
+        "Logan Walter dejó la universidad a los {0} años para volcarse en TikTok Shop, donde se hizo un hueco como uno de los pocos hombres afiliados en el nicho de belleza y autocuidado, vendiendo marcas como Medicube o Neutrogena. Su primer vídeo viral le hizo ganar más de {1} dólares en un mes; dos años después de empezar, ingresaba siete cifras al mes (",
+    "Katrina Dimiele — Mode en direct (try-on livestreams)": "Katrina Dimiele — moda en directo (try-on hauls)",
+    "cumulés en {0} ans": "acumulados en {0} años",
+    "heures de vente en direct": "horas de venta en directo",
+    "Créatrice mode spécialisée dans les « try-on hauls » en direct, Katrina Dimiele a cumulé {0} millions de dollars de ventes en neuf ans via ses lives sur TikTok Shop et Facebook (":
+        "Creadora de moda especializada en «try-on hauls» en directo, Katrina Dimiele acumula {0} millones de dólares en ventas en nueve años a través de sus directos en TikTok Shop y Facebook (",
+    "). Son parcours illustre une réalité importante : la plupart des plus gros succès viennent de créateurs qui ont accumulé des milliers d'heures de pratique avant d'exploser, pas d'un coup de chance isolé.":
+        "). Su recorrido enseña algo importante: la mayoría de los grandes éxitos vienen de creadores que acumularon miles de horas de práctica antes de despegar, no de un golpe de suerte aislado.",
+    "🔑 À retenir :": "🔑 Para quedarse con esto:",
+    "ces trois parcours partagent un point commun — le live shopping. C'est le format qui génère les pics de revenus les plus spectaculaires sur TikTok Shop, bien plus que les vidéos courtes seules.":
+        "los tres recorridos comparten una cosa: el live shopping. Es el formato que genera los picos de ingresos más espectaculares en TikTok Shop, mucho más que los vídeos cortos por sí solos.",
+    "📉 Et pour un créateur « normal » ?": "📉 ¿Y para un creador normal?",
+    "Ces histoires sont réelles, mais elles ne représentent pas la moyenne. Selon les données de monétisation {0}, le créateur médian sur TikTok gagne environ {1} dollars par mois toutes sources confondues, tandis que les {2} % les plus performants combinent plusieurs revenus pour atteindre {3} à {4} dollars par mois (":
+        "Estas historias son reales, pero no son la media. Según los datos de monetización de {0}, el creador mediano en TikTok gana unos {1} dólares al mes sumando todas las fuentes, mientras que el {2} % con mejores resultados combina varios ingresos para llegar a entre {3} y {4} dólares al mes (",
+    "). Les millions de Stormi Steele, Logan Walter ou Katrina Dimiele sont le sommet visible d'une pyramide beaucoup plus large.":
+        "). Los millones de Stormi Steele, Logan Walter o Katrina Dimiele son la punta visible de una pirámide mucho más ancha.",
+    "🔮 Ce qui s'annonce ensuite": "🔮 Lo que viene después",
+    "Le rythme d'expansion ne ralentit pas : après la vague européenne de juin {0}, TikTok Shop teste déjà des abonnements payants qui rappellent le modèle Amazon Prime (":
+        "El ritmo de expansión no afloja: tras la ola europea de junio de {0}, TikTok Shop ya prueba suscripciones de pago que recuerdan al modelo de Amazon Prime (",
+    "), et des enseignes historiques comme Ulta Beauty ont rejoint la plateforme aux États-Unis en misant sur sa capacité à transformer la découverte en achat (":
+        "), y cadenas históricas como Ulta Beauty se han sumado a la plataforma en Estados Unidos apostando por su capacidad de convertir el descubrimiento en compra (",
+    "❓ Questions fréquentes": "❓ Preguntas frecuentes",
+    "Qu'est-ce que TikTok Shop ?": "¿Qué es TikTok Shop?",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter des produits directement depuis l'application, via des vidéos courtes, des lives shopping ou une vitrine boutique. Lancée en {0}, elle est disponible mi-{1} dans une vingtaine de pays dont les États-Unis, le Royaume-Uni, la France, l'Allemagne, l'Espagne, l'Italie, l'Irlande, l'Indonésie, la Thaïlande, le Vietnam, la Malaisie, les Philippines, Singapour, le Japon, le Mexique et le Brésil.":
+        "TikTok Shop es la función de comercio integrada en TikTok que permite comprar productos directamente desde la aplicación, a través de vídeos cortos, directos de compras o un escaparate de tienda. Lanzada en {0}, a mediados de {1} está disponible en una veintena de países, entre ellos Estados Unidos, Reino Unido, Francia, Alemania, España, Italia, Irlanda, Indonesia, Tailandia, Vietnam, Malasia, Filipinas, Singapur, Japón, México y Brasil.",
+    "Peut-on vraiment gagner de l'argent avec TikTok Shop ?": "¿De verdad se puede ganar dinero con TikTok Shop?",
+    "Oui : les créateurs peuvent toucher des commissions d'affiliation en recommandant des produits, et les vendeurs peuvent gérer leur propre boutique. Certains créateurs comme Stormi Steele (Canvas Beauty) ou Logan Walter sont devenus millionnaires grâce à TikTok Shop. Mais la réalité reste à deux vitesses : le créateur médian gagne environ {0} dollars par mois, et seule une minorité de top créateurs atteint des revenus à sept chiffres.":
+        "Sí: los creadores pueden cobrar comisiones de afiliación recomendando productos, y los vendedores pueden llevar su propia tienda. Algunos creadores como Stormi Steele (Canvas Beauty) o Logan Walter se han hecho millonarios con TikTok Shop. Pero la realidad sigue yendo a dos velocidades: el creador mediano gana unos {0} dólares al mes, y solo una minoría de creadores top llega a ingresos de siete cifras.",
+    "Dans quels pays TikTok Shop est-il disponible ?": "¿En qué países está disponible TikTok Shop?",
+    "Mi-{0}, TikTok Shop est actif dans une vingtaine de marchés : aux Amériques (États-Unis, Mexique, Brésil), en Europe (Royaume-Uni, France, Allemagne, Espagne, Italie, Irlande, et depuis juin {1} l'Autriche, la Belgique, les Pays-Bas et la Pologne), et en Asie-Pacifique (Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon). L'Australie et les pays du Golfe n'ont pas encore de lancement officiel.":
+        "A mediados de {0}, TikTok Shop está activo en una veintena de mercados: en América (Estados Unidos, México, Brasil), en Europa (Reino Unido, Francia, Alemania, España, Italia, Irlanda y, desde junio de {1}, Austria, Bélgica, Países Bajos y Polonia) y en Asia-Pacífico (Indonesia, Tailandia, Vietnam, Malasia, Filipinas, Singapur, Japón). Australia y los países del Golfo aún no tienen lanzamiento oficial.",
+    "Vous voulez percer sur TikTok Shop ?": "¿Quieres despegar en TikTok Shop?",
+    "Utilisez Qeerah pour analyser vos vidéos et copier ce qui fonctionne vraiment chez les créateurs qui cartonnent.":
+        "Usa Qeerah para analizar tus vídeos y copiar lo que de verdad funciona en los creadores que arrasan.",
+    "Analyser mes vidéos →": "Analizar mis vídeos →",
+    "📚 Sources": "📚 Fuentes",
+    "interview vidéo, TikTok Shop Millionaire": "entrevista en vídeo, TikTok Shop Millionaire",
+    "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (interview vidéo)":
+        "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (entrevista en vídeo)",
+}
+
+T_BLOG_EXPANSION["it"] = {
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ? - Qeerah":
+        "TikTok Shop: cos'è e ci si può guadagnare? - Qeerah",
+    "TikTok Shop, c'est quoi et comment ça marche ? Peut-on vraiment gagner de l'argent avec ? Pays disponibles, chiffres de GMV et créateurs devenus millionnaires, avec sources vérifiées.":
+        "Cos'è TikTok Shop e come funziona. Ci si può davvero guadagnare? Paesi disponibili, numeri di GMV e creator diventati milionari, con fonti verificate.",
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ?": "TikTok Shop: cos'è e ci si può guadagnare?",
+    "Ce qu'est TikTok Shop, comment ça marche, dans quels pays c'est disponible, et si on peut vraiment en vivre. Chiffres et créateurs millionnaires, sources à l'appui.":
+        "Cos'è TikTok Shop, come funziona, in quali paesi è disponibile e se ci si può vivere. Numeri e creator milionari, con le fonti.",
+    "← Retour au blog": "← Torna al blog",
+    "💡 GUIDE TIKTOK SHOP": "💡 GUIDA A TIKTOK SHOP",
+    "TikTok Shop : c'est quoi, et peut-on vraiment gagner de l'argent avec ?":
+        "TikTok Shop: cos'è e ci si può davvero guadagnare?",
+    "📅 Juillet {0}": "📅 Luglio {0}",
+    "👤 Par l'équipe Qeerah": "👤 Dal team Qeerah",
+    "⏱️ {0} min de lecture": "⏱️ {0} min di lettura",
+    "🇬🇧 Read in English": "🇬🇧 Read in English",
+    "🔎 En bref :": "🔎 In breve:",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter directement depuis l'app, via vidéos, lives ou vitrine boutique. Lancée en {0}, elle est aujourd'hui disponible dans une vingtaine de pays et a généré {1} milliards de dollars de ventes en {2}.":
+        "TikTok Shop è la funzione di commercio integrata in TikTok che permette di comprare direttamente dall'app, tramite video, dirette o una vetrina negozio. Lanciata nel {0}, oggi è disponibile in una ventina di paesi e ha generato {1} miliardi di dollari di vendite nel {2}.",
+    "Oui, on peut gagner de l'argent avec": "Sì, ci si può guadagnare",
+    "— en tant que créateur affilié (commissions) ou en tant que vendeur — mais la réalité est à deux vitesses : le créateur médian touche environ {0} $/mois, quand une minorité de top créateurs ou marques génèrent plusieurs millions.":
+        "— come creator affiliato (provvigioni) o come venditore — ma la realtà va a due velocità: il creator mediano incassa circa {0} $ al mese, mentre una minoranza di top creator e marchi genera diversi milioni.",
+    "En un peu moins de quatre ans, TikTok Shop est passé d'un test discret en Asie du Sud-Est à l'une des plus grosses machines de social commerce au monde. Voici, chiffres et sources à l'appui, ce qu'est réellement TikTok Shop, comment ça fonctionne, dans quels pays c'est disponible, et qui sont les créateurs américains qui en ont déjà fait des fortunes.":
+        "In poco meno di quattro anni TikTok Shop è passato da test silenzioso nel Sud-est asiatico a una delle più grandi macchine di social commerce al mondo. Ecco, numeri e fonti alla mano, cos'è davvero TikTok Shop, come funziona, in quali paesi è disponibile e chi sono i creator americani che ci hanno già fatto fortune.",
+    "📊 Les chiffres qui résument l'explosion": "📊 I numeri che riassumono il boom",
+    "Le GMV (volume de marchandises vendues) mondial de TikTok Shop a atteint":
+        "Il GMV (volume di merce venduta) mondiale di TikTok Shop ha raggiunto",
+    "{0} milliards de dollars en {1}": "{0} miliardi di dollari nel {1}",
+    ", en hausse de {0} % sur un an, réparti sur une quinzaine de marchés actifs cette année-là (":
+        ", in crescita del {0} % su base annua, distribuito sulla quindicina di mercati attivi quell'anno (",
+    "). Pour donner une idée de la vitesse : il a fallu {0} ans à Amazon pour atteindre {1} milliards de dollars de GMV annuel ; TikTok Shop est en passe de franchir ce seuil dès sa quatrième année pleine (":
+        "). Per dare un'idea della velocità: ad Amazon sono serviti {0} anni per arrivare a {1} miliardi di dollari di GMV annuo; TikTok Shop è sul punto di superare quella soglia già al quarto anno pieno (",
+    "{0} Md$": "{0} mld $",
+    "GMV mondial {0} (+{1}%)": "GMV mondiale {0} (+{1} %)",
+    "GMV mondial projeté {0}": "GMV mondiale previsto {0}",
+    "GMV USA {0} (+{1}%)": "GMV USA {0} (+{1} %)",
+    "GMV Asie du Sud-Est {0}": "GMV Sud-est asiatico {0}",
+    "Sources :": "Fonti:",
+    "Aux États-Unis, TikTok Shop captait déjà": "Negli Stati Uniti TikTok Shop si prendeva già",
+    "{0} % de toutes les ventes de social commerce en {1}": "il {0} % di tutte le vendite di social commerce nel {1}",
+    "). Certaines projections à long terme évoquent même une plateforme capable de peser près de {0} milliards de dollars de ventes d'ici {1}, ce qui en ferait un top {2} mondial du commerce en ligne derrière Amazon (":
+        "). Alcune proiezioni di lungo periodo parlano perfino di una piattaforma capace di valere quasi {0} miliardi di dollari di vendite entro il {1}, il che la metterebbe tra i primi {2} al mondo nel commercio online, dietro ad Amazon (",
+    "🗓️ La timeline de l'expansion internationale": "🗓️ La cronologia dell'espansione internazionale",
+    "TikTok Shop n'a pas explosé partout en même temps. Son ouverture s'est faite marché par marché, sur un rythme qui s'est nettement accéléré depuis {0}.":
+        "TikTok Shop non è esploso ovunque nello stesso momento. L'apertura è avvenuta mercato per mercato, a un ritmo che dal {0} si è chiaramente accelerato.",
+    "Premiers tests d'e-commerce intégré, dont un partenariat pilote avec Shopify qui ne prendra finalement pas (":
+        "Primi test di commercio integrato, inclusa una partnership pilota con Shopify che alla fine non decolla (",
+    "{0} avril {1} —": "{0} aprile {1} —",
+    "Lancement officiel du e-commerce transfrontalier dans quatre pays d'Asie du Sud-Est : Thaïlande, Vietnam, Malaisie et Philippines (":
+        "Lancio ufficiale del commercio transfrontaliero in quattro paesi del Sud-est asiatico: Thailandia, Vietnam, Malaysia e Filippine (",
+    "Novembre {0} —": "Novembre {0} —",
+    "Début des tests beta au Royaume-Uni, en parallèle de plusieurs marchés d'Asie du Sud-Est (":
+        "Iniziano i test beta nel Regno Unito, in parallelo a diversi mercati del Sud-est asiatico (",
+    "Fin {0} —": "Fine {0} —",
+    "TikTok Shop est actif dans six pays d'Asie (Chine, Indonésie compris) et au Royaume-Uni (":
+        "TikTok Shop è attivo in sei paesi asiatici (Cina e Indonesia comprese) e nel Regno Unito (",
+    "{0} septembre {1} —": "{0} settembre {1} —",
+    "Lancement officiel aux États-Unis, l'ouverture qui fera basculer TikTok Shop dans une autre dimension (":
+        "Lancio ufficiale negli Stati Uniti, l'apertura che porta TikTok Shop su un altro piano (",
+    "Consolidation en Asie du Sud-Est (Singapour, Japon) et premières ouvertures en Amérique latine, au Mexique et au Brésil.":
+        "Consolidamento nel Sud-est asiatico (Singapore, Giappone) e prime aperture in America Latina, in Messico e Brasile.",
+    "Vague européenne : France, Allemagne, Espagne, Italie, Irlande et Royaume-Uni s'établissent comme marchés matures.":
+        "Ondata europea: Francia, Germania, Spagna, Italia, Irlanda e Regno Unito si affermano come mercati maturi.",
+    "{0} juin {1} —": "{0} giugno {1} —",
+    "L'Autriche, la Belgique, les Pays-Bas et la Pologne rejoignent l'Europe TikTok Shop, avec un nouvel outil « Sell Across Europe » qui permet à un vendeur de couvrir plusieurs pays européens avec une seule inscription (":
+        "Austria, Belgio, Paesi Bassi e Polonia entrano nell'Europa di TikTok Shop, con il nuovo strumento «Sell Across Europe» che permette a un venditore di coprire più paesi europei con una sola iscrizione (",
+    "🗺️ Les marchés ouverts aujourd'hui, région par région": "🗺️ I mercati aperti oggi, regione per regione",
+    "Mi-{0}, TikTok Shop Seller Center est officiellement actif dans une vingtaine de marchés répartis sur trois continents (":
+        "A metà {0} il TikTok Shop Seller Center è ufficialmente attivo in una ventina di mercati su tre continenti (",
+    "🌎 Amériques": "🌎 Americhe",
+    "États-Unis": "Stati Uniti",
+    "Mexique": "Messico",
+    "Brésil": "Brasile",
+    "🇪🇺 Europe": "🇪🇺 Europa",
+    "Royaume-Uni": "Regno Unito",
+    "France": "Francia",
+    "Allemagne": "Germania",
+    "Espagne": "Spagna",
+    "Italie": "Italia",
+    "Irlande": "Irlanda",
+    "Autriche": "Austria",
+    "(juin {0})": "(giugno {0})",
+    "Belgique": "Belgio",
+    "Pays-Bas": "Paesi Bassi",
+    "Pologne": "Polonia",
+    "🌏 Asie-Pacifique": "🌏 Asia-Pacifico",
+    "Indonésie": "Indonesia",
+    "Thaïlande": "Thailandia",
+    "Vietnam": "Vietnam",
+    "Malaisie": "Malaysia",
+    "Philippines": "Filippine",
+    "Singapour": "Singapore",
+    "Japon": "Giappone",
+    "Pas encore ouvert :": "Non ancora aperto:",
+    "l'Australie n'a toujours pas accès à TikTok Shop Seller Center mi-{0}, et malgré des rumeurs récurrentes, aucun lancement natif n'est confirmé dans le Golfe (Arabie saoudite, Émirats) à cette date (":
+        "l'Australia a metà {0} non ha ancora accesso al TikTok Shop Seller Center e, nonostante le voci ricorrenti, a quella data non è confermato alcun lancio nativo nel Golfo (Arabia Saudita, Emirati) (",
+    "🇮🇩 L'Indonésie, nouveau rival direct des États-Unis": "🇮🇩 L'Indonesia, nuova rivale diretta degli Stati Uniti",
+    "C'est l'un des faits les plus frappants de {0} : sur le premier semestre, l'": "È uno dei dati più sorprendenti del {0}: nel primo semestre",
+    "Indonésie a dépassé les États-Unis": "l'Indonesia ha superato gli Stati Uniti",
+    "comme premier marché de TikTok Shop, avec {0} milliards de dollars de GMV contre {1} milliards pour les USA (":
+        "come primo mercato di TikTok Shop, con {0} miliardi di dollari di GMV contro i {1} miliardi degli USA (",
+    "). Sur l'année {0} complète, les États-Unis reprennent la tête ({1} Md$ contre {2} Md$ pour l'Indonésie), mais l'Indonésie reste le deuxième marché mondial de la plateforme, et toute la région Asie du Sud-Est a doublé son GMV en un an pour atteindre {3} milliards de dollars (":
+        "). Sull'intero {0} gli Stati Uniti si riprendono la testa ({1} mld $ contro {2} mld $ dell'Indonesia), ma l'Indonesia resta il secondo mercato mondiale della piattaforma, e tutto il Sud-est asiatico ha raddoppiato il GMV in un anno arrivando a {3} miliardi di dollari (",
+    "💰 Les créateurs américains devenus millionnaires grâce à TikTok Shop":
+        "💰 I creator americani diventati milionari con TikTok Shop",
+    "Derrière les chiffres macro, il y a des histoires individuelles très concrètes. Voici trois créateurs américains dont la réussite sur TikTok Shop est documentée dans la presse.":
+        "Dietro ai numeri grandi ci sono storie individuali molto concrete. Ecco tre creator americani i cui risultati su TikTok Shop sono documentati dalla stampa.",
+    "Stormi Steele — Canvas Beauty (Body Glaze)": "Stormi Steele — Canvas Beauty (Body Glaze)",
+    "{0}M$": "{0} mln $",
+    "en un seul live ({0} juin {1})": "in una sola diretta ({0} giugno {1})",
+    "en une journée (Black Friday)": "in un giorno (Black Friday)",
+    "de ventes mensuelles visées": "di vendite mensili come obiettivo",
+    "Fondatrice de Canvas Beauty et de sa gamme Body Glaze (huile de soin corporel), Stormi Steele est devenue la première créatrice à dépasser {0} million de dollars de ventes lors d'un seul live TikTok Shop, le {1} juin {2} (":
+        "Fondatrice di Canvas Beauty e della linea Body Glaze (olio corpo), Stormi Steele è stata la prima creator a superare {0} milione di dollari di vendite in una sola diretta TikTok Shop, il {1} giugno {2} (",
+    "). Lors du Black Friday, sa marque a généré {0} millions de dollars de ventes en une journée, dont {1} millions via un « mega live » de {2} heures organisé depuis son entrepôt en Alabama (":
+        "). Al Black Friday il suo marchio ha generato {0} milioni di dollari di vendite in un giorno, {1} milioni dei quali con un «mega live» di {2} ore dal suo magazzino in Alabama (",
+    "). Canvas Beauty a depuis été désignée marque n°{0} en ventes sur TikTok Shop aux États-Unis, avec une trajectoire vers {1} millions de dollars de ventes mensuelles (":
+        "). Da allora Canvas Beauty è indicato come marchio n. {0} per vendite su TikTok Shop negli Stati Uniti, con una traiettoria verso {1} milioni di dollari di vendite mensili (",
+    "Logan Walter — Beauté & self-care masculin": "Logan Walter — bellezza e cura di sé al maschile",
+    "{0} ans": "{0} anni",
+    "au moment de devenir millionnaire": "quando è diventato milionario",
+    "pour atteindre ce statut": "per arrivarci",
+    "{0} chiffres": "{0} cifre",
+    "de revenu mensuel": "di reddito mensile",
+    "Logan Walter a quitté l'université à {0} ans pour se consacrer à TikTok Shop, où il s'est imposé comme l'un des rares hommes affiliés dans le créneau beauté/self-care, en vendant des marques comme Medicube ou Neutrogena. Sa première vidéo virale lui a fait gagner plus de {1} dollars en un mois ; deux ans après ses débuts, il touchait un revenu mensuel à sept chiffres (":
+        "Logan Walter ha lasciato l'università a {0} anni per dedicarsi a TikTok Shop, dove si è imposto come uno dei pochi affiliati uomini nel settore bellezza e cura di sé, vendendo marchi come Medicube o Neutrogena. Il suo primo video virale gli ha fatto guadagnare oltre {1} dollari in un mese; due anni dopo l'inizio, incassava un reddito mensile a sette cifre (",
+    "Katrina Dimiele — Mode en direct (try-on livestreams)": "Katrina Dimiele — moda in diretta (try-on haul)",
+    "cumulés en {0} ans": "accumulati in {0} anni",
+    "heures de vente en direct": "ore di vendita in diretta",
+    "Créatrice mode spécialisée dans les « try-on hauls » en direct, Katrina Dimiele a cumulé {0} millions de dollars de ventes en neuf ans via ses lives sur TikTok Shop et Facebook (":
+        "Creator di moda specializzata nei «try-on haul» in diretta, Katrina Dimiele ha accumulato {0} milioni di dollari di vendite in nove anni con le sue dirette su TikTok Shop e Facebook (",
+    "). Son parcours illustre une réalité importante : la plupart des plus gros succès viennent de créateurs qui ont accumulé des milliers d'heures de pratique avant d'exploser, pas d'un coup de chance isolé.":
+        "). Il suo percorso dice una cosa importante: i successi più grossi vengono quasi sempre da creator che hanno accumulato migliaia di ore di pratica prima di esplodere, non da un colpo di fortuna isolato.",
+    "🔑 À retenir :": "🔑 Da tenere a mente:",
+    "ces trois parcours partagent un point commun — le live shopping. C'est le format qui génère les pics de revenus les plus spectaculaires sur TikTok Shop, bien plus que les vidéos courtes seules.":
+        "questi tre percorsi hanno una cosa in comune: il live shopping. È il formato che genera i picchi di guadagno più clamorosi su TikTok Shop, molto più dei soli video brevi.",
+    "📉 Et pour un créateur « normal » ?": "📉 E per un creator normale?",
+    "Ces histoires sont réelles, mais elles ne représentent pas la moyenne. Selon les données de monétisation {0}, le créateur médian sur TikTok gagne environ {1} dollars par mois toutes sources confondues, tandis que les {2} % les plus performants combinent plusieurs revenus pour atteindre {3} à {4} dollars par mois (":
+        "Queste storie sono vere, ma non sono la media. Secondo i dati di monetizzazione del {0}, il creator mediano su TikTok guadagna circa {1} dollari al mese sommando tutte le fonti, mentre il {2} % più performante combina più entrate arrivando a {3}-{4} dollari al mese (",
+    "). Les millions de Stormi Steele, Logan Walter ou Katrina Dimiele sont le sommet visible d'une pyramide beaucoup plus large.":
+        "). I milioni di Stormi Steele, Logan Walter o Katrina Dimiele sono la punta visibile di una piramide molto più larga.",
+    "🔮 Ce qui s'annonce ensuite": "🔮 Cosa arriva adesso",
+    "Le rythme d'expansion ne ralentit pas : après la vague européenne de juin {0}, TikTok Shop teste déjà des abonnements payants qui rappellent le modèle Amazon Prime (":
+        "Il ritmo dell'espansione non rallenta: dopo l'ondata europea di giugno {0}, TikTok Shop sta già testando abbonamenti a pagamento che ricordano il modello Amazon Prime (",
+    "), et des enseignes historiques comme Ulta Beauty ont rejoint la plateforme aux États-Unis en misant sur sa capacité à transformer la découverte en achat (":
+        "), e catene storiche come Ulta Beauty sono entrate sulla piattaforma negli Stati Uniti, scommettendo sulla sua capacità di trasformare la scoperta in acquisto (",
+    "❓ Questions fréquentes": "❓ Domande frequenti",
+    "Qu'est-ce que TikTok Shop ?": "Cos'è TikTok Shop?",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter des produits directement depuis l'application, via des vidéos courtes, des lives shopping ou une vitrine boutique. Lancée en {0}, elle est disponible mi-{1} dans une vingtaine de pays dont les États-Unis, le Royaume-Uni, la France, l'Allemagne, l'Espagne, l'Italie, l'Irlande, l'Indonésie, la Thaïlande, le Vietnam, la Malaisie, les Philippines, Singapour, le Japon, le Mexique et le Brésil.":
+        "TikTok Shop è la funzione di commercio integrata in TikTok che permette di comprare prodotti direttamente dall'app, tramite video brevi, dirette shopping o una vetrina negozio. Lanciata nel {0}, a metà {1} è disponibile in una ventina di paesi tra cui Stati Uniti, Regno Unito, Francia, Germania, Spagna, Italia, Irlanda, Indonesia, Thailandia, Vietnam, Malaysia, Filippine, Singapore, Giappone, Messico e Brasile.",
+    "Peut-on vraiment gagner de l'argent avec TikTok Shop ?": "Si può davvero guadagnare con TikTok Shop?",
+    "Oui : les créateurs peuvent toucher des commissions d'affiliation en recommandant des produits, et les vendeurs peuvent gérer leur propre boutique. Certains créateurs comme Stormi Steele (Canvas Beauty) ou Logan Walter sont devenus millionnaires grâce à TikTok Shop. Mais la réalité reste à deux vitesses : le créateur médian gagne environ {0} dollars par mois, et seule une minorité de top créateurs atteint des revenus à sept chiffres.":
+        "Sì: i creator possono incassare provvigioni di affiliazione consigliando prodotti, e i venditori possono gestire un proprio negozio. Alcuni creator come Stormi Steele (Canvas Beauty) o Logan Walter sono diventati milionari con TikTok Shop. Ma la realtà resta a due velocità: il creator mediano guadagna circa {0} dollari al mese, e solo una minoranza di top creator arriva a entrate a sette cifre.",
+    "Dans quels pays TikTok Shop est-il disponible ?": "In quali paesi è disponibile TikTok Shop?",
+    "Mi-{0}, TikTok Shop est actif dans une vingtaine de marchés : aux Amériques (États-Unis, Mexique, Brésil), en Europe (Royaume-Uni, France, Allemagne, Espagne, Italie, Irlande, et depuis juin {1} l'Autriche, la Belgique, les Pays-Bas et la Pologne), et en Asie-Pacifique (Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon). L'Australie et les pays du Golfe n'ont pas encore de lancement officiel.":
+        "A metà {0} TikTok Shop è attivo in una ventina di mercati: nelle Americhe (Stati Uniti, Messico, Brasile), in Europa (Regno Unito, Francia, Germania, Spagna, Italia, Irlanda e, da giugno {1}, Austria, Belgio, Paesi Bassi e Polonia) e in Asia-Pacifico (Indonesia, Thailandia, Vietnam, Malaysia, Filippine, Singapore, Giappone). Australia e paesi del Golfo non hanno ancora un lancio ufficiale.",
+    "Vous voulez percer sur TikTok Shop ?": "Vuoi sfondare su TikTok Shop?",
+    "Utilisez Qeerah pour analyser vos vidéos et copier ce qui fonctionne vraiment chez les créateurs qui cartonnent.":
+        "Usa Qeerah per analizzare i tuoi video e rifare ciò che funziona davvero nei creator che stanno spaccando.",
+    "Analyser mes vidéos →": "Analizza i miei video →",
+    "📚 Sources": "📚 Fonti",
+    "interview vidéo, TikTok Shop Millionaire": "intervista video, TikTok Shop Millionaire",
+    "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (interview vidéo)":
+        "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (intervista video)",
+}
+
+T_BLOG_EXPANSION["pt-br"] = {
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ? - Qeerah":
+        "TikTok Shop: o que é e dá para ganhar dinheiro com isso? - Qeerah",
+    "TikTok Shop, c'est quoi et comment ça marche ? Peut-on vraiment gagner de l'argent avec ? Pays disponibles, chiffres de GMV et créateurs devenus millionnaires, avec sources vérifiées.":
+        "O que é o TikTok Shop e como funciona. Dá mesmo para ganhar dinheiro? Países disponíveis, números de GMV e criadores que ficaram milionários, com fontes verificadas.",
+    "TikTok Shop : c'est quoi et peut-on gagner de l'argent avec ?": "TikTok Shop: o que é e dá para ganhar dinheiro com isso?",
+    "Ce qu'est TikTok Shop, comment ça marche, dans quels pays c'est disponible, et si on peut vraiment en vivre. Chiffres et créateurs millionnaires, sources à l'appui.":
+        "O que é o TikTok Shop, como funciona, em quais países está disponível e se dá para viver disso. Números e criadores milionários, com fontes.",
+    "← Retour au blog": "← Voltar ao blog",
+    "💡 GUIDE TIKTOK SHOP": "💡 GUIA DO TIKTOK SHOP",
+    "TikTok Shop : c'est quoi, et peut-on vraiment gagner de l'argent avec ?":
+        "TikTok Shop: o que é e dá mesmo para ganhar dinheiro com isso?",
+    "📅 Juillet {0}": "📅 Julho de {0}",
+    "👤 Par l'équipe Qeerah": "👤 Pelo time da Qeerah",
+    "⏱️ {0} min de lecture": "⏱️ {0} min de leitura",
+    "🇬🇧 Read in English": "🇬🇧 Read in English",
+    "🔎 En bref :": "🔎 Resumindo:",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter directement depuis l'app, via vidéos, lives ou vitrine boutique. Lancée en {0}, elle est aujourd'hui disponible dans une vingtaine de pays et a généré {1} milliards de dollars de ventes en {2}.":
+        "O TikTok Shop é a parte de comércio embutida no TikTok, que permite comprar direto no app por vídeos, lives ou uma vitrine de loja. Lançado em {0}, hoje está disponível em cerca de vinte países e gerou {1} bilhões de dólares em vendas em {2}.",
+    "Oui, on peut gagner de l'argent avec": "Sim, dá para ganhar dinheiro com isso",
+    "— en tant que créateur affilié (commissions) ou en tant que vendeur — mais la réalité est à deux vitesses : le créateur médian touche environ {0} $/mois, quand une minorité de top créateurs ou marques génèrent plusieurs millions.":
+        "— como criador afiliado (comissões) ou como vendedor —, mas a realidade tem duas velocidades: o criador mediano recebe cerca de {0} $/mês, enquanto uma minoria de criadores e marcas de topo fatura vários milhões.",
+    "En un peu moins de quatre ans, TikTok Shop est passé d'un test discret en Asie du Sud-Est à l'une des plus grosses machines de social commerce au monde. Voici, chiffres et sources à l'appui, ce qu'est réellement TikTok Shop, comment ça fonctionne, dans quels pays c'est disponible, et qui sont les créateurs américains qui en ont déjà fait des fortunes.":
+        "Em pouco menos de quatro anos, o TikTok Shop saiu de um teste discreto no Sudeste Asiático para virar uma das maiores máquinas de comércio social do mundo. Aqui vai, com números e fontes, o que é de fato o TikTok Shop, como funciona, em quais países está disponível e quem são os criadores americanos que já fizeram fortuna com ele.",
+    "📊 Les chiffres qui résument l'explosion": "📊 Os números que resumem a explosão",
+    "Le GMV (volume de marchandises vendues) mondial de TikTok Shop a atteint":
+        "O GMV (volume de mercadoria vendida) mundial do TikTok Shop chegou a",
+    "{0} milliards de dollars en {1}": "{0} bilhões de dólares em {1}",
+    ", en hausse de {0} % sur un an, réparti sur une quinzaine de marchés actifs cette année-là (":
+        ", alta de {0} % em um ano, espalhado pelos cerca de quinze mercados ativos naquele ano (",
+    "). Pour donner une idée de la vitesse : il a fallu {0} ans à Amazon pour atteindre {1} milliards de dollars de GMV annuel ; TikTok Shop est en passe de franchir ce seuil dès sa quatrième année pleine (":
+        "). Para dar noção da velocidade: a Amazon levou {0} anos para chegar a {1} bilhões de dólares de GMV anual; o TikTok Shop está prestes a cruzar essa marca já no quarto ano completo (",
+    "{0} Md$": "{0} bi $",
+    "GMV mondial {0} (+{1}%)": "GMV mundial {0} (+{1} %)",
+    "GMV mondial projeté {0}": "GMV mundial projetado {0}",
+    "GMV USA {0} (+{1}%)": "GMV EUA {0} (+{1} %)",
+    "GMV Asie du Sud-Est {0}": "GMV Sudeste Asiático {0}",
+    "Sources :": "Fontes:",
+    "Aux États-Unis, TikTok Shop captait déjà": "Nos Estados Unidos, o TikTok Shop já ficava com",
+    "{0} % de toutes les ventes de social commerce en {1}": "{0} % de todas as vendas de comércio social em {1}",
+    "). Certaines projections à long terme évoquent même une plateforme capable de peser près de {0} milliards de dollars de ventes d'ici {1}, ce qui en ferait un top {2} mondial du commerce en ligne derrière Amazon (":
+        "). Algumas projeções de longo prazo falam até de uma plataforma capaz de movimentar perto de {0} bilhões de dólares em vendas até {1}, o que a colocaria entre os {2} maiores do comércio online do mundo, atrás da Amazon (",
+    "🗓️ La timeline de l'expansion internationale": "🗓️ A linha do tempo da expansão internacional",
+    "TikTok Shop n'a pas explosé partout en même temps. Son ouverture s'est faite marché par marché, sur un rythme qui s'est nettement accéléré depuis {0}.":
+        "O TikTok Shop não explodiu em todo lugar ao mesmo tempo. A abertura veio mercado por mercado, num ritmo que acelerou bastante desde {0}.",
+    "Premiers tests d'e-commerce intégré, dont un partenariat pilote avec Shopify qui ne prendra finalement pas (":
+        "Primeiros testes de comércio integrado, incluindo uma parceria piloto com a Shopify que no fim não vingou (",
+    "{0} avril {1} —": "{0} de abril de {1} —",
+    "Lancement officiel du e-commerce transfrontalier dans quatre pays d'Asie du Sud-Est : Thaïlande, Vietnam, Malaisie et Philippines (":
+        "Lançamento oficial do comércio transfronteiriço em quatro países do Sudeste Asiático: Tailândia, Vietnã, Malásia e Filipinas (",
+    "Novembre {0} —": "Novembro de {0} —",
+    "Début des tests beta au Royaume-Uni, en parallèle de plusieurs marchés d'Asie du Sud-Est (":
+        "Começam os testes beta no Reino Unido, em paralelo a vários mercados do Sudeste Asiático (",
+    "Fin {0} —": "Fim de {0} —",
+    "TikTok Shop est actif dans six pays d'Asie (Chine, Indonésie compris) et au Royaume-Uni (":
+        "O TikTok Shop está ativo em seis países da Ásia (China e Indonésia incluídas) e no Reino Unido (",
+    "{0} septembre {1} —": "{0} de setembro de {1} —",
+    "Lancement officiel aux États-Unis, l'ouverture qui fera basculer TikTok Shop dans une autre dimension (":
+        "Lançamento oficial nos Estados Unidos, a abertura que joga o TikTok Shop para outro patamar (",
+    "Consolidation en Asie du Sud-Est (Singapour, Japon) et premières ouvertures en Amérique latine, au Mexique et au Brésil.":
+        "Consolidação no Sudeste Asiático (Singapura, Japão) e primeiras aberturas na América Latina, no México e no Brasil.",
+    "Vague européenne : France, Allemagne, Espagne, Italie, Irlande et Royaume-Uni s'établissent comme marchés matures.":
+        "Onda europeia: França, Alemanha, Espanha, Itália, Irlanda e Reino Unido se firmam como mercados maduros.",
+    "{0} juin {1} —": "{0} de junho de {1} —",
+    "L'Autriche, la Belgique, les Pays-Bas et la Pologne rejoignent l'Europe TikTok Shop, avec un nouvel outil « Sell Across Europe » qui permet à un vendeur de couvrir plusieurs pays européens avec une seule inscription (":
+        "Áustria, Bélgica, Países Baixos e Polônia entram na Europa do TikTok Shop, com a nova ferramenta “Sell Across Europe”, que permite a um vendedor cobrir vários países europeus com um único cadastro (",
+    "🗺️ Les marchés ouverts aujourd'hui, région par région": "🗺️ Os mercados abertos hoje, região por região",
+    "Mi-{0}, TikTok Shop Seller Center est officiellement actif dans une vingtaine de marchés répartis sur trois continents (":
+        "Em meados de {0}, o TikTok Shop Seller Center está oficialmente ativo em cerca de vinte mercados em três continentes (",
+    "🌎 Amériques": "🌎 Américas",
+    "États-Unis": "Estados Unidos",
+    "Mexique": "México",
+    "Brésil": "Brasil",
+    "🇪🇺 Europe": "🇪🇺 Europa",
+    "Royaume-Uni": "Reino Unido",
+    "France": "França",
+    "Allemagne": "Alemanha",
+    "Espagne": "Espanha",
+    "Italie": "Itália",
+    "Irlande": "Irlanda",
+    "Autriche": "Áustria",
+    "(juin {0})": "(junho de {0})",
+    "Belgique": "Bélgica",
+    "Pays-Bas": "Países Baixos",
+    "Pologne": "Polônia",
+    "🌏 Asie-Pacifique": "🌏 Ásia-Pacífico",
+    "Indonésie": "Indonésia",
+    "Thaïlande": "Tailândia",
+    "Vietnam": "Vietnã",
+    "Malaisie": "Malásia",
+    "Philippines": "Filipinas",
+    "Singapour": "Singapura",
+    "Japon": "Japão",
+    "Pas encore ouvert :": "Ainda não aberto:",
+    "l'Australie n'a toujours pas accès à TikTok Shop Seller Center mi-{0}, et malgré des rumeurs récurrentes, aucun lancement natif n'est confirmé dans le Golfe (Arabie saoudite, Émirats) à cette date (":
+        "a Austrália ainda não tem acesso ao TikTok Shop Seller Center em meados de {0} e, apesar dos boatos recorrentes, nenhum lançamento próprio está confirmado no Golfo (Arábia Saudita, Emirados) nessa data (",
+    "🇮🇩 L'Indonésie, nouveau rival direct des États-Unis": "🇮🇩 A Indonésia, nova rival direta dos Estados Unidos",
+    "C'est l'un des faits les plus frappants de {0} : sur le premier semestre, l'": "É um dos dados mais marcantes de {0}: no primeiro semestre, a",
+    "Indonésie a dépassé les États-Unis": "Indonésia passou os Estados Unidos",
+    "comme premier marché de TikTok Shop, avec {0} milliards de dollars de GMV contre {1} milliards pour les USA (":
+        "como maior mercado do TikTok Shop, com {0} bilhões de dólares de GMV contra {1} bilhões dos EUA (",
+    "). Sur l'année {0} complète, les États-Unis reprennent la tête ({1} Md$ contre {2} Md$ pour l'Indonésie), mais l'Indonésie reste le deuxième marché mondial de la plateforme, et toute la région Asie du Sud-Est a doublé son GMV en un an pour atteindre {3} milliards de dollars (":
+        "). No ano de {0} inteiro os Estados Unidos retomam a liderança ({1} bi $ contra {2} bi $ da Indonésia), mas a Indonésia segue como segundo maior mercado da plataforma, e todo o Sudeste Asiático dobrou seu GMV em um ano, chegando a {3} bilhões de dólares (",
+    "💰 Les créateurs américains devenus millionnaires grâce à TikTok Shop":
+        "💰 Os criadores americanos que ficaram milionários com o TikTok Shop",
+    "Derrière les chiffres macro, il y a des histoires individuelles très concrètes. Voici trois créateurs américains dont la réussite sur TikTok Shop est documentée dans la presse.":
+        "Por trás dos números grandes existem histórias individuais bem concretas. Aqui vão três criadores americanos cujos resultados no TikTok Shop estão documentados na imprensa.",
+    "Stormi Steele — Canvas Beauty (Body Glaze)": "Stormi Steele — Canvas Beauty (Body Glaze)",
+    "{0}M$": "{0} mi $",
+    "en un seul live ({0} juin {1})": "em uma única live ({0} de junho de {1})",
+    "en une journée (Black Friday)": "em um dia (Black Friday)",
+    "de ventes mensuelles visées": "de vendas mensais como meta",
+    "Fondatrice de Canvas Beauty et de sa gamme Body Glaze (huile de soin corporel), Stormi Steele est devenue la première créatrice à dépasser {0} million de dollars de ventes lors d'un seul live TikTok Shop, le {1} juin {2} (":
+        "Fundadora da Canvas Beauty e da linha Body Glaze (óleo corporal), Stormi Steele foi a primeira criadora a passar de {0} milhão de dólares em vendas em uma única live do TikTok Shop, em {1} de junho de {2} (",
+    "). Lors du Black Friday, sa marque a généré {0} millions de dollars de ventes en une journée, dont {1} millions via un « mega live » de {2} heures organisé depuis son entrepôt en Alabama (":
+        "). Na Black Friday, a marca dela gerou {0} milhões de dólares em vendas num dia, {1} milhões deles numa “mega live” de {2} horas feita do galpão dela no Alabama (",
+    "). Canvas Beauty a depuis été désignée marque n°{0} en ventes sur TikTok Shop aux États-Unis, avec une trajectoire vers {1} millions de dollars de ventes mensuelles (":
+        "). Desde então a Canvas Beauty é apontada como marca n.º {0} em vendas no TikTok Shop nos Estados Unidos, a caminho de {1} milhões de dólares em vendas mensais (",
+    "Logan Walter — Beauté & self-care masculin": "Logan Walter — beleza e autocuidado masculino",
+    "{0} ans": "{0} anos",
+    "au moment de devenir millionnaire": "quando virou milionário",
+    "pour atteindre ce statut": "para chegar lá",
+    "{0} chiffres": "{0} dígitos",
+    "de revenu mensuel": "de renda mensal",
+    "Logan Walter a quitté l'université à {0} ans pour se consacrer à TikTok Shop, où il s'est imposé comme l'un des rares hommes affiliés dans le créneau beauté/self-care, en vendant des marques comme Medicube ou Neutrogena. Sa première vidéo virale lui a fait gagner plus de {1} dollars en un mois ; deux ans après ses débuts, il touchait un revenu mensuel à sept chiffres (":
+        "Logan Walter largou a faculdade aos {0} anos para se dedicar ao TikTok Shop, onde se firmou como um dos poucos homens afiliados na área de beleza e autocuidado, vendendo marcas como Medicube e Neutrogena. O primeiro vídeo viral dele rendeu mais de {1} dólares em um mês; dois anos depois de começar, tinha renda mensal de sete dígitos (",
+    "Katrina Dimiele — Mode en direct (try-on livestreams)": "Katrina Dimiele — moda ao vivo (try-on hauls)",
+    "cumulés en {0} ans": "acumulados em {0} anos",
+    "heures de vente en direct": "horas de venda ao vivo",
+    "Créatrice mode spécialisée dans les « try-on hauls » en direct, Katrina Dimiele a cumulé {0} millions de dollars de ventes en neuf ans via ses lives sur TikTok Shop et Facebook (":
+        "Criadora de moda especializada em “try-on hauls” ao vivo, Katrina Dimiele acumulou {0} milhões de dólares em vendas em nove anos com suas lives no TikTok Shop e no Facebook (",
+    "). Son parcours illustre une réalité importante : la plupart des plus gros succès viennent de créateurs qui ont accumulé des milliers d'heures de pratique avant d'exploser, pas d'un coup de chance isolé.":
+        "). O caminho dela mostra algo importante: a maioria dos maiores sucessos vem de criadores que acumularam milhares de horas de prática antes de estourar, não de um golpe de sorte isolado.",
+    "🔑 À retenir :": "🔑 Para guardar:",
+    "ces trois parcours partagent un point commun — le live shopping. C'est le format qui génère les pics de revenus les plus spectaculaires sur TikTok Shop, bien plus que les vidéos courtes seules.":
+        "os três caminhos têm uma coisa em comum: o live shopping. É o formato que gera os picos de receita mais espetaculares no TikTok Shop, muito mais do que só os vídeos curtos.",
+    "📉 Et pour un créateur « normal » ?": "📉 E para um criador comum?",
+    "Ces histoires sont réelles, mais elles ne représentent pas la moyenne. Selon les données de monétisation {0}, le créateur médian sur TikTok gagne environ {1} dollars par mois toutes sources confondues, tandis que les {2} % les plus performants combinent plusieurs revenus pour atteindre {3} à {4} dollars par mois (":
+        "Essas histórias são reais, mas não são a média. Segundo os dados de monetização de {0}, o criador mediano no TikTok ganha cerca de {1} dólares por mês somando todas as fontes, enquanto os {2} % de melhor desempenho combinam várias receitas e chegam a {3}–{4} dólares por mês (",
+    "). Les millions de Stormi Steele, Logan Walter ou Katrina Dimiele sont le sommet visible d'une pyramide beaucoup plus large.":
+        "). Os milhões de Stormi Steele, Logan Walter ou Katrina Dimiele são o topo visível de uma pirâmide bem mais larga.",
+    "🔮 Ce qui s'annonce ensuite": "🔮 O que vem a seguir",
+    "Le rythme d'expansion ne ralentit pas : après la vague européenne de juin {0}, TikTok Shop teste déjà des abonnements payants qui rappellent le modèle Amazon Prime (":
+        "O ritmo de expansão não afrouxa: depois da onda europeia de junho de {0}, o TikTok Shop já testa assinaturas pagas que lembram o modelo do Amazon Prime (",
+    "), et des enseignes historiques comme Ulta Beauty ont rejoint la plateforme aux États-Unis en misant sur sa capacité à transformer la découverte en achat (":
+        "), e redes tradicionais como a Ulta Beauty entraram na plataforma nos Estados Unidos, apostando na capacidade dela de transformar descoberta em compra (",
+    "❓ Questions fréquentes": "❓ Perguntas frequentes",
+    "Qu'est-ce que TikTok Shop ?": "O que é o TikTok Shop?",
+    "TikTok Shop est la fonctionnalité e-commerce intégrée à TikTok qui permet d'acheter des produits directement depuis l'application, via des vidéos courtes, des lives shopping ou une vitrine boutique. Lancée en {0}, elle est disponible mi-{1} dans une vingtaine de pays dont les États-Unis, le Royaume-Uni, la France, l'Allemagne, l'Espagne, l'Italie, l'Irlande, l'Indonésie, la Thaïlande, le Vietnam, la Malaisie, les Philippines, Singapour, le Japon, le Mexique et le Brésil.":
+        "O TikTok Shop é a parte de comércio embutida no TikTok, que permite comprar produtos direto no aplicativo por vídeos curtos, lives de compras ou uma vitrine de loja. Lançado em {0}, em meados de {1} está disponível em cerca de vinte países, entre eles Estados Unidos, Reino Unido, França, Alemanha, Espanha, Itália, Irlanda, Indonésia, Tailândia, Vietnã, Malásia, Filipinas, Singapura, Japão, México e Brasil.",
+    "Peut-on vraiment gagner de l'argent avec TikTok Shop ?": "Dá mesmo para ganhar dinheiro com o TikTok Shop?",
+    "Oui : les créateurs peuvent toucher des commissions d'affiliation en recommandant des produits, et les vendeurs peuvent gérer leur propre boutique. Certains créateurs comme Stormi Steele (Canvas Beauty) ou Logan Walter sont devenus millionnaires grâce à TikTok Shop. Mais la réalité reste à deux vitesses : le créateur médian gagne environ {0} dollars par mois, et seule une minorité de top créateurs atteint des revenus à sept chiffres.":
+        "Sim: criadores podem receber comissões de afiliação recomendando produtos, e vendedores podem tocar a própria loja. Alguns criadores, como Stormi Steele (Canvas Beauty) ou Logan Walter, ficaram milionários com o TikTok Shop. Mas a realidade continua tendo duas velocidades: o criador mediano ganha cerca de {0} dólares por mês, e só uma minoria de criadores de topo chega a receitas de sete dígitos.",
+    "Dans quels pays TikTok Shop est-il disponible ?": "Em quais países o TikTok Shop está disponível?",
+    "Mi-{0}, TikTok Shop est actif dans une vingtaine de marchés : aux Amériques (États-Unis, Mexique, Brésil), en Europe (Royaume-Uni, France, Allemagne, Espagne, Italie, Irlande, et depuis juin {1} l'Autriche, la Belgique, les Pays-Bas et la Pologne), et en Asie-Pacifique (Indonésie, Thaïlande, Vietnam, Malaisie, Philippines, Singapour, Japon). L'Australie et les pays du Golfe n'ont pas encore de lancement officiel.":
+        "Em meados de {0}, o TikTok Shop está ativo em cerca de vinte mercados: nas Américas (Estados Unidos, México, Brasil), na Europa (Reino Unido, França, Alemanha, Espanha, Itália, Irlanda e, desde junho de {1}, Áustria, Bélgica, Países Baixos e Polônia) e na Ásia-Pacífico (Indonésia, Tailândia, Vietnã, Malásia, Filipinas, Singapura, Japão). Austrália e países do Golfo ainda não têm lançamento oficial.",
+    "Vous voulez percer sur TikTok Shop ?": "Quer estourar no TikTok Shop?",
+    "Utilisez Qeerah pour analyser vos vidéos et copier ce qui fonctionne vraiment chez les créateurs qui cartonnent.":
+        "Use a Qeerah para analisar seus vídeos e copiar o que realmente funciona nos criadores que estão bombando.",
+    "Analyser mes vidéos →": "Analisar meus vídeos →",
+    "📚 Sources": "📚 Fontes",
+    "interview vidéo, TikTok Shop Millionaire": "entrevista em vídeo, TikTok Shop Millionaire",
+    "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (interview vidéo)":
+        "TikTok Shop Millionaire — ${0}M in {1} Years Selling Fashion On Livestreams (entrevista em vídeo)",
+}
+
+T_BLOG_EXPANSION["en-ie"] = dict(T_BLOG_EXPANSION["en"])
+T_BLOG_EXPANSION["es-mx"] = dict(T_BLOG_EXPANSION["es"])
