@@ -25,6 +25,7 @@ variante ailleurs »).
 from __future__ import annotations
 
 import html as _html
+import json as _json
 import re
 
 # ── Langues servies ──────────────────────────────────────────────────────────
@@ -1346,6 +1347,114 @@ def _select_current(html: str, lang: str) -> str:
     return re.sub(r'<option value="([\w-]+)"(?: selected)?>', repl, html)
 
 
+# ── Données structurées (JSON-LD) ────────────────────────────────────────────
+# Le bloc JSON-LD n'est PAS traduit par le mécanisme `data-i18n` : il vit dans
+# un <script>, sans balise ni attribut à réécrire. Servi tel quel, il donnait
+# à Google une page allemande dont les questions/réponses, la description et la
+# langue déclarée étaient en français — exactement ce que ce travail cherche à
+# corriger. Pire, Google demande que les données structurées FAQ correspondent
+# au texte visible : elles ne correspondaient déjà plus en français, les
+# formulations ayant divergé (« Je peux tester Qeerah sans payer ? » dans le
+# JSON-LD, « Je peux tester sans payer ? » à l'écran).
+#
+# On règle les deux d'un coup : la FAQ structurée est RECONSTRUITE à partir de
+# la FAQ visible de la page — donc déjà traduite, et identique au texte affiché
+# par construction. Le français passe par le même chemin : une seule source de
+# vérité, pas de variante qui se désynchronise en silence.
+
+# Langue déclarée dans le JSON-LD (BCP 47, tiret et non tiret bas).
+_LD_LANG = {k: v.replace("_", "-") for k, v in OG_LOCALE.items()}
+
+# Description de l'offre. Le champ n'est pas affiché dans les résultats de
+# recherche (Google y lit le prix et la disponibilité) : on le tient juste
+# honnête. La mention d'essai n'y est pas reprise — sa formulation vient du
+# serveur, en français, et n'a pas d'équivalent traduit exploitable ici.
+_LD_OFFRE = {
+    "fr": "{m} EUR TTC/mois ou {y} EUR TTC/an",
+    "en": "{m} EUR incl. VAT/month or {y} EUR incl. VAT/year",
+    "pt-br": "{m} EUR/mês (impostos incl.) ou {y} EUR/ano",
+    "es": "{m} EUR IVA incl./mes o {y} EUR IVA incl./año",
+    "it": "{m} EUR IVA incl./mese o {y} EUR IVA incl./anno",
+    "de": "{m} EUR inkl. MwSt./Monat oder {y} EUR inkl. MwSt./Jahr",
+}
+
+
+def _texte_visible(fragment: str) -> str:
+    """Texte lisible d'un fragment de HTML, entités résolues."""
+    return _html.unescape(re.sub(r"<[^>]+>", "", fragment)).strip()
+
+
+def _faq_visible(html: str) -> list[tuple[str, str]]:
+    """Couples (question, réponse) lus dans la FAQ affichée par la page."""
+    questions = dict(re.findall(
+        r'data-i18n="faq_q(\d+)"[^>]*>(.*?)</summary>', html, re.S))
+    # `data-i18n` ou `data-i18n-html` : les réponses qui contiennent du gras
+    # passent par la seconde forme. N'en lire qu'une revenait à perdre quatre
+    # des six questions — moins de données structurées qu'avant ce changement.
+    reponses = dict(re.findall(
+        r'data-i18n(?:-html)?="faq_a(\d+)"[^>]*>(.*?)</p>', html, re.S))
+    couples = []
+    for num in sorted(questions, key=int):
+        if num in reponses:
+            couples.append((_texte_visible(questions[num]),
+                            _texte_visible(reponses[num])))
+    return couples
+
+
+def _donnees_structurees(html: str, lang: str) -> str:
+    """Aligne le JSON-LD sur la langue de la page. Sans effet si le bloc manque."""
+    debut = html.find('<script type="application/ld+json">')
+    if debut == -1:
+        return html
+    fin = html.find("</script>", debut)
+    if fin == -1:
+        return html
+    bloc = html[debut:fin]
+
+    # Langue déclarée.
+    bloc = re.sub(r'("inLanguage":\s*")[^"]*(")',
+                  lambda m: m.group(1) + _LD_LANG.get(lang, "fr-FR") + m.group(2),
+                  bloc, count=1)
+
+    # Description de l'application : on reprend celle de la page, déjà traduite
+    # et déjà remplie de ses valeurs serveur — pas de second texte à maintenir.
+    meta = re.search(r'<meta name="description" content="([^"]*)"', html)
+    if meta:
+        desc = _json.dumps(_html.unescape(meta.group(1)), ensure_ascii=False)
+        bloc = re.sub(r'("@type":\s*"SoftwareApplication",.*?"description":\s*)"(?:[^"\\]|\\.)*"',
+                      lambda m: m.group(1) + desc, bloc, count=1, flags=re.S)
+
+    # Offre : mêmes montants, formulés dans la langue de la page.
+    prix = re.search(r'"description":\s*"[^"]*?([\d.]+) EUR TTC/mois ou ([\d.]+) EUR TTC/an"', bloc)
+    modele = _LD_OFFRE.get(lang) or _LD_OFFRE.get(lang.split("-")[0]) or _LD_OFFRE["en"]
+    if prix:
+        texte = modele.format(m=prix.group(1), y=prix.group(2))
+        bloc = bloc.replace(prix.group(0),
+                            '"description": ' + _json.dumps(texte, ensure_ascii=False))
+
+    # FAQ : reconstruite depuis la FAQ visible (donc traduite, et identique au
+    # texte affiché — ce que Google exige des données structurées FAQ).
+    couples = _faq_visible(html)
+    if couples:
+        entrees = ",\n".join(
+            '          {\n'
+            '            "@type": "Question",\n'
+            '            "name": ' + _json.dumps(q, ensure_ascii=False) + ',\n'
+            '            "acceptedAnswer": {\n'
+            '              "@type": "Answer",\n'
+            '              "text": ' + _json.dumps(r, ensure_ascii=False) + '\n'
+            '            }\n'
+            '          }'
+            for q, r in couples
+        )
+        bloc = re.sub(
+            r'("@type":\s*"FAQPage",\s*"mainEntity":\s*\[).*?(\n\s*\])',
+            lambda m: m.group(1) + "\n" + entrees + m.group(2),
+            bloc, count=1, flags=re.S)
+
+    return html[:debut] + bloc + html[fin:]
+
+
 def build(html_fr: str, base_url: str, chemin_fr: str = "/",
           traductions: "dict[str, dict[str, str]] | None" = None) -> dict[str, str]:
     """Fabrique une variante par langue à partir du HTML français déjà rendu.
@@ -1377,6 +1486,7 @@ def build(html_fr: str, base_url: str, chemin_fr: str = "/",
                 page = _translate_attr(page, "data-i18n-aria", "aria-label", lang)
             page = _price_block(page, lang)
             page = _replace_meta(page, lang, base_url, chemin_fr)
+            page = _donnees_structurees(page, lang)
             page = _select_current(page, lang)
             page = _liens_langue(page, lang, chemin_fr)
             pages[lang] = page

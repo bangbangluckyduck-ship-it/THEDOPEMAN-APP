@@ -32,6 +32,7 @@ ou, sans pytest :
 from __future__ import annotations
 
 import io
+import json
 import os
 import re
 
@@ -294,6 +295,56 @@ def test_les_emails_danalyse_couvrent_toutes_les_langues():
     for lang, textes in analysis_runner._MAILS.items():
         manquantes = reference - set(textes)
         assert not manquantes, f"e-mail {lang} : clefs manquantes {manquantes}"
+
+
+# ── Données structurées (JSON-LD) ───────────────────────────────────────────
+def _jsonld(lang: str) -> dict:
+    bloc = re.search(r'<script type="application/ld\+json">(.*?)</script>',
+                     PAGES[lang], re.S)
+    assert bloc, f"{lang} : aucun bloc JSON-LD"
+    return {n["@type"]: n for n in json.loads(bloc.group(1))["@graph"]}
+
+
+def test_le_jsonld_reste_du_json_valide():
+    """La FAQ structurée est réécrite par concaténation de chaînes : une
+    apostrophe ou un guillemet mal échappé casserait le bloc en silence — Google
+    ignorerait alors TOUTES les données structurées de la page."""
+    for lang in homepage_i18n.LANGS:
+        _jsonld(lang)   # json.loads lève si le bloc est cassé
+
+
+def test_le_jsonld_declare_la_bonne_langue():
+    for lang in homepage_i18n.LANGS:
+        attendu = homepage_i18n.OG_LOCALE[lang].replace("_", "-")
+        assert _jsonld(lang)["WebSite"]["inLanguage"] == attendu, (
+            f"{lang} : langue déclarée au JSON-LD incorrecte")
+
+
+def test_la_faq_structuree_correspond_a_la_faq_affichee():
+    """Exigence de Google : les données structurées FAQ doivent reprendre le
+    texte visible. Elles sont donc construites à partir de lui — ce test
+    vérifie qu'aucune question ne se perd en route."""
+    for lang in homepage_i18n.LANGS:
+        visibles = re.findall(r'data-i18n="faq_q\d+"', PAGES[lang])
+        structurees = _jsonld(lang)["FAQPage"]["mainEntity"]
+        assert len(structurees) == len(visibles), (
+            f"{lang} : {len(structurees)} questions structurées "
+            f"pour {len(visibles)} affichées")
+        for q in structurees:
+            titre = q["name"]
+            assert titre in PAGES[lang], (
+                f"{lang} : la question « {titre} » n'est pas sur la page")
+
+
+def test_la_faq_structuree_est_traduite():
+    """Le vrai défaut corrigé ici : une page allemande dont Google lisait une
+    FAQ française."""
+    fr = [q["name"] for q in _jsonld("fr")["FAQPage"]["mainEntity"]]
+    for lang in homepage_i18n.LANGS:
+        if lang == "fr":
+            continue
+        autres = [q["name"] for q in _jsonld(lang)["FAQPage"]["mainEntity"]]
+        assert autres != fr, f"{lang} : FAQ structurée restée en français"
 
 
 # ── Bandeau cookies (JavaScript, mais vérifiable d'ici) ─────────────────────
