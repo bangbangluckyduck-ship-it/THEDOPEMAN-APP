@@ -153,45 +153,192 @@
     if (b) b.style.display = "none";
   }
 
+  /* ── LANGUE DU BANDEAU ──────────────────────────────────────────────────
+   * Le bandeau s'affiche sur TOUTES les pages, y compris les sept traductions
+   * de la page d'accueil. Il restait le seul texte français d'une page
+   * allemande ou brésilienne — et pas n'importe lequel : c'est celui par lequel
+   * on recueille un consentement. Un consentement n'est éclairé que s'il est
+   * compris (RGPD art. 4-11) : le traduire n'est pas cosmétique.
+   *
+   * Ordre de résolution, du plus fiable au moins fiable :
+   *   1. cookie `qeerah_lang` — reposé par le serveur à CHAQUE page d'accueil
+   *      servie, donc toujours d'accord avec la page sous les yeux du visiteur ;
+   *   2. `dv_lang` — la langue choisie dans l'app ;
+   *   3. `<html lang>` — le rendu serveur de la page d'accueil ;
+   *   4. la langue du navigateur, puis le français.
+   *
+   * Pourquoi `dv_lang` AVANT `<html lang>` : dans /app, le `<html lang>` est
+   * figé à "fr" (l'interface y est traduite côté navigateur). Le lire en
+   * premier renverrait « français » à tout le monde et rendrait `dv_lang`
+   * inutile. Sur la page d'accueil, la question ne se pose pas : le serveur
+   * repose le cookie à chaque réponse, donc l'étape 1 tranche déjà.
+   * Toute valeur inconnue retombe sur le français : jamais de trou de texte.
+   */
+  var TEXTES = {
+    fr: {
+      aria: "Consentement aux cookies", titre: "🍪 Cookies",
+      corps: "On aimerait mesurer l'audience du site et mesurer nos campagnes " +
+             "publicitaires TikTok. Rien n'est déposé ni envoyé tant que tu n'as " +
+             "pas accepté, et tu peux changer d'avis à tout moment. ",
+      lien: "Politique de confidentialité",
+      perso: "Personnaliser", refuser: "Tout refuser", accepter: "Tout accepter",
+      mesure: "Mesure d'audience",
+      mesure_d: "Google Analytics — combien de personnes visitent le site et quelles " +
+                "pages servent vraiment. IP anonymisée.",
+      pub: "Publicité",
+      pub_d: "Pixel TikTok Ads — savoir quelles publicités amènent des inscriptions " +
+             "et des abonnements. Ton e-mail n'est transmis à TikTok que sous forme " +
+             "chiffrée (empreinte SHA-256), jamais en clair.",
+      save: "Enregistrer mes choix"
+    },
+    en: {
+      aria: "Cookie consent", titre: "🍪 Cookies",
+      corps: "We'd like to measure the site's audience and how our TikTok ad " +
+             "campaigns perform. Nothing is stored or sent until you agree, and " +
+             "you can change your mind at any time. ",
+      lien: "Privacy policy",
+      perso: "Customise", refuser: "Reject all", accepter: "Accept all",
+      mesure: "Audience measurement",
+      mesure_d: "Google Analytics — how many people visit the site and which pages " +
+                "are actually useful. IP anonymised.",
+      pub: "Advertising",
+      pub_d: "TikTok Ads pixel — which ads bring sign-ups and subscriptions. Your " +
+             "email only ever reaches TikTok hashed (SHA-256), never in the clear.",
+      save: "Save my choices"
+    },
+    "pt-br": {
+      aria: "Consentimento de cookies", titre: "🍪 Cookies",
+      corps: "A gente gostaria de medir o público do site e o desempenho das nossas " +
+             "campanhas no TikTok Ads. Nada é gravado nem enviado antes de você " +
+             "aceitar, e você pode mudar de ideia quando quiser. ",
+      lien: "Política de privacidade",
+      perso: "Personalizar", refuser: "Recusar tudo", accepter: "Aceitar tudo",
+      mesure: "Medição de audiência",
+      mesure_d: "Google Analytics — quantas pessoas visitam o site e quais páginas " +
+                "realmente servem. IP anonimizado.",
+      pub: "Publicidade",
+      pub_d: "Pixel do TikTok Ads — saber quais anúncios trazem cadastros e " +
+             "assinaturas. Seu e-mail só chega ao TikTok criptografado " +
+             "(hash SHA-256), nunca aberto.",
+      save: "Salvar minhas escolhas"
+    },
+    es: {
+      aria: "Consentimiento de cookies", titre: "🍪 Cookies",
+      corps: "Nos gustaría medir la audiencia del sitio y el rendimiento de nuestras " +
+             "campañas en TikTok Ads. No se guarda ni se envía nada hasta que lo " +
+             "aceptes, y puedes cambiar de opinión cuando quieras. ",
+      lien: "Política de privacidad",
+      perso: "Personalizar", refuser: "Rechazar todo", accepter: "Aceptar todo",
+      mesure: "Medición de audiencia",
+      mesure_d: "Google Analytics — cuánta gente visita el sitio y qué páginas sirven " +
+                "de verdad. IP anonimizada.",
+      pub: "Publicidad",
+      pub_d: "Píxel de TikTok Ads — saber qué anuncios traen registros y " +
+             "suscripciones. Tu correo solo llega a TikTok cifrado " +
+             "(huella SHA-256), nunca en claro.",
+      save: "Guardar mis opciones"
+    },
+    it: {
+      aria: "Consenso ai cookie", titre: "🍪 Cookie",
+      corps: "Vorremmo misurare il pubblico del sito e l'andamento delle nostre " +
+             "campagne TikTok Ads. Niente viene salvato o inviato finché non " +
+             "accetti, e puoi cambiare idea quando vuoi. ",
+      lien: "Informativa sulla privacy",
+      perso: "Personalizza", refuser: "Rifiuta tutto", accepter: "Accetta tutto",
+      mesure: "Misurazione del pubblico",
+      mesure_d: "Google Analytics — quante persone visitano il sito e quali pagine " +
+                "servono davvero. IP anonimizzato.",
+      pub: "Pubblicità",
+      pub_d: "Pixel di TikTok Ads — sapere quali annunci portano iscrizioni e " +
+             "abbonamenti. La tua email arriva a TikTok solo cifrata " +
+             "(impronta SHA-256), mai in chiaro.",
+      save: "Salva le mie scelte"
+    },
+    de: {
+      aria: "Cookie-Einwilligung", titre: "🍪 Cookies",
+      corps: "Wir würden gern messen, wie viele Leute die Seite besuchen und wie " +
+             "unsere TikTok-Ads-Kampagnen laufen. Es wird nichts gespeichert oder " +
+             "gesendet, bevor du zustimmst, und du kannst es jederzeit ändern. ",
+      lien: "Datenschutzerklärung",
+      perso: "Anpassen", refuser: "Alles ablehnen", accepter: "Alles akzeptieren",
+      mesure: "Reichweitenmessung",
+      mesure_d: "Google Analytics — wie viele Leute die Seite besuchen und welche " +
+                "Seiten wirklich etwas bringen. IP anonymisiert.",
+      pub: "Werbung",
+      pub_d: "TikTok-Ads-Pixel — welche Anzeigen zu Anmeldungen und Abos führen. " +
+             "Deine E-Mail erreicht TikTok nur verschlüsselt (SHA-256-Prüfsumme), " +
+             "nie im Klartext.",
+      save: "Auswahl speichern"
+    }
+  };
+
+  // Les variantes régionales servies par la page d'accueil n'ont pas de bandeau
+  // propre : le texte est le même que celui de leur langue de base.
+  var LANGUES_RABATTUES = { "es-mx": "es", "en-ie": "en", "en-gb": "en",
+                            "en-us": "en", "pt": "pt-br", "pt-pt": "pt-br" };
+
+  function normaliserLangue(brut) {
+    if (!brut) return null;
+    var code = String(brut).toLowerCase().trim();
+    if (TEXTES[code]) return code;
+    if (LANGUES_RABATTUES[code]) return LANGUES_RABATTUES[code];
+    var base = code.split("-")[0];
+    if (TEXTES[base]) return base;
+    return LANGUES_RABATTUES[base] || null;
+  }
+
+  function textes() {
+    var candidats = [];
+    try {
+      var m = document.cookie.match(/(?:^|;\s*)qeerah_lang=([^;]+)/);
+      if (m) candidats.push(decodeURIComponent(m[1]));
+    } catch (e) {}
+    try { candidats.push(localStorage.getItem("dv_lang")); } catch (e) {}
+    try { candidats.push(document.documentElement.getAttribute("lang")); } catch (e) {}
+    try { candidats.push(navigator.language || navigator.userLanguage); } catch (e) {}
+    for (var i = 0; i < candidats.length; i++) {
+      var code = normaliserLangue(candidats[i]);
+      if (code) return TEXTES[code];
+    }
+    return TEXTES.fr;
+  }
+
   function buildBanner() {
     injectStyle();
     masquerAncienBandeau();
 
+    var tx = textes();
+
     var el = document.createElement("div");
     el.id = "qs-consent";
     el.setAttribute("role", "dialog");
-    el.setAttribute("aria-label", "Consentement aux cookies");
+    el.setAttribute("aria-label", tx.aria);
     el.innerHTML =
       '<div class="qs-c-in">' +
         "<div>" +
-          '<div class="qs-c-t">🍪 Cookies</div>' +
-          '<div class="qs-c-b">On aimerait mesurer l\'audience du site et mesurer nos ' +
-          'campagnes publicitaires TikTok. Rien n\'est déposé ni envoyé tant que tu ' +
-          'n\'as pas accepté, et tu peux changer d\'avis à tout moment. ' +
-          '<a href="/privacy">Politique de confidentialité</a></div>' +
+          '<div class="qs-c-t">' + tx.titre + "</div>" +
+          '<div class="qs-c-b">' + tx.corps +
+          '<a href="/privacy">' + tx.lien + "</a></div>" +
         "</div>" +
         '<div class="qs-c-btns">' +
-          '<button type="button" class="qs-c-more" id="qs-c-more">Personnaliser</button>' +
-          '<button type="button" class="qs-c-no" id="qs-c-no">Tout refuser</button>' +
-          '<button type="button" class="qs-c-ok" id="qs-c-ok">Tout accepter</button>' +
+          '<button type="button" class="qs-c-more" id="qs-c-more">' + tx.perso + "</button>" +
+          '<button type="button" class="qs-c-no" id="qs-c-no">' + tx.refuser + "</button>" +
+          '<button type="button" class="qs-c-ok" id="qs-c-ok">' + tx.accepter + "</button>" +
         "</div>" +
       "</div>" +
       '<div class="qs-c-panel" id="qs-c-panel">' +
         '<label class="qs-c-row">' +
           '<input type="checkbox" id="qs-c-mesure">' +
-          "<span><b>Mesure d'audience</b><br>" +
-          '<span class="qs-c-d">Google Analytics — combien de personnes visitent le site ' +
-          "et quelles pages servent vraiment. IP anonymisée.</span></span>" +
+          "<span><b>" + tx.mesure + "</b><br>" +
+          '<span class="qs-c-d">' + tx.mesure_d + "</span></span>" +
         "</label>" +
         '<label class="qs-c-row">' +
           '<input type="checkbox" id="qs-c-pub">' +
-          "<span><b>Publicité</b><br>" +
-          '<span class="qs-c-d">Pixel TikTok Ads — savoir quelles publicités amènent des ' +
-          "inscriptions et des abonnements. Ton e-mail n'est transmis à TikTok que sous " +
-          "forme chiffrée (empreinte SHA-256), jamais en clair.</span></span>" +
+          "<span><b>" + tx.pub + "</b><br>" +
+          '<span class="qs-c-d">' + tx.pub_d + "</span></span>" +
         "</label>" +
         '<div class="qs-c-btns" style="margin-top:6px">' +
-          '<button type="button" class="qs-c-ok" id="qs-c-save">Enregistrer mes choix</button>' +
+          '<button type="button" class="qs-c-ok" id="qs-c-save">' + tx.save + "</button>" +
         "</div>" +
       "</div>";
 

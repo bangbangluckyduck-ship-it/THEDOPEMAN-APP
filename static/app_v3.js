@@ -444,9 +444,28 @@ function t(key) {
   return lang[key] ?? TRANSLATIONS.fr[key] ?? key;
 }
 
+/* La page d'accueil sert des variantes RÉGIONALES que l'app ne distingue pas :
+   /es-mx et /en-ie y ont leur propre page (devise et mention fiscale
+   différentes), mais l'interface, elle, est la même qu'en `es` et en `en`.
+   Sans ce rabattement, `TRANSLATIONS['es-mx']` est indéfini : l'app ignorait la
+   langue choisie et retombait sur celle du navigateur — un Mexicain ayant
+   cliqué 🇲🇽 pouvait se retrouver en français. */
+const LANGUES_REGIONALES = { 'es-mx': 'es', 'en-ie': 'en', 'en-gb': 'en', 'en-us': 'en' };
+
+function normaliserLangue(code) {
+  if (!code) return null;
+  code = String(code).toLowerCase();
+  if (TRANSLATIONS[code]) return code;
+  if (LANGUES_REGIONALES[code]) return LANGUES_REGIONALES[code];
+  const base = code.split('-')[0];           // « pt-pt » → « pt »
+  if (TRANSLATIONS[base]) return base;
+  if (base === 'pt') return 'pt-br';         // seul portugais disponible
+  return null;
+}
+
 function detectLanguage() {
-  const saved = localStorage.getItem(LANG_KEY);
-  if (saved && TRANSLATIONS[saved]) { currentLanguage = saved; return; }
+  const saved = normaliserLangue(localStorage.getItem(LANG_KEY));
+  if (saved) { currentLanguage = saved; return; }
   const nav = (navigator.language || navigator.userLanguage || 'fr').toLowerCase();
   if (nav.startsWith('pt'))      currentLanguage = 'pt-br';
   else if (nav.startsWith('es')) currentLanguage = 'es';
@@ -457,9 +476,16 @@ function detectLanguage() {
 }
 
 function setLanguage(lang) {
-  if (!TRANSLATIONS[lang]) return;
+  lang = normaliserLangue(lang);
+  if (!lang) return;
   currentLanguage = lang;
   localStorage.setItem(LANG_KEY, lang);
+  /* Reflet lisible par le serveur : les analyses sont rédigées dans la langue
+     de ce cookie. Sans lui, l'interface changeait de langue mais le verdict
+     revenait en français. */
+  try {
+    document.cookie = 'qeerah_lang=' + lang + ';path=/;max-age=' + (60 * 60 * 24 * 365) + ';SameSite=Lax';
+  } catch (e) {}
   applyTranslations();
   const sel = document.getElementById('lang-select');
   if (sel) sel.value = lang;

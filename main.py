@@ -663,7 +663,9 @@ async def verify_turnstile(token: str, remote_ip: str = "") -> bool:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     await track_visitor("/", request)
-    return HTMLResponse(_HOMEPAGE_HTML)
+    # Variante française : identique au HTML historique, plus les balises
+    # hreflang qui déclarent les sept autres langues (cf. _HOMEPAGE_BY_LANG).
+    return _page_langue("fr")
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_page(request: Request):
@@ -808,9 +810,115 @@ def _seo_base_url() -> str:
         return host.rstrip("/")
     return f"https://{host}"
 
+
+# ── PAGE D'ACCUEIL MULTILINGUE (rendu serveur) ───────────────────────────────
+# La traduction était posée par JavaScript : Googlebot lisait le HTML servi, donc
+# six fois la même page française — aucune des cinq autres langues n'était
+# indexable. Chaque langue a désormais son URL, son HTML, son <html lang>, sa
+# canonique et ses balises hreflang.
+#
+# Les six chaînes sont fabriquées UNE FOIS au démarrage, comme l'était déjà la
+# version française : aucun coût par requête n'est ajouté.
+import homepage_i18n
+
+_HOMEPAGE_BY_LANG = homepage_i18n.build(_HOMEPAGE_HTML, _seo_base_url())
+
+
+# Cookie de langue. Il existe pour une raison précise : les analyses sont
+# produites par des endpoints de formes très différentes (formulaire multipart,
+# corps JSON, SSE en query string). Un cookie part avec toutes les requêtes sans
+# qu'aucune signature n'ait à changer, et il survit à la navigation entre la
+# page d'accueil et l'app. `dv_lang` (localStorage) reste la référence côté
+# navigateur ; ce cookie en est le reflet lisible par le serveur.
+LANG_COOKIE = "qeerah_lang"
+
+
+def _langue_requete(request: Request) -> str:
+    """Langue de rédaction demandée, normalisée. Repli : français.
+
+    Ordre : cookie posé lors du choix de langue, puis l'en-tête du navigateur.
+    Toute valeur inconnue retombe sur le français — c'est-à-dire le
+    comportement d'avant, jamais une erreur.
+    """
+    import analyzer
+
+    brut = request.cookies.get(LANG_COOKIE) or ""
+    if not brut:
+        entete = request.headers.get("accept-language", "")
+        brut = homepage_i18n.match_accept_language(entete) or ""
+    return analyzer.normaliser_langue(brut)
+
+
+def _page_langue(lang: str) -> HTMLResponse:
+    html = _HOMEPAGE_BY_LANG.get(lang) or _HOMEPAGE_BY_LANG.get("fr") or _HOMEPAGE_HTML
+    reponse = HTMLResponse(
+        html, headers={"Content-Language": homepage_i18n.HTML_LANG.get(lang, "fr")}
+    )
+    # Posé côté serveur : un visiteur qui arrive directement sur /de par un lien
+    # ou depuis Google n'a jamais touché le sélecteur. Sans ça, il lirait une
+    # page allemande puis recevrait une analyse en français.
+    reponse.set_cookie(
+        LANG_COOKIE, lang, max_age=60 * 60 * 24 * 365,
+        samesite="lax", path="/",
+    )
+    return reponse
+
+
+@app.get("/en", response_class=HTMLResponse, include_in_schema=False)
+async def home_en(request: Request):
+    await track_visitor("/en", request)
+    return _page_langue("en")
+
+
+@app.get("/en-ie", response_class=HTMLResponse, include_in_schema=False)
+async def home_enie(request: Request):
+    await track_visitor("/en-ie", request)
+    return _page_langue("en-ie")
+
+
+@app.get("/pt-br", response_class=HTMLResponse, include_in_schema=False)
+async def home_ptbr(request: Request):
+    await track_visitor("/pt-br", request)
+    return _page_langue("pt-br")
+
+
+@app.get("/es", response_class=HTMLResponse, include_in_schema=False)
+async def home_es(request: Request):
+    await track_visitor("/es", request)
+    return _page_langue("es")
+
+
+@app.get("/es-mx", response_class=HTMLResponse, include_in_schema=False)
+async def home_esmx(request: Request):
+    await track_visitor("/es-mx", request)
+    return _page_langue("es-mx")
+
+
+@app.get("/it", response_class=HTMLResponse, include_in_schema=False)
+async def home_it(request: Request):
+    await track_visitor("/it", request)
+    return _page_langue("it")
+
+
+@app.get("/de", response_class=HTMLResponse, include_in_schema=False)
+async def home_de(request: Request):
+    await track_visitor("/de", request)
+    return _page_langue("de")
+
+
 # Pages publiques indexables (chemin canonique unique par page).
 _SITEMAP_PATHS = [
     "/",
+    # Les cinq traductions de la page d'accueil. Chacune est une URL à part
+    # entière, avec sa propre canonique — elles doivent figurer au sitemap,
+    # sinon Google ne les découvre que par les hreflang, plus lentement.
+    "/en",
+    "/en-ie",
+    "/pt-br",
+    "/es",
+    "/es-mx",
+    "/it",
+    "/de",
     "/app",
     "/pricing",
     "/pricing/compare",
@@ -1473,6 +1581,10 @@ async def analyze_stream_sse(
     user_role = (user_role or "").strip().lower() or None
     if user_role not in ("affilie", "vendeur"):
         user_role = None
+
+    # Langue de rédaction du rapport, résolue une fois et propagée à toutes les
+    # étapes du pipeline. Repli français si rien n'est connu.
+    lang = _langue_requete(request)
     # Si l'utilisateur est Pro+ ET qu'il a uploadé la vidéo entière → on bascule
     # sur le pipeline natif Gemini Pro (visuel + audio en un appel, qualité
     # identique au pipeline URL). Sinon → ancien pipeline frames+AssemblyAI.
@@ -1568,7 +1680,7 @@ async def analyze_stream_sse(
                 can_cache = not product and not price
                 cache_key = f"{hasher.hexdigest()}:{user_role or 'none'}" if can_cache else None
                 if cache_key:
-                    cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+                    cached = analysis_cache.get_cached(cache_key, pipeline="pro", lang=lang)
                     if cached:
                         cached["usage"] = usage_info(user)
                         cached["source"] = "upload"
@@ -1589,7 +1701,7 @@ async def analyze_stream_sse(
                 yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie en cours (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
 
                 from analyzer import analyze_video_native
-                vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
+                vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang)
                 _w = 0.0
                 while True:
                     _d, _pending = await asyncio.wait({vis_task}, timeout=4.0)
@@ -1629,7 +1741,7 @@ async def analyze_stream_sse(
                 yield 'event: progress\n'
                 yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale\\u2026", "stage": "synthesis"}\n\n'
                 synth_task = loop.run_in_executor(
-                    None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role)
+                    None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role, lang)
                 _w = 0.0
                 result = None
                 while True:
@@ -1675,7 +1787,7 @@ async def analyze_stream_sse(
                 # Cache store (uniquement si pas de product/price custom)
                 if cache_key:
                     try:
-                        analysis_cache.store(cache_key, result, pipeline="pro")
+                        analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
                     except Exception: pass
 
                 # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
@@ -1711,7 +1823,7 @@ async def analyze_stream_sse(
                 except asyncio.TimeoutError: return None
 
             async def _do_visual():
-                return await asyncio.wait_for(loop.run_in_executor(None, analyze_visual, frames_list, product, price), timeout=60.0)
+                return await asyncio.wait_for(loop.run_in_executor(None, analyze_visual, frames_list, product, price, lang), timeout=60.0)
 
             transcript_task = asyncio.create_task(_do_transcribe())
             visual_task = asyncio.create_task(_do_visual())
@@ -1762,7 +1874,7 @@ async def analyze_stream_sse(
             # Keepalive pendant la synthèse (medium/large peut être long) : un ping
             # toutes les 4s → la connexion n'est jamais muette (pas de coupure proxy).
             synth_task = loop.run_in_executor(
-                None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role)
+                None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role, lang)
             _waited = 0.0
             result = None
             while True:
@@ -2140,6 +2252,8 @@ async def analyze_url(request: Request):
     if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Clé API Mistral manquante.")
 
+    lang = _langue_requete(request)   # langue de rédaction du rapport
+
     # ── SÉCURITÉ : tier requis ──
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
@@ -2181,7 +2295,7 @@ async def analyze_url(request: Request):
     can_cache = not product and not price
     cache_key = f"{analysis_cache.hash_video_url(url)}:{user_role or 'none'}" if can_cache else None
     if cache_key:
-        cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+        cached = analysis_cache.get_cached(cache_key, pipeline="pro", lang=lang)
         if cached:
             cached["usage"] = usage_info(user)
             cached["source"] = "url"
@@ -2238,7 +2352,7 @@ async def analyze_url(request: Request):
         from analyzer import analyze_video_native
         analysis_start = time.time()
         visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price),
+            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang),
             timeout=180.0,  # Gemini Pro sur vidéo complète peut être plus lent que sur frames
         )
         # Le transcript est retourné par Gemini Pro directement
@@ -2246,7 +2360,7 @@ async def analyze_url(request: Request):
 
         # ── 6. Synthèse via Claude Haiku (provider sélectionné selon tier) ──
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role, lang),
             timeout=140.0,
         )
         analysis_duration_ms = int((time.time() - analysis_start) * 1000)
@@ -2296,7 +2410,7 @@ async def analyze_url(request: Request):
         # ── Cache store (seulement si l'utilisateur n'a pas fourni d'input custom) ──
         if cache_key:
             try:
-                analysis_cache.store(cache_key, result, pipeline="pro")
+                analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
             except Exception as e:
                 print(f"[analyze-url] cache store error: {e}")
 
@@ -2341,6 +2455,7 @@ async def analyze_url_stream(request: Request):
     PRO+. Nom produit + prix obligatoires. Additif : ne touche pas /analyze-url (batch)."""
     if not ai_providers.any_ai_key():
         raise HTTPException(status_code=400, detail="Aucune clé IA configurée.")
+    lang = _langue_requete(request)   # langue de rédaction du rapport
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
     if not has_full_access(user):
@@ -2391,7 +2506,7 @@ async def analyze_url_stream(request: Request):
                        f"|{user_role or 'none'}|{tier}")
             cache_key = (f"{analysis_cache.hash_video_url(url)}"
                          f":{_hl.sha256(_inputs.encode()).hexdigest()[:16]}")
-            _cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+            _cached = analysis_cache.get_cached(cache_key, pipeline="pro", lang=lang)
             if _cached:
                 print(f"[analyze-url/stream] cache HIT — réponse immédiate ({url})")
                 _cached["usage"] = usage_info(user)
@@ -2524,7 +2639,7 @@ async def analyze_url_stream(request: Request):
             yield 'event: progress\n'
             yield 'data: {"message": "\\ud83c\\udfa5 Analyse approfondie de la vid\\u00e9o (image + audio)\\u2026", "stage": "vision", "eta_seconds": 60, "info": "L\'analyse Pro prend g\\u00e9n\\u00e9ralement 30 \\u00e0 60 secondes \\u2014 on traite ta vid\\u00e9o enti\\u00e8re (image + audio + d\\u00e9tection CTA)."}\n\n'
             from analyzer import analyze_video_native
-            vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price)
+            vis_task = loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang)
             _w = 0.0
             while True:
                 _d, _pending = await asyncio.wait({vis_task}, timeout=4.0)
@@ -2563,7 +2678,7 @@ async def analyze_url_stream(request: Request):
             yield 'event: progress\n'
             yield 'data: {"message": "\\ud83e\\udd16 Synth\\u00e8se finale (scoring + conseils)\\u2026", "stage": "synthesis"}\n\n'
             synth_task = loop.run_in_executor(
-                None, synthesize_analysis, visual_result, transcript, None, product, tier, price, user_role)
+                None, synthesize_analysis, visual_result, transcript, None, product, tier, price, user_role, lang)
             _w = 0.0
             result = None
             while True:
@@ -2608,7 +2723,7 @@ async def analyze_url_stream(request: Request):
             # Mise en cache : même vidéo + mêmes entrées → réponse immédiate ensuite.
             if cache_key:
                 try:
-                    analysis_cache.store(cache_key, result, pipeline="pro")
+                    analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
                 except Exception as e:
                     print(f"[analyze-url/stream] cache store error: {e}")
             # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
@@ -2713,6 +2828,9 @@ async def jobs_create_url(request: Request):
         job_id=job_id, url=url, product=product, price=price,
         user_tier=tier, user_email=user["email"], job_title=title,
         user_role=user_role,
+        # Capturée MAINTENANT : quand le job s'exécutera, il n'y aura plus de
+        # requête ni de cookie à consulter.
+        lang=_langue_requete(request),
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
@@ -2784,6 +2902,7 @@ async def jobs_create_upload(
         job_id=job_id, video_path=video_tmp_path, product=p, price=pr,
         user_tier=tier, user_email=user["email"], video_hash=video_hash,
         job_title=title, user_role=ur,
+        lang=_langue_requete(request),   # cf. jobs_create_url
     ))
     return JSONResponse({"job_id": job_id, "status": "queued"})
 
@@ -2847,7 +2966,8 @@ async def analyze_batch_patterns(request: Request):
     loop = asyncio.get_event_loop()
     try:
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_batch_patterns, analyses, performances),
+            loop.run_in_executor(None, synthesize_batch_patterns, analyses, performances,
+                                 _langue_requete(request)),
             timeout=70.0,
         )
     except asyncio.TimeoutError:

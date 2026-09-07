@@ -53,8 +53,128 @@ def _safe_send_email(user_email: str, subject: str, html: str) -> None:
         logger.warning("[analysis_runner] email send failed for %s: %s", user_email, e)
 
 
+# ── Textes des e-mails d'analyse ─────────────────────────────────────────────
+# Ces deux e-mails-là sont traduisibles parce que le job connaît la langue
+# demandée (capturée au moment de la soumission). Les e-mails d'authentification
+# — bienvenue, mot de passe oublié — ne le sont PAS : ils partent hors de tout
+# contexte de requête et il n'existe aucune colonne `lang` sur la table `users`
+# pour retrouver la préférence. Les traduire demande d'abord cette colonne.
+_MAILS = {
+    "fr": {
+        "objet_ok": "✅ Ton analyse Qeerah est prête",
+        "titre_ok": "Ton analyse est prête ✅",
+        "salut": "Salut,", "bonne_nouvelle": "Bonne nouvelle 🎉 —",
+        "vient_de_terminer": "vient de terminer.",
+        "note": "Note", "retrouver": "Tu peux la retrouver dans",
+        "mes_analyses": "Mes analyses", "bouton_ok": "Voir mon analyse →",
+        "defaut_titre": "Ton analyse",
+        "pied": "Ce mail t'a été envoyé parce que tu as lancé une analyse en arrière-plan sur Qeerah.",
+        "objet_ko": "❌ Ton analyse Qeerah a échoué", "titre_ko": "Analyse échouée ❌",
+        "aie": "Aïe —", "pas_analysee": "n'a pas pu être analysée.",
+        "relancer": "Tu peux relancer l'analyse depuis l'app :",
+        "bouton_ko": "Retour à l'app", "err_inconnue": "Erreur inconnue",
+    },
+    "en": {
+        "objet_ok": "✅ Your Qeerah analysis is ready",
+        "titre_ok": "Your analysis is ready ✅",
+        "salut": "Hi,", "bonne_nouvelle": "Good news 🎉 —",
+        "vient_de_terminer": "has just finished.",
+        "note": "Score", "retrouver": "You'll find it in",
+        "mes_analyses": "My analyses", "bouton_ok": "See my analysis →",
+        "defaut_titre": "Your analysis",
+        "pied": "You're getting this email because you started a background analysis on Qeerah.",
+        "objet_ko": "❌ Your Qeerah analysis failed", "titre_ko": "Analysis failed ❌",
+        "aie": "Ouch —", "pas_analysee": "could not be analysed.",
+        "relancer": "You can start the analysis again from the app:",
+        "bouton_ko": "Back to the app", "err_inconnue": "Unknown error",
+    },
+    "pt-br": {
+        "objet_ok": "✅ Sua análise Qeerah está pronta",
+        "titre_ok": "Sua análise está pronta ✅",
+        "salut": "Oi,", "bonne_nouvelle": "Boa notícia 🎉 —",
+        "vient_de_terminer": "acabou de terminar.",
+        "note": "Nota", "retrouver": "Você encontra ela em",
+        "mes_analyses": "Minhas análises", "bouton_ok": "Ver minha análise →",
+        "defaut_titre": "Sua análise",
+        "pied": "Você recebeu este e-mail porque iniciou uma análise em segundo plano na Qeerah.",
+        "objet_ko": "❌ Sua análise Qeerah falhou", "titre_ko": "Análise falhou ❌",
+        "aie": "Ops —", "pas_analysee": "não pôde ser analisada.",
+        "relancer": "Você pode rodar a análise de novo pelo app:",
+        "bouton_ko": "Voltar ao app", "err_inconnue": "Erro desconhecido",
+    },
+    "es": {
+        "objet_ok": "✅ Tu análisis de Qeerah está listo",
+        "titre_ok": "Tu análisis está listo ✅",
+        "salut": "Hola:", "bonne_nouvelle": "Buenas noticias 🎉 —",
+        "vient_de_terminer": "acaba de terminar.",
+        "note": "Puntuación", "retrouver": "Lo encuentras en",
+        "mes_analyses": "Mis análisis", "bouton_ok": "Ver mi análisis →",
+        "defaut_titre": "Tu análisis",
+        "pied": "Recibes este correo porque lanzaste un análisis en segundo plano en Qeerah.",
+        "objet_ko": "❌ Tu análisis de Qeerah ha fallado", "titre_ko": "Análisis fallido ❌",
+        "aie": "Vaya —", "pas_analysee": "no se ha podido analizar.",
+        "relancer": "Puedes volver a lanzar el análisis desde la app:",
+        "bouton_ko": "Volver a la app", "err_inconnue": "Error desconocido",
+    },
+    "es-mx": {
+        "objet_ok": "✅ Tu análisis de Qeerah ya está listo",
+        "titre_ok": "Tu análisis ya está listo ✅",
+        "salut": "Hola:", "bonne_nouvelle": "Buenas noticias 🎉 —",
+        "vient_de_terminer": "acaba de terminar.",
+        "note": "Puntuación", "retrouver": "Lo encuentras en",
+        "mes_analyses": "Mis análisis", "bouton_ok": "Ver mi análisis →",
+        "defaut_titre": "Tu análisis",
+        "pied": "Recibes este correo porque lanzaste un análisis en segundo plano en Qeerah.",
+        "objet_ko": "❌ Tu análisis de Qeerah falló", "titre_ko": "Análisis fallido ❌",
+        "aie": "Uy —", "pas_analysee": "no se pudo analizar.",
+        "relancer": "Puedes volver a lanzar el análisis desde la app:",
+        "bouton_ko": "Volver a la app", "err_inconnue": "Error desconocido",
+    },
+    "it": {
+        "objet_ok": "✅ La tua analisi Qeerah è pronta",
+        "titre_ok": "La tua analisi è pronta ✅",
+        "salut": "Ciao,", "bonne_nouvelle": "Buona notizia 🎉 —",
+        "vient_de_terminer": "ha appena finito.",
+        "note": "Punteggio", "retrouver": "La ritrovi in",
+        "mes_analyses": "Le mie analisi", "bouton_ok": "Vedi la mia analisi →",
+        "defaut_titre": "La tua analisi",
+        "pied": "Ricevi questa mail perché hai avviato un'analisi in background su Qeerah.",
+        "objet_ko": "❌ La tua analisi Qeerah non è riuscita",
+        "titre_ko": "Analisi non riuscita ❌",
+        "aie": "Ahi —", "pas_analysee": "non è stata analizzata.",
+        "relancer": "Puoi rilanciare l'analisi dall'app:",
+        "bouton_ko": "Torna all'app", "err_inconnue": "Errore sconosciuto",
+    },
+    "de": {
+        "objet_ok": "✅ Deine Qeerah-Analyse ist fertig",
+        "titre_ok": "Deine Analyse ist fertig ✅",
+        "salut": "Hallo,", "bonne_nouvelle": "Gute Nachricht 🎉 —",
+        "vient_de_terminer": "ist gerade fertig geworden.",
+        "note": "Wertung", "retrouver": "Du findest sie unter",
+        "mes_analyses": "Meine Analysen", "bouton_ok": "Meine Analyse ansehen →",
+        "defaut_titre": "Deine Analyse",
+        "pied": "Du bekommst diese Mail, weil du auf Qeerah eine Analyse im Hintergrund gestartet hast.",
+        "objet_ko": "❌ Deine Qeerah-Analyse ist fehlgeschlagen",
+        "titre_ko": "Analyse fehlgeschlagen ❌",
+        "aie": "Autsch —", "pas_analysee": "konnte nicht analysiert werden.",
+        "relancer": "Du kannst die Analyse in der App neu starten:",
+        "bouton_ko": "Zurück zur App", "err_inconnue": "Unbekannter Fehler",
+    },
+}
+
+
+def _mail_textes(lang: Optional[str]) -> dict:
+    """Textes de l'e-mail dans la langue du job. Repli : français."""
+    try:
+        from analyzer import normaliser_langue
+        code = normaliser_langue(lang)
+    except Exception:
+        code = "fr"
+    return _MAILS.get(code) or _MAILS["fr"]
+
+
 def _send_done_email(user_email: str, result: dict, job_id: str,
-                     title: Optional[str] = None) -> None:
+                     title: Optional[str] = None, lang: str = "fr") -> None:
     """Email à l'utilisateur : analyse terminée + lien vers Mes analyses."""
     if not user_email:
         return
@@ -62,23 +182,26 @@ def _send_done_email(user_email: str, result: dict, job_id: str,
         from email_service import _wrap, _button
     except Exception:
         return
+    tx = _mail_textes(lang)
     score = None
     if isinstance(result, dict):
         score = result.get("score_global") or result.get("note_globale") or result.get("note")
-    label = (title or "Ton analyse")[:80]
-    score_html = f'<p style="font-size:24px;font-weight:800;color:#6c5ce7;margin:8px 0">Note&nbsp;: {score}/100</p>' if score is not None else ''
-    btn_html = _button("Voir mon analyse →", f"{_app_url()}/app?job={job_id}")
-    footer_text = "Ce mail t'a été envoyé parce que tu as lancé une analyse en arrière-plan sur Qeerah."
+    label = (title or tx["defaut_titre"])[:80]
+    score_html = (
+        f'<p style="font-size:24px;font-weight:800;color:#6c5ce7;margin:8px 0">'
+        f'{tx["note"]}&nbsp;: {score}/100</p>'
+    ) if score is not None else ''
+    btn_html = _button(tx["bouton_ok"], f"{_app_url()}/app?job={job_id}")
     body = (
-        f"<p>Salut,</p>"
-        f"<p>Bonne nouvelle 🎉 — <strong>{label}</strong> vient de terminer.</p>"
+        f"<p>{tx['salut']}</p>"
+        f"<p>{tx['bonne_nouvelle']} <strong>{label}</strong> {tx['vient_de_terminer']}</p>"
         f"{score_html}"
-        f"<p>Tu peux la retrouver dans <strong>Mes analyses</strong> :</p>"
+        f"<p>{tx['retrouver']} <strong>{tx['mes_analyses']}</strong> :</p>"
         f"{btn_html}"
-        f'<p style="font-size:13px;color:#9a9ab0;margin-top:24px">{footer_text}</p>'
+        f'<p style="font-size:13px;color:#9a9ab0;margin-top:24px">{tx["pied"]}</p>'
     )
-    html = _wrap("Ton analyse est prête ✅", body)
-    _safe_send_email(user_email, "✅ Ton analyse Qeerah est prête", html)
+    html = _wrap(tx["titre_ok"], body)
+    _safe_send_email(user_email, tx["objet_ok"], html)
 
 
 def _result_utilisable(result) -> bool:
@@ -106,7 +229,7 @@ def _rendre_le_credit(user_email: str, user_tier: str) -> None:
 
 
 def _send_error_email(user_email: str, error_message: str, job_id: str,
-                      title: Optional[str] = None) -> None:
+                      title: Optional[str] = None, lang: str = "fr") -> None:
     """Email à l'utilisateur : l'analyse a échoué."""
     if not user_email:
         return
@@ -114,23 +237,27 @@ def _send_error_email(user_email: str, error_message: str, job_id: str,
         from email_service import _wrap, _button
     except Exception:
         return
-    label = (title or "Ton analyse")[:80]
-    err_short = error_message[:300] if error_message else "Erreur inconnue"
-    btn_html = _button("Retour à l'app", f"{_app_url()}/app?job={job_id}")
+    tx = _mail_textes(lang)
+    label = (title or tx["defaut_titre"])[:80]
+    # Le message d'erreur technique lui-même reste tel quel : il vient du
+    # pipeline, pas d'un texte d'interface, et le traduire n'aiderait personne
+    # à le diagnostiquer.
+    err_short = error_message[:300] if error_message else tx["err_inconnue"]
+    btn_html = _button(tx["bouton_ko"], f"{_app_url()}/app?job={job_id}")
     body = (
-        f"<p>Salut,</p>"
-        f"<p>Aïe — <strong>{label}</strong> n'a pas pu être analysée.</p>"
+        f"<p>{tx['salut']}</p>"
+        f"<p>{tx['aie']} <strong>{label}</strong> {tx['pas_analysee']}</p>"
         f'<p style="background:#fff5f5;border-left:3px solid #e74c3c;padding:12px;border-radius:6px;font-size:13px;color:#7a2020">{err_short}</p>'
-        f"<p>Tu peux relancer l'analyse depuis l'app :</p>"
+        f"<p>{tx['relancer']}</p>"
         f"{btn_html}"
     )
-    html = _wrap("Analyse échouée ❌", body)
-    _safe_send_email(user_email, "❌ Ton analyse Qeerah a échoué", html)
+    html = _wrap(tx["titre_ko"], body)
+    _safe_send_email(user_email, tx["objet_ko"], html)
 
 
 async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[str],
                             user_tier: str, user_role: Optional[str] = None,
-                            on_stage=None) -> dict:
+                            on_stage=None, lang: str = "fr") -> dict:
     """Download URL → downscale → Gemini vidéo → synthèse.
 
     `on_stage(nom)` signale les étapes qui se produisent À L'INTÉRIEUR du
@@ -169,7 +296,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
 
         # 3. Gemini Pro vidéo native
         visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price),
+            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang),
             timeout=240.0,
         )
         transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
@@ -179,7 +306,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
             try: on_stage("synthesis")
             except Exception: pass
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role, lang),
             timeout=180.0,
         )
         result["transcript"] = transcript
@@ -202,7 +329,7 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
 async def _run_upload_pipeline(video_path: str, product: Optional[str],
                                price: Optional[str], user_tier: str,
                                user_role: Optional[str] = None,
-                               on_stage=None) -> dict:
+                               on_stage=None, lang: str = "fr") -> dict:
     """Upload vidéo (déjà sur disque, streamée par la route) → downscale →
     Gemini → synthèse. Ne charge jamais la vidéo entière en RAM.
 
@@ -218,7 +345,7 @@ async def _run_upload_pipeline(video_path: str, product: Optional[str],
 
         # 3. Gemini Pro vidéo native
         visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price),
+            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang),
             timeout=240.0,
         )
         transcript = visual_result.get("transcript") if isinstance(visual_result, dict) else None
@@ -228,7 +355,7 @@ async def _run_upload_pipeline(video_path: str, product: Optional[str],
             try: on_stage("synthesis")
             except Exception: pass
         result = await asyncio.wait_for(
-            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role),
+            loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, None, product, user_tier, price, user_role, lang),
             timeout=180.0,
         )
         result["transcript"] = transcript
@@ -249,8 +376,14 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
                           price: Optional[str], user_tier: str,
                           user_email: str, video_hash: Optional[str] = None,
                           job_title: Optional[str] = None,
-                          user_role: Optional[str] = None) -> None:
-    """Coroutine de traitement d'un job URL. Met à jour le job au fil de l'eau."""
+                          user_role: Optional[str] = None,
+                          lang: str = "fr") -> None:
+    """Coroutine de traitement d'un job URL. Met à jour le job au fil de l'eau.
+
+    `lang` est capturé au moment de la DEMANDE, pas au moment de l'exécution :
+    le job tourne en tâche de fond, il n'y a plus de requête ni de cookie à
+    consulter quand la rédaction commence.
+    """
     started = time.time()
     try:
         analysis_jobs.mark_running(job_id, stage="download")
@@ -262,11 +395,11 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
         _base_key = video_hash or (analysis_cache.hash_video_url(url) if can_cache else None)
         cache_key = f"{_base_key}:{user_role or 'none'}" if _base_key else None
         if can_cache and cache_key:
-            cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+            cached = analysis_cache.get_cached(cache_key, pipeline="pro", lang=lang)
             if cached:
                 cached["from_cache"] = True
                 analysis_jobs.mark_done(job_id, cached, duration_ms=int((time.time() - started) * 1000))
-                _send_done_email(user_email, cached, job_id, title=job_title)
+                _send_done_email(user_email, cached, job_id, title=job_title, lang=lang)
                 return
 
         # Le sémaphore est pris APRÈS la recherche en cache : un cache-hit ne
@@ -277,13 +410,14 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
             analysis_jobs.update_stage(job_id, "vision")
             result = await _run_url_pipeline(
                 url, product, price, user_tier, user_role,
-                on_stage=lambda s: analysis_jobs.update_stage(job_id, s))
+                on_stage=lambda s: analysis_jobs.update_stage(job_id, s),
+                lang=lang)
         result["from_cache"] = False
 
         # Cache store si autorisé
         if can_cache and cache_key:
             try:
-                analysis_cache.store(cache_key, result, pipeline="pro")
+                analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
             except Exception:
                 pass
 
@@ -294,21 +428,24 @@ async def process_url_job(job_id: str, url: str, product: Optional[str],
             raise Exception(result.get("error") if isinstance(result, dict) and result.get("error")
                             else "L'analyse n'a rien produit d'exploitable.")
         analysis_jobs.mark_done(job_id, result, duration_ms=duration_ms)
-        _send_done_email(user_email, result, job_id, title=job_title)
+        _send_done_email(user_email, result, job_id, title=job_title, lang=lang)
     except Exception as e:
         logger.exception("[analysis_runner] URL job %s failed", job_id)
         err_msg = str(e)[:500]
         analysis_jobs.mark_error(job_id, err_msg)
         _rendre_le_credit(user_email, user_tier)
-        _send_error_email(user_email, err_msg, job_id, title=job_title)
+        _send_error_email(user_email, err_msg, job_id, title=job_title, lang=lang)
 
 
 async def process_upload_job(job_id: str, video_path: str, product: Optional[str],
                              price: Optional[str], user_tier: str,
                              user_email: str, video_hash: Optional[str] = None,
                              job_title: Optional[str] = None,
-                             user_role: Optional[str] = None) -> None:
-    """Coroutine de traitement d'un job upload. Met à jour le job au fil de l'eau."""
+                             user_role: Optional[str] = None,
+                             lang: str = "fr") -> None:
+    """Coroutine de traitement d'un job upload. Met à jour le job au fil de l'eau.
+
+    `lang` : cf. process_url_job — capturé à la demande, pas à l'exécution."""
     started = time.time()
     try:
         analysis_jobs.mark_running(job_id, stage="downscale")
@@ -316,11 +453,11 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
         can_cache = not product and not price
         cache_key = f"{video_hash}:{user_role or 'none'}" if (can_cache and video_hash) else None
         if can_cache and cache_key:
-            cached = analysis_cache.get_cached(cache_key, pipeline="pro")
+            cached = analysis_cache.get_cached(cache_key, pipeline="pro", lang=lang)
             if cached:
                 cached["from_cache"] = True
                 analysis_jobs.mark_done(job_id, cached, duration_ms=int((time.time() - started) * 1000))
-                _send_done_email(user_email, cached, job_id, title=job_title)
+                _send_done_email(user_email, cached, job_id, title=job_title, lang=lang)
                 return
 
         if _JOB_SEMAPHORE.locked():
@@ -329,12 +466,13 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
             analysis_jobs.update_stage(job_id, "vision")
             result = await _run_upload_pipeline(
                 video_path, product, price, user_tier, user_role,
-                on_stage=lambda s: analysis_jobs.update_stage(job_id, s))
+                on_stage=lambda s: analysis_jobs.update_stage(job_id, s),
+                lang=lang)
         result["from_cache"] = False
 
         if can_cache and cache_key:
             try:
-                analysis_cache.store(cache_key, result, pipeline="pro")
+                analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
             except Exception:
                 pass
 
@@ -345,13 +483,13 @@ async def process_upload_job(job_id: str, video_path: str, product: Optional[str
             raise Exception(result.get("error") if isinstance(result, dict) and result.get("error")
                             else "L'analyse n'a rien produit d'exploitable.")
         analysis_jobs.mark_done(job_id, result, duration_ms=duration_ms)
-        _send_done_email(user_email, result, job_id, title=job_title)
+        _send_done_email(user_email, result, job_id, title=job_title, lang=lang)
     except Exception as e:
         logger.exception("[analysis_runner] Upload job %s failed", job_id)
         err_msg = str(e)[:500]
         analysis_jobs.mark_error(job_id, err_msg)
         _rendre_le_credit(user_email, user_tier)
-        _send_error_email(user_email, err_msg, job_id, title=job_title)
+        _send_error_email(user_email, err_msg, job_id, title=job_title, lang=lang)
     finally:
         # Cache-hit / erreur avant le pipeline : le tmpfile n'a pas encore été
         # supprimé par _run_upload_pipeline. Double unlink = no-op silencieux.

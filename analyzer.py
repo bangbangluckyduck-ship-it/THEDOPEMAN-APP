@@ -459,6 +459,69 @@ def transcribe_audio(audio_path: str) -> Optional[str]:
 # ════════════════════════════════════════════════════════════════════════════
 # ÉTAPE 1 : VISION (Mistral Pixtral — frames uniquement, prompt minimal, rapide)
 # ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════
+# LANGUE DE SORTIE DES ANALYSES
+#
+# Le pipeline entier (prompts, clés JSON, post-traitement, front) a été écrit en
+# français. On ne le traduit PAS : on demande au modèle de ne traduire que les
+# VALEURS lisibles par un humain, en laissant les CLÉS strictement intactes.
+#
+# Pourquoi ce découpage : `_post_process()` et `app_v3.js` lisent des clés en dur
+# (`analyse_8_dimensions`, `points_forts`, `detection.prix_estime`…). Une clé
+# traduite casserait silencieusement l'affichage. Vérifié le 07/09/2026 : aucune
+# VALEUR n'est comparée à une chaîne, ni côté serveur ni côté front — seuls des
+# nombres le sont (`_video_quality_issues`). Traduire les valeurs est donc sûr.
+#
+# Propriété de sécurité recherchée : en français, `_directive_langue()` renvoie
+# une chaîne VIDE. Le prompt est alors identique au caractère près à ce qu'il
+# était, et le marché historique ne bouge pas. Si la langue n'arrive pas jusqu'ici
+# (paramètre oublié quelque part), le repli est le français — c'est-à-dire le
+# comportement actuel, jamais une panne.
+# ════════════════════════════════════════════════════════════════════════════
+LANGUES_ANALYSE = {
+    "fr": "français",
+    "en": "anglais",
+    "pt-br": "portugais du Brésil",
+    "es": "espagnol d'Espagne",
+    "es-mx": "espagnol d'Amérique latine",
+    "it": "italien",
+    "de": "allemand",
+}
+
+# Variantes régionales servies par la page d'accueil et qui n'ont pas de
+# rédaction propre : on les rabat sur leur langue de base.
+_LANGUE_RABATTUE = {"en-ie": "en", "en-gb": "en", "en-us": "en", "pt": "pt-br"}
+
+
+def normaliser_langue(lang: Optional[str]) -> str:
+    """Code de langue exploitable pour la rédaction, `fr` par défaut."""
+    code = (lang or "fr").strip().lower()
+    code = _LANGUE_RABATTUE.get(code, code)
+    if code in LANGUES_ANALYSE:
+        return code
+    base = code.split("-")[0]
+    base = _LANGUE_RABATTUE.get(base, base)
+    return base if base in LANGUES_ANALYSE else "fr"
+
+
+def _directive_langue(lang: Optional[str]) -> str:
+    """Bloc de consigne à concaténer au prompt. Vide en français."""
+    code = normaliser_langue(lang)
+    if code == "fr":
+        return ""
+    nom = LANGUES_ANALYSE[code]
+    return (
+        f"\n\n⚠️ LANGUE DE RÉDACTION — RÈGLE ABSOLUE, PRIORITAIRE SUR TOUT CE QUI PRÉCÈDE :\n"
+        f"- Rédige TOUTES les valeurs textuelles du JSON en {nom}.\n"
+        f"- Les CLÉS du JSON restent EXACTEMENT telles qu'écrites ci-dessus, en "
+        f"français, sans traduction, sans accent modifié, sans reformulation.\n"
+        f"- N'invente aucune clé et n'en supprime aucune.\n"
+        f"- Écris comme un natif s'adressant à un créateur TikTok Shop : ton direct, "
+        f"vocabulaire du métier, pas de traduction mot à mot du français.\n"
+        f"- Aucun texte en dehors du JSON."
+    )
+
+
 VISION_PROMPT = """Tu es expert vision pour TikTok Shop. Tu DOIS regarder les images et retourner UNIQUEMENT du JSON valide en français.
 
 Analyse rapide des frames extraites de la vidéo TikTok :
@@ -608,7 +671,8 @@ def _extract_json(raw: str) -> dict:
     return repaired
 
 
-def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: Optional[str] = None) -> dict:
+def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: Optional[str] = None,
+                   lang: str = "fr") -> dict:
     """
     Vision pass : Mistral Pixtral analyse SEULEMENT les frames.
     Prompt minimal → réponse JSON courte → 10-15s au lieu de 60-90s.
@@ -630,7 +694,7 @@ def analyze_visual(frames_b64: List[str], product: Optional[str] = None, price: 
     if price:
         content.append({"type": "text", "text": f"\n💶 PRIX INDIQUÉ par l'utilisateur : {price}. Considère-le comme le prix de référence du produit (ne le remets pas en cause même s'il n'est pas visible à l'écran)."})
 
-    content.append({"type": "text", "text": VISION_PROMPT})
+    content.append({"type": "text", "text": VISION_PROMPT + _directive_langue(lang)})
 
     # Vision de l'analyse = Gemini 3.5 Flash (rapide + meilleure « vue ») par défaut.
     # Flippable : ANALYSIS_VISION_PROVIDER=mistral si besoin.
@@ -824,7 +888,7 @@ def _video_quality_issues(data: dict) -> List[str]:
 
 
 def analyze_video_native(video_path: str, product: Optional[str] = None,
-                         price: Optional[str] = None) -> dict:
+                         price: Optional[str] = None, lang: str = "fr") -> dict:
     """Analyse multimodale via Gemini Pro sur la vidéo ENTIÈRE (visuel + audio).
     Une seule requête remplace : extraction frames + transcription AssemblyAI + appel vision.
 
@@ -839,6 +903,8 @@ def analyze_video_native(video_path: str, product: Optional[str] = None,
         prompt += f"\n\n🎯 PRODUIT INDIQUÉ par l'utilisateur : {product}. Utilise pour valider ta détection."
     if price:
         prompt += f"\n💶 PRIX INDIQUÉ par l'utilisateur : {price}. Considère-le comme prix de référence."
+    # En dernier, pour que la consigne de langue prime sur tout ce qui précède.
+    prompt += _directive_langue(lang)
 
     # 90s et non 120 : ce timeout ne borne pas une analyse normale (Flash rend sa
     # réponse en 15-40s sur une vidéo TikTok), il borne un appel qui se fige. Le
@@ -1290,6 +1356,7 @@ def synthesize_analysis(
     user_tier: str = "free",
     price: Optional[str] = None,
     user_role: Optional[str] = None,
+    lang: str = "fr",
 ) -> dict:
     """
     Synthèse text-only via mistral-small : combine vision + transcript + marché.
@@ -1412,7 +1479,10 @@ def synthesize_analysis(
     if is_premium:
         parts.append(PREMIUM_PROMPT_BLOCK)
 
-    full_prompt = "\n".join(parts)
+    # La consigne de langue est ajoutée en TOUT DERNIER : c'est la synthèse qui
+    # produit le verdict et les recommandations, donc l'essentiel de ce que lit
+    # l'abonné. Placée en fin de prompt, elle prime sur les consignes plus haut.
+    full_prompt = "\n".join(parts) + _directive_langue(lang)
 
     # Synthèse — provider dépend du tier :
     # Claude Haiku 4.5 pour tout le monde (raisonnement supérieur sur la
@@ -1745,14 +1815,16 @@ def analyze_video(
     market_context: Optional[dict] = None,
     product: Optional[str] = None,
     user_tier: str = "free",
+    lang: str = "fr",
 ) -> dict:
     """
     Compat : exécute vision puis synthèse en séquence (utile pour tests/fallback).
     Pour le vrai parallélisme, utiliser analyze_visual() et synthesize_analysis()
     directement avec asyncio.gather() depuis main.py.
     """
-    visual = analyze_visual(frames_b64, product)
-    return synthesize_analysis(visual, transcript, market_context, product, user_tier)
+    visual = analyze_visual(frames_b64, product, None, lang)
+    return synthesize_analysis(visual, transcript, market_context, product, user_tier,
+                               None, None, lang)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1828,7 +1900,8 @@ def _summarize_analysis_for_batch(analysis: dict, index: int, performance: Optio
     return summary
 
 
-def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[Optional[dict]]] = None) -> dict:
+def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[Optional[dict]]] = None,
+                              lang: str = "fr") -> dict:
     """
     Croise N analyses d'un même créateur → patterns gagnants + patterns perdants.
     `performances` : liste optionnelle alignée sur `analyses` (stats réelles futures).
@@ -1846,7 +1919,7 @@ def synthesize_batch_patterns(analyses: List[dict], performances: Optional[List[
         {"videos": summaries, "stats_reelles_disponibles": has_perf},
         ensure_ascii=False,
     )
-    prompt = BATCH_PATTERNS_PROMPT + "\n\nDONNÉES À ANALYSER :\n" + payload
+    prompt = BATCH_PATTERNS_PROMPT + _directive_langue(lang) + "\n\nDONNÉES À ANALYSER :\n" + payload
 
     raw = ai_providers.text_complete(prompt, timeout=60.0,
                                      provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "mistral"),

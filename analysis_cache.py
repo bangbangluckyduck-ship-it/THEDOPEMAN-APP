@@ -51,15 +51,37 @@ def hash_video_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def get_cached(video_hash: str, pipeline: str = "pro") -> Optional[dict]:
-    """Retourne le résultat caché ou None. Match exact sur pipeline + version."""
+def _pipeline_key(pipeline: str, lang: Optional[str]) -> str:
+    """Segmente le cache PAR LANGUE sans toucher au schéma de la table.
+
+    Depuis que les rapports sont rédigés dans la langue du compte, deux analyses
+    de la MÊME vidéo ne sont plus interchangeables. La table n'a pas de colonne
+    `lang` et sa contrainte d'unicité porte sur `video_hash` seul : plutôt que
+    d'exiger une migration, on encode la langue dans l'étiquette `pipeline`, qui
+    fait déjà partie du filtre de lecture.
+
+    Conséquences, assumées :
+      • lecture — un rapport allemand ne peut plus être servi à un francophone,
+        ni l'inverse : les étiquettes ne correspondent pas, c'est un miss ;
+      • écriture — une seule langue reste en cache par vidéo à un instant donné,
+        les langues s'évincent. C'est un coût de calcul, jamais une erreur.
+
+    Le français conserve l'étiquette historique (`pro`, `free`…) : tout le cache
+    déjà constitué reste valide et n'est pas invalidé par ce changement.
+    """
+    code = (lang or "fr").strip().lower()
+    return pipeline if code in ("", "fr") else f"{pipeline}:{code}"
+
+
+def get_cached(video_hash: str, pipeline: str = "pro", lang: Optional[str] = None) -> Optional[dict]:
+    """Retourne le résultat caché ou None. Match exact sur pipeline + langue + version."""
     if not supabase_service:
         return None
     try:
         r = (supabase_service.table("analysis_cache")
              .select("result")
              .eq("video_hash", video_hash)
-             .eq("pipeline", pipeline)
+             .eq("pipeline", _pipeline_key(pipeline, lang))
              .eq("prompt_version", PROMPT_VERSION)
              .limit(1).execute())
         if r.data and r.data[0].get("result"):
@@ -70,7 +92,8 @@ def get_cached(video_hash: str, pipeline: str = "pro") -> Optional[dict]:
         return None
 
 
-def store(video_hash: str, result: dict, pipeline: str = "pro") -> None:
+def store(video_hash: str, result: dict, pipeline: str = "pro",
+          lang: Optional[str] = None) -> None:
     """Stocke (upsert) un résultat d'analyse. Échec silencieux."""
     if not supabase_service or not isinstance(result, dict):
         return
@@ -78,7 +101,7 @@ def store(video_hash: str, result: dict, pipeline: str = "pro") -> None:
         supabase_service.table("analysis_cache").upsert({
             "video_hash":     video_hash,
             "result":         result,
-            "pipeline":       pipeline,
+            "pipeline":       _pipeline_key(pipeline, lang),
             "prompt_version": PROMPT_VERSION,
         }, on_conflict="video_hash").execute()
     except Exception as e:
