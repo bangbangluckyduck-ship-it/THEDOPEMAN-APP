@@ -154,6 +154,37 @@
     .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
     .empty { padding: 26px; text-align: center; color: var(--muted); font-size: 13px; }
 
+    /* ── VUE USAGE (lecture seule) ── */
+    .usage-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .usage-bar .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .usage-bar .btn { padding: 8px 12px; font-size: 12.5px; }
+    .usage-bar .btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .usage-summary {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; font-size: 13px; color: var(--muted); margin-bottom: 14px;
+    }
+    .usage-summary strong { color: var(--text); font-weight: 800; }
+    .usage-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    }
+    .usage-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .usage-card .email { font-weight: 700; font-size: 14px; word-break: break-all; }
+    .usage-card .signup { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 700; color: #fff; white-space: nowrap;
+    }
+    .usage-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .usage-metric { background: var(--surface2); border-radius: 10px; padding: 9px 10px; text-align: center; }
+    .usage-metric .v { font-size: 18px; font-weight: 800; line-height: 1.25; }
+    /* Un zéro reste lisible mais ne doit pas crier plus fort qu'un vrai chiffre. */
+    .usage-metric .v.zero { color: var(--muted); }
+    .usage-metric .v.small { font-size: 13px; }
+    .usage-metric .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 4px; }
+    .usage-metric .sub { font-size: 10px; color: var(--amber); margin-top: 3px; font-weight: 600; }
+    .usage-note { font-size: 11.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+
     /* ── BARRE DE NAVIGATION BAS (style app native) ── */
     .bottom-nav {
       position: fixed;
@@ -164,9 +195,16 @@
       border-top: 1px solid var(--border);
       display: flex;
       padding-bottom: var(--safe-bottom);
+      /* Neuf onglets ne tiennent plus sur la largeur d'un téléphone : on laisse
+         la barre défiler au doigt au lieu de rogner les libellés. */
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
+    .bottom-nav::-webkit-scrollbar { display: none; }
     .nav-item {
-      flex: 1;
+      flex: 1 0 auto;
+      min-width: 62px;
       background: transparent;
       border: none;
       color: var(--muted);
@@ -313,6 +351,23 @@
         </div>
 
         <div id="users-list"><div class="empty">Chargement…</div></div>
+      </section>
+
+      <!-- ── VUE USAGE (lecture seule) ── -->
+      <section id="view-usage" class="view">
+        <h1 class="view-title">📈 Usage</h1>
+        <p class="view-sub">Ce que les comptes font réellement de l'outil. Lecture seule : rien n'est modifiable depuis cet écran.</p>
+
+        <div class="usage-bar">
+          <span class="lbl">Trier par</span>
+          <button class="btn btn-ghost usage-sort on" data-sort="analyses" onclick="sortUsage('analyses')">Analyses</button>
+          <button class="btn btn-ghost usage-sort" data-sort="derniere" onclick="sortUsage('derniere')">Dernière analyse</button>
+          <button class="btn btn-ghost" onclick="loadUsage()">🔄</button>
+        </div>
+
+        <div class="usage-summary" id="usage-summary">Chargement…</div>
+        <div id="usage-list"><div class="empty">Chargement…</div></div>
+        <p class="usage-note" id="usage-note"></p>
       </section>
 
       <section id="view-hooks" class="view">
@@ -521,6 +576,9 @@
       </button>
       <button class="nav-item" data-view="users" onclick="showView('users')">
         <span class="ic">👥</span>Users
+      </button>
+      <button class="nav-item" data-view="usage" onclick="showView('usage')">
+        <span class="ic">📈</span>Usage
       </button>
       <button class="nav-item" data-view="hooks" onclick="showView('hooks')">
         <span class="ic">💡</span>Hooks

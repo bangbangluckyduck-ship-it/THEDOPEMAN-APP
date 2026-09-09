@@ -3,7 +3,9 @@ from __future__ import annotations
 """
 Routes admin — accessibles uniquement à l'email ADMIN_EMAIL.
 """
+from datetime import datetime, timezone
 from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from auth import (
@@ -62,6 +64,191 @@ async def list_users(request: Request):
             "customer_id": tier_data.get("customer_id"),
         })
     return {"ok": True, "count": len(users), "users": users}
+
+
+# ── GET /admin/usage ─────────────────────────────────────────
+# Usage réel des comptes : qui s'inscrit, et qui se sert vraiment de l'outil.
+# LECTURE SEULE — cette vue n'écrit rien et ne modifie aucun compte.
+#
+# SOURCE DE VÉRITÉ : la table `analysis_jobs`, qui porte UNE LIGNE PAR ANALYSE
+# (`user_email` + `created_at`), aussi bien pour les analyses asynchrones que
+# pour les synchrones (main.py::_persist_sync_analysis). Les compteurs
+# `analysis_quota_periods` / `monthly_usage` que lit /admin/stats sont, eux, des
+# agrégats par période de facturation : ils donnent un total, jamais une date de
+# dernière analyse ni un nombre de jours réellement actifs.
+#
+# TROIS LIMITES À GARDER EN TÊTE EN LISANT LE TABLEAU :
+#  1. L'historisation démarre au 22/06/2026 (mise en service de la table). Un
+#     compte antérieur affiche moins d'analyses qu'il n'en a réellement lancées.
+#  2. Une analyse SYNCHRONE resservie depuis le cache n'est pas écrite
+#     (_persist_sync_analysis ignore les résultats `from_cache`), alors que son
+#     équivalent asynchrone l'est. Les totaux sont donc un plancher.
+#  3. Les écritures sont best-effort : une panne Supabase perd la ligne sans
+#     interrompre l'analyse.
+# Ces trois points sont rappelés à l'écran, pour qu'un chiffre bas ne soit
+# jamais lu comme « ce compte n'a rien fait » alors qu'il peut être incomplet.
+
+_USAGE_PAGE_SIZE = 1000       # plafond de lignes par réponse PostgREST
+_USAGE_MAX_ROWS  = 200_000    # garde-fou anti-boucle
+_USAGE_DEPUIS    = "2026-06-22"   # 1re mise en service d'`analysis_jobs`
+
+try:
+    from zoneinfo import ZoneInfo
+    _USAGE_TZ = ZoneInfo("Europe/Paris")
+except Exception:             # base tzdata absente du conteneur
+    _USAGE_TZ = timezone.utc
+
+
+def _usage_parse_dt(value) -> Optional[datetime]:
+    """Date Supabase → datetime aware. UTC par défaut si le fuseau est absent."""
+    if not value:
+        return None
+    try:
+        d = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def _usage_fetch_all(supabase, table: str, columns: str) -> list[dict]:
+    """Rapatrie TOUTES les lignes d'une table, par pages de 1000.
+
+    Sans pagination, PostgREST tronque à 1000 lignes *sans erreur* : passé ce
+    seuil, l'écran afficherait des totaux faux en silence — le pire des cas pour
+    un tableau de pilotage. L'ordre sur `created_at` rend la pagination stable.
+    """
+    rows: list[dict] = []
+    start = 0
+    while start < _USAGE_MAX_ROWS:
+        batch = (supabase.table(table).select(columns)
+                 .order("created_at", desc=False)
+                 .range(start, start + _USAGE_PAGE_SIZE - 1)
+                 .execute()).data or []
+        rows.extend(batch)
+        if len(batch) < _USAGE_PAGE_SIZE:
+            break
+        start += _USAGE_PAGE_SIZE
+    return rows
+
+
+@router.get("/usage")
+async def admin_usage(request: Request):
+    """Un compte par ligne : inscription, statut, volume et régularité d'usage."""
+    _require_admin(request)
+
+    try:
+        from supabase_client import supabase_service as supabase, SUPABASE_ENABLED
+    except Exception:
+        supabase, SUPABASE_ENABLED = None, False
+    if not (SUPABASE_ENABLED and supabase):
+        raise HTTPException(status_code=503, detail="Base de données indisponible.")
+
+    # Mêmes exclusions que /admin/stats (bots @tts-test.com, comptes internes) :
+    # deux écrans qui compteraient des populations différentes ne seraient pas
+    # comparables, et l'écart passerait pour un bug.
+    try:
+        from main import _STATS_EXCLUDED_DOMAINS, _STATS_EXCLUDED_EMAILS
+    except Exception:
+        _STATS_EXCLUDED_DOMAINS, _STATS_EXCLUDED_EMAILS = [], []
+
+    def _interne(email: str) -> bool:
+        e = (email or "").lower()
+        return (any(e.endswith("@" + d) for d in _STATS_EXCLUDED_DOMAINS)
+                or e in _STATS_EXCLUDED_EMAILS)
+
+    try:
+        users = _usage_fetch_all(
+            supabase, "users", "id,email,created_at,tier,trial_ends_at")
+        jobs = _usage_fetch_all(
+            supabase, "analysis_jobs", "user_email,created_at,status")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Lecture Supabase échouée : {e}")
+
+    # ── Agrégation des analyses par compte ──────────────────────────────
+    agg: dict[str, dict] = {}
+    for j in jobs:
+        email = (j.get("user_email") or "").lower().strip()
+        if not email:
+            continue
+        d = _usage_parse_dt(j.get("created_at"))
+        a = agg.setdefault(email, {"total": 0, "echecs": 0,
+                                   "jours": set(), "derniere": None})
+        a["total"] += 1
+        if (j.get("status") or "") == "error":
+            a["echecs"] += 1
+        if d:
+            # Jour civil français : une analyse lancée à 23 h 30 UTC appartient
+            # au lendemain à Paris. Compter les jours en UTC scinderait une même
+            # soirée d'usage en deux, et gonflerait la régularité apparente.
+            a["jours"].add(d.astimezone(_USAGE_TZ).date().isoformat())
+            if a["derniere"] is None or d > a["derniere"]:
+                a["derniere"] = d
+
+    # « Abonné » doit vouloir dire ici exactement ce qu'il veut dire dans le
+    # moteur de quota : sinon l'écran annoncerait « essai expiré » à quelqu'un
+    # que l'application laisse analyser (ou l'inverse).
+    try:
+        from analysis_quota import _SUBSCRIBED_TIERS, _UNLIMITED_TIERS
+    except Exception:
+        _SUBSCRIBED_TIERS = {"pro", "gold", "agency", "beta"}
+        _UNLIMITED_TIERS = {"admin"}
+
+    now = datetime.now(timezone.utc)
+    comptes: list[dict] = []
+    connus: set[str] = set()
+
+    for u in users:
+        email = (u.get("email") or "").lower().strip()
+        if not email or _interne(email):
+            continue
+        connus.add(email)
+
+        tier = (u.get("tier") or "free").lower()
+        fin_essai = _usage_parse_dt(u.get("trial_ends_at"))
+        if tier in _UNLIMITED_TIERS:
+            statut = "admin"
+        elif tier in _SUBSCRIBED_TIERS:
+            statut = "abonne"
+        elif fin_essai and now < fin_essai:
+            statut = "essai"
+        else:
+            statut = "essai_expire"
+
+        a = agg.get(email) or {}
+        inscrit = _usage_parse_dt(u.get("created_at"))
+        derniere = a.get("derniere")
+        comptes.append({
+            "email":            email,
+            "user_id":          u.get("id"),
+            "inscrit_le":       inscrit.isoformat() if inscrit else None,
+            "statut":           statut,
+            "tier":             tier,
+            "essai_fin":        fin_essai.isoformat() if fin_essai else None,
+            "analyses":         a.get("total", 0),
+            "analyses_echec":   a.get("echecs", 0),
+            "jours_actifs":     len(a.get("jours") or ()),
+            "derniere_analyse": derniere.isoformat() if derniere else None,
+        })
+
+    # Ordre par défaut : les comptes qui se servent le plus de l'outil en tête.
+    # Le tri interactif demandé (analyses / dernière analyse) se fait à l'écran,
+    # sur ces mêmes lignes déjà chargées — pas de second aller-retour serveur.
+    comptes.sort(key=lambda c: (c["analyses"], c["derniere_analyse"] or ""),
+                 reverse=True)
+
+    # Analyses rattachées à aucun compte listé (compte supprimé depuis, ou
+    # e-mail interne exclu ci-dessus) : signalées pour expliquer un écart avec
+    # le total affiché par /admin/stats plutôt que de le laisser inexpliqué.
+    hors_comptes = sum(v["total"] for k, v in agg.items() if k not in connus)
+
+    return {
+        "ok": True,
+        "count": len(comptes),
+        "genere_le": now.isoformat(),
+        "historisation_depuis": _USAGE_DEPUIS,
+        "analyses_hors_comptes": hors_comptes,
+        "comptes": comptes,
+    }
 
 
 # ── POST /admin/set-tier ─────────────────────────────────────

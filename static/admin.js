@@ -133,6 +133,7 @@ function showView(view) {
   if (navBtn) navBtn.classList.add('active');
   if (view === 'stats') loadStats();
   if (view === 'users') loadUsers();
+  if (view === 'usage') loadUsage();
   if (view === 'hooks') initHooksView();
   if (view === 'temoignages') loadTemoignages();
   if (view === 'notifs') initNotifsView();
@@ -475,6 +476,156 @@ async function loadUsers() {
     }).join('');
   } catch (e) {
     list.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
+  }
+}
+
+/* ── VUE USAGE (lecture seule) ──────────────────────────────────────────
+ * Qui s'est inscrit, et qui se sert vraiment de l'outil pendant son essai.
+ * L'écran ne fait que lire /admin/usage : aucune action, aucune écriture.
+ * Le tri se fait sur les lignes déjà chargées — pas de second appel réseau,
+ * et l'ordre reste cohérent avec ce que l'utilisateur a sous les yeux.
+ */
+const USAGE_STATUTS = {
+  essai:        { label: 'ESSAI',        color: '#3b82f6' },
+  essai_expire: { label: 'ESSAI EXPIRÉ', color: '#6B7280' },
+  abonne:       { label: 'ABONNÉ',       color: '#22c55e' },
+  admin:        { label: 'ADMIN',        color: '#ef4444' },
+};
+
+let _usageRows = [];
+let _usageSort = 'analyses';
+
+function usageFmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function usageFmtSince(iso) {
+  /* « il y a 3 j » : pour juger de la fraîcheur d'un usage, l'écart parle
+     mieux qu'une date. Au-delà d'un mois, la date redevient plus lisible. */
+  if (!iso) return 'jamais';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const h = Math.floor((Date.now() - d.getTime()) / 3600000);
+  if (h < 1) return "à l'instant";
+  if (h < 24) return 'il y a ' + h + ' h';
+  const j = Math.floor(h / 24);
+  return j < 31 ? 'il y a ' + j + ' j' : usageFmtDate(iso);
+}
+
+function usageBadge(r) {
+  const s = USAGE_STATUTS[r.statut] || { label: String(r.statut || '?').toUpperCase(), color: '#6B7280' };
+  let label = s.label;
+  if (r.statut === 'essai' && r.essai_fin) {
+    const j = Math.max(0, Math.ceil((new Date(r.essai_fin).getTime() - Date.now()) / 86400000));
+    label += ' J-' + j;
+  }
+  return `<span class="status-badge" style="background:${s.color}">${esc(label)}</span>`;
+}
+
+function renderUsage() {
+  const list = document.getElementById('usage-list');
+  if (!list) return;
+  if (!_usageRows.length) {
+    list.innerHTML = '<div class="empty">Aucun compte</div>';
+    return;
+  }
+
+  const rows = _usageRows.slice().sort((a, b) => {
+    if (_usageSort === 'derniere') {
+      /* Dates ISO : l'ordre alphabétique est l'ordre chronologique. Un compte
+         qui n'a jamais rien lancé a une chaîne vide et finit donc en bas,
+         là où il doit être — et non en tête du classement. */
+      return String(b.derniere_analyse || '').localeCompare(String(a.derniere_analyse || ''));
+    }
+    return (b.analyses - a.analyses) || (b.jours_actifs - a.jours_actifs);
+  });
+
+  list.innerHTML = rows.map(r => {
+    const echec = r.analyses_echec > 0
+      ? `<div class="sub">dont ${r.analyses_echec} en échec</div>` : '';
+    return `
+      <div class="usage-card">
+        <div class="head">
+          <div>
+            <div class="email">${esc(r.email)}</div>
+            <div class="signup">Inscrit le ${esc(usageFmtDate(r.inscrit_le))}</div>
+          </div>
+          ${usageBadge(r)}
+        </div>
+        <div class="usage-metrics">
+          <div class="usage-metric">
+            <div class="v${r.analyses ? '' : ' zero'}">${r.analyses}</div>
+            <div class="k">Analyses</div>
+            ${echec}
+          </div>
+          <div class="usage-metric">
+            <div class="v${r.jours_actifs ? '' : ' zero'}">${r.jours_actifs}</div>
+            <div class="k">Jours actifs</div>
+          </div>
+          <div class="usage-metric">
+            <div class="v small${r.derniere_analyse ? '' : ' zero'}">${esc(usageFmtSince(r.derniere_analyse))}</div>
+            <div class="k">Dernière</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderUsageSummary(data) {
+  const rows = data.comptes || [];
+  const essai  = rows.filter(r => r.statut === 'essai').length;
+  const jamais = rows.filter(r => !r.analyses).length;
+  const el = document.getElementById('usage-summary');
+  if (el) {
+    el.innerHTML = `<strong>${rows.length}</strong> compte${rows.length > 1 ? 's' : ''}`
+      + ` · <strong>${essai}</strong> en essai en cours`
+      + ` · <strong>${jamais}</strong> sans aucune analyse`;
+  }
+
+  /* Les angles morts du comptage sont écrits à l'écran : un chiffre bas peut
+     vouloir dire « ce compte ne s'en sert pas », mais aussi « on ne sait pas ».
+     Les confondre conduirait à de mauvaises décisions. */
+  const note = document.getElementById('usage-note');
+  if (note) {
+    const bits = [
+      `Analyses historisées depuis le ${usageFmtDate(data.historisation_depuis)} : un compte plus ancien peut en afficher moins qu'il n'en a lancées.`,
+      `Une analyse resservie depuis le cache n'est pas recomptée — les totaux sont un plancher.`,
+    ];
+    if (data.analyses_hors_comptes) {
+      bits.push(`${data.analyses_hors_comptes} analyse(s) rattachée(s) à aucun compte listé (compte supprimé ou interne).`);
+    }
+    note.textContent = bits.join(' ');
+  }
+}
+
+function sortUsage(key) {
+  _usageSort = key;
+  document.querySelectorAll('.usage-sort').forEach(b => {
+    b.classList.toggle('on', b.dataset.sort === key);
+  });
+  renderUsage();
+}
+
+async function loadUsage() {
+  const list = document.getElementById('usage-list');
+  if (list) list.innerHTML = '<div class="empty">Chargement…</div>';
+  try {
+    const res = await fetch('/admin/usage', { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 403) { showLogin(); return; }
+      const d = await res.json().catch(() => ({}));
+      if (list) list.innerHTML = `<div class="empty">❌ ${esc(d.detail || 'Erreur de chargement')}</div>`;
+      return;
+    }
+    const data = await res.json();
+    _usageRows = data.comptes || [];
+    renderUsageSummary(data);
+    renderUsage();
+  } catch (e) {
+    if (list) list.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
   }
 }
 
