@@ -592,8 +592,13 @@ function renderUsageSummary(data) {
   if (note) {
     const bits = [
       `Analyses historisées depuis le ${usageFmtDate(data.historisation_depuis)} : un compte plus ancien peut en afficher moins qu'il n'en a lancées.`,
-      `Une analyse resservie depuis le cache n'est pas recomptée — les totaux sont un plancher.`,
+      `Seules les analyses réellement calculées sont comptées${data.analyses_depuis_cache ? ` — ${data.analyses_depuis_cache} résultat(s) resservi(s) depuis le cache écarté(s)` : ''}.`,
     ];
+    if (data.cache_filtre === false) {
+      /* Le repli serveur n'a pas pu écarter les cache-hits : le dire, plutôt
+         que de laisser croire à un total plus propre qu'il ne l'est. */
+      bits.push('⚠️ Les résultats resservis depuis le cache n\'ont pas pu être écartés : les totaux sont surévalués.');
+    }
     if (data.analyses_hors_comptes) {
       bits.push(`${data.analyses_hors_comptes} analyse(s) rattachée(s) à aucun compte listé (compte supprimé ou interne).`);
     }

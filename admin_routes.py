@@ -77,16 +77,24 @@ async def list_users(request: Request):
 # agrégats par période de facturation : ils donnent un total, jamais une date de
 # dernière analyse ni un nombre de jours réellement actifs.
 #
-# TROIS LIMITES À GARDER EN TÊTE EN LISANT LE TABLEAU :
+# DEUX LIMITES À GARDER EN TÊTE EN LISANT LE TABLEAU :
 #  1. L'historisation démarre au 22/06/2026 (mise en service de la table). Un
 #     compte antérieur affiche moins d'analyses qu'il n'en a réellement lancées.
-#  2. Une analyse SYNCHRONE resservie depuis le cache n'est pas écrite
-#     (_persist_sync_analysis ignore les résultats `from_cache`), alors que son
-#     équivalent asynchrone l'est. Les totaux sont donc un plancher.
-#  3. Les écritures sont best-effort : une panne Supabase perd la ligne sans
+#  2. Les écritures sont best-effort : une panne Supabase perd la ligne sans
 #     interrompre l'analyse.
-# Ces trois points sont rappelés à l'écran, pour qu'un chiffre bas ne soit
+# Ces deux points sont rappelés à l'écran, pour qu'un chiffre bas ne soit
 # jamais lu comme « ce compte n'a rien fait » alors qu'il peut être incomplet.
+#
+# RÈGLE DE COMPTAGE : seule une analyse RÉELLEMENT CALCULÉE compte. Un résultat
+# resservi depuis le cache n'est pas un nouvel usage de la machine.
+# Le chemin synchrone respecte déjà cette règle en amont — il n'écrit rien pour
+# un `from_cache` (main.py::_persist_sync_analysis). Le chemin ASYNCHRONE, lui,
+# crée sa ligne AVANT de consulter le cache (analysis_runner.py) : la ligne
+# existe donc même quand rien n'a été calculé. On l'écarte ici, à la lecture,
+# sur le drapeau `result->>from_cache` que les deux chemins posent
+# systématiquement (True sur un cache-hit, False sur un vrai calcul).
+# Sans ça, les deux moitiés du produit ne compteraient pas la même chose et
+# aucun total ne voudrait rien dire.
 
 _USAGE_PAGE_SIZE = 1000       # plafond de lignes par réponse PostgREST
 _USAGE_MAX_ROWS  = 200_000    # garde-fou anti-boucle
@@ -159,16 +167,41 @@ async def admin_usage(request: Request):
     try:
         users = _usage_fetch_all(
             supabase, "users", "id,email,created_at,tier,trial_ends_at")
-        jobs = _usage_fetch_all(
-            supabase, "analysis_jobs", "user_email,created_at,status")
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Lecture Supabase échouée : {e}")
 
+    # `depuis_cache:result->>from_cache` extrait le seul drapeau utile sans
+    # rapatrier le JSONB complet de chaque analyse — le résultat entier pèse
+    # plusieurs kilo-octets par ligne, on n'en a besoin d'aucun ici.
+    cache_filtre = True
+    try:
+        jobs = _usage_fetch_all(
+            supabase, "analysis_jobs",
+            "user_email,created_at,status,depuis_cache:result->>from_cache")
+    except Exception as e:
+        # Repli : mieux vaut un tableau complet accompagné d'un avertissement
+        # honnête à l'écran qu'un écran en erreur. On dira alors que les
+        # cache-hits n'ont pas pu être écartés.
+        print(f"[admin/usage] filtre cache indisponible ({e}) — repli sans filtre")
+        cache_filtre = False
+        try:
+            jobs = _usage_fetch_all(
+                supabase, "analysis_jobs", "user_email,created_at,status")
+        except Exception as e2:
+            raise HTTPException(status_code=502, detail=f"Lecture Supabase échouée : {e2}")
+
     # ── Agrégation des analyses par compte ──────────────────────────────
     agg: dict[str, dict] = {}
+    depuis_cache = 0
     for j in jobs:
         email = (j.get("user_email") or "").lower().strip()
         if not email:
+            continue
+        # `->>` renvoie du texte : le drapeau arrive en "true"/"false", et vaut
+        # None sur une analyse qui n'a jamais produit de résultat (échec, ou
+        # encore en cours) — celle-là a bien mobilisé la machine, elle compte.
+        if str(j.get("depuis_cache") or "").lower() == "true":
+            depuis_cache += 1
             continue
         d = _usage_parse_dt(j.get("created_at"))
         a = agg.setdefault(email, {"total": 0, "echecs": 0,
@@ -247,6 +280,8 @@ async def admin_usage(request: Request):
         "genere_le": now.isoformat(),
         "historisation_depuis": _USAGE_DEPUIS,
         "analyses_hors_comptes": hors_comptes,
+        "analyses_depuis_cache": depuis_cache,
+        "cache_filtre": cache_filtre,
         "comptes": comptes,
     }
 
