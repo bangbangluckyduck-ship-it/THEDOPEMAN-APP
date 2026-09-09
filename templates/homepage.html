@@ -234,10 +234,6 @@
       animation: fadeInUp 0.6s ease;
     }
 
-    .logo-emoji { font-size: 28px; }
-
-    .logo-text span { color: var(--primary); font-weight: 800; }
-
     nav {
       display: flex;
       gap: 32px;
@@ -260,6 +256,19 @@
       text-decoration: none;
       font-weight: 500;
       transition: color 0.3s;
+      /* Réinitialisation du <button>, jusqu'ici posée en style EN LIGNE dans le
+         gabarit sous la forme `font: inherit`. Le raccourci `font` réinitialise
+         aussi font-size et font-weight : il écrasait donc silencieusement les
+         deux lignes ci-dessus, et jusqu'à la règle téléphone plus bas. Seul
+         `font-family` est nécessaire — sans lui, le navigateur impose sa police
+         système aux boutons. */
+      background: none;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+      /* Zone tactile : le bouton ne mesurait que 16 px de haut. Le remplissage
+         vertical ne coûte aucune largeur, la denrée rare dans cet en-tête. */
+      padding: 8px 0;
     }
 
     .nav-link-login:hover { color: var(--accent); text-decoration: underline; }
@@ -475,17 +484,6 @@
       margin-bottom: 24px;
       text-align: center;
       color: var(--text);
-    }
-
-
-    /* En-tête à 375 px : le libellé de connexion passait sur deux lignes,
-       ce qui donnait l'impression d'un texte coupé au bord de l'écran. */
-    @media (max-width: 420px) {
-      header { padding: 12px 14px; }
-      .logo { font-size: 16px; gap: 8px; }
-      .btn-header { font-size: 11.5px; padding: 6px 11px; margin-left: 6px; }
-      .nav-link-login { font-size: 13px; white-space: nowrap; }
-      nav { gap: 10px; }
     }
 
     /* ── Analyse par lien : chemin principal (lot 2.7) ── */
@@ -945,7 +943,6 @@
     @media (max-width: 640px) {
       header { padding: 12px 16px; }
       .logo { font-size: 16px; }
-      .logo-emoji { font-size: 24px; }
       .hero { padding: 40px 16px 60px; margin-top: 60px; }
       .hero-left h1 { font-size: 28px; }
       .hero-left .subtitle { font-size: 15px; }
@@ -953,6 +950,50 @@
       .section-title { font-size: 28px; }
       .steps-grid { gap: 20px; }
       .upload-box { padding: 24px 16px; }
+    }
+
+    /* Les deux blocs qui suivent DOIVENT rester après le bloc « MOBILE »
+       ci-dessus : il porte lui aussi une règle `header { padding }`, de même
+       spécificité. À spécificité égale c'est l'ordre du fichier qui tranche —
+       placés plus haut, ils étaient purement et simplement ignorés. */
+    /* ── En-tête sur téléphone ──────────────────────────────────────────
+       L'en-tête réclamait 470 px : sur un écran de 375 px le bouton de
+       connexion dépassait de 95 px et n'en laissait voir que 26 — d'où un
+       « Mon compte » réduit à son emoji, coupé au bord de l'écran. Le débordement
+       ne se voyait pas en défilement horizontal, l'en-tête étant `fixed`.
+
+       La tentative précédente posait bien `font-size: 13px` ici, mais elle
+       n'a jamais pris : le `font: inherit` en ligne du gabarit l'écrasait (cf.
+       .nav-link-login). Et son `white-space: nowrap` a changé un repli sur deux
+       lignes — laid mais lisible — en une disparition pure et simple.
+
+       Reste le vrai problème : quatre éléments à faire tenir dans la largeur
+       d'un téléphone. On rogne ce qui est redondant, jamais ce qui est unique. */
+    @media (max-width: 480px) {
+      /* 9 px et non 10 : `.hero` est décalé de 60 px pour passer sous l'en-tête
+         fixe, et le remplissage vertical du bouton portait l'en-tête à 61 px. */
+      header { padding: 9px 12px; }
+      nav { gap: 8px; }
+      .logo { gap: 7px; }
+      /* L'emblème porte déjà l'identité, et son `alt` porte déjà le nom : le mot
+         « Qeerah » écrit à côté coûte 53 px que le bouton de connexion n'a pas. */
+      .logo-wordmark { display: none; }
+      .lang-select { font-size: 11.5px; padding: 3px 4px; height: 30px; }
+      .btn-header { font-size: 11px; padding: 6px 10px; margin-left: 0; }
+      .nav-link-login { font-size: 13px; font-weight: 600; }
+      /* Un visiteur déjà connecté n'a que faire d'un « Tester gratuitement » :
+         le masquer libère les 129 px qui manquaient à « 👤 Mon compte ». */
+      body.is-logged-in .btn-header { display: none; }
+    }
+
+    /* Très petits écrans (iPhone SE de 2016 et assimilés). Le sélecteur de langue
+       y reste : c'est le SEUL moyen de changer de langue une fois le JavaScript
+       chargé — le pied de page n'en propose aucun. */
+    @media (max-width: 360px) {
+      header { padding: 10px 8px; }
+      nav { gap: 6px; }
+      .lang-select { font-size: 11px; padding: 2px 4px; }
+      .btn-header { font-size: 10.5px; padding: 6px 8px; }
     }
 
     /* ── DROPDOWN AUTH MENU : éviter overflow horizontal sur mobile ── */
@@ -991,7 +1032,7 @@
 <header>
   <a href="/" class="logo">
     <img src="/static/qeerah-logo-128.webp" alt="Qeerah" width="36" height="36" style="width:36px;height:36px;object-fit:contain;border-radius:8px;">
-    <div>
+    <div class="logo-wordmark">
       <span>Qeerah</span>
     </div>
   </a>
@@ -1025,7 +1066,7 @@
       <a href="/de" hreflang="de">DE</a>
     </noscript>
     <a href="#tool" class="btn-header" data-i18n="nav_try">Tester gratuitement</a>
-    <button class="nav-link-login" onclick="openLoginModal()" style="background: none; border: none; cursor: pointer; padding: 0; font: inherit;" data-i18n="nav_login">Se connecter</button>
+    <button class="nav-link-login" onclick="openLoginModal()" data-i18n="nav_login">Se connecter</button>
   </nav>
   <script>
   (function () {
@@ -2300,6 +2341,9 @@
       if (session.email) {
         loginBtn.textContent = auth('l-hd-account', '👤 Mon compte');
         loginBtn.onclick = () => window.location.href = '/app';
+        // Sert à la CSS : sur téléphone, l'en-tête retire alors « Tester
+        // gratuitement » pour laisser la place au libellé du compte.
+        document.body.classList.add('is-logged-in');
       }
     }
   }
