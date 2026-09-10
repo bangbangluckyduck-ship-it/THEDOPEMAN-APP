@@ -89,13 +89,32 @@ def downscale_720p(video_path: str) -> str:
     except Exception:
         taille_mo = float("inf")   # taille illisible → on ré-encode, comme avant
 
-    if taille_mo <= seuil_mo:
+    # Le poids décide du GAIN d'un ré-encodage, jamais de sa NÉCESSITÉ.
+    #
+    # L'upload vers Gemini annonce « video/mp4 » en dur (ai_providers._gemini_video).
+    # Livrer un webm/VP9 sous cette étiquette — ce que yt-dlp rapporte dès que
+    # TikTok ne sert pas de mp4 — fait échouer le transcodage côté Google, qui
+    # marque le fichier FAILED. Tant que le ré-encodage était inconditionnel, il
+    # normalisait le conteneur au passage et masquait le problème ; l'avoir rendu
+    # conditionnel au poids a retiré ce filet pour toutes les vidéos légères,
+    # c'est-à-dire pour la quasi-totalité d'entre elles.
+    #
+    # _probe coûte ~0,1 s : on peut se permettre de demander avant de décider.
+    infos = _probe(video_path)
+    ext = os.path.splitext(video_path)[1].lower()
+    conforme = ext == ".mp4" and infos.get("vcodec") == "h264"
+
+    if conforme and taille_mo <= seuil_mo:
         print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — "
               f"{taille_mo:.1f} Mo, sous le seuil de {seuil_mo:.0f} Mo : "
               f"ré-encodage évité", flush=True)
         return video_path
 
-    infos = _probe(video_path)
+    if not conforme:
+        # _probe vide (ffprobe absent ou fichier illisible) tombe ici aussi :
+        # on ré-encode, seul choix sûr quand on ne sait pas ce qu'on tient.
+        print(f"[video] format non conforme (ext={ext or '?'}, "
+              f"vcodec={infos.get('vcodec') or '?'}) : ré-encodage imposé", flush=True)
 
     out_fd, out_path = tempfile.mkstemp(suffix="_720p.mp4")
     os.close(out_fd)

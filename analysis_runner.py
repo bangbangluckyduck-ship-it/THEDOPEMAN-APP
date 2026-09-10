@@ -278,7 +278,11 @@ async def _run_url_pipeline(url: str, product: Optional[str], price: Optional[st
             import yt_dlp
             ydl_opts = {
                 "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
-                "format": "best[height<=720][ext=mp4]/best[height<=720]/mp4/best",
+                # mp4 exigé : l'upload Gemini annonce « video/mp4 » en dur. Le
+                # filtre height<=720 ne matchait jamais (TikTok est vertical,
+                # 1080×1920) et laissait passer n'importe quel conteneur via `best`.
+                "format": "best[ext=mp4]/best",
+                "merge_output_format": "mp4",
                 "quiet": True, "no_warnings": True, "noplaylist": True,
                 "max_filesize": 80 * 1024 * 1024,
                 "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS,   # contourne le challenge anti-bot TikTok

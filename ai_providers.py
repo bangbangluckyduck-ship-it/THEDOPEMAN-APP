@@ -205,7 +205,12 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
         if state_name == "ACTIVE":
             break
         if state_name == "FAILED":
-            raise Exception("Gemini Files API : traitement vidéo échoué")
+            # Google dit POURQUOI il refuse le fichier (conteneur illisible, codec
+            # non supporté, flux tronqué) dans `error`. Le jeter rendait toute
+            # enquête impossible depuis les logs de prod : le message ne disait
+            # que « échoué », pour une cause qui est toujours côté fichier.
+            raise Exception("Gemini Files API : traitement vidéo échoué — "
+                            f"{getattr(uploaded, 'error', None)}")
         if _wait >= 60:
             raise Exception(f"Gemini Files API : timeout (état toujours {state_name} après 60s)")
         _t.sleep(2)
