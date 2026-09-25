@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="Qeerah — Outil d'analyse de vidéo TikTok Shop. Créé par des créateurs, pour les créateurs TikTok Shop. Analyse n'importe quelle vidéo avec l'IA et copie la méthode gagnante. {{ TRIAL_OFFER }}.">
-  <title>Qeerah — Outil d'analyse de vidéo TikTok Shop</title>
+  <meta name="description" content="Colle le lien d'une vidéo TikTok Shop qui vend : découvre son accroche, ses arguments et quoi reproduire dans tes vidéos. Premier diagnostic gratuit, sans carte bancaire.">
+  <title>Qeerah — Comprends pourquoi les vidéos TikTok Shop vendent</title>
   <link rel="canonical" href="https://www.qeerah.com/">
 
   <!-- Open Graph / réseaux sociaux -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Qeerah">
-  <meta property="og:title" content="Qeerah — Outil d'analyse de vidéo TikTok Shop">
-  <meta property="og:description" content="Créé par des créateurs, pour les créateurs TikTok Shop. Analyse tes vidéos avec l'IA et copie la méthode gagnante. {{ TRIAL_OFFER }}.">
+  <meta property="og:title" content="Qeerah — Comprends pourquoi les vidéos TikTok Shop vendent">
+  <meta property="og:description" content="Colle le lien d'une vidéo TikTok Shop qui vend : découvre son accroche, ses arguments et quoi reproduire dans tes vidéos. Premier diagnostic gratuit, sans carte bancaire.">
   <meta property="og:url" content="https://www.qeerah.com/">
   <meta property="og:image" content="https://www.qeerah.com/static/qeerah-logo.png">
   <meta property="og:locale" content="fr_FR">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Qeerah — Outil d'analyse de vidéo TikTok Shop">
-  <meta name="twitter:description" content="Créé par des créateurs, pour les créateurs TikTok Shop. Analyse tes vidéos avec l'IA et copie la méthode gagnante.">
+  <meta name="twitter:title" content="Qeerah — Comprends pourquoi les vidéos TikTok Shop vendent">
+  <meta name="twitter:description" content="Ne copie pas les vidéos qui marchent. Comprends pourquoi elles marchent — et quoi reproduire dans les tiennes.">
   <meta name="twitter:image" content="https://www.qeerah.com/static/qeerah-logo.png">
 
   <link rel="manifest" href="/static/manifest.json?v=qeerah2">
@@ -63,7 +63,7 @@
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "url": "https://www.qeerah.com/",
-        "description": "Outil d'analyse de vidéos TikTok Shop par IA : analyse n'importe quelle vidéo et explique pourquoi elle fonctionne ou non, pour aider les créateurs et vendeurs à reproduire les méthodes gagnantes.",
+        "description": "Qeerah montre aux créateurs et vendeurs TikTok Shop pourquoi une vidéo vend — accroche, structure, arguments, appel à l'action — et quoi reproduire dans leurs propres vidéos.",
         "offers": {
           "@type": "Offer",
           "price": "{{ PRICE_MONTH }}",
@@ -598,6 +598,37 @@
     .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(212,175,55,0.4); }
     .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* ═══ APPEL À L'ACTION PRINCIPAL (hero + écran « Le problème ») ═══ */
+    .hero-cta-wrap { margin: 22px 0 6px; }
+    .hero-cta {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 52px; padding: 14px 26px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dk));
+      color: #fff; font-weight: 800; font-size: 17px; text-decoration: none;
+      text-align: center; box-shadow: 0 6px 20px rgba(212,175,55,0.35);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(212,175,55,0.45); }
+    .hero-cta-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+    @media (max-width: 600px) {
+      .hero-cta { display: flex; width: 100%; font-size: 16px; padding: 14px 16px; }
+      .hero-cta-note { text-align: center; }
+    }
+
+    /* ═══ LE PROBLÈME ═══ */
+    .probleme { padding: 56px 20px; background: var(--bg); }
+    .probleme-wrap { max-width: 720px; margin: 0 auto; text-align: center; }
+    .probleme-marque { font-size: 20px; line-height: 1.45; color: var(--muted); margin: 0 0 28px; }
+    .probleme-marque strong { color: var(--text); }
+    .probleme-title { font-size: 28px; font-weight: 800; letter-spacing: -.5px; margin: 0 0 12px; color: var(--text); }
+    .probleme-p { font-size: 16px; line-height: 1.6; color: var(--muted); margin: 0 0 26px; }
+    @media (max-width: 600px) {
+      .probleme { padding: 44px 16px; }
+      .probleme-marque { font-size: 18px; }
+      .probleme-title { font-size: 23px; }
+      .probleme-p { font-size: 15px; }
+    }
+
     .tool-note {
       text-align: center;
       font-size: 13px;
@@ -1096,12 +1127,17 @@
 <section class="hero">
   <div class="hero-content">
     <div class="hero-left">
-      <div style="display:inline-block;font-size:13px;font-weight:700;color:var(--accent,#2563EB);background:rgba(37,99,235,.08);padding:5px 12px;border-radius:999px;margin-bottom:14px" data-i18n="hero_badge">Outil d'analyse de vidéo TikTok Shop</div>
+      <div style="display:inline-block;font-size:13px;font-weight:700;color:var(--accent,#2563EB);background:rgba(37,99,235,.08);padding:5px 12px;border-radius:999px;margin-bottom:14px" data-i18n="hero_badge">Pourquoi cette vidéo vend ?</div>
       <!-- nowrap : « Pas pourquoi. » est le point de bascule de l'accroche, une
            coupure de ligne au milieu casse net son effet. Le fragment est assez
            court pour tenir sur une ligne même sur les écrans les plus étroits. -->
       <h1 data-i18n-html="hero_h1">Tu sais que ta vidéo n'a pas vendu. <span style="white-space:nowrap">Pas pourquoi.</span> Alors tu refais la même.</h1>
-      <p class="subtitle" data-i18n="hero_sub">Colle le lien d'une vidéo qui cartonne : en 30 secondes, tu sais exactement ce qui la fait vendre — l'accroche, le rythme, le moment du déclic — et comment le refaire avec ton produit. Tu arrêtes de deviner.</p>
+      <p class="subtitle" data-i18n="hero_sub">Colle le lien d'une vidéo qui vend. Tu vois ce que tu n'avais pas vu : l'accroche, l'argument, la seconde où tout bascule — et comment l'adapter à ton produit.</p>
+
+      <div class="hero-cta-wrap">
+        <a href="#tool" class="hero-cta" id="hero-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</a>
+        <p class="hero-cta-note" data-i18n="hero_cta_note">Sans carte bancaire</p>
+      </div>
 
       <div class="social-proof">
         <span></span>
@@ -1386,7 +1422,7 @@
     <div class="demo-head">
       <span class="demo-tag" data-i18n="demo_tag">Exemple d'analyse</span>
       <h2 id="demo-title" data-i18n="demo_title">Voici exactement ce que tu reçois</h2>
-      <p data-i18n="demo_p">Un rapport complet en 30 secondes, à partir d'un simple lien.</p>
+      <p data-i18n="demo_p">Un simple lien suffit. Et le rapport ne s'arrête pas au score : il te dit quoi changer.</p>
     </div>
 
     <div class="demo-win">
@@ -1561,6 +1597,19 @@
 </script>
 
 <!-- ════════════════════ TOOL ════════════════════ -->
+<!-- ════════════════════ LE PROBLÈME ════════════════════
+     Transition démo → outil : la phrase de marque, puis le diagnostic de la
+     douleur. Aucune promesse chiffrée ici — on nomme ce que le créateur ne voit
+     pas, sans lui garantir de résultat. -->
+<section class="probleme" aria-labelledby="probleme-title">
+  <div class="probleme-wrap">
+    <p class="probleme-marque" data-i18n-html="brand_line">Ne copie pas les vidéos qui marchent.<br><strong>Comprends pourquoi elles marchent.</strong></p>
+    <h2 id="probleme-title" class="probleme-title" data-i18n="pb_title">Le problème n'est pas toujours ton produit.</h2>
+    <p class="probleme-p" data-i18n="pb_p">Une vidéo peut échouer à cause de ses premières secondes, de son angle, de sa démonstration, de ses arguments, de sa structure ou de son appel à l'action. Tant que tu ne vois pas lequel, tu corriges au hasard.</p>
+    <a href="#tool" class="hero-cta probleme-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</a>
+  </div>
+</section>
+
 <section class="tool-section" id="tool">
   <div class="tool-container">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
@@ -1791,7 +1840,7 @@
 
       <div class="step-card">
         <div class="step-icon"></div>
-        <h3 data-i18n="how_2_h">2. L'IA décortique ce qui fait vendre</h3>
+        <h3 data-i18n="how_2_h">2. Découvre ce qui la fait vendre</h3>
         <p data-i18n="how_2_p"
            data-var-count="{{ ANALYSIS_DIMENSIONS_COUNT }}"
            data-var-dims="{{ ANALYSIS_DIMENSIONS_TEXT }}">Analyse en {{ ANALYSIS_DIMENSIONS_COUNT }} dimensions : {{ ANALYSIS_DIMENSIONS_TEXT }}.</p>
@@ -1816,7 +1865,7 @@
       <div class="feature-card">
         <div class="feature-emoji"></div>
         <h3 data-i18n="feat_1_h">Comprends pourquoi on te scrolle en 3 secondes</h3>
-        <p data-i18n="feat_1_p">L'IA note ton accroche et pointe ce qui fait fuir : type, force d'interruption, promesse tenue ou non.</p>
+        <p data-i18n="feat_1_p">Ton accroche reçoit une note, et ce qui fait fuir est nommé : type, force d'interruption, promesse tenue ou non.</p>
       </div>
 
       <div class="feature-card">
@@ -2672,7 +2721,7 @@
         extractAudio(file),
       ]);
 
-      loadingText.textContent = 'Analyse IA en cours...';
+      loadingText.textContent = 'Analyse en cours…';
 
       // Send to backend
       const fd = new FormData();
@@ -2783,6 +2832,18 @@
   function scrollToTool() {
     document.getElementById('tool').scrollIntoView({ behavior: 'smooth' });
   }
+
+  // Appel à l'action principal : même destination que #tool, mais le champ
+  // du lien reçoit le focus — sur mobile, le clavier s'ouvre directement.
+  document.querySelectorAll('.hero-cta').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.qTrack) qTrack('clic_cta_principal', { emplacement: a.id === 'hero-cta' ? 'hero' : 'probleme' });
+      document.getElementById('tool').scrollIntoView({ behavior: 'smooth' });
+      var champ = document.getElementById('tiktok-url');
+      if (champ) setTimeout(function () { champ.focus({ preventScroll: true }); }, 450);
+    });
+  });
 
   // ── GESTION COMPTEUR ANALYSES GRATUITES ──────────────────────
   function updateFreeAnalysisCounter() {

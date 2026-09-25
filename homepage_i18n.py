@@ -134,11 +134,11 @@ T: dict[str, dict[str, str]] = {
 
     # ═══════════════════════════ ANGLAIS ═══════════════════════════
     "en": {
-        "meta_title": "Qeerah — TikTok Shop video analysis tool",
-        "meta_desc": "Qeerah — TikTok Shop video analysis tool. Built by creators, for TikTok Shop creators. Analyse any video and copy the winning method. {trial}.",
-        "og_title": "Qeerah — TikTok Shop video analysis tool",
-        "og_desc": "Built by creators, for TikTok Shop creators. Analyse your videos and copy the winning method. {trial}.",
-        "tw_desc": "Built by creators, for TikTok Shop creators. Analyse your videos and copy the winning method.",
+        "meta_title": "Qeerah — Understand why TikTok Shop videos sell",
+        "meta_desc": "Paste the link of a TikTok Shop video that sells: see its hook, its selling points and what to reuse in your own videos. First breakdown free, no credit card.",
+        "og_title": "Qeerah — Understand why TikTok Shop videos sell",
+        "og_desc": "Paste the link of a TikTok Shop video that sells: see its hook, its selling points and what to reuse in your own videos. First breakdown free, no credit card.",
+        "tw_desc": "Don't copy the videos that work. Understand why they work — and what to reuse in yours.",
 
         "trial_offer": "7 days of full access, no credit card",
         "trial_full": "7 days of full access, no credit card — 10 video analyses and 3 free uses of each creation tool",
@@ -147,9 +147,14 @@ T: dict[str, dict[str, str]] = {
         "nav_how": "How it works", "nav_features": "Features", "nav_pricing": "Pricing",
         "nav_try": "Try it free", "nav_login": "Log in",
 
-        "hero_badge": "TikTok Shop video analysis tool",
+        "hero_badge": "Why does this video sell?",
         "hero_h1": "You know your video flopped. <span style=\"white-space:nowrap\">Not why.</span> So you go and make the same one again.",
-        "hero_sub": "Drop in the link of a video that's crushing it: 30 seconds later you know exactly what makes it sell — the hook, the pacing, the moment it lands — and how to pull that off with your own product. No more guessing.",
+        "hero_sub": "Paste the link of a video that sells. You'll see what you missed: the hook, the pitch, the exact second it tips — and how to adapt it to your product.",
+        "hero_cta": "Analyse my first video for free",
+        "hero_cta_note": "No credit card",
+        "brand_line": "Don't copy the videos that work.<br><strong>Understand why they work.</strong>",
+        "pb_title": "The problem isn't always your product.",
+        "pb_p": "A video can flop because of its first seconds, its angle, its demo, its selling points, its structure or its call to action. Until you see which one, you're fixing things at random.",
         "hero_social": "Built by creators, for TikTok Shop creators",
 
         "auth_eyebrow": "Proven in the field",
@@ -168,7 +173,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Sample analysis",
         "demo_title": "Here's exactly what you get",
-        "demo_p": "A complete report in 30 seconds, from a single link.",
+        "demo_p": "One link is all it takes. And the report doesn't stop at a score: it tells you what to change.",
         "demo_url": "qeerah.com/app — analysis running",
         "demo_step_0": "Reading the TikTok link",
         "demo_step_1": "Extracting images and audio",
@@ -238,7 +243,7 @@ T: dict[str, dict[str, str]] = {
         "how_sub": "3 steps to decode any viral video",
         "how_1_h": "1. Paste a TikTok link",
         "how_1_p": "Any TikTok Shop video, viral or not. A few seconds are enough.",
-        "how_2_h": "2. The analysis breaks down what sells",
+        "how_2_h": "2. Find out what makes it sell",
         "how_2_p": "Analysis across {count} dimensions: {dims}.",
         "how_3_h": "3. Apply the method to your product",
         "how_3_p": "A detailed action plan to reproduce the success with YOUR products.",
@@ -355,11 +360,11 @@ T: dict[str, dict[str, str]] = {
 
     # ═══════════════════════════ PORTUGAIS (BRÉSIL) ═══════════════════════════
     "pt-br": {
-        "meta_title": "Qeerah — Ferramenta de análise de vídeo TikTok Shop",
-        "meta_desc": "Qeerah — Ferramenta de análise de vídeo TikTok Shop. Feito por criador, para criador do TikTok Shop. Analise qualquer vídeo e copie o método que vende. {trial}.",
-        "og_title": "Qeerah — Ferramenta de análise de vídeo TikTok Shop",
-        "og_desc": "Feito por criador, para criador do TikTok Shop. Analise seus vídeos e copie o método que vende. {trial}.",
-        "tw_desc": "Feito por criador, para criador do TikTok Shop. Analise seus vídeos e copie o método que vende.",
+        "meta_title": "Qeerah — Entenda por que os vídeos do TikTok Shop vendem",
+        "meta_desc": "Cole o link de um vídeo do TikTok Shop que vende: descubra o gancho, os argumentos e o que levar pros seus vídeos. Primeiro diagnóstico grátis, sem cartão de crédito.",
+        "og_title": "Qeerah — Entenda por que os vídeos do TikTok Shop vendem",
+        "og_desc": "Cole o link de um vídeo do TikTok Shop que vende: descubra o gancho, os argumentos e o que levar pros seus vídeos. Primeiro diagnóstico grátis, sem cartão de crédito.",
+        "tw_desc": "Não copie os vídeos que dão certo. Entenda por que eles dão certo — e o que levar pros seus.",
 
         "trial_offer": "7 dias de acesso completo, sem cartão de crédito",
         "trial_full": "7 dias de acesso completo, sem cartão de crédito — 10 análises de vídeo e 3 usos gratuitos de cada ferramenta de criação",
@@ -368,9 +373,14 @@ T: dict[str, dict[str, str]] = {
         "nav_how": "Como funciona", "nav_features": "Recursos", "nav_pricing": "Preços",
         "nav_try": "Testar de graça", "nav_login": "Entrar",
 
-        "hero_badge": "Ferramenta de análise de vídeo TikTok Shop",
+        "hero_badge": "Por que esse vídeo vende?",
         "hero_h1": "Você sabe que seu vídeo não vendeu. <span style=\"white-space:nowrap\">Não sabe por quê.</span> Aí grava o mesmo de novo.",
-        "hero_sub": "Cole o link de um vídeo que tá bombando: em 30 segundos você sabe exatamente o que faz ele vender — o gancho, o ritmo, a hora que a ficha cai — e como repetir isso no seu produto. Chega de achismo.",
+        "hero_sub": "Cole o link de um vídeo que vende. Você enxerga o que tinha passado batido: o gancho, o argumento, o segundo em que tudo vira — e como adaptar isso pro seu produto.",
+        "hero_cta": "Analisar meu primeiro vídeo grátis",
+        "hero_cta_note": "Sem cartão de crédito",
+        "brand_line": "Não copie os vídeos que dão certo.<br><strong>Entenda por que eles dão certo.</strong>",
+        "pb_title": "O problema nem sempre é o seu produto.",
+        "pb_p": "Um vídeo pode flopar por causa dos primeiros segundos, do ângulo, da demonstração, dos argumentos, da estrutura ou da chamada pra ação. Enquanto você não enxerga qual, fica corrigindo no chute.",
         "hero_social": "Feito por criador, para criador do TikTok Shop",
 
         "auth_eyebrow": "Método testado na prática",
@@ -389,7 +399,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Exemplo de análise",
         "demo_title": "Veja exatamente o que você recebe",
-        "demo_p": "Um relatório completo em 30 segundos, a partir de um simples link.",
+        "demo_p": "Basta um link. E o relatório não para na nota: ele te diz o que mudar.",
         "demo_url": "qeerah.com/app — análise em andamento",
         "demo_step_0": "Leitura do link do TikTok",
         "demo_step_1": "Extração das imagens e do áudio",
@@ -461,7 +471,7 @@ T: dict[str, dict[str, str]] = {
         "how_sub": "3 etapas para decifrar qualquer vídeo viral",
         "how_1_h": "1. Cole um link do TikTok",
         "how_1_p": "Qualquer vídeo do TikTok Shop, viral ou não. Alguns segundos bastam.",
-        "how_2_h": "2. A análise destrincha o que faz vender",
+        "how_2_h": "2. Descubra o que faz ele vender",
         "how_2_p": "Análise em {count} dimensões: {dims}.",
         "how_3_h": "3. Aplique o método ao seu produto",
         "how_3_p": "Plano de ação detalhado para reproduzir o sucesso com os SEUS produtos.",
@@ -576,11 +586,11 @@ T: dict[str, dict[str, str]] = {
 
     # ═══════════════════════════ ESPAGNOL ═══════════════════════════
     "es": {
-        "meta_title": "Qeerah — Herramienta de análisis de vídeo de TikTok Shop",
-        "meta_desc": "Qeerah — Herramienta de análisis de vídeo de TikTok Shop. Hecho por creadores, para creadores de TikTok Shop. Analiza cualquier vídeo y copia el método que vende. {trial}.",
-        "og_title": "Qeerah — Herramienta de análisis de vídeo de TikTok Shop",
-        "og_desc": "Hecho por creadores, para creadores de TikTok Shop. Analiza tus vídeos y copia el método que vende. {trial}.",
-        "tw_desc": "Hecho por creadores, para creadores de TikTok Shop. Analiza tus vídeos y copia el método que vende.",
+        "meta_title": "Qeerah — Entiende por qué venden los vídeos de TikTok Shop",
+        "meta_desc": "Pega el enlace de un vídeo de TikTok Shop que vende: descubre su gancho, sus argumentos y qué llevarte a tus vídeos. Primer diagnóstico gratis, sin tarjeta.",
+        "og_title": "Qeerah — Entiende por qué venden los vídeos de TikTok Shop",
+        "og_desc": "Pega el enlace de un vídeo de TikTok Shop que vende: descubre su gancho, sus argumentos y qué llevarte a tus vídeos. Primer diagnóstico gratis, sin tarjeta.",
+        "tw_desc": "No copies los vídeos que funcionan. Entiende por qué funcionan — y qué llevarte a los tuyos.",
 
         "trial_offer": "7 días de acceso completo, sin tarjeta bancaria",
         "trial_full": "7 días de acceso completo, sin tarjeta bancaria — 10 análisis de vídeo y 3 usos gratuitos de cada herramienta de creación",
@@ -589,9 +599,14 @@ T: dict[str, dict[str, str]] = {
         "nav_how": "Cómo funciona", "nav_features": "Funciones", "nav_pricing": "Precios",
         "nav_try": "Probar gratis", "nav_login": "Iniciar sesión",
 
-        "hero_badge": "Herramienta de análisis de vídeo de TikTok Shop",
+        "hero_badge": "¿Por qué vende este vídeo?",
         "hero_h1": "Sabes que tu vídeo no vendió. <span style=\"white-space:nowrap\">No por qué.</span> Así que grabas otra vez el mismo.",
-        "hero_sub": "Pega el enlace de un vídeo que está arrasando: en 30 segundos sabes exactamente qué lo hace vender — el gancho, el ritmo, el momento en que engancha — y cómo repetirlo con tu producto. Se acabó ir a ciegas.",
+        "hero_sub": "Pega el enlace de un vídeo que vende. Verás lo que se te escapaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
+        "hero_cta": "Analizar mi primer vídeo gratis",
+        "hero_cta_note": "Sin tarjeta",
+        "brand_line": "No copies los vídeos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
+        "pb_title": "El problema no siempre es tu producto.",
+        "pb_p": "Un vídeo puede fallar por sus primeros segundos, su ángulo, su demostración, sus argumentos, su estructura o su llamada a la acción. Mientras no veas cuál, corriges a ciegas.",
         "hero_social": "Hecho por creadores, para creadores de TikTok Shop",
 
         "auth_eyebrow": "Método probado sobre el terreno",
@@ -610,7 +625,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Ejemplo de análisis",
         "demo_title": "Esto es exactamente lo que recibes",
-        "demo_p": "Un informe completo en 30 segundos, a partir de un simple enlace.",
+        "demo_p": "Basta con un enlace. Y el informe no se queda en la nota: te dice qué cambiar.",
         "demo_url": "qeerah.com/app — análisis en curso",
         "demo_step_0": "Lectura del enlace de TikTok",
         "demo_step_1": "Extracción de las imágenes y del audio",
@@ -682,7 +697,7 @@ T: dict[str, dict[str, str]] = {
         "how_sub": "3 pasos para descifrar cualquier vídeo viral",
         "how_1_h": "1. Pega un enlace de TikTok",
         "how_1_p": "Cualquier vídeo de TikTok Shop, viral o no. Bastan unos segundos.",
-        "how_2_h": "2. El análisis desmonta lo que hace vender",
+        "how_2_h": "2. Descubre qué lo hace vender",
         "how_2_p": "Análisis en {count} dimensiones: {dims}.",
         "how_3_h": "3. Aplica el método a tu producto",
         "how_3_p": "Plan de acción detallado para reproducir el éxito con TUS productos.",
@@ -795,11 +810,11 @@ T: dict[str, dict[str, str]] = {
 
     # ═══════════════════════════ ITALIEN ═══════════════════════════
     "it": {
-        "meta_title": "Qeerah — Strumento di analisi video per TikTok Shop",
-        "meta_desc": "Qeerah — Strumento di analisi video per TikTok Shop. Fatto da creator, per i creator di TikTok Shop. Analizza qualsiasi video e copia il metodo che vende. {trial}.",
-        "og_title": "Qeerah — Strumento di analisi video per TikTok Shop",
-        "og_desc": "Fatto da creator, per i creator di TikTok Shop. Analizza i tuoi video e copia il metodo che vende. {trial}.",
-        "tw_desc": "Fatto da creator, per i creator di TikTok Shop. Analizza i tuoi video e copia il metodo che vende.",
+        "meta_title": "Qeerah — Capisci perché i video di TikTok Shop vendono",
+        "meta_desc": "Incolla il link di un video di TikTok Shop che vende: scopri il suo gancio, i suoi argomenti e cosa riprendere nei tuoi video. Prima analisi gratis, senza carta di credito.",
+        "og_title": "Qeerah — Capisci perché i video di TikTok Shop vendono",
+        "og_desc": "Incolla il link di un video di TikTok Shop che vende: scopri il suo gancio, i suoi argomenti e cosa riprendere nei tuoi video. Prima analisi gratis, senza carta di credito.",
+        "tw_desc": "Non copiare i video che funzionano. Capisci perché funzionano — e cosa portare nei tuoi.",
 
         "trial_offer": "7 giorni di accesso completo, senza carta di credito",
         "trial_full": "7 giorni di accesso completo, senza carta di credito — 10 analisi di video e 3 utilizzi gratuiti di ogni strumento di creazione",
@@ -808,9 +823,14 @@ T: dict[str, dict[str, str]] = {
         "nav_how": "Come funziona", "nav_features": "Funzionalità", "nav_pricing": "Prezzi",
         "nav_try": "Provalo gratis", "nav_login": "Accedi",
 
-        "hero_badge": "Strumento di analisi video per TikTok Shop",
+        "hero_badge": "Perché questo video vende?",
         "hero_h1": "Sai che il tuo video non ha venduto. <span style=\"white-space:nowrap\">Non perché.</span> Così ne giri un altro uguale.",
-        "hero_sub": "Incolla il link di un video che sta spaccando: in 30 secondi sai esattamente cosa lo fa vendere — il gancio, il ritmo, il momento in cui scatta — e come rifarlo con il tuo prodotto. Basta andare a intuito.",
+        "hero_sub": "Incolla il link di un video che vende. Vedi quello che ti era sfuggito: il gancio, l'argomento, il secondo in cui tutto cambia — e come adattarlo al tuo prodotto.",
+        "hero_cta": "Analizza il mio primo video gratis",
+        "hero_cta_note": "Senza carta di credito",
+        "brand_line": "Non copiare i video che funzionano.<br><strong>Capisci perché funzionano.</strong>",
+        "pb_title": "Il problema non è sempre il tuo prodotto.",
+        "pb_p": "Un video può non funzionare per i primi secondi, l'angolo, la dimostrazione, gli argomenti, la struttura o la call to action. Finché non vedi quale, correggi a caso.",
         "hero_social": "Fatto da creator, per i creator di TikTok Shop",
 
         "auth_eyebrow": "Metodo provato sul campo",
@@ -829,7 +849,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Esempio di analisi",
         "demo_title": "Ecco esattamente cosa ricevi",
-        "demo_p": "Un rapporto completo in 30 secondi, a partire da un semplice link.",
+        "demo_p": "Basta un link. E il report non si ferma al punteggio: ti dice cosa cambiare.",
         "demo_url": "qeerah.com/app — analisi in corso",
         "demo_step_0": "Lettura del link TikTok",
         "demo_step_1": "Estrazione delle immagini e dell'audio",
@@ -902,7 +922,7 @@ T: dict[str, dict[str, str]] = {
         "how_sub": "3 passaggi per decifrare qualsiasi video virale",
         "how_1_h": "1. Incolla un link TikTok",
         "how_1_p": "Qualsiasi video di TikTok Shop, virale o no. Bastano pochi secondi.",
-        "how_2_h": "2. L'analisi smonta ciò che fa vendere",
+        "how_2_h": "2. Scopri cosa lo fa vendere",
         "how_2_p": "Analisi su {count} dimensioni: {dims}.",
         "how_3_h": "3. Applica il metodo al tuo prodotto",
         "how_3_p": "Piano d'azione dettagliato per riprodurre il successo con i TUOI prodotti.",
@@ -1015,11 +1035,11 @@ T: dict[str, dict[str, str]] = {
 
     # ═══════════════════════════ ALLEMAND ═══════════════════════════
     "de": {
-        "meta_title": "Qeerah — Videoanalyse für TikTok Shop",
-        "meta_desc": "Qeerah — Videoanalyse für TikTok Shop. Von Creators gemacht, für TikTok-Shop-Creators. Analysiere jedes Video und übernimm die Methode, die verkauft. {trial}.",
-        "og_title": "Qeerah — Videoanalyse für TikTok Shop",
-        "og_desc": "Von Creators gemacht, für TikTok-Shop-Creators. Analysiere deine Videos und übernimm die Methode, die verkauft. {trial}.",
-        "tw_desc": "Von Creators gemacht, für TikTok-Shop-Creators. Analysiere deine Videos und übernimm die Methode, die verkauft.",
+        "meta_title": "Qeerah — Versteh, warum TikTok-Shop-Videos verkaufen",
+        "meta_desc": "Füge den Link eines TikTok-Shop-Videos ein, das verkauft: Entdecke seinen Hook, seine Argumente und was du für deine Videos übernehmen kannst. Erste Analyse kostenlos, ohne Kreditkarte.",
+        "og_title": "Qeerah — Versteh, warum TikTok-Shop-Videos verkaufen",
+        "og_desc": "Füge den Link eines TikTok-Shop-Videos ein, das verkauft: Entdecke seinen Hook, seine Argumente und was du für deine Videos übernehmen kannst. Erste Analyse kostenlos, ohne Kreditkarte.",
+        "tw_desc": "Kopier keine Videos, die funktionieren. Versteh, warum sie funktionieren — und was du davon übernimmst.",
 
         "trial_offer": "7 Tage voller Zugang, ohne Kreditkarte",
         "trial_full": "7 Tage voller Zugang, ohne Kreditkarte — 10 Videoanalysen und 3 kostenlose Nutzungen jedes Kreativwerkzeugs",
@@ -1028,9 +1048,14 @@ T: dict[str, dict[str, str]] = {
         "nav_how": "So funktioniert's", "nav_features": "Funktionen",
         "nav_pricing": "Preise", "nav_try": "Kostenlos testen", "nav_login": "Anmelden",
 
-        "hero_badge": "Videoanalyse für TikTok Shop",
+        "hero_badge": "Warum verkauft dieses Video?",
         "hero_h1": "Du weißt, dass dein Video nichts verkauft hat. <span style=\"white-space:nowrap\">Nur nicht, warum.</span> Also drehst du das gleiche nochmal.",
-        "hero_sub": "Pack den Link von einem Video rein, das gerade abgeht: 30 Sekunden später weißt du genau, was es verkaufen lässt — der Hook, das Tempo, der Moment, in dem es klickt — und wie du das mit deinem eigenen Produkt hinbekommst. Schluss mit Raten.",
+        "hero_sub": "Füge den Link eines Videos ein, das verkauft. Du siehst, was dir entgangen ist: den Hook, das Argument, die Sekunde, in der alles kippt — und wie du das auf dein Produkt überträgst.",
+        "hero_cta": "Mein erstes Video kostenlos analysieren",
+        "hero_cta_note": "Ohne Kreditkarte",
+        "brand_line": "Kopier keine Videos, die funktionieren.<br><strong>Versteh, warum sie funktionieren.</strong>",
+        "pb_title": "Das Problem ist nicht immer dein Produkt.",
+        "pb_p": "Ein Video kann an den ersten Sekunden scheitern, am Blickwinkel, an der Demo, an den Argumenten, an der Struktur oder am Call-to-Action. Solange du nicht siehst, woran es liegt, korrigierst du ins Blaue.",
         "hero_social": "Von Creators gemacht, für TikTok-Shop-Creators",
 
         "auth_eyebrow": "In der Praxis erprobt",
@@ -1049,7 +1074,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Beispielanalyse",
         "demo_title": "Genau das bekommst du",
-        "demo_p": "Ein vollständiger Bericht in 30 Sekunden, aus einem einfachen Link.",
+        "demo_p": "Ein Link reicht. Und der Bericht hört nicht beim Score auf: Er sagt dir, was du ändern solltest.",
         "demo_url": "qeerah.com/app — Analyse läuft",
         "demo_step_0": "TikTok-Link wird gelesen",
         "demo_step_1": "Bilder und Ton werden extrahiert",
@@ -1122,7 +1147,7 @@ T: dict[str, dict[str, str]] = {
         "how_sub": "3 Schritte, um jedes virale Video zu entschlüsseln",
         "how_1_h": "1. Füge einen TikTok-Link ein",
         "how_1_p": "Jedes beliebige TikTok-Shop-Video, viral oder nicht. Ein paar Sekunden genügen.",
-        "how_2_h": "2. Die Analyse zerlegt, was verkauft",
+        "how_2_h": "2. Entdecke, warum es verkauft",
         "how_2_p": "Analyse in {count} Dimensionen: {dims}.",
         "how_3_h": "3. Wende die Methode auf dein Produkt an",
         "how_3_p": "Ausführlicher Aktionsplan, um den Erfolg mit DEINEN Produkten zu wiederholen.",

@@ -36,11 +36,11 @@ T_EXTRA: dict[str, dict[str, str]] = {
     # Distinct de `es` : vocabulaire (video sans accent, «celular»), et surtout
     # un ton latino-américain qui ne sonne pas péninsulaire.
     "es-mx": {
-        "meta_title": "Qeerah — Herramienta de análisis de video de TikTok Shop",
-        "meta_desc": "Qeerah — Herramienta de análisis de video de TikTok Shop. Hecho por creadores, para creadores de TikTok Shop. Analiza cualquier video y copia el método que sí vende. {trial}.",
-        "og_title": "Qeerah — Herramienta de análisis de video de TikTok Shop",
-        "og_desc": "Hecho por creadores, para creadores de TikTok Shop. Analiza tus videos y copia el método que sí vende. {trial}.",
-        "tw_desc": "Hecho por creadores, para creadores de TikTok Shop. Analiza tus videos y copia el método que sí vende.",
+        "meta_title": "Qeerah — Entiende por qué venden los videos de TikTok Shop",
+        "meta_desc": "Pega el link de un video de TikTok Shop que vende: descubre su gancho, sus argumentos y qué llevarte a tus videos. Primer diagnóstico gratis, sin tarjeta de crédito.",
+        "og_title": "Qeerah — Entiende por qué venden los videos de TikTok Shop",
+        "og_desc": "Pega el link de un video de TikTok Shop que vende: descubre su gancho, sus argumentos y qué llevarte a tus videos. Primer diagnóstico gratis, sin tarjeta de crédito.",
+        "tw_desc": "No copies los videos que funcionan. Entiende por qué funcionan — y qué llevarte a los tuyos.",
 
         "trial_offer": "7 días de acceso completo, sin tarjeta",
         "trial_full": "7 días de acceso completo, sin tarjeta — 10 análisis de video y 3 usos gratis de cada herramienta de creación",
@@ -49,9 +49,14 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "nav_how": "Cómo funciona", "nav_features": "Funciones", "nav_pricing": "Precios",
         "nav_try": "Pruébalo gratis", "nav_login": "Entrar",
 
-        "hero_badge": "Herramienta de análisis de video de TikTok Shop",
+        "hero_badge": "¿Por qué vende este video?",
         "hero_h1": "Sabes que tu video no vendió. <span style=\"white-space:nowrap\">No sabes por qué.</span> Y grabas otro igualito.",
-        "hero_sub": "Pega el link de un video que está rompiendo: en 30 segundos sabes exactamente qué lo hace vender — el gancho, el ritmo, el momento en que engancha — y cómo repetirlo con tu producto. Se acabó el adivinar.",
+        "hero_sub": "Pega el link de un video que vende. Vas a ver lo que se te pasaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
+        "hero_cta": "Analizar mi primer video gratis",
+        "hero_cta_note": "Sin tarjeta de crédito",
+        "brand_line": "No copies los videos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
+        "pb_title": "El problema no siempre es tu producto.",
+        "pb_p": "Un video puede fallar por sus primeros segundos, su ángulo, su demostración, sus argumentos, su estructura o su llamado a la acción. Mientras no veas cuál, corriges a ciegas.",
         "hero_social": "Hecho por creadores, para creadores de TikTok Shop",
 
         "auth_eyebrow": "Método probado en la cancha",
@@ -70,7 +75,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
 
         "demo_tag": "Ejemplo de análisis",
         "demo_title": "Esto es exactamente lo que recibes",
-        "demo_p": "Un reporte completo en 30 segundos, a partir de un simple link.",
+        "demo_p": "Con un link basta. Y el reporte no se queda en la calificación: te dice qué cambiar.",
         "demo_url": "qeerah.com/app — análisis en curso",
         "demo_step_0": "Lectura del link de TikTok",
         "demo_step_1": "Extracción de las imágenes y del audio",
@@ -142,7 +147,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "how_sub": "3 pasos para descifrar cualquier video viral",
         "how_1_h": "1. Pega un link de TikTok",
         "how_1_p": "Cualquier video de TikTok Shop, viral o no. Bastan unos segundos.",
-        "how_2_h": "2. El análisis desarma lo que hace vender",
+        "how_2_h": "2. Descubre qué lo hace vender",
         "how_2_p": "Análisis en {count} dimensiones: {dims}.",
         "how_3_h": "3. Aplica el método a tu producto",
         "how_3_p": "Plan de acción detallado para repetir el éxito con TUS productos.",
