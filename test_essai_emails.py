@@ -5,7 +5,7 @@ Ce qui doit rester vrai :
   • chaque e-mail tombe dans sa fenêtre de jours (J2 / J5 / J7) ;
   • J2 / J5 poussent la PROCHAINE étape non faite, et se taisent si la mission
     est accomplie ; seul J7 parle de l'offre, après le bilan ;
-  • mode simulation par défaut : rien ne part sans ESSAI_EMAILS_ACTIFS=1 ;
+  • interrupteur d'arrêt : ESSAI_EMAILS_ACTIFS=0 → rien ne part, rien n'est marqué ;
   • désinscrits et adresses de test exclus ; jamais deux fois la même étape.
 
 Lancement :  venv/bin/python -m pytest test_essai_emails.py -v
@@ -56,7 +56,7 @@ def _user(email, jours_depuis_debut, **extra):
 
 
 def _run(sb, actif=False, envoyes=None):
-    os.environ["ESSAI_EMAILS_ACTIFS"] = "1" if actif else ""
+    os.environ["ESSAI_EMAILS_ACTIFS"] = "1" if actif else "0"
     import email_service as es
 
     async def faux_send(to, sujet, html):
@@ -127,7 +127,12 @@ def test_aucun_mot_interdit():
 
 
 # ── Passage quotidien ──────────────────────────────────────────────────────
-def test_simulation_par_defaut_rien_ne_part():
+def test_actif_par_defaut():
+    os.environ.pop("ESSAI_EMAILS_ACTIFS", None)
+    assert essai_emails.actif() is True
+
+
+def test_interrupteur_arret_rien_ne_part():
     sb = FauxSupabase(users=[_user("a@qeerah.fr", 2.5)])
     envoyes = []
     r = _run(sb, actif=False, envoyes=envoyes)

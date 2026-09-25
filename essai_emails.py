@@ -16,8 +16,9 @@ Garanties (reprises de fin_essai.py) :
 - un envoi par personne et par étape, drapeau posé APRÈS l'envoi réussi ;
 - `marketing_opt_out` respecté, lien de désinscription signé ;
 - adresses de test exclues (réputation d'expédition) ;
-- **mode simulation par défaut** : rien ne part tant que ESSAI_EMAILS_ACTIFS=1
-  n'est pas posé sur Render. Un e-mail parti ne se rattrape pas.
+- ACTIF par défaut (décision du 25/09/2026). Interrupteur d'arrêt :
+  ESSAI_EMAILS_ACTIFS=0 sur le Cron Job Render → mode simulation (journal
+  seulement, rien ne part, rien n'est marqué).
 
 Suivi des envois dans `market_cache` (clé « mail_essai:<étape>:<email> ») : table
 clé/valeur déjà en place, donc aucune migration à jouer.
@@ -83,7 +84,7 @@ _ETAPES = {
 
 
 def actif() -> bool:
-    return os.getenv("ESSAI_EMAILS_ACTIFS", "").strip() == "1"
+    return os.getenv("ESSAI_EMAILS_ACTIFS", "1").strip() != "0"
 
 
 def _parse(valeur) -> datetime | None:

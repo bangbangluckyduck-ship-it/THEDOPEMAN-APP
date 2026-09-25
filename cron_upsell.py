@@ -35,7 +35,7 @@ def main() -> int:
     # Le job Render s'appelle toujours « upsell-j3 », mais il exécute désormais la
     # séquence d'essai J2 / J5 / J7 calée sur la mission (essai_emails.py), qui
     # remplace l'ancienne relance J+3 promotionnelle. Aucun réglage Render à
-    # changer — sauf ESSAI_EMAILS_ACTIFS=1 pour sortir du mode simulation.
+    # changer. Arrêt d'urgence : ESSAI_EMAILS_ACTIFS=0 (mode simulation).
     from supabase_client import supabase_service
     import essai_emails
 
