@@ -615,6 +615,26 @@
       .hero-cta-note { text-align: center; }
     }
 
+    /* ═══ RÉSULTAT D'ANALYSE — déclic + déblocage ═══ */
+    .res-bloc { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .res-action { border-left: 4px solid var(--primary); }
+    .res-kicker { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--gold-ink, #8B6914); margin-bottom: 8px; }
+    .res-texte { font-size: 15px; line-height: 1.6; color: var(--text); margin: 0; }
+    .res-impact { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+    .res-impact:empty { display: none; }
+    .res-liste { margin: 10px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.6; color: var(--text); }
+    .res-debloquer { text-align: center; background: var(--surface); border: 2px solid var(--primary); border-radius: 16px; padding: 22px 18px; margin-bottom: 8px; transition: opacity .2s; }
+    .res-debloquer-titre { font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+    .res-debloquer ul { list-style: none; padding: 0; margin: 0 auto 18px; max-width: 380px; text-align: left; }
+    .res-debloquer li { font-size: 14px; line-height: 1.5; padding: 5px 0 5px 24px; position: relative; color: var(--text); }
+    .res-debloquer li::before { content: "✓"; position: absolute; left: 0; color: var(--primary); font-weight: 800; }
+    .res-debloquer-btn {
+      width: 100%; max-width: 380px; min-height: 52px; padding: 14px 18px; border: none; border-radius: 14px; cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dk)); color: #fff; font-weight: 800; font-size: 16px;
+      box-shadow: 0 6px 20px rgba(212,175,55,0.35);
+    }
+    .res-debloquer-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; font-weight: 600; }
+
     /* ═══ LE PROBLÈME ═══ */
     .probleme { padding: 56px 20px; background: var(--bg); }
     .probleme-wrap { max-width: 720px; margin: 0 auto; text-align: center; }
@@ -1670,7 +1690,7 @@
     <div id="results-container" style="display:none; animation: fadeIn 0.3s ease-in;">
 
       <!-- Compteur analyses -->
-      <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px;font-weight:500"
+      <div id="res-compteur" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px;font-weight:500"
            data-i18n="results_counter" data-var-trial="{{ TRIAL_OFFER }}">
         {{ TRIAL_OFFER }} — crée ton compte pour en profiter
       </div>
@@ -1715,6 +1735,17 @@
           </div>
           <div style="text-align:right;font-size:48px" id="viral-emoji"></div>
         </div>
+      </div>
+
+      <!-- CE QUE TU N'AVAIS PAS VU — visible par tous : c'est le déclic. -->
+      <div class="res-bloc">
+        <div class="res-kicker" data-i18n="res_hook_h">L'accroche décryptée</div>
+        <p class="res-texte" id="res-hook-fb">—</p>
+      </div>
+      <div class="res-bloc res-action">
+        <div class="res-kicker" data-i18n="res_action_h">Ta première action pour ta prochaine vidéo</div>
+        <p class="res-texte" id="res-action-txt">—</p>
+        <p class="res-impact" id="res-action-impact"></p>
       </div>
 
       <!-- MARKET INTELLIGENCE (HOMEPAGE) -->
@@ -1764,61 +1795,54 @@
         </div>
       </div>
 
-      <!-- POINTS FORTS / FAIBLES -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px">
-        <div>
-          <h3 style="margin-bottom:12px;color:var(--navy);font-size:15px" data-i18n="res_strengths">Points forts</h3>
-          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px" id="points-forts">
-            <li style="font-size:13px;color:var(--muted)">—</li>
-          </ul>
+      <!-- LE RESTE DU DÉCRYPTAGE — rempli pour un compte connecté (essai ou abonné). -->
+      <div id="res-complet" style="display:none">
+        <div class="res-bloc">
+          <div class="res-kicker" data-i18n="verdict_h3">Verdict</div>
+          <p class="res-texte" id="res-verdict">—</p>
         </div>
-        <div>
-          <h3 style="margin-bottom:12px;color:var(--navy);font-size:15px" data-i18n="res_weak">À améliorer</h3>
-          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px" id="points-faibles">
-            <li style="font-size:13px;color:var(--muted)">—</li>
-          </ul>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:20px">
+          <div>
+            <h3 style="margin-bottom:12px;color:var(--navy);font-size:15px" data-i18n="res_strengths">Points forts</h3>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px" id="points-forts">
+              <li style="font-size:13px;color:var(--muted)">—</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="margin-bottom:12px;color:var(--navy);font-size:15px" data-i18n="res_weak">À améliorer</h3>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px" id="points-faibles">
+              <li style="font-size:13px;color:var(--muted)">—</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="res-bloc">
+          <div class="res-kicker" data-i18n="reco_h3">Meilleure accroche pour ce produit</div>
+          <p class="res-texte" id="res-reco-raison"></p>
+          <ul class="res-liste" id="res-reco-exemples"></ul>
         </div>
       </div>
 
-      <!-- VERDICT (VERROUILLÉ) -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;margin-bottom:20px;opacity:0.6" data-locked="true">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:12px">
-          <div style="text-align:center;font-size:13px;color:var(--navy);font-weight:600"><span data-i18n-html="verdict_lock">Verdict détaillé inclus dans <strong>Qeerah Pro</strong></span><br>
-            <a href="#pricing" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;margin-top:6px;display:inline-block" data-i18n="see_plans">Voir les plans →</a>
-          </div>
-        </div>
-        <div style="filter:blur(3px);pointer-events:none">
-          <h3 style="margin-bottom:12px;color:var(--navy);font-size:14px;font-weight:600" data-i18n="verdict_h3">Verdict</h3>
-          <p style="font-size:13px;color:var(--text);line-height:1.6;font-style:italic;margin:0" data-i18n="verdict_sample">Exemple de verdict: "Vidéo excellente avec hook très fort..."</p>
-        </div>
-      </div>
-
-      <!-- RECOMMANDATIONS (VERROUILLÉ) -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;margin-bottom:20px;opacity:0.6" data-locked="true">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:12px">
-          <div style="text-align:center;font-size:13px;color:var(--navy);font-weight:600"><span data-i18n-html="reco_lock">Recommandations personnalisées incluses dans <strong>Qeerah Pro</strong></span><br>
-            <a href="#pricing" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px;margin-top:6px;display:inline-block" data-i18n="see_plans">Voir les plans →</a>
-          </div>
-        </div>
-        <div style="filter:blur(3px);pointer-events:none">
-          <h3 style="margin-bottom:12px;color:var(--navy);font-size:14px;font-weight:600" data-i18n="reco_h3">Meilleure accroche pour ce produit</h3>
-          <div style="font-size:13px;color:var(--primary);font-weight:600;margin-bottom:8px" data-i18n="reco_type">Type d'accroche: CURIOSITÉ</div>
-          <p style="font-size:12px;color:var(--muted);margin-bottom:12px" data-i18n="reco_why">C'est efficace parce que...</p>
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px" data-i18n="reco_examples">3 exemples à tester :</div>
-          <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--text)">
-            <li>Exemple 1</li>
-            <li>Exemple 2</li>
-            <li>Exemple 3</li>
-          </ul>
-        </div>
+      <!-- DÉBLOCAGE — visiteur sans compte. On demande un compte GRATUIT, pas un
+           paiement : l'essai est un accès complet, le discours doit le refléter. -->
+      <div id="res-debloquer" class="res-debloquer" style="display:none">
+        <div class="res-debloquer-titre" data-i18n="unlock_title">Le reste de ton décryptage t'attend</div>
+        <ul>
+          <li data-i18n="unlock_li1">Le verdict complet : pourquoi cette vidéo vend</li>
+          <li data-i18n="unlock_li2">Ce qui la fait marcher, et ce qui fait décrocher</li>
+          <li data-i18n="unlock_li3">3 accroches réécrites, prêtes à tester</li>
+          <li data-i18n="unlock_li4">Des scripts prêts à tourner pour ton produit</li>
+        </ul>
+        <button type="button" class="res-debloquer-btn" id="res-btn-compte" data-i18n="unlock_btn">Voir tout mon décryptage — gratuit</button>
+        <p class="res-debloquer-note" data-i18n="unlock_note" data-var-trial="{{ TRIAL_OFFER }}">Compte gratuit · {{ TRIAL_OFFER }}</p>
       </div>
 
       <!-- BOUTONS D'ACTION -->
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
         <button onclick="resetAnalysisHomepage()" style="padding:12px 24px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" data-i18n="btn_another">Analyser une autre vidéo
         </button>
-        <button onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})" style="padding:12px 24px;background:var(--primary);color:var(--navy);border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" data-i18n="btn_plans">Voir les plans
-        </button>
+        <a href="/app" id="res-btn-mission" style="display:none;padding:12px 24px;background:var(--primary);color:#fff;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none" data-i18n="btn_mission">Continuer ma mission →</a>
       </div>
 
     </div>
@@ -2510,6 +2534,7 @@
       document.getElementById('login-password').value = '';
       messageDiv.style.display = 'none';
       closeLoginModal();
+      if (window.apresConnexionHomepage) window.apresConnexionHomepage();
     } catch (e) {
       messageDiv.textContent = 'Erreur connexion: ' + e.message;
       messageDiv.style.display = 'block';
@@ -2664,15 +2689,18 @@
         if (!res.ok) {
           // 402 (essai terminé) et 429 (essai anonyme épuisé) invitent à
           // créer un compte : c'est le moment le plus propice pour le faire.
-          if (res.status === 402 || res.status === 429) {
-            if (typeof openLoginModal === 'function') openLoginModal();
-          }
+          if (res.status === 429) { ouvrirInscription('essai_sans_compte_epuise'); }
+          else if (res.status === 402 && typeof openLoginModal === 'function') { openLoginModal(); }
           throw new Error(data.detail || "L'analyse a échoué. Vérifie le lien et réessaie.");
         }
 
         if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(true);
         loading.classList.remove('active');
-        showResults(data);
+        // Mémorise le lien : après l'inscription, on resert le rapport COMPLET
+        // depuis le cache serveur (instantané, aucun quota consommé).
+        try { sessionStorage.setItem('qeerah_derniere_video', url); localStorage.setItem('qeerah_derniere_video', url); } catch (_) {}
+        displayAnalysisResults(data);
+        document.getElementById('results-container').style.display = 'block';
         if (window.qTrackResultatAffiche) qTrackResultatAffiche();
         updateFreeAnalysisCounter();
       } catch (err) {
@@ -2845,6 +2873,39 @@
     });
   });
 
+  // ── DÉBLOCAGE DU RÉSULTAT PAR UN COMPTE GRATUIT ─────────────
+  function ouvrirInscription(origine) {
+    if (window.qTrack) qTrack('clic_debloquer_resultat', { origine: origine || 'resultat' });
+    if (typeof setHomeAuthMode === 'function') setHomeAuthMode('signup');
+    if (typeof openLoginModal === 'function') openLoginModal();
+  }
+  window.ouvrirInscription = ouvrirInscription;
+  const btnCompte = document.getElementById('res-btn-compte');
+  if (btnCompte) btnCompte.addEventListener('click', function () { ouvrirInscription('resultat'); });
+
+  // Appelée après une connexion/inscription réussie depuis cette page : si un
+  // résultat partiel est affiché, on redemande la même vidéo AVEC le compte.
+  // Le serveur la sert depuis son cache (instantané, aucun quota consommé) et
+  // l'enregistre dans « Mes analyses » — la 1re étape de la mission est faite.
+  window.apresConnexionHomepage = async function () {
+    const url = (function () { try { return sessionStorage.getItem('qeerah_derniere_video'); } catch (_) { return null; } })();
+    const token = localStorage.getItem('tts_token');
+    const res = document.getElementById('results-container');
+    if (!url || !token || !res || res.style.display === 'none') return;
+    const bloc = document.getElementById('res-debloquer');
+    if (bloc) bloc.style.opacity = '.5';
+    try {
+      const r = await fetch('/analyze-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ url })
+      });
+      const data = await r.json().catch(function () { return {}; });
+      if (r.ok) { displayAnalysisResults(data); return; }
+    } catch (_) {}
+    if (bloc) bloc.style.opacity = '';
+  };
+
   // ── GESTION COMPTEUR ANALYSES GRATUITES ──────────────────────
   function updateFreeAnalysisCounter() {
     let count = parseInt(localStorage.getItem('free_analyses_count') || '0') + 1;
@@ -2868,6 +2929,36 @@
     document.getElementById('det-hook').textContent = d.detection?.hook_type || '—';
     document.getElementById('det-force').textContent = (d.detection?.hook_force || 0) + '/10';
 
+    // Compte connecté ? Le serveur le dit (usage.tracked) — plus fiable qu'un
+    // jeton en localStorage, qui peut avoir expiré.
+    const complet = !!(d.usage && d.usage.tracked);
+
+    // Le déclic, visible par tous : l'accroche décryptée + UNE action.
+    const hookFb = d.analyse_8_dimensions?.hook?.feedback || d.structure_vente?.accroche?.feedback || '—';
+    document.getElementById('res-hook-fb').textContent = hookFb;
+    const a1 = (d.ameliorations_prioritaires || [])[0];
+    document.getElementById('res-action-txt').textContent = (a1 && a1.action) || (d.conseils_concrets || [])[0] || '—';
+    document.getElementById('res-action-impact').textContent = (a1 && a1.impact) || '';
+
+    document.getElementById('res-complet').style.display = complet ? 'block' : 'none';
+    document.getElementById('res-debloquer').style.display = complet ? 'none' : 'block';
+    document.getElementById('res-btn-mission').style.display = complet ? 'inline-block' : 'none';
+    const compteur = document.getElementById('res-compteur');
+    if (compteur) compteur.style.display = complet ? 'none' : '';
+    if (complet) {
+      document.getElementById('res-verdict').textContent = d.verdict || '—';
+      const rh = d.recommendations_hooks || {};
+      document.getElementById('res-reco-raison').textContent =
+        [rh.hook_type_propose, rh.raison].filter(Boolean).join(' — ');
+      const ul = document.getElementById('res-reco-exemples');
+      ul.innerHTML = '';
+      (rh.exemples_concrets || []).slice(0, 3).forEach(function (ex) {
+        const li = document.createElement('li'); li.textContent = ex; ul.appendChild(li);
+      });
+    } else if (window.qTrack) {
+      qTrack('resultat_partiel_affiche');
+    }
+
     // Potentiel viral
     const vScore = d.viral_potential?.score || 0;
     const vEmoji = vScore >= 80 ? '' : vScore >= 60 ? '📈' : '⚠️';
@@ -2880,12 +2971,12 @@
     const detectedCategory = d.detection?.produit || '';
 
     // Déterminer le tier (fetch depuis le window ou défaut FREE)
-    const userTierHp = window.__userInfo?.tier || 'free';
-    const isAdminHp = window.__userInfo?.is_admin || false;
-    const hasMarketAccessHp = ['gold', 'agency', 'beta'].includes(userTierHp) || isAdminHp;
+    const hasMarketAccessHp = complet;   // plus de palier : un compte suffit
 
     const marketSection = document.getElementById('market-intelligence-section-hp');
-    if (marketSection && marketData) {
+    // Visiteur : pas de cadenas « Qeerah Pro » — le bloc n'apparaît simplement pas.
+    if (marketSection) marketSection.style.display = 'none';
+    if (marketSection && marketData && hasMarketAccessHp) {
       marketSection.style.display = 'block';
 
       const lockOverlay = document.getElementById('market-intelligence-lock-hp');
