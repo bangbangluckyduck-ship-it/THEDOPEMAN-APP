@@ -2623,7 +2623,11 @@
 
         if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(true);
         loading.classList.remove('active');
-        showResults(data);
+        // showResults() n'existe que dans l'app, pas sur cette page : l'appeler
+        // levait « showResults is not defined » après une analyse réussie (et
+        // payée), et consommait l'essai sans compte du visiteur.
+        displayAnalysisResults(data);
+        document.getElementById('results-container').style.display = 'block';
         if (window.qTrackResultatAffiche) qTrackResultatAffiche();
         updateFreeAnalysisCounter();
       } catch (err) {
