@@ -2696,6 +2696,9 @@
 
         if (window.qTrackAnalyseTerminee) qTrackAnalyseTerminee(true);
         loading.classList.remove('active');
+        // showResults() n'existe que dans l'app, pas sur cette page : l'appeler
+        // levait « showResults is not defined » après une analyse réussie (et
+        // payée), et consommait l'essai sans compte du visiteur.
         // Mémorise le lien : après l'inscription, on resert le rapport COMPLET
         // depuis le cache serveur (instantané, aucun quota consommé).
         try { sessionStorage.setItem('qeerah_derniere_video', url); localStorage.setItem('qeerah_derniere_video', url); } catch (_) {}
