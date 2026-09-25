@@ -1074,6 +1074,7 @@ function fetchUserInfo() {
     .then(data => {
       window.__userInfo = data;
       updateTierBadge(data);
+      try { loadMission(); } catch (e) {}   // 🎯 mission d'essai / bilan de fin d'essai
       try { renderProgressionChart(); } catch (e) {}   // re-render avec le bon tier
       // Affiche le bouton "Mes analyses" dans le header + "Lancer en arrière-
       // plan" (upload) si Pro+ (le bouton URL async est déjà dans la section
@@ -1794,6 +1795,8 @@ async function analyzeSingleUrl() {
       let m = 'Erreur serveur';
       try { m = (await res.json()).detail || m; } catch (_) {}
       if (res.status === 403) switchTab('pricing');
+      // Essai terminé en pleine analyse : on montre d'abord le bilan de l'essai.
+      if (res.status === 402) { try { loadMission(); window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {} }
       throw new Error(m);
     }
 
@@ -2406,6 +2409,8 @@ function showResults(d) {
   if (window.qTrackResultatAffiche) qTrackResultatAffiche();
   console.log('[DEBUG] showResults called with data:', d);
   window._lastAnalysis = d;   // pour le partage du score (Feature 4)
+  // La mission avance : l'analyse vient d'être enregistrée côté serveur.
+  setTimeout(() => { try { loadMission(); } catch (e) {} }, 1500);
   renderModerationAndScript(d);
   renderErrorTimeline(d);
   console.log('[DEBUG] score_global value:', d.score_global);
@@ -5659,8 +5664,8 @@ async function loadFeedRadarTab() {
       upsell.style.display = 'block';
       upsell.innerHTML = `
         <div style="background:var(--surface2);border-radius:12px;padding:18px;text-align:center">
-          🔒 Accès complet au Feed Radar réservé aux plans <strong>Gold</strong> et <strong>Agency</strong>.
-          <div style="margin-top:10px"><button class="btn btn-primary" onclick="switchTab('pricing')">Passer Gold 👑</button></div>
+          Ton essai est terminé : passe à <strong>Qeerah Pro</strong> pour voir tout ce qui vend en ce moment.
+          <div style="margin-top:10px"><button class="btn btn-primary" onclick="switchTab('pricing')">Passer à Qeerah Pro</button></div>
         </div>`;
     }
   } catch (e) {
@@ -5683,6 +5688,9 @@ function renderFeedRadarCard(v) {
   const gmv = gmvInfo.amount;
   const heart = favBtn('video', v.video_id, { creator: v.creator_nickname || v.creator_unique_id, views: v.views, gmv: gmv, thumb: v.oembed_thumbnail_url, video_url: v.video_url });
   const firstProductId = Array.isArray(v.video_products) && v.video_products.length ? v.video_products[0] : null;
+  // Lien à décrypter : celui fourni par le Feed Radar, sinon reconstruit.
+  const decryptUrl = v.video_url
+    || (v.creator_unique_id && v.video_id ? `https://www.tiktok.com/@${v.creator_unique_id}/video/${v.video_id}` : '');
   const productLink = firstProductId
     ? `<a href="https://www.tiktok.com/view/product/${encodeURIComponent(firstProductId)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent,#0ea5e9);text-decoration:none">🛍️ voir le produit</a>`
     : '';
@@ -5701,6 +5709,7 @@ function renderFeedRadarCard(v) {
         <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div>
         <div style="font-size:11px;color:var(--muted)">${gmvInfo.label} : $${gmv.toLocaleString()}</div>
         ${productLink}
+        ${decryptUrl ? `<button type="button" class="fr-decrypter" data-url="${escapeHtml(decryptUrl)}" onclick="event.stopPropagation();decrypterVideo(this.dataset.url)">🔍 Décrypter</button>` : ''}
       </div>
     </div>`;
 }
@@ -5994,7 +6003,25 @@ async function loadFavoritesTab() {
   const prods = items.filter(i => i.item_type === 'product');
   const creators = items.filter(i => i.item_type === 'creator');
   const videos = items.filter(i => i.item_type === 'video');
+  const scripts = items.filter(i => i.item_type === 'script');
   let html = '';
+  // 🎬 Scripts gardés (étape 3 de la mission) — en premier : c'est la prochaine vidéo.
+  if (scripts.length) {
+    html += `<h3 style="font-size:14px;margin:4px 0 10px">🎬 Scripts à tourner (${scripts.length})</h3><div style="display:grid;gap:10px;margin-bottom:20px">`;
+    scripts.forEach(it => {
+      const p = it.payload || {};
+      const texte = [p.hook, p.script, p.cta].filter(Boolean).join('\n\n');
+      html += `<div style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
+        ${favBtn('script', it.item_id, p)}
+        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding-right:34px">${escapeHtml(p.produit || '')}${p.formule ? ' · ' + escapeHtml(p.formule) : ''}</div>
+        ${p.hook ? `<div style="font-weight:700;margin:6px 0">🎣 ${escapeHtml(p.hook)}</div>` : ''}
+        <div style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--text)">${escapeHtml(p.script || '')}</div>
+        ${p.cta ? `<div style="font-size:13px;color:var(--success,#059669);font-weight:600;margin-top:6px">📣 ${escapeHtml(p.cta)}</div>` : ''}
+        <button class="btn" style="margin-top:8px;font-size:12px;padding:7px 12px" data-t="${escapeHtml(texte)}" onclick="navigator.clipboard && navigator.clipboard.writeText(this.dataset.t).then(()=>showToast('Script copié'))">Copier le script</button>
+      </div>`;
+    });
+    html += '</div>';
+  }
   if (prods.length) {
     html += `<h3 style="font-size:14px;margin:4px 0 10px">🛍️ Produits (${prods.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px">`;
     prods.forEach(it => {
@@ -6376,3 +6403,169 @@ window.openJobResult = openJobResult;
     setTimeout(tryOpen, 500);  // léger délai initial pour laisser le boot s'amorcer
   } catch (_) {}
 })();
+
+// ══════════════════════════════════════════════════════════════
+// 🎯 MISSION D'ESSAI — de « je comprends » à « je publie »
+// ══════════════════════════════════════════════════════════════
+// Remplace l'arrivée « à vide » dans l'app. L'état vient de /api/mission,
+// qui le DÉDUIT des données existantes (analyses, scripts générés, scripts
+// gardés) : rien à cocher à la main, rien de perdu d'un appareil à l'autre.
+// Essai terminé → la même carte devient le bilan de l'essai, AVANT l'offre.
+const MISSION_ETAPES = [
+  { id: 1, titre: 'Décrypte une vidéo qui vend',
+    texte: "Choisis une vidéo qui vend en ce moment dans le Feed Radar et découvre pourquoi elle marche.",
+    bouton: 'Choisir une vidéo qui vend', action: () => missionEtape1() },
+  { id: 2, titre: 'Et pour ton produit ?',
+    texte: "Transforme ce que tu as compris en angles et en accroches pour TON produit.",
+    bouton: 'Trouver mes angles', action: () => { location.href = '/scripts?mission=2'; } },
+  { id: 3, titre: 'Prépare ta prochaine vidéo',
+    texte: "Garde le script que tu vas tourner : touche « 🎬 Je tourne celui-là ».",
+    bouton: 'Choisir mon script', action: () => { location.href = '/scripts?mission=3'; } },
+  { id: 4, titre: 'Reviens décrypter ta vidéo publiée',
+    texte: "Une fois ta vidéo en ligne, colle son lien : tu vois ce qui a marché et ce que tu changes ensuite.",
+    bouton: 'Décrypter ma vidéo', action: () => missionEtape4() },
+];
+
+// Étape 1 : si une vidéo vient d'être décryptée sur l'accueil (avant
+// l'inscription), on la reprend ; sinon, direction le Feed Radar.
+function missionEtape1() {
+  let derniere = null;
+  try { derniere = localStorage.getItem('qeerah_derniere_video'); } catch (_) {}
+  if (derniere) { decrypterVideo(derniere); return; }
+  switchTab('feedradar');
+  showToast('Choisis une vidéo et touche « 🔍 Décrypter ».');
+}
+
+function missionEtape4() {
+  switchTab('analyze');
+  const block = document.getElementById('url-single-block');
+  if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const input = document.getElementById('tiktok-url-single');
+  if (input) setTimeout(() => input.focus({ preventScroll: true }), 400);
+}
+
+// Pré-remplit l'analyse « 1 lien » avec une vidéo (Feed Radar, mission…).
+function decrypterVideo(url) {
+  if (!url) return;
+  if (window.qTrack) qTrack('video_choisie_pour_decryptage');
+  switchTab('analyze');
+  const input = document.getElementById('tiktok-url-single');
+  if (input) input.value = url;
+  const block = document.getElementById('url-single-block');
+  if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const prod = document.getElementById('single-product');
+  if (prod) setTimeout(() => prod.focus({ preventScroll: true }), 400);
+  showToast('Indique le produit de la vidéo et son prix, puis lance le décryptage.');
+}
+window.decrypterVideo = decrypterVideo;
+
+// Suivi : une étape qui passe à « faite » depuis la dernière visite.
+function _missionSuivre(etapes) {
+  let avant = [];
+  try { avant = JSON.parse(localStorage.getItem('qeerah_mission_faites') || '[]'); } catch (_) {}
+  const faites = etapes.filter(e => e.fait).map(e => e.id);
+  faites.filter(id => !avant.includes(id)).forEach(id => {
+    if (window.qTrack) qTrack('mission_etape_terminee', { etape: id });
+  });
+  try { localStorage.setItem('qeerah_mission_faites', JSON.stringify(faites)); } catch (_) {}
+}
+
+async function loadMission() {
+  const card = document.getElementById('mission-card');
+  const token = localStorage.getItem('tts_token');
+  if (!card || !token) { if (card) card.style.display = 'none'; return; }
+  let data = null;
+  try {
+    const r = await fetch('/api/mission', { headers: { 'Authorization': 'Bearer ' + token } });
+    data = await r.json().catch(() => null);
+    if (!r.ok || !data || !data.ok) { card.style.display = 'none'; return; }
+  } catch (_) { card.style.display = 'none'; return; }
+  _renderMission(card, data);
+}
+window.loadMission = loadMission;
+
+function _renderMission(card, data) {
+  const usage = data.usage || {};
+  if (usage.kind === 'expired') { _renderBilanFinEssai(card, data); return; }
+
+  _missionSuivre(data.etapes || []);
+  const faites = new Set((data.etapes || []).filter(e => e.fait).map(e => e.id));
+  const n = faites.size;
+  const essai = usage.kind === 'trial';
+  let masquee = false;
+  try { masquee = localStorage.getItem('qeerah_mission_masquee') === '1'; } catch (_) {}
+  // Abonné qui a tout fait, ou qui a masqué la carte : on ne l'encombre plus.
+  // En essai, la carte reste : c'est le fil conducteur de l'essai.
+  if (!essai && (n === 4 || masquee)) { card.style.display = 'none'; return; }
+
+  const prochaine = MISSION_ETAPES.find(e => !faites.has(e.id));
+  const sous = n === 4
+    ? "Mission accomplie : tu sais trouver ce qui vend, le comprendre, l'adapter et vérifier ce que ça donne. C'est ce que Qeerah Pro te fait refaire chaque mois."
+    : "Quatre étapes pour passer d'une vidéo qui vend à TA prochaine vidéo.";
+
+  card.innerHTML = `
+    <div class="mission-head">
+      <h2 class="mission-titre">${n === 4 ? '🎉 Mission accomplie' : '🎯 Ta mission'}</h2>
+      <span class="mission-compte">${n}/4</span>
+    </div>
+    <p class="mission-sous">${escapeHtml(sous)}</p>
+    <div class="mission-barre" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${n}"><span style="width:${n * 25}%"></span></div>
+    <ol class="mission-etapes">
+      ${MISSION_ETAPES.map(e => {
+        const fait = faites.has(e.id);
+        const active = prochaine && prochaine.id === e.id;
+        return `<li class="mission-etape${fait ? ' faite' : ''}${active ? ' active' : ''}">
+          <span class="mission-num" aria-hidden="true">${fait ? '✓' : e.id}</span>
+          <div>
+            <div class="mission-etape-titre">${escapeHtml(e.titre)}</div>
+            ${active ? `<div class="mission-etape-texte">${escapeHtml(e.texte)}</div>
+            <button type="button" class="mission-btn" data-etape="${e.id}">${escapeHtml(e.bouton)}</button>` : ''}
+          </div>
+        </li>`;
+      }).join('')}
+    </ol>
+    ${n === 4 && essai ? '<button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>' : ''}
+    <div class="mission-pied">
+      <span>${essai && usage.reset_label ? `Essai : ${escapeHtml(String(usage.remaining ?? ''))} analyses restantes · jusqu'au ${escapeHtml(usage.reset_label)}` : ''}</span>
+      ${essai ? '' : '<button type="button" data-masquer="1">Masquer</button>'}
+    </div>`;
+  card.style.display = 'block';
+
+  card.querySelectorAll('[data-etape]').forEach(b => b.addEventListener('click', () => {
+    const e = MISSION_ETAPES.find(x => x.id === parseInt(b.dataset.etape, 10));
+    if (window.qTrack) qTrack('clic_mission_etape', { etape: e.id });
+    e.action();
+  }));
+  const pro = card.querySelector('[data-pro]');
+  if (pro) pro.addEventListener('click', () => { if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'mission' }); switchTab('pricing'); });
+  const masquer = card.querySelector('[data-masquer]');
+  if (masquer) masquer.addEventListener('click', () => {
+    try { localStorage.setItem('qeerah_mission_masquee', '1'); } catch (_) {}
+    card.style.display = 'none';
+  });
+}
+
+// Fin d'essai : d'abord ce que le créateur a OBTENU, ensuite seulement l'offre.
+function _renderBilanFinEssai(card, data) {
+  const b = data.bilan || {};
+  const v = b.videos_decryptees || 0, g = b.generations_scripts || 0, s = b.scripts_gardes || 0;
+  const pl = (x) => (x > 1 ? 's' : '');
+  if (window.qTrack) qTrack('bilan_fin_essai_affiche', { videos: v });
+  card.innerHTML = (!v && !g && !s) ? `
+    <h2 class="mission-titre">Ton essai est terminé</h2>
+    <p class="mission-sous">Pas eu le temps de décrypter une vidéo ? Avec Qeerah Pro, tu vois chaque mois pourquoi les vidéos TikTok Shop vendent — et quoi reproduire dans les tiennes.</p>
+    <button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>` : `
+    <h2 class="mission-titre">Ton essai en chiffres</h2>
+    <p class="mission-sous">Voilà ce que tu as fait pendant ton essai :</p>
+    <div class="bilan-chiffres">
+      <div class="bilan-chiffre"><strong>${v}</strong><span>vidéo${pl(v)} décryptée${pl(v)}</span></div>
+      <div class="bilan-chiffre"><strong>${g}</strong><span>série${pl(g)} d'angles pour ton produit</span></div>
+      <div class="bilan-chiffre"><strong>${s}</strong><span>script${pl(s)} prêt${pl(s)} à tourner</span></div>
+    </div>
+    <p class="mission-sous">Pour continuer à comprendre ce qui vend et à le reproduire chaque mois, passe à Qeerah Pro. Tes analyses et tes favoris restent là.</p>
+    <button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>`;
+  card.style.display = 'block';
+  const pro = card.querySelector('[data-pro]');
+  if (pro) pro.addEventListener('click', () => { if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'bilan_essai' }); switchTab('pricing'); });
+}
+window._renderMission = _renderMission;

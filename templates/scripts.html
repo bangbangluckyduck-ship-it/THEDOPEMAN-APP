@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Générateur de scripts multi-angles — Qeerah</title>
-<meta name="description" content="Un produit → 5 scripts TikTok Shop prêts à tourner, chacun dans un angle différent. Réservé aux plans Pro, Gold et Agency.">
+<meta name="description" content="Un produit → 5 scripts TikTok Shop prêts à tourner, chacun dans un angle différent. Inclus dans l'essai gratuit et dans Qeerah Pro.">
 <style>
   :root{--bg:#F5F7FA;--surface:#fff;--surface2:#f1f4f8;--text:#1A1A1A;--muted:#6B7280;--border:#e3e8ef;
         --primary:#2563EB;--gold:#D4AF37;--navy:#1F3A70;--success:#059669;--err:#DC2626;--radius:14px}
@@ -56,6 +56,7 @@
   <h1>Générateur de scripts multi-angles <span class="badge">NOUVEAU</span></h1>
   <div class="sub">Un produit → jusqu'à 5 scripts prêts à tourner, chacun dans un <strong>angle différent</strong> (confessionnel, skit dialogué, deal frontal, astuce…). C'est la stratégie de volume des top comptes : recycler un produit gagnant sous plusieurs angles.</div>
 
+  <div id="sp-mission" class="banner warn" style="display:none"></div>
   <div class="card">
     <label class="fld">Produit <span style="color:var(--err)">*</span></label>
     <input id="sp-product" maxlength="120" placeholder="Ex : Ninja Slushi machine à granité">
@@ -77,7 +78,7 @@
     <select id="sp-n"><option value="5">5 angles (recommandé)</option><option value="4">4 angles</option><option value="3">3 angles</option></select>
 
     <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">Générer mes scripts</button>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">3 générations gratuites/mois — puis illimité avec un plan Pro.</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">3 générations offertes pendant l'essai — sans limite avec Qeerah Pro.</div>
   </div>
 
   <div id="sp-out"></div>
@@ -124,10 +125,14 @@ function renderResult(d){
     +   '<div class="script-body">'+esc(s.script||'')+'</div>'
     +   (s.cta? '<div class="cta">📣 '+esc(s.cta)+'</div>':'')
     +   (s.why_it_works? '<div class="why">'+esc(s.why_it_works)+'</div>':'')
-    +   '<button class="btn-sec" style="margin-top:10px" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">Copier le script</button>'
+    +   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+    +     '<button class="btn-sec" onclick=\'copyText(this, this.dataset.t)\' data-t="'+esc(fullForCopy)+'">Copier le script</button>'
+    +     '<button class="btn-sec" data-i="'+i+'" onclick="garderScript(this)">🎬 Je tourne celui-là</button>'
+    +   '</div>'
     + '</div>';
   }).join('');
 
+  window.__spDernier = d;
   out.innerHTML = head + cards;
   out.scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -137,7 +142,7 @@ async function generate(){
   var out = el('sp-out');
   if(!product){ out.innerHTML='<div class="banner err">Indique d\'abord un nom de produit.</div>'; return; }
   if(!token()){
-    out.innerHTML = '<div class="upsell"><strong>Connecte-toi pour générer</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est réservé aux membres Pro, Gold et Agency.</div><a class="btn btn-gold" href="/">Se connecter</a></div>';
+    out.innerHTML = '<div class="upsell"><strong>Crée ton compte gratuit pour générer tes scripts</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">7 jours d\'accès complet, sans carte bancaire.</div><a class="btn btn-gold" href="/">Créer mon compte</a></div>';
     return;
   }
   var btn = el('sp-go');
@@ -156,8 +161,8 @@ async function generate(){
       })
     });
     if(res.status===401){ out.innerHTML='<div class="upsell"><strong>Session expirée</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Reconnecte-toi pour continuer.</div><a class="btn btn-gold" href="/">Se reconnecter</a></div>'; return; }
-    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>Tes 3 générations gratuites du mois sont épuisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à un plan Pro pour générer des scripts en illimité.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
-    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur est momentanément réservé aux plans Pro. Réessaie dans un instant.</div><a class="btn btn-gold" href="/pricing">Voir les offres</a></div>'; return; }
+    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>Tes 3 générations offertes sont utilisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à Qeerah Pro pour générer des scripts sans limite.</div><a class="btn btn-gold" href="/pricing">Passer à Qeerah Pro</a></div>'; return; }
+    if(res.status===403){ out.innerHTML='<div class="upsell"><strong>Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur ne répond pas. Réessaie dans un instant.</div><a class="btn btn-gold" href="/app">Retour à mon espace</a></div>'; return; }
     var d = await res.json().catch(function(){return {};});
     if(!res.ok || d.ok===false){ out.innerHTML='<div class="banner err">'+esc((d && (d.detail||d.error))||'Génération indisponible pour le moment. Réessaie dans un instant.')+'</div>'; return; }
     if(!d.scripts || !d.scripts.length){ out.innerHTML='<div class="banner err">Aucun script généré. Réessaie avec un nom de produit plus précis.</div>'; return; }
@@ -168,6 +173,47 @@ async function generate(){
     btn.disabled=false; btn.textContent=label;
   }
 }
+
+// ── ÉTAPE 3 DE LA MISSION : garder le script qu'on va tourner ──
+// Enregistré comme favori de type « script » : retrouvable dans Favoris, et
+// compté par /api/mission. Identifiant stable = empreinte du texte.
+function _empreinte(t){ var h=0; for(var k=0;k<t.length;k++){ h=((h<<5)-h+t.charCodeAt(k))|0; } return 'sc'+(h>>>0).toString(36); }
+async function garderScript(btn){
+  var d = window.__spDernier || {};
+  var s = (d.scripts||[])[parseInt(btn.dataset.i,10)] || {};
+  if(!token()){ location.href='/'; return; }
+  btn.disabled = true;
+  var payload = { produit: d.produit||'', formule: s.formule||'', angle: s.angle||'', hook: s.hook_0_3s||'', script: s.script||'', cta: s.cta||'' };
+  try{
+    var r = await fetch('/api/favorites', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token(), 'Content-Type':'application/json'},
+      body: JSON.stringify({ item_type:'script', item_id:_empreinte((payload.hook||'')+(payload.script||'')), payload: payload })
+    });
+    if(!r.ok) throw new Error('favori');
+    btn.textContent = "✅ Gardé — c'est ta prochaine vidéo";
+    if(window.qTrack) qTrack('mission_script_garde');
+    var m = el('sp-mission');
+    if(m){
+      m.style.display = 'block';
+      m.innerHTML = "<strong>Script gardé.</strong> Tu le retrouves dans tes favoris. Tourne-le, publie-le, puis reviens décrypter ta vidéo : c'est la dernière étape de ta mission. <a href=\"/app\" style=\"font-weight:700\">Retour à ma mission →</a>";
+      m.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Enregistrement impossible — réessaie';
+  }
+}
+
+// Arrivée depuis la mission (/scripts?mission=2 ou 3) : on dit quoi faire ici.
+document.addEventListener('DOMContentLoaded', function(){
+  var etape = new URLSearchParams(location.search).get('mission');
+  var m = el('sp-mission');
+  if(!m || !etape) return;
+  m.style.display = 'block';
+  m.innerHTML = etape === '3'
+    ? "<strong>Étape 3 — Prépare ta prochaine vidéo.</strong> Génère tes angles, puis touche « 🎬 Je tourne celui-là » sur le script que tu vas filmer."
+    : "<strong>Étape 2 — Et pour ton produit ?</strong> Entre <u>ton</u> produit : tu reçois plusieurs angles, chacun avec son accroche, prêts à tester.";
+});
 
 // Entrée clavier : Enter dans le champ produit lance la génération.
 document.addEventListener('DOMContentLoaded', function(){

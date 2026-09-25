@@ -120,18 +120,21 @@ def _new_user_row(email: str, password_hash: str) -> dict:
 
 def _persist_sync_analysis(user: dict, result: dict, *, source: str,
                            source_url=None, product=None, price=None,
-                           title=None, duration_ms=None) -> None:
+                           title=None, duration_ms=None,
+                           depuis_cache: bool = False) -> None:
     """Persiste une analyse sync dans analysis_jobs (status='done') pour qu'elle
     apparaisse dans "Mes analyses" cross-device. Best-effort, jamais bloquant.
 
     Skip si :
     - utilisateur non connecté (pas de stockage anonyme dans la table)
-    - result vient du cache (déjà persisté lors de la 1re analyse)
+    - result vient du cache (déjà persisté lors de la 1re analyse), SAUF si
+      `depuis_cache=True` : le cache est partagé entre comptes, donc la 1re
+      analyse a pu être faite par quelqu'un d'autre — ou sans compte.
     """
     try:
         if not user or not user.get("valid") or not user.get("email"):
             return
-        if isinstance(result, dict) and result.get("from_cache"):
+        if isinstance(result, dict) and result.get("from_cache") and not depuis_cache:
             return
         import analysis_jobs as _aj
         # Titre court : product → filename → "Analyse vidéo"
@@ -2500,6 +2503,13 @@ async def analyze_url(request: Request):
             cached["source_url"] = url
             cached["from_cache"] = True
             cached["performance"] = performance
+            # Un compte connecté doit retrouver cette analyse dans « Mes analyses »
+            # et la voir compter dans sa mission — en particulier juste après
+            # l'inscription, où l'on resert depuis le cache l'analyse faite sans
+            # compte. Aucun quota n'est consommé (rien n'a été recalculé).
+            if user.get("valid"):
+                _persist_sync_analysis(user, cached, source="url", source_url=url,
+                                       title=url[:60], depuis_cache=True)
             return JSONResponse(cached)
 
     loop = asyncio.get_event_loop()
@@ -5477,10 +5487,68 @@ async def carousel_history(request: Request):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# MISSION D'ESSAI — 4 étapes qui mènent de « je comprends » à « je publie ».
+#   1. Décrypte une vidéo qui vend           → ≥ 1 analyse
+#   2. Et pour ton produit ?                 → ≥ 1 génération de scripts
+#   3. Prépare ta prochaine vidéo            → ≥ 1 script gardé (favori « script »)
+#   4. Reviens décrypter ta vidéo publiée    → 1 analyse APRÈS le script gardé
+# Tout est DÉDUIT des tables existantes : aucune migration, et rien à tenir à
+# jour à la main. Les compteurs servent aussi au bilan de fin d'essai.
+# ════════════════════════════════════════════════════════════════════════════
+def _dates_colonne(table: str, email: str, extra=None, limit: int = 500) -> list:
+    """Dates de création (ISO, triées) des lignes d'un compte. [] si indisponible."""
+    try:
+        q = supabase_client.table(table).select("created_at").eq("email", email)
+        for col, val in (extra or {}).items():
+            q = q.eq(col, val)
+        r = q.order("created_at", desc=False).limit(limit).execute()
+        return [row["created_at"] for row in (r.data or []) if row.get("created_at")]
+    except Exception as e:
+        print(f"/api/mission {table}: {e}")
+        return []
+
+
+@app.get("/api/mission")
+async def mission_etat(request: Request):
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    email = user["email"]
+
+    analyses = _dates_colonne("analysis_jobs", email, {"status": "done"})
+    scripts = _dates_colonne("script_generations", email)
+    gardes = _dates_colonne("user_favorites", email, {"item_type": "script"})
+
+    premier_garde = gardes[0] if gardes else None
+    # Les dates ISO de Supabase sont comparables en tant que chaînes (même format).
+    apres_script = [d for d in analyses if premier_garde and d > premier_garde]
+
+    etapes = [
+        {"id": 1, "fait": len(analyses) >= 1},
+        {"id": 2, "fait": len(scripts) >= 1},
+        {"id": 3, "fait": len(gardes) >= 1},
+        {"id": 4, "fait": len(apres_script) >= 1},
+    ]
+    return {
+        "ok": True,
+        "etapes": etapes,
+        "terminees": sum(1 for e in etapes if e["fait"]),
+        "bilan": {
+            "videos_decryptees": len(analyses),
+            "generations_scripts": len(scripts),
+            "scripts_gardes": len(gardes),
+        },
+        "usage": usage_info(user),
+    }
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # FAVORIS — créateurs / produits / posts gagnants sauvegardés par l'utilisateur
 # (dégrade proprement si la table user_favorites n'est pas encore migrée)
 # ════════════════════════════════════════════════════════════════════════════
-_FAV_TYPES = {"creator", "product", "video"}
+# « script » : le script que le créateur a choisi de tourner (étape 3 de la
+# mission d'essai). payload = hook + script + CTA, pour le relire sans régénérer.
+_FAV_TYPES = {"creator", "product", "video", "script"}
 
 
 @app.get("/api/favorites")
