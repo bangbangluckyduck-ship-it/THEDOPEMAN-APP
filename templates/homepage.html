@@ -81,7 +81,7 @@
             "name": "C'est quoi Qeerah exactement ?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Qeerah analyse les vidéos et produits qui vendent le plus sur TikTok Shop, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit."
+              "text": "Qeerah te montre pourquoi une vidéo TikTok Shop vend — l'accroche, la structure, les arguments, l'appel à l'action — et quoi reproduire dans tes propres vidéos. Tu trouves ce qui vend, tu comprends pourquoi, tu l'adaptes à ton produit, puis tu vérifies ce que donne ta vidéo une fois publiée."
             }
           },
           {
@@ -105,7 +105,7 @@
             "name": "D'où viennent les données TikTok Shop de Qeerah ?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Des ventes réelles observées sur les 30 derniers jours, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé."
+              "text": "Du Feed Radar : les vidéos et les produits qui vendent, relevés sur les 30 derniers jours, par pays. Quand TikTok relie une vente directement à une vidéo, tu vois le chiffre réel (« GMV réel »). Sinon, le chiffre d'affaires d'une vidéo est estimé à partir de ses vues, d'un taux de conversion moyen observé sur TikTok Shop et du prix du produit — et il est affiché comme « GMV estimé »."
             }
           },
           {
@@ -1116,7 +1116,7 @@
       <a href="/it" hreflang="it">IT</a> ·
       <a href="/de" hreflang="de">DE</a>
     </noscript>
-    <a href="#tool" class="btn-header" data-i18n="nav_try">Tester gratuitement</a>
+    <a href="#tool" class="btn-header" id="nav-cta" data-i18n="nav_try">Analyser gratuitement</a>
     <button class="nav-link-login" onclick="openLoginModal()" data-i18n="nav_login">Se connecter</button>
   </nav>
   <script>
@@ -1632,16 +1632,7 @@
 
 <section class="tool-section" id="tool">
   <div class="tool-container">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
-      <button class="btn-header" onclick="scrollToTool()" style="flex:1;min-width:200px;padding:14px;font-size:16px;" data-i18n="tool_btn_analyze">Analyser une vidéo
-      </button>
-      <a href="/carousel" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#D4AF37;color:#1a1a1a;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;"><span data-i18n="tool_btn_carousel">Créer un carrousel</span> <span style="font-size:10px;margin-left:6px;opacity:.8" data-i18n="badge_new">NOUVEAU</span>
-      </a>
-      <a href="/scripts" class="btn-header" style="flex:1;min-width:200px;padding:14px;font-size:16px;text-align:center;text-decoration:none;background:#1F3A70;color:#fff;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;"><span data-i18n="tool_btn_scripts">Générer des scripts</span> <span style="font-size:10px;margin-left:6px;opacity:.8" data-i18n="badge_new">NOUVEAU</span>
-      </a>
-    </div>
-
-    <h2 class="tool-title" data-i18n="tool_title">Analyse ta vidéo maintenant</h2>
+    <h2 class="tool-title" data-i18n="tool_title">Colle le lien d'une vidéo qui vend</h2>
 
     <div class="error-message" id="error-message"></div>
 
@@ -1943,6 +1934,9 @@
     text-align:center; background:rgba(15,23,42,.55); color:#fff;
   }
   .fr-lock strong { font-size:13.5px; line-height:1.35; }
+  .fr-lock span { font-size:12.5px; opacity:.9; }
+  .fr-decrypter { display:block; width:100%; margin-top:6px; border:none; border-radius:8px; padding:8px 6px; min-height:36px;
+    cursor:pointer; background:linear-gradient(135deg,var(--primary),var(--primary-dk)); color:#fff; font-weight:800; font-size:12px; }
   .fr-lock a {
     background:#fff; color:#1F3A70; text-decoration:none; font-weight:800;
     font-size:12.5px; padding:7px 13px; border-radius:9px; white-space:nowrap;
@@ -1951,8 +1945,8 @@
 
 <section id="feedradar-teaser-section" style="padding:60px 20px;background:var(--bg,#F5F7FA)">
   <div style="max-width:1100px;margin:0 auto">
-    <h2 class="section-title" style="text-align:center">Feed Radar</h2>
-    <p class="section-subtitle" style="text-align:center;margin-bottom:32px" data-i18n="fr_sub">Les vidéos TikTok Shop qui cartonnent en ce moment, avec leur GMV (chiffre d\'affaires généré) estimé</p>
+    <h2 class="section-title" style="text-align:center" data-i18n="fr_title">Ce qui vend aujourd'hui</h2>
+    <p class="section-subtitle" style="text-align:center;margin-bottom:32px" data-i18n="fr_sub">Les vidéos TikTok Shop qui vendent en ce moment. Choisis-en une et découvre pourquoi elle marche.</p>
 
     <div class="fr-grid" id="feedradar-teaser-grid">
       {#- Repli statique : toujours quelque chose à voir, même si l'appel
@@ -1971,15 +1965,11 @@
         <div class="fr-body"><div class="fr-author">@creator</div><div class="fr-meta" data-i18n="fr_views">— vues</div></div>
         <div class="fr-lock">
           <strong data-i18n="fr_lock">Le reste du Feed Radar</strong>
-          <a href="/app" data-i18n="fr_create">Créer un compte</a>
+          <span data-i18n="fr_lock_sub">S'ouvre avec ton compte gratuit</span>
         </div>
       </div>
     </div>
 
-    <p style="text-align:center;margin-top:26px">
-      <a href="/app" style="color:var(--accent);font-weight:700;text-decoration:none"
-         data-i18n="fr_unlock" data-var-trial="{{ TRIAL_OFFER }}">Débloquer le Feed Radar — {{ TRIAL_OFFER }} →</a>
-    </p>
 
     {#- Libellés des cartes construites en JavaScript après l'appel à l'API.
         Ils sont posés ici, en français, avec leur clef : le serveur les traduit
@@ -1991,7 +1981,10 @@
       <span id="l-fr-gmv-est" data-i18n="fr_gmv_est">GMV estimé</span>
       <span id="l-fr-unlock-n" data-i18n="fr_unlock_n">Débloque les {n} autres</span>
       <span id="l-fr-lock2" data-i18n="fr_lock">Le reste du Feed Radar</span>
-      <span id="l-fr-create2" data-i18n="fr_create">Créer un compte</span>
+      <span id="l-fr-lock-sub" data-i18n="fr_lock_sub">S'ouvre avec ton compte gratuit</span>
+      <span id="l-fr-decrypter" data-i18n="fr_decrypter">🔍 Décrypter cette vidéo</span>
+      <span id="l-cta-mission" data-i18n="cta_mission">Continuer ma mission</span>
+      <span id="l-cta-pro" data-i18n="cta_pro">Passer à Qeerah Pro</span>
       <span id="l-fr-views2" data-i18n="fr_views">— vues</span>
       <span id="l-fr-thumb-alt" data-i18n="fr_thumb_alt">Miniature de la vidéo TikTok de</span>
       <span id="l-demo-pause" data-i18n="demo_pause">Mettre en pause</span>
@@ -2053,7 +2046,10 @@
         '<div class="fr-body"><div class="fr-author">@'+auteur+'</div>'+
         '<div class="fr-meta">'+(v.views||0).toLocaleString()+' '+esc(tr('l-fr-views-word', 'vues'))+'</div>'+
         '<div class="fr-meta">'+esc(reel ? tr('l-fr-gmv-real', 'GMV réel') : tr('l-fr-gmv-est', 'GMV estimé'))+
-        ' : $'+gmv+'</div></div></div>';
+        ' : $'+gmv+'</div>'+
+        (v.video_url ? '<button type="button" class="fr-decrypter" data-url="'+esc(v.video_url)+'">'+
+          esc(tr('l-fr-decrypter', '🔍 Décrypter cette vidéo'))+'</button>' : '')+
+        '</div></div>';
     });
 
     cartes.push(
@@ -2065,11 +2061,25 @@
           esc(restantes > 0
               ? tr('l-fr-unlock-n', 'Débloque les {n} autres').replace('{n}', restantes)
               : tr('l-fr-lock2', 'Le reste du Feed Radar')) +
-        '</strong><a href="/app">'+esc(tr('l-fr-create2', 'Créer un compte'))+'</a></div>'+
+        '</strong><span>'+esc(tr('l-fr-lock-sub', "S'ouvre avec ton compte gratuit"))+'</span></div>'+
       '</div>'
     );
 
     grille.innerHTML = cartes.join('');
+    // « Décrypter » : la vidéo qui vend part directement dans l'outil — l'essai
+    // sans compte sert à comprendre CE qui vend aujourd'hui, en un clic.
+    Array.prototype.forEach.call(grille.querySelectorAll('.fr-decrypter'), function (b) {
+      b.addEventListener('click', function () {
+        var champ = document.getElementById('tiktok-url');
+        var go = document.getElementById('analyze-url-btn');
+        if (!champ || !go) return;
+        if (window.qTrack) qTrack('clic_decrypter_feed_radar', { emplacement: 'accueil' });
+        champ.value = b.dataset.url;
+        champ.dispatchEvent(new Event('input'));
+        document.getElementById('tool').scrollIntoView({ behavior: 'smooth' });
+        if (!go.disabled) go.click();
+      });
+    });
   }
 })();
 </script>
@@ -2115,8 +2125,8 @@
 
 <section class="pricing" id="pricing">
   <div style="max-width: 900px; margin: 0 auto; padding: 0 20px;">
-    <h2 class="section-title" data-i18n="pr_title">Une seule offre</h2>
-    <p class="section-subtitle" data-i18n="pr_sub">Tout est inclus. Pas de palier, pas de fonctionnalité verrouillée.</p>
+    <h2 class="section-title" data-i18n="pr_title">Continue à comprendre ce qui vend, chaque mois</h2>
+    <p class="section-subtitle" data-i18n="pr_sub">Une seule offre. Tout est inclus, rien n'est verrouillé.</p>
 
     <div class="pricing-grid" style="grid-template-columns:1fr;max-width:520px;margin:0 auto">
       <div class="pricing-card popular" data-plan="pro">
@@ -2124,13 +2134,12 @@
         <div class="price" id="hp-pro-price">29<span style="font-size:20px">,99&euro;</span></div>
         <div class="period" data-i18n="pr_period">par mois, TTC &mdash; ou 299 &euro; TTC/an (2 mois offerts)</div>
         <ul class="features-list">
-          <li data-i18n-html="pr_li1"><strong>Analyses de vid&eacute;os</strong> incluses chaque mois</li>
-          <li data-i18n-html="pr_li2">Analyse par <strong>upload et par lien TikTok</strong></li>
-          <li data-i18n-html="pr_li3"><strong>Coach IA</strong>, script perso et analyse multi-liens</li>
-          <li data-i18n-html="pr_li4"><strong>Donn&eacute;es march&eacute;</strong>, Feed Radar et recherche de profil</li>
-          <li data-i18n-html="pr_li5">&#127916; Studio d'accroches IA et &#128248; Coach carrousel photo</li>
+          <li data-i18n-html="pr_res1" data-var-n="{{ ANALYSES_PER_MONTH }}"><strong>{{ ANALYSES_PER_MONTH }} vidéos décryptées</strong> par mois — par lien ou par fichier</li>
+          <li data-i18n-html="pr_res2">Des <strong>accroches et des scripts</strong> prêts à tourner pour tes produits</li>
+          <li data-i18n-html="pr_res3"><strong>Ce qui vend aujourd'hui</strong> dans ton pays : vidéos, produits, créateurs</li>
+          <li data-i18n-html="pr_res4">Le décryptage de <strong>tes propres vidéos</strong>, une par une ou plusieurs d'un coup</li>
         </ul>
-        <button class="btn-pricing" onclick="location.href='/pricing'" data-i18n="pr_cta">S'abonner &agrave; Qeerah Pro &rarr;</button>
+        <button type="button" class="btn-pricing" id="pr-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</button>
         {#- Ordre de grandeur en devise locale, rempli par le serveur uniquement
             sur les marchés hors zone euro (cf. homepage_i18n._price_block).
             Reste vide — donc invisible — en France, en Allemagne, en Espagne et
@@ -2143,12 +2152,10 @@
     </div>
 
     <p style="text-align:center;font-size:14px;color:var(--muted);margin-top:20px">
-      <span data-i18n-html="pr_no_account" data-var-trial="{{ TRIAL_OFFER }}">Pas encore de compte ? <strong style="color:var(--text)">{{ TRIAL_OFFER }}</strong>
-      &agrave; l'inscription, avec 10 analyses pour tester.</span>
-      <a href="/app" style="color:var(--accent);font-weight:700;text-decoration:none" data-i18n="pr_create">Cr&eacute;er un compte &rarr;</a>
+      <span data-i18n-html="pr_essai" data-var-trial="{{ TRIAL_OFFER }}" data-var-a="{{ TRIAL_ANALYSES }}">Commence sans payer : <strong>{{ TRIAL_OFFER }}</strong>, avec {{ TRIAL_ANALYSES }} vidéos à décrypter.</span>
     </p>
     <p style="text-align:center;margin-top:12px">
-      <a href="/pricing/compare" style="color:var(--accent);font-weight:700;text-decoration:none;font-size:14px" data-i18n="pr_compare">Voir le d&eacute;tail de toutes les fonctionnalit&eacute;s &rarr;</a>
+      <a href="/pricing/compare" style="color:var(--accent);font-weight:700;text-decoration:none;font-size:14px" data-i18n="pr_compare">Tout ce qui est inclus &rarr;</a>
     </p>
 
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:18px;color:var(--muted);font-size:12.5px;margin-top:22px">
@@ -2166,7 +2173,7 @@
   <div style="display:flex;flex-direction:column;gap:10px">
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A" data-i18n="faq_q1">C'est quoi Qeerah exactement ?</summary>
-      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6" data-i18n-html="faq_a1">Qeerah analyse les vidéos et produits qui <strong>vendent le plus sur TikTok Shop</strong>, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit.</p>
+      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6" data-i18n-html="faq_a1">Qeerah te montre <strong>pourquoi une vidéo TikTok Shop vend</strong> — l'accroche, la structure, les arguments, l'appel à l'action — et quoi reproduire dans tes propres vidéos. Tu trouves ce qui vend, tu comprends pourquoi, tu l'adaptes à ton produit, puis tu vérifies ce que donne ta vidéo une fois publiée.</p>
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A" data-i18n="faq_q2">Je peux tester sans payer ?</summary>
@@ -2178,7 +2185,7 @@
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A" data-i18n="faq_q4">D'où viennent tes données TikTok Shop ?</summary>
-      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6" data-i18n-html="faq_a4">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</p>
+      <p style="margin:10px 0 0;color:#4B5563;font-size:14px;line-height:1.6" data-i18n-html="faq_a4">Du Feed Radar : les vidéos et les produits qui vendent, relevés sur les <strong>30 derniers jours</strong>, par pays. Quand TikTok relie une vente directement à une vidéo, tu vois le chiffre réel (« GMV réel »). Sinon, le chiffre d'affaires d'une vidéo est <strong>estimé</strong> à partir de ses vues, d'un taux de conversion moyen observé sur TikTok Shop et du prix du produit — et il est affiché comme « GMV estimé ».</p>
     </details>
     <details style="background:#fff;border:1px solid #e3e8ef;border-radius:12px;padding:14px 18px">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#1A1A1A" data-i18n="faq_q5">Puis-je annuler à tout moment ?</summary>
@@ -2200,7 +2207,7 @@
       <a href="#features" data-i18n="ft_features">Fonctionnalités</a>
       <a href="#faq" data-i18n="ft_faq">FAQ</a>
       <a href="/pricing" data-i18n="ft_pricing">Tarifs</a>
-      <a href="/pricing/compare" data-i18n="ft_compare">Comparer les plans</a>
+      <a href="/pricing/compare" data-i18n="ft_compare">Tout ce qui est inclus</a>
       <a href="/credits" data-i18n="ft_credits">Crédits</a>
     </div>
 
@@ -2534,6 +2541,7 @@
       document.getElementById('login-password').value = '';
       messageDiv.style.display = 'none';
       closeLoginModal();
+      if (window.appliquerCtaConnecte) window.appliquerCtaConnecte();
       if (window.apresConnexionHomepage) window.apresConnexionHomepage();
     } catch (e) {
       messageDiv.textContent = 'Erreur connexion: ' + e.message;
@@ -2866,15 +2874,42 @@
 
   // Appel à l'action principal : même destination que #tool, mais le champ
   // du lien reçoit le focus — sur mobile, le clavier s'ouvre directement.
-  document.querySelectorAll('.hero-cta').forEach(function (a) {
+  document.querySelectorAll('.hero-cta, #nav-cta, #pr-cta').forEach(function (a) {
     a.addEventListener('click', function (e) {
+      // Compte connecté : le lien mène à /app (mission) ou /pricing — on le suit.
+      if (a.dataset.connecte === '1') {
+        if (a.tagName === 'BUTTON') location.href = a.dataset.href;
+        return;
+      }
       e.preventDefault();
-      if (window.qTrack) qTrack('clic_cta_principal', { emplacement: a.id === 'hero-cta' ? 'hero' : 'probleme' });
+      if (window.qTrack) qTrack('clic_cta_principal', {
+        emplacement: a.id === 'hero-cta' ? 'hero' : a.id === 'nav-cta' ? 'entete' : a.id === 'pr-cta' ? 'tarif' : 'probleme' });
       document.getElementById('tool').scrollIntoView({ behavior: 'smooth' });
       var champ = document.getElementById('tiktok-url');
       if (champ) setTimeout(function () { champ.focus({ preventScroll: true }); }, 450);
     });
   });
+
+  // ── APPELS À L'ACTION D'UN COMPTE CONNECTÉ ──────────────────
+  // Visiteur : un seul appel partout, « Analyser ma première vidéo gratuitement ».
+  // Compte connecté (essai ou abonné) : « Continuer ma mission » (hero, écran
+  // « Le problème ») et « Passer à Qeerah Pro » (tarif). Libellés traduits par
+  // le serveur dans #fr-labels.
+  function appliquerCtaConnecte() {
+    var connecte = false;
+    try { connecte = !!(localStorage.getItem('tts_token') && JSON.parse(localStorage.getItem('SESSION') || '{}').email); } catch (_) {}
+    if (!connecte) return;
+    function lib(id, repli) { var el = document.getElementById(id); return (el && el.textContent.trim()) || repli; }
+    document.querySelectorAll('.hero-cta').forEach(function (a) {
+      a.textContent = lib('l-cta-mission', 'Continuer ma mission');
+      a.setAttribute('href', '/app'); a.dataset.connecte = '1';
+    });
+    var note = document.querySelector('.hero-cta-note'); if (note) note.style.display = 'none';
+    var pr = document.getElementById('pr-cta');
+    if (pr) { pr.textContent = lib('l-cta-pro', 'Passer à Qeerah Pro'); pr.dataset.connecte = '1'; pr.dataset.href = '/pricing'; }
+  }
+  window.appliquerCtaConnecte = appliquerCtaConnecte;
+  appliquerCtaConnecte();
 
   // ── DÉBLOCAGE DU RÉSULTAT PAR UN COMPTE GRATUIT ─────────────
   function ouvrirInscription(origine) {

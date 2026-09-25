@@ -44,7 +44,7 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Soit {0} € sur un an.": "That's €{0} over a year.",
         "TVA non applicable, article {0} B du CGI.":
             "No VAT charged — French small-business exemption (art. {0} B, French tax code).",
-        "{0} analyses de vidéos": "{0} video analyses",
+        "{0} vidéos décryptées": "{0} videos broken down",
         "par mois": "per month",
         "{0} crédits IA": "{0} AI credits",
         "par mois — environ {0} carrousels ({1} crédits chacun)":
@@ -73,8 +73,8 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Tu n'as pas encore de compte ?": "Don't have an account yet?",
         "{0} jours d'accès complet, sans carte bancaire — {1} analyses de vidéos et {2} essais sur chaque outil de création":
             "{0} days of full access, no card required — {1} video analyses and {2} free runs of every creative tool",
-        "créer un compte gratuitement": "create a free account",
-        "Voir le détail de toutes les fonctionnalités →": "See every feature in detail →",
+        "Analyse ta première vidéo gratuitement": "Analyse your first video for free",
+        "Tout ce qui est inclus →": "Everything that's included →",
         "️ Annulation à tout moment": "️ Cancel any time",
         "Paiement sécurisé (Stripe)": "Secure payment (Stripe)",
         "Activation immédiate": "Instant activation",
@@ -99,7 +99,7 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Soit {0} € sur un an.": "Dá € {0} no ano.",
         "TVA non applicable, article {0} B du CGI.":
             "Sem cobrança de IVA — isenção de microempresa francesa (art. {0} B do código tributário francês).",
-        "{0} analyses de vidéos": "{0} análises de vídeo",
+        "{0} vidéos décryptées": "{0} vídeos destrinchados",
         "par mois": "por mês",
         "{0} crédits IA": "{0} créditos de IA",
         "par mois — environ {0} carrousels ({1} crédits chacun)":
@@ -128,8 +128,8 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Tu n'as pas encore de compte ?": "Ainda não tem conta?",
         "{0} jours d'accès complet, sans carte bancaire — {1} analyses de vidéos et {2} essais sur chaque outil de création":
             "{0} dias de acesso completo, sem cartão — {1} análises de vídeo e {2} usos grátis de cada ferramenta de criação",
-        "créer un compte gratuitement": "criar uma conta grátis",
-        "Voir le détail de toutes les fonctionnalités →": "Ver todos os recursos em detalhe →",
+        "Analyse ta première vidéo gratuitement": "Analise seu primeiro vídeo grátis",
+        "Tout ce qui est inclus →": "Tudo o que está incluído →",
         "️ Annulation à tout moment": "️ Cancele quando quiser",
         "Paiement sécurisé (Stripe)": "Pagamento seguro (Stripe)",
         "Activation immédiate": "Ativação na hora",
@@ -154,7 +154,7 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Soit {0} € sur un an.": "Son {0} € en un año.",
         "TVA non applicable, article {0} B du CGI.":
             "Sin IVA — exención de microempresa francesa (art. {0} B del código fiscal francés).",
-        "{0} analyses de vidéos": "{0} análisis de vídeo",
+        "{0} vidéos décryptées": "{0} vídeos descifrados",
         "par mois": "al mes",
         "{0} crédits IA": "{0} créditos de IA",
         "par mois — environ {0} carrousels ({1} crédits chacun)":
@@ -183,8 +183,8 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Tu n'as pas encore de compte ?": "¿Todavía no tienes cuenta?",
         "{0} jours d'accès complet, sans carte bancaire — {1} analyses de vidéos et {2} essais sur chaque outil de création":
             "{0} días de acceso completo, sin tarjeta — {1} análisis de vídeo y {2} usos gratis de cada herramienta de creación",
-        "créer un compte gratuitement": "crear una cuenta gratis",
-        "Voir le détail de toutes les fonctionnalités →": "Ver todas las funciones en detalle →",
+        "Analyse ta première vidéo gratuitement": "Analiza tu primer vídeo gratis",
+        "Tout ce qui est inclus →": "Todo lo que incluye →",
         "️ Annulation à tout moment": "️ Cancela cuando quieras",
         "Paiement sécurisé (Stripe)": "Pago seguro (Stripe)",
         "Activation immédiate": "Activación inmediata",
@@ -209,7 +209,7 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Soit {0} € sur un an.": "Fanno {0} € in un anno.",
         "TVA non applicable, article {0} B du CGI.":
             "Nessuna IVA applicata — esenzione per microimprese francesi (art. {0} B del codice fiscale francese).",
-        "{0} analyses de vidéos": "{0} analisi di video",
+        "{0} vidéos décryptées": "{0} video decifrati",
         "par mois": "al mese",
         "{0} crédits IA": "{0} crediti IA",
         "par mois — environ {0} carrousels ({1} crédits chacun)":
@@ -238,8 +238,8 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Tu n'as pas encore de compte ?": "Non hai ancora un account?",
         "{0} jours d'accès complet, sans carte bancaire — {1} analyses de vidéos et {2} essais sur chaque outil de création":
             "{0} giorni di accesso completo, senza carta — {1} analisi di video e {2} prove gratuite di ogni strumento creativo",
-        "créer un compte gratuitement": "crea un account gratis",
-        "Voir le détail de toutes les fonctionnalités →": "Vedi tutte le funzioni nel dettaglio →",
+        "Analyse ta première vidéo gratuitement": "Analizza il tuo primo video gratis",
+        "Tout ce qui est inclus →": "Tutto ciò che è incluso →",
         "️ Annulation à tout moment": "️ Disdici quando vuoi",
         "Paiement sécurisé (Stripe)": "Pagamento sicuro (Stripe)",
         "Activation immédiate": "Attivazione immediata",
@@ -264,7 +264,7 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Soit {0} € sur un an.": "Macht {0} € im Jahr.",
         "TVA non applicable, article {0} B du CGI.":
             "Keine Mehrwertsteuer — französische Kleinunternehmerregelung (Art. {0} B, französisches Steuergesetzbuch).",
-        "{0} analyses de vidéos": "{0} Videoanalysen",
+        "{0} vidéos décryptées": "{0} entschlüsselte Videos",
         "par mois": "pro Monat",
         "{0} crédits IA": "{0} KI-Guthaben",
         "par mois — environ {0} carrousels ({1} crédits chacun)":
@@ -293,8 +293,8 @@ T_PRICING: dict[str, dict[str, str]] = {
         "Tu n'as pas encore de compte ?": "Noch kein Konto?",
         "{0} jours d'accès complet, sans carte bancaire — {1} analyses de vidéos et {2} essais sur chaque outil de création":
             "{0} Tage voller Zugang, ohne Kreditkarte — {1} Videoanalysen und {2} kostenlose Nutzungen jedes Kreativwerkzeugs",
-        "créer un compte gratuitement": "kostenlos ein Konto erstellen",
-        "Voir le détail de toutes les fonctionnalités →": "Alle Funktionen im Detail ansehen →",
+        "Analyse ta première vidéo gratuitement": "Analysiere dein erstes Video kostenlos",
+        "Tout ce qui est inclus →": "Alles, was dabei ist →",
         "️ Annulation à tout moment": "️ Jederzeit kündbar",
         "Paiement sécurisé (Stripe)": "Sichere Zahlung (Stripe)",
         "Activation immédiate": "Sofort aktiv",
@@ -703,7 +703,7 @@ for _dico in (T_PRICING, T_COMPARE, T_CREDITS):
 _MX_PRICING = {
     "Ouvrir l'app →": "Abrir la app →",
     "Tu n'as pas encore de compte ?": "¿Todavía no tienes cuenta?",
-    "{0} analyses de vidéos": "{0} análisis de video",
+    "{0} vidéos décryptées": "{0} videos descifrados",
     "de chaque vidéo": "de cada video",
     "CTA visuels et audio": "CTA en pantalla y hablados",
     "upload et par lien TikTok": "subida de archivo y por enlace de TikTok",
@@ -711,6 +711,7 @@ _MX_PRICING = {
         "{0} días de acceso completo, sin tarjeta — {1} análisis de video y {2} usos gratis de cada herramienta de creación",
     "Historique de tes analyses, sur tous tes appareils":
         "Tu historial de análisis, en todos tus dispositivos",
+    "Analyse ta première vidéo gratuitement": "Analiza tu primer video gratis",
 }
 _MX_COMPARE = {
     "Analyse vidéo": "Análisis de video",

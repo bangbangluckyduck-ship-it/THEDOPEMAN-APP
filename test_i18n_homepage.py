@@ -65,14 +65,14 @@ def test_aucune_variante_nest_un_repli_francais():
 def test_le_contenu_est_bien_dans_la_langue():
     """Un marqueur propre à chaque langue, pris dans le menu de navigation."""
     marqueurs = {
-        "en": "Try it free",
-        "en-ie": "Try it free",
-        "pt-br": "Testar de graça",
-        "es": "Probar gratis",
-        "es-mx": "Pruébalo gratis",
-        "it": "Provalo gratis",
-        "de": "Kostenlos testen",
-        "fr": "Tester gratuitement",
+        "en": "Analyse for free",
+        "en-ie": "Analyse for free",
+        "pt-br": "Analisar grátis",
+        "es": "Pega el enlace de un vídeo que vende",
+        "es-mx": "Pega el link de un video que vende",
+        "it": "Analizza gratis",
+        "de": "Kostenlos analysieren",
+        "fr": "Analyser gratuitement",
     }
     for lang, attendu in marqueurs.items():
         assert attendu in PAGES[lang], f"{lang} : « {attendu} » introuvable"
@@ -180,7 +180,7 @@ def test_irlande_est_traitee_comme_zone_euro():
     """Cas limite qui a motivé la variante : anglophone MAIS zone euro."""
     page = PAGES["en-ie"]
     assert page != PAGES["fr"], "en-ie est retombé sur le français"
-    assert "Try it free" in page, "en-ie n'est pas en anglais"
+    assert "Analyse for free" in page, "en-ie n'est pas en anglais"
     assert "293 B" in page, "en-ie devrait porter la mention européenne"
     assert "US$" not in page and "£" not in page, "en-ie ne doit pas convertir"
 

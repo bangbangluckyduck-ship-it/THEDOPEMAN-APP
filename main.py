@@ -4257,10 +4257,12 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     Filtré par région du visiteur si fournie ; repli sur le top global si
     cette région n'a pas encore de données collectées."""
     region = (region or "").strip().upper() or None
-    cache_key = f"feedradar::teaser::{region or 'all'}"
+    # v2 : ajoute video_url (bouton « Décrypter » de l'accueil). Nouvelle clef pour
+    # ne pas resservir pendant 6 h un aperçu en cache sans lien.
+    cache_key = f"feedradar::teaser::v2::{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
-        cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
+        cols = "video_id,video_url,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
         fallback_cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
 
         def _fetch(cols_to_use: str) -> list:
