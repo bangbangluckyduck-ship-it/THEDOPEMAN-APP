@@ -2907,6 +2907,15 @@
     });
   });
 
+  // Arrivée depuis une page de contenu (/#tool, /en#tool…) : le curseur va
+  // directement dans le champ du lien, comme après un clic sur le bouton.
+  if (location.hash === '#tool') {
+    setTimeout(function () {
+      var champ = document.getElementById('tiktok-url');
+      if (champ) champ.focus({ preventScroll: true });
+    }, 400);
+  }
+
   // ── APPELS À L'ACTION D'UN COMPTE CONNECTÉ ──────────────────
   // Visiteur : un seul appel partout, « Analyser ma première vidéo gratuitement ».
   // Compte connecté (essai ou abonné) : « Continuer ma mission » (hero, écran

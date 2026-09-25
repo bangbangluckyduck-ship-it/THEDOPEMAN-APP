@@ -37,7 +37,7 @@ T_LP_ANALYSER["en"] = {
     "Les sept dimensions à examiner sur une vidéo qui vend, et comment les reproduire sur ton produit.":
         "The seven dimensions to look at in a video that sells, and how to reproduce them with your own product.",
     "Tarifs": "Pricing",
-    "Ouvrir l'app →": "Open the app →",
+    "Analyser gratuitement": "Analyse for free",
     "Analyser une vidéo TikTok Shop : la méthode complète":
         "How to analyse a TikTok Shop video: the full method",
     "Une vidéo qui vend n'est presque jamais un coup de chance. Elle empile des mécanismes précis, dans un ordre précis. Voici comment les repérer — à la main, puis automatiquement.":
@@ -95,7 +95,7 @@ T_LP_ANALYSER["en"] = {
         "—, the second where attention drops, then hooks rewritten for your product.",
     "Analyse ta première vidéo maintenant": "Analyse your first video now",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} days of full access, no card required.",
-    "Coller un lien TikTok": "Paste a TikTok link",
+    "Analyser ma première vidéo gratuitement": "Analyse my first video for free",
     "Trois erreurs fréquentes": "Three common mistakes",
     "Analyser des vidéos hors de sa niche.": "Analysing videos outside your niche.",
     "Les mécanismes qui vendent un accessoire de cuisine ne transposent pas tels quels sur un soin visage. Reste dans ta catégorie.":
@@ -126,7 +126,7 @@ T_LP_ANALYSER["de"] = {
     "Les sept dimensions à examiner sur une vidéo qui vend, et comment les reproduire sur ton produit.":
         "Die sieben Dimensionen eines Videos, das verkauft — und wie du sie mit deinem Produkt nachbaust.",
     "Tarifs": "Preise",
-    "Ouvrir l'app →": "App öffnen →",
+    "Analyser gratuitement": "Kostenlos analysieren",
     "Analyser une vidéo TikTok Shop : la méthode complète":
         "Ein TikTok-Shop-Video analysieren: die vollständige Methode",
     "Une vidéo qui vend n'est presque jamais un coup de chance. Elle empile des mécanismes précis, dans un ordre précis. Voici comment les repérer — à la main, puis automatiquement.":
@@ -184,7 +184,7 @@ T_LP_ANALYSER["de"] = {
         "—, die Sekunde, in der die Aufmerksamkeit abreißt, und dann Hooks, neu geschrieben für dein Produkt.",
     "Analyse ta première vidéo maintenant": "Analysiere jetzt dein erstes Video",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} Tage voller Zugang, ohne Kreditkarte.",
-    "Coller un lien TikTok": "TikTok-Link einfügen",
+    "Analyser ma première vidéo gratuitement": "Mein erstes Video kostenlos analysieren",
     "Trois erreurs fréquentes": "Drei häufige Fehler",
     "Analyser des vidéos hors de sa niche.": "Videos außerhalb der eigenen Nische analysieren.",
     "Les mécanismes qui vendent un accessoire de cuisine ne transposent pas tels quels sur un soin visage. Reste dans ta catégorie.":
@@ -215,7 +215,7 @@ T_LP_ANALYSER["es"] = {
     "Les sept dimensions à examiner sur une vidéo qui vend, et comment les reproduire sur ton produit.":
         "Las siete dimensiones que hay que mirar en un vídeo que vende, y cómo reproducirlas con tu producto.",
     "Tarifs": "Precios",
-    "Ouvrir l'app →": "Abrir la app →",
+    "Analyser gratuitement": "Analizar gratis",
     "Analyser une vidéo TikTok Shop : la méthode complète":
         "Analizar un vídeo de TikTok Shop: el método completo",
     "Une vidéo qui vend n'est presque jamais un coup de chance. Elle empile des mécanismes précis, dans un ordre précis. Voici comment les repérer — à la main, puis automatiquement.":
@@ -273,7 +273,7 @@ T_LP_ANALYSER["es"] = {
         "—, el segundo en el que se pierde la atención y, después, ganchos reescritos para tu producto.",
     "Analyse ta première vidéo maintenant": "Analiza tu primer vídeo ahora",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} días de acceso completo, sin tarjeta.",
-    "Coller un lien TikTok": "Pegar un enlace de TikTok",
+    "Analyser ma première vidéo gratuitement": "Analizar mi primer vídeo gratis",
     "Trois erreurs fréquentes": "Tres errores frecuentes",
     "Analyser des vidéos hors de sa niche.": "Analizar vídeos fuera de tu nicho.",
     "Les mécanismes qui vendent un accessoire de cuisine ne transposent pas tels quels sur un soin visage. Reste dans ta catégorie.":
@@ -304,7 +304,7 @@ T_LP_ANALYSER["it"] = {
     "Les sept dimensions à examiner sur une vidéo qui vend, et comment les reproduire sur ton produit.":
         "Le sette dimensioni da guardare in un video che vende, e come rifarle sul tuo prodotto.",
     "Tarifs": "Prezzi",
-    "Ouvrir l'app →": "Apri l'app →",
+    "Analyser gratuitement": "Analizza gratis",
     "Analyser une vidéo TikTok Shop : la méthode complète":
         "Analizzare un video TikTok Shop: il metodo completo",
     "Une vidéo qui vend n'est presque jamais un coup de chance. Elle empile des mécanismes précis, dans un ordre précis. Voici comment les repérer — à la main, puis automatiquement.":
@@ -362,7 +362,7 @@ T_LP_ANALYSER["it"] = {
         "—, il secondo in cui l'attenzione cade, e poi hook riscritti per il tuo prodotto.",
     "Analyse ta première vidéo maintenant": "Analizza subito il tuo primo video",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} giorni di accesso completo, senza carta.",
-    "Coller un lien TikTok": "Incolla un link TikTok",
+    "Analyser ma première vidéo gratuitement": "Analizza il mio primo video gratis",
     "Trois erreurs fréquentes": "Tre errori frequenti",
     "Analyser des vidéos hors de sa niche.": "Analizzare video fuori dalla propria nicchia.",
     "Les mécanismes qui vendent un accessoire de cuisine ne transposent pas tels quels sur un soin visage. Reste dans ta catégorie.":
@@ -393,7 +393,7 @@ T_LP_ANALYSER["pt-br"] = {
     "Les sept dimensions à examiner sur une vidéo qui vend, et comment les reproduire sur ton produit.":
         "As sete dimensões que você olha num vídeo que vende, e como repetir isso no seu produto.",
     "Tarifs": "Preços",
-    "Ouvrir l'app →": "Abrir o app →",
+    "Analyser gratuitement": "Analisar grátis",
     "Analyser une vidéo TikTok Shop : la méthode complète":
         "Analisar um vídeo do TikTok Shop: o método completo",
     "Une vidéo qui vend n'est presque jamais un coup de chance. Elle empile des mécanismes précis, dans un ordre précis. Voici comment les repérer — à la main, puis automatiquement.":
@@ -451,7 +451,7 @@ T_LP_ANALYSER["pt-br"] = {
         "—, o segundo em que a atenção cai e, depois, ganchos reescritos para o seu produto.",
     "Analyse ta première vidéo maintenant": "Analise seu primeiro vídeo agora",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} dias de acesso completo, sem cartão.",
-    "Coller un lien TikTok": "Colar um link do TikTok",
+    "Analyser ma première vidéo gratuitement": "Analisar meu primeiro vídeo grátis",
     "Trois erreurs fréquentes": "Três erros comuns",
     "Analyser des vidéos hors de sa niche.": "Analisar vídeos fora do seu nicho.",
     "Les mécanismes qui vendent un accessoire de cuisine ne transposent pas tels quels sur un soin visage. Reste dans ta catégorie.":
@@ -494,7 +494,7 @@ T_LP_PRODUITS["en"] = {
     "Les catégories qui dominent le marché français, et la méthode pour repérer un produit porteur avant qu'il ne sature.":
         "The categories that dominate the French market, and the method for spotting a strong product before it saturates.",
     "Tarifs": "Pricing",
-    "Ouvrir l'app →": "Open the app →",
+    "Analyser gratuitement": "Analyse for free",
     "Les produits qui vendent sur TikTok Shop France en {0}":
         "The products that sell on TikTok Shop France in {0}",
     "Le marché français a passé le cap des {0} millions d'euros par trimestre. Voici ce qui s'y vend réellement, et comment repérer un produit porteur avant qu'il ne sature.":
@@ -559,7 +559,7 @@ T_LP_PRODUITS["en"] = {
         "the video selling it works — hook, retention, triggers, call to action. That's what video analysis is for.",
     "Repère les produits qui décollent, et comprends pourquoi": "Spot the products taking off, and understand why",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} days of full access, no card required.",
-    "Essayer Qeerah": "Try Qeerah",
+    "Analyser ma première vidéo gratuitement": "Analyse my first video for free",
     "Trois pièges à éviter": "Three traps to avoid",
     "Choisir un produit parce qu'il te plaît.": "Choosing a product because you like it.",
     "Ton goût n'est pas un indicateur de marché. Le seul test valable est la démonstrabilité en dix secondes.":
@@ -591,7 +591,7 @@ T_LP_PRODUITS["de"] = {
     "Les catégories qui dominent le marché français, et la méthode pour repérer un produit porteur avant qu'il ne sature.":
         "Die Kategorien, die den französischen Markt bestimmen, und die Methode, ein starkes Produkt zu erkennen, bevor es gesättigt ist.",
     "Tarifs": "Preise",
-    "Ouvrir l'app →": "App öffnen →",
+    "Analyser gratuitement": "Kostenlos analysieren",
     "Les produits qui vendent sur TikTok Shop France en {0}":
         "Die Produkte, die {0} auf TikTok Shop Frankreich verkaufen",
     "Le marché français a passé le cap des {0} millions d'euros par trimestre. Voici ce qui s'y vend réellement, et comment repérer un produit porteur avant qu'il ne sature.":
@@ -656,7 +656,7 @@ T_LP_PRODUITS["de"] = {
         "das Video, das es verkauft, funktioniert — Hook, Bindung, Auslöser, Call to Action. Genau dafür ist die Videoanalyse da.",
     "Repère les produits qui décollent, et comprends pourquoi": "Erkenne die Produkte, die durchstarten — und verstehe, warum",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} Tage voller Zugang, ohne Kreditkarte.",
-    "Essayer Qeerah": "Qeerah ausprobieren",
+    "Analyser ma première vidéo gratuitement": "Mein erstes Video kostenlos analysieren",
     "Trois pièges à éviter": "Drei Fallen, die du vermeidest",
     "Choisir un produit parce qu'il te plaît.": "Ein Produkt wählen, weil es dir gefällt.",
     "Ton goût n'est pas un indicateur de marché. Le seul test valable est la démonstrabilité en dix secondes.":
@@ -688,7 +688,7 @@ T_LP_PRODUITS["es"] = {
     "Les catégories qui dominent le marché français, et la méthode pour repérer un produit porteur avant qu'il ne sature.":
         "Las categorías que dominan el mercado francés y el método para detectar un producto con recorrido antes de que se sature.",
     "Tarifs": "Precios",
-    "Ouvrir l'app →": "Abrir la app →",
+    "Analyser gratuitement": "Analizar gratis",
     "Les produits qui vendent sur TikTok Shop France en {0}":
         "Los productos que venden en TikTok Shop Francia en {0}",
     "Le marché français a passé le cap des {0} millions d'euros par trimestre. Voici ce qui s'y vend réellement, et comment repérer un produit porteur avant qu'il ne sature.":
@@ -753,7 +753,7 @@ T_LP_PRODUITS["es"] = {
         "funciona el vídeo que lo vende: gancho, retención, disparadores, llamada a la acción. De eso trata el análisis de vídeo.",
     "Repère les produits qui décollent, et comprends pourquoi": "Detecta los productos que despegan y entiende por qué",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} días de acceso completo, sin tarjeta.",
-    "Essayer Qeerah": "Probar Qeerah",
+    "Analyser ma première vidéo gratuitement": "Analizar mi primer vídeo gratis",
     "Trois pièges à éviter": "Tres trampas que evitar",
     "Choisir un produit parce qu'il te plaît.": "Elegir un producto porque te gusta.",
     "Ton goût n'est pas un indicateur de marché. Le seul test valable est la démonstrabilité en dix secondes.":
@@ -785,7 +785,7 @@ T_LP_PRODUITS["it"] = {
     "Les catégories qui dominent le marché français, et la méthode pour repérer un produit porteur avant qu'il ne sature.":
         "Le categorie che dominano il mercato francese e il metodo per individuare un prodotto valido prima che si saturi.",
     "Tarifs": "Prezzi",
-    "Ouvrir l'app →": "Apri l'app →",
+    "Analyser gratuitement": "Analizza gratis",
     "Les produits qui vendent sur TikTok Shop France en {0}":
         "I prodotti che vendono su TikTok Shop Francia nel {0}",
     "Le marché français a passé le cap des {0} millions d'euros par trimestre. Voici ce qui s'y vend réellement, et comment repérer un produit porteur avant qu'il ne sature.":
@@ -850,7 +850,7 @@ T_LP_PRODUITS["it"] = {
         "il video che lo vende funziona — hook, ritenzione, leve, call to action. È a questo che serve l'analisi video.",
     "Repère les produits qui décollent, et comprends pourquoi": "Individua i prodotti che decollano e capisci perché",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} giorni di accesso completo, senza carta.",
-    "Essayer Qeerah": "Prova Qeerah",
+    "Analyser ma première vidéo gratuitement": "Analizza il mio primo video gratis",
     "Trois pièges à éviter": "Tre trappole da evitare",
     "Choisir un produit parce qu'il te plaît.": "Scegliere un prodotto perché piace a te.",
     "Ton goût n'est pas un indicateur de marché. Le seul test valable est la démonstrabilité en dix secondes.":
@@ -882,7 +882,7 @@ T_LP_PRODUITS["pt-br"] = {
     "Les catégories qui dominent le marché français, et la méthode pour repérer un produit porteur avant qu'il ne sature.":
         "As categorias que dominam o mercado francês e o método para achar um produto forte antes que ele sature.",
     "Tarifs": "Preços",
-    "Ouvrir l'app →": "Abrir o app →",
+    "Analyser gratuitement": "Analisar grátis",
     "Les produits qui vendent sur TikTok Shop France en {0}":
         "Os produtos que vendem no TikTok Shop da França em {0}",
     "Le marché français a passé le cap des {0} millions d'euros par trimestre. Voici ce qui s'y vend réellement, et comment repérer un produit porteur avant qu'il ne sature.":
@@ -947,7 +947,7 @@ T_LP_PRODUITS["pt-br"] = {
         "o vídeo que o vende funciona — gancho, retenção, gatilhos, chamada para ação. É disso que trata a análise de vídeo.",
     "Repère les produits qui décollent, et comprends pourquoi": "Ache os produtos que estão decolando e entenda por quê",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} dias de acesso completo, sem cartão.",
-    "Essayer Qeerah": "Testar a Qeerah",
+    "Analyser ma première vidéo gratuitement": "Analisar meu primeiro vídeo grátis",
     "Trois pièges à éviter": "Três armadilhas para evitar",
     "Choisir un produit parce qu'il te plaît.": "Escolher um produto porque você gosta dele.",
     "Ton goût n'est pas un indicateur de marché. Le seul test valable est la démonstrabilité en dix secondes.":
@@ -987,7 +987,7 @@ T_LP_VUES["en"] = {
         "Your video stuck at a few hundred views? The real causes, in the order you should check them, and how to tell which one is yours.",
     "Les causes réelles, dans l'ordre où il faut les vérifier.": "The real causes, in the order you should check them.",
     "Tarifs": "Pricing",
-    "Ouvrir l'app →": "Open the app →",
+    "Analyser gratuitement": "Analyse for free",
     "Pourquoi ma vidéo TikTok Shop ne fait pas de vues": "Why my TikTok Shop video isn't getting views",
     "Avant d'accuser l'algorithme ou de soupçonner un compte bridé, il y a cinq causes à vérifier — dans cet ordre. Neuf fois sur dix, la réponse est dans les trois premières secondes.":
         "Before blaming the algorithm or suspecting a throttled account, there are five causes to check — in this order. Nine times out of ten, the answer is in the first three seconds.",
@@ -1051,7 +1051,7 @@ T_LP_VUES["en"] = {
         ", then suggests hooks rewritten for your product. In “explain it simply” mode, every score comes with the concrete thing to do about it.",
     "Comprends ce qui bloque sur ta vidéo": "Understand what's holding your video back",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} days of full access, no card required.",
-    "Analyser ma vidéo": "Analyse my video",
+    "Analyser ma première vidéo gratuitement": "Analyse my first video for free",
     "Et si tout est correct mais que ça ne vend toujours pas ?": "And if everything's right but it still doesn't sell?",
     "Vues et ventes sont deux problèmes distincts. Une vidéo peut très bien être diffusée largement et ne rien écouler : cela signifie qu'elle divertit sans donner envie d'acheter. Dans ce cas, ce n'est pas la rétention qu'il faut travailler, mais l'argumentaire et l'appel à l'action.":
         "Views and sales are two different problems. A video can travel far and shift nothing: that means it entertains without making anyone want to buy. In that case the thing to work on isn't retention, it's the sales argument and the call to action.",
@@ -1076,7 +1076,7 @@ T_LP_VUES["de"] = {
         "Dein Video hängt bei ein paar hundert Aufrufen fest? Die echten Ursachen, in der Reihenfolge, in der du sie prüfst — und wie du erkennst, welche deine ist.",
     "Les causes réelles, dans l'ordre où il faut les vérifier.": "Die echten Ursachen, in der Reihenfolge, in der du sie prüfst.",
     "Tarifs": "Preise",
-    "Ouvrir l'app →": "App öffnen →",
+    "Analyser gratuitement": "Kostenlos analysieren",
     "Pourquoi ma vidéo TikTok Shop ne fait pas de vues": "Warum mein TikTok-Shop-Video keine Aufrufe bekommt",
     "Avant d'accuser l'algorithme ou de soupçonner un compte bridé, il y a cinq causes à vérifier — dans cet ordre. Neuf fois sur dix, la réponse est dans les trois premières secondes.":
         "Bevor du den Algorithmus beschuldigst oder ein gedrosseltes Konto vermutest: Es gibt fünf Ursachen, die du prüfst — in dieser Reihenfolge. In neun von zehn Fällen liegt die Antwort in den ersten drei Sekunden.",
@@ -1140,7 +1140,7 @@ T_LP_VUES["de"] = {
         " und schlägt dann Hooks vor, neu geschrieben für dein Produkt. Im Modus „erklär's mir einfach“ steht zu jeder Wertung, was konkret zu tun ist.",
     "Comprends ce qui bloque sur ta vidéo": "Versteh, woran es bei deinem Video hakt",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} Tage voller Zugang, ohne Kreditkarte.",
-    "Analyser ma vidéo": "Mein Video analysieren",
+    "Analyser ma première vidéo gratuitement": "Mein erstes Video kostenlos analysieren",
     "Et si tout est correct mais que ça ne vend toujours pas ?": "Und wenn alles stimmt und es trotzdem nicht verkauft?",
     "Vues et ventes sont deux problèmes distincts. Une vidéo peut très bien être diffusée largement et ne rien écouler : cela signifie qu'elle divertit sans donner envie d'acheter. Dans ce cas, ce n'est pas la rétention qu'il faut travailler, mais l'argumentaire et l'appel à l'action.":
         "Aufrufe und Verkäufe sind zwei verschiedene Probleme. Ein Video kann weit laufen und trotzdem nichts absetzen: Dann unterhält es, ohne Kauflust zu wecken. In dem Fall arbeitest du nicht an der Bindung, sondern am Verkaufsargument und am Call to Action.",
@@ -1165,7 +1165,7 @@ T_LP_VUES["es"] = {
         "¿Tu vídeo se queda en unos cientos de visualizaciones? Las causas reales, en el orden en que hay que revisarlas, y cómo saber cuál es la tuya.",
     "Les causes réelles, dans l'ordre où il faut les vérifier.": "Las causas reales, en el orden en que hay que revisarlas.",
     "Tarifs": "Precios",
-    "Ouvrir l'app →": "Abrir la app →",
+    "Analyser gratuitement": "Analizar gratis",
     "Pourquoi ma vidéo TikTok Shop ne fait pas de vues": "Por qué mi vídeo de TikTok Shop no tiene visualizaciones",
     "Avant d'accuser l'algorithme ou de soupçonner un compte bridé, il y a cinq causes à vérifier — dans cet ordre. Neuf fois sur dix, la réponse est dans les trois premières secondes.":
         "Antes de culpar al algoritmo o sospechar que tu cuenta está limitada, hay cinco causas que revisar, en este orden. Nueve de cada diez veces, la respuesta está en los tres primeros segundos.",
@@ -1229,7 +1229,7 @@ T_LP_VUES["es"] = {
         " y propone ganchos reescritos para tu producto. En modo «explícamelo fácil», cada puntuación viene con la acción concreta que hay que hacer.",
     "Comprends ce qui bloque sur ta vidéo": "Entiende qué está bloqueando tu vídeo",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} días de acceso completo, sin tarjeta.",
-    "Analyser ma vidéo": "Analizar mi vídeo",
+    "Analyser ma première vidéo gratuitement": "Analizar mi primer vídeo gratis",
     "Et si tout est correct mais que ça ne vend toujours pas ?": "¿Y si todo está bien pero sigue sin vender?",
     "Vues et ventes sont deux problèmes distincts. Une vidéo peut très bien être diffusée largement et ne rien écouler : cela signifie qu'elle divertit sans donner envie d'acheter. Dans ce cas, ce n'est pas la rétention qu'il faut travailler, mais l'argumentaire et l'appel à l'action.":
         "Visualizaciones y ventas son dos problemas distintos. Un vídeo puede difundirse mucho y no vender nada: significa que entretiene sin dar ganas de comprar. En ese caso no hay que trabajar la retención, sino el argumento y la llamada a la acción.",
@@ -1254,7 +1254,7 @@ T_LP_VUES["it"] = {
         "Il tuo video è fermo a qualche centinaio di visualizzazioni? Le cause vere, nell'ordine in cui vanno controllate, e come capire qual è la tua.",
     "Les causes réelles, dans l'ordre où il faut les vérifier.": "Le cause vere, nell'ordine in cui vanno controllate.",
     "Tarifs": "Prezzi",
-    "Ouvrir l'app →": "Apri l'app →",
+    "Analyser gratuitement": "Analizza gratis",
     "Pourquoi ma vidéo TikTok Shop ne fait pas de vues": "Perché il mio video TikTok Shop non fa visualizzazioni",
     "Avant d'accuser l'algorithme ou de soupçonner un compte bridé, il y a cinq causes à vérifier — dans cet ordre. Neuf fois sur dix, la réponse est dans les trois premières secondes.":
         "Prima di prendertela con l'algoritmo o sospettare un account limitato, ci sono cinque cause da controllare — in quest'ordine. Nove volte su dieci la risposta è nei primi tre secondi.",
@@ -1318,7 +1318,7 @@ T_LP_VUES["it"] = {
         ", poi propone hook riscritti per il tuo prodotto. In modalità «spiegamelo semplice», ogni voto è accompagnato dall'azione concreta da fare.",
     "Comprends ce qui bloque sur ta vidéo": "Capisci cosa blocca il tuo video",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} giorni di accesso completo, senza carta.",
-    "Analyser ma vidéo": "Analizza il mio video",
+    "Analyser ma première vidéo gratuitement": "Analizza il mio primo video gratis",
     "Et si tout est correct mais que ça ne vend toujours pas ?": "E se è tutto a posto ma continua a non vendere?",
     "Vues et ventes sont deux problèmes distincts. Une vidéo peut très bien être diffusée largement et ne rien écouler : cela signifie qu'elle divertit sans donner envie d'acheter. Dans ce cas, ce n'est pas la rétention qu'il faut travailler, mais l'argumentaire et l'appel à l'action.":
         "Visualizzazioni e vendite sono due problemi diversi. Un video può essere diffuso tantissimo e non vendere nulla: vuol dire che intrattiene senza far venire voglia di comprare. In quel caso non si lavora sulla ritenzione, ma sull'argomento e sulla call to action.",
@@ -1343,7 +1343,7 @@ T_LP_VUES["pt-br"] = {
         "Seu vídeo travou em algumas centenas de visualizações? As causas reais, na ordem em que se deve checar, e como saber qual é a sua.",
     "Les causes réelles, dans l'ordre où il faut les vérifier.": "As causas reais, na ordem em que se deve checar.",
     "Tarifs": "Preços",
-    "Ouvrir l'app →": "Abrir o app →",
+    "Analyser gratuitement": "Analisar grátis",
     "Pourquoi ma vidéo TikTok Shop ne fait pas de vues": "Por que meu vídeo do TikTok Shop não tem visualizações",
     "Avant d'accuser l'algorithme ou de soupçonner un compte bridé, il y a cinq causes à vérifier — dans cet ordre. Neuf fois sur dix, la réponse est dans les trois premières secondes.":
         "Antes de culpar o algoritmo ou achar que sua conta está limitada, há cinco causas para checar — nesta ordem. Nove em cada dez vezes, a resposta está nos três primeiros segundos.",
@@ -1407,7 +1407,7 @@ T_LP_VUES["pt-br"] = {
         " e propõe ganchos reescritos para o seu produto. No modo “explica simples”, cada nota vem com a ação concreta a tomar.",
     "Comprends ce qui bloque sur ta vidéo": "Entenda o que está travando seu vídeo",
     "{0} jours d'accès complet, sans carte bancaire.": "{0} dias de acesso completo, sem cartão.",
-    "Analyser ma vidéo": "Analisar meu vídeo",
+    "Analyser ma première vidéo gratuitement": "Analisar meu primeiro vídeo grátis",
     "Et si tout est correct mais que ça ne vend toujours pas ?": "E se estiver tudo certo e mesmo assim não vender?",
     "Vues et ventes sont deux problèmes distincts. Une vidéo peut très bien être diffusée largement et ne rien écouler : cela signifie qu'elle divertit sans donner envie d'acheter. Dans ce cas, ce n'est pas la rétention qu'il faut travailler, mais l'argumentaire et l'appel à l'action.":
         "Visualizações e vendas são dois problemas diferentes. Um vídeo pode ser distribuído bastante e não vender nada: isso quer dizer que ele entretém sem dar vontade de comprar. Nesse caso não é a retenção que se trabalha, é o argumento e a chamada para ação.",
