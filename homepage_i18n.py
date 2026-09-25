@@ -149,7 +149,7 @@ T: dict[str, dict[str, str]] = {
 
         "hero_badge": "Why does this video sell?",
         "hero_h1": "You know your video flopped. <span style=\"white-space:nowrap\">Not why.</span> So you go and make the same one again.",
-        "hero_sub": "Paste the link of a video that sells. You'll see what you missed: the hook, the pitch, the exact second it tips — and how to adapt it to your product.",
+        "hero_sub": "Paste the link of a video that sells. In 30 seconds, you'll see what you missed: the hook, the pitch, the exact second it tips — and how to adapt it to your product.",
         "hero_cta": "Analyse my first video for free",
         "hero_cta_note": "No credit card",
         "brand_line": "Don't copy the videos that work.<br><strong>Understand why they work.</strong>",
@@ -173,7 +173,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Sample analysis",
         "demo_title": "Here's exactly what you get",
-        "demo_p": "One link is all it takes. And the report doesn't stop at a score: it tells you what to change.",
+        "demo_p": "A full report in 30 seconds, from a single link. And it doesn't stop at a score: it tells you what to change.",
         "demo_url": "qeerah.com/app — analysis running",
         "demo_step_0": "Reading the TikTok link",
         "demo_step_1": "Extracting images and audio",
@@ -375,7 +375,7 @@ T: dict[str, dict[str, str]] = {
 
         "hero_badge": "Por que esse vídeo vende?",
         "hero_h1": "Você sabe que seu vídeo não vendeu. <span style=\"white-space:nowrap\">Não sabe por quê.</span> Aí grava o mesmo de novo.",
-        "hero_sub": "Cole o link de um vídeo que vende. Você enxerga o que tinha passado batido: o gancho, o argumento, o segundo em que tudo vira — e como adaptar isso pro seu produto.",
+        "hero_sub": "Cole o link de um vídeo que vende. Em 30 segundos, você enxerga o que tinha passado batido: o gancho, o argumento, o segundo em que tudo vira — e como adaptar isso pro seu produto.",
         "hero_cta": "Analisar meu primeiro vídeo grátis",
         "hero_cta_note": "Sem cartão de crédito",
         "brand_line": "Não copie os vídeos que dão certo.<br><strong>Entenda por que eles dão certo.</strong>",
@@ -399,7 +399,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Exemplo de análise",
         "demo_title": "Veja exatamente o que você recebe",
-        "demo_p": "Basta um link. E o relatório não para na nota: ele te diz o que mudar.",
+        "demo_p": "Um relatório completo em 30 segundos, a partir de um simples link. E ele não para na nota: te diz o que mudar.",
         "demo_url": "qeerah.com/app — análise em andamento",
         "demo_step_0": "Leitura do link do TikTok",
         "demo_step_1": "Extração das imagens e do áudio",
@@ -601,7 +601,7 @@ T: dict[str, dict[str, str]] = {
 
         "hero_badge": "¿Por qué vende este vídeo?",
         "hero_h1": "Sabes que tu vídeo no vendió. <span style=\"white-space:nowrap\">No por qué.</span> Así que grabas otra vez el mismo.",
-        "hero_sub": "Pega el enlace de un vídeo que vende. Verás lo que se te escapaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
+        "hero_sub": "Pega el enlace de un vídeo que vende. En 30 segundos verás lo que se te escapaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
         "hero_cta": "Analizar mi primer vídeo gratis",
         "hero_cta_note": "Sin tarjeta",
         "brand_line": "No copies los vídeos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
@@ -625,7 +625,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Ejemplo de análisis",
         "demo_title": "Esto es exactamente lo que recibes",
-        "demo_p": "Basta con un enlace. Y el informe no se queda en la nota: te dice qué cambiar.",
+        "demo_p": "Un informe completo en 30 segundos, a partir de un simple enlace. Y no se queda en la nota: te dice qué cambiar.",
         "demo_url": "qeerah.com/app — análisis en curso",
         "demo_step_0": "Lectura del enlace de TikTok",
         "demo_step_1": "Extracción de las imágenes y del audio",
@@ -825,7 +825,7 @@ T: dict[str, dict[str, str]] = {
 
         "hero_badge": "Perché questo video vende?",
         "hero_h1": "Sai che il tuo video non ha venduto. <span style=\"white-space:nowrap\">Non perché.</span> Così ne giri un altro uguale.",
-        "hero_sub": "Incolla il link di un video che vende. Vedi quello che ti era sfuggito: il gancio, l'argomento, il secondo in cui tutto cambia — e come adattarlo al tuo prodotto.",
+        "hero_sub": "Incolla il link di un video che vende. In 30 secondi vedi quello che ti era sfuggito: il gancio, l'argomento, il secondo in cui tutto cambia — e come adattarlo al tuo prodotto.",
         "hero_cta": "Analizza il mio primo video gratis",
         "hero_cta_note": "Senza carta di credito",
         "brand_line": "Non copiare i video che funzionano.<br><strong>Capisci perché funzionano.</strong>",
@@ -849,7 +849,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Esempio di analisi",
         "demo_title": "Ecco esattamente cosa ricevi",
-        "demo_p": "Basta un link. E il report non si ferma al punteggio: ti dice cosa cambiare.",
+        "demo_p": "Un report completo in 30 secondi, da un semplice link. E non si ferma al punteggio: ti dice cosa cambiare.",
         "demo_url": "qeerah.com/app — analisi in corso",
         "demo_step_0": "Lettura del link TikTok",
         "demo_step_1": "Estrazione delle immagini e dell'audio",
@@ -1050,7 +1050,7 @@ T: dict[str, dict[str, str]] = {
 
         "hero_badge": "Warum verkauft dieses Video?",
         "hero_h1": "Du weißt, dass dein Video nichts verkauft hat. <span style=\"white-space:nowrap\">Nur nicht, warum.</span> Also drehst du das gleiche nochmal.",
-        "hero_sub": "Füge den Link eines Videos ein, das verkauft. Du siehst, was dir entgangen ist: den Hook, das Argument, die Sekunde, in der alles kippt — und wie du das auf dein Produkt überträgst.",
+        "hero_sub": "Füge den Link eines Videos ein, das verkauft. In 30 Sekunden siehst du, was dir entgangen ist: den Hook, das Argument, die Sekunde, in der alles kippt — und wie du das auf dein Produkt überträgst.",
         "hero_cta": "Mein erstes Video kostenlos analysieren",
         "hero_cta_note": "Ohne Kreditkarte",
         "brand_line": "Kopier keine Videos, die funktionieren.<br><strong>Versteh, warum sie funktionieren.</strong>",
@@ -1074,7 +1074,7 @@ T: dict[str, dict[str, str]] = {
 
         "demo_tag": "Beispielanalyse",
         "demo_title": "Genau das bekommst du",
-        "demo_p": "Ein Link reicht. Und der Bericht hört nicht beim Score auf: Er sagt dir, was du ändern solltest.",
+        "demo_p": "Ein kompletter Bericht in 30 Sekunden, aus einem einzigen Link. Und er hört nicht beim Score auf: Er sagt dir, was du ändern solltest.",
         "demo_url": "qeerah.com/app — Analyse läuft",
         "demo_step_0": "TikTok-Link wird gelesen",
         "demo_step_1": "Bilder und Ton werden extrahiert",

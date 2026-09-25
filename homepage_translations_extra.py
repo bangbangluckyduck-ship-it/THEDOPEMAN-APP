@@ -51,7 +51,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
 
         "hero_badge": "¿Por qué vende este video?",
         "hero_h1": "Sabes que tu video no vendió. <span style=\"white-space:nowrap\">No sabes por qué.</span> Y grabas otro igualito.",
-        "hero_sub": "Pega el link de un video que vende. Vas a ver lo que se te pasaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
+        "hero_sub": "Pega el link de un video que vende. En 30 segundos vas a ver lo que se te pasaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
         "hero_cta": "Analizar mi primer video gratis",
         "hero_cta_note": "Sin tarjeta de crédito",
         "brand_line": "No copies los videos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
@@ -75,7 +75,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
 
         "demo_tag": "Ejemplo de análisis",
         "demo_title": "Esto es exactamente lo que recibes",
-        "demo_p": "Con un link basta. Y el reporte no se queda en la calificación: te dice qué cambiar.",
+        "demo_p": "Un reporte completo en 30 segundos, a partir de un simple link. Y no se queda en la calificación: te dice qué cambiar.",
         "demo_url": "qeerah.com/app — análisis en curso",
         "demo_step_0": "Lectura del link de TikTok",
         "demo_step_1": "Extracción de las imágenes y del audio",
