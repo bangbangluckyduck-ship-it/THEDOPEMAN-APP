@@ -73,7 +73,7 @@ def _wrap(title: str, body_html: str) -> str:
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
         <tr><td style="background:#1a1a2e;padding:28px 32px;text-align:center;">
-          <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.4px;"><span style="color:#6c5ce7;">Qeerah</span></span>
+          <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.4px;"><span style="color:#D4AF37;">Qeerah</span></span>
         </td></tr>
         <tr><td style="padding:32px;">
           <h1 style="font-size:21px;font-weight:800;margin:0 0 16px;color:#1a1a2e;">{title}</h1>
@@ -81,7 +81,7 @@ def _wrap(title: str, body_html: str) -> str:
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #ecedf2;text-align:center;">
           <p style="font-size:12px;color:#9a9ab0;margin:0;">
-            Qeerah · Cet email vous est envoyé par <a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;text-decoration:none;">{SUPPORT_EMAIL}</a>
+            Qeerah · l'intelligence derrière les vidéos qui vendent · <a href="mailto:{SUPPORT_EMAIL}" style="color:#8B6914;text-decoration:none;">{SUPPORT_EMAIL}</a>
           </p>
         </td></tr>
       </table>
@@ -94,99 +94,97 @@ def _wrap(title: str, body_html: str) -> str:
 def _button(label: str, url: str) -> str:
     return (
         f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td '
-        f'style="border-radius:10px;background:#6c5ce7;"><a href="{url}" '
-        f'style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:700;color:#ffffff;'
+        f'style="border-radius:10px;background:#D4AF37;"><a href="{url}" '
+        f'style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:700;color:#1a1a2e;'
         f'text-decoration:none;border-radius:10px;">{label}</a></td></tr></table>'
     )
 
 
 # ── Contenus des emails ──────────────────────────────────────────────────────
 def _welcome_body() -> str:
+    # J0 de la séquence d'essai (cf. essai_emails.py) : une seule action, la 1re
+    # étape de la mission. Pas de liste de fonctionnalités.
     return (
-        "<p>Bonjour,</p>"
-        "<p>Bienvenue sur <strong>Qeerah</strong> 🎉 Votre compte est prêt.</p>"
-        "<p>Vous pouvez dès maintenant analyser vos vidéos TikTok Shop grâce à l'IA : "
-        "détection produit, accroche optimale, potentiel viral et conseils personnalisés.</p>"
-        f"{_button('Lancer ma première analyse', APP_URL + '/app')}"
-        "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'êtes pas à l'origine de cette inscription, "
-        "vous pouvez ignorer cet email.</p>"
-        "<p>À très vite,<br>L'équipe Qeerah</p>"
+        "<p>Salut,</p>"
+        "<p>Ton compte est prêt : 7 jours d'accès complet, sans carte bancaire.</p>"
+        "<p>Ta mission tient en 4 étapes, de la vidéo qui vend à <strong>ta</strong> prochaine vidéo. "
+        "La première : <strong>décrypte une vidéo qui vend</strong>. Choisis-en une dans le Feed Radar, "
+        "colle son lien, et regarde ce que tu n'avais pas vu — l'accroche, l'argument, la seconde où "
+        "tout bascule.</p>"
+        f"{_button('Commencer ma mission', APP_URL + '/app')}"
+        "<p style=\"font-size:13px;color:#9a9ab0;\">Tu n'es pas à l'origine de cette inscription ? "
+        "Ignore simplement cet e-mail.</p>"
+        "<p>À tout de suite,<br>Qeerah</p>"
     )
 
 
 def _temporary_password_body(temp_password: str) -> str:
     return (
-        "<p>Bonjour,</p>"
-        "<p>Vous avez demandé la réinitialisation de votre mot de passe.</p>"
-        "<p>Votre <strong>mot de passe temporaire</strong> est :</p>"
+        "<p>Salut,</p>"
+        "<p>Tu as demandé à réinitialiser ton mot de passe.</p>"
+        "<p>Ton <strong>mot de passe temporaire</strong> :</p>"
         f'<div style="background:#f4f5f7;padding:16px;border-radius:10px;font-family:monospace;'
         f'font-size:18px;letter-spacing:2px;text-align:center;margin:18px 0;font-weight:700;">{temp_password}</div>'
         "<ul style=\"padding-left:18px;\">"
-        "<li>Connectez-vous avec ce mot de passe temporaire.</li>"
-        "<li>Pensez à le remplacer par un nouveau mot de passe.</li>"
-        "<li>Ce mot de passe expire dans 24 heures.</li>"
+        "<li>Connecte-toi avec ce mot de passe temporaire.</li>"
+        "<li>Remplace-le ensuite par un nouveau mot de passe.</li>"
+        "<li>Il expire dans 24 heures.</li>"
         "</ul>"
-        "<p style=\"font-size:13px;color:#9a9ab0;\">Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
-        "<p>Cordialement,<br>L'équipe Qeerah</p>"
+        "<p style=\"font-size:13px;color:#9a9ab0;\">Tu n'as rien demandé ? Ignore cet e-mail.</p>"
+        "<p>Qeerah</p>"
     )
 
 
 def _magic_link_body(reset_link: str) -> str:
     return (
-        "<p>Bonjour,</p>"
-        "<p>Vous avez demandé la réinitialisation de votre mot de passe. "
-        "Cliquez sur le bouton ci-dessous pour en définir un nouveau :</p>"
+        "<p>Salut,</p>"
+        "<p>Tu as demandé à réinitialiser ton mot de passe. "
+        "Touche le bouton ci-dessous pour en choisir un nouveau :</p>"
         f"{_button('Réinitialiser mon mot de passe', reset_link)}"
-        "<p style=\"font-size:13px;color:#3a3a4a;\">Ou copiez ce lien dans votre navigateur :</p>"
+        "<p style=\"font-size:13px;color:#3a3a4a;\">Ou copie ce lien dans ton navigateur :</p>"
         f'<p style="background:#f4f5f7;padding:12px;border-radius:8px;word-break:break-all;font-size:13px;">{reset_link}</p>'
         "<p style=\"font-size:13px;color:#9a9ab0;\">Ce lien expire dans 24 heures. "
-        "Si vous n'avez pas fait cette demande, ignorez cet email.</p>"
-        "<p>Cordialement,<br>L'équipe Qeerah</p>"
+        "Tu n'as rien demandé ? Ignore cet e-mail.</p>"
+        "<p>Qeerah</p>"
     )
 
 
 def _password_changed_body() -> str:
     return (
-        "<p>Bonjour,</p>"
-        "<p>Votre mot de passe a bien été <strong>modifié avec succès</strong>.</p>"
-        f"<p>Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement le support à "
-        f'<a href="mailto:{SUPPORT_EMAIL}" style="color:#6c5ce7;">{SUPPORT_EMAIL}</a>.</p>'
-        "<p>Cordialement,<br>L'équipe Qeerah</p>"
+        "<p>Salut,</p>"
+        "<p>Ton mot de passe a bien été <strong>modifié</strong>.</p>"
+        f"<p>Ce n'est pas toi ? Écris-nous tout de suite à "
+        f'<a href="mailto:{SUPPORT_EMAIL}" style="color:#8B6914;">{SUPPORT_EMAIL}</a>.</p>'
+        "<p>Qeerah</p>"
     )
 
 
 def _upsell_body(kind: str, unsubscribe_url: str) -> str:
-    """Email promotionnel free → payant. kind: 'quota' (limite atteinte) | 'j3' (relance J+3)."""
-    if kind == "quota":
-        intro = (
-            "<p>Bonjour,</p>"
-            "<p>Tu viens d'utiliser tes <strong>3 analyses gratuites du mois</strong> 🎉 "
-            "— bon signe, l'outil te sert vraiment !</p>"
-            "<p>Pour continuer <strong>sans attendre le mois prochain</strong> et débloquer tout le reste :</p>"
-        )
-    else:  # j3
-        intro = (
-            "<p>Bonjour,</p>"
-            "<p>Tu as créé ton compte il y a quelques jours 👋 Prêt à passer à la vitesse supérieure ?</p>"
-            "<p>Avec un plan payant, tu débloques :</p>"
-        )
+    """Compte en essai qui vient d'utiliser toutes ses analyses d'essai.
+
+    `kind` est conservé pour compatibilité ; seul « quota » est encore envoyé —
+    l'ancienne relance J+3 est remplacée par la séquence d'essai (essai_emails.py).
+    """
+    intro = (
+        "<p>Salut,</p>"
+        "<p>Tu as utilisé toutes tes analyses d'essai. Bon signe : tu as décrypté assez de "
+        "vidéos pour voir ce qui les fait vendre.</p>"
+        "<p>Avec <strong>Qeerah Pro</strong>, tu continues chaque mois :</p>"
+    )
     benefits = (
         "<ul style=\"padding-left:18px;line-height:1.8;\">"
-        "<li>📈 <strong>100 analyses par mois</strong></li>"
-        "<li>🔗 <strong>Analyse par lien TikTok</strong> — sans rien télécharger</li>"
-        "<li>🤖 <strong>Coach IA</strong> + scripts personnalisés</li>"
-        "<li>📸 <strong>Photo Slide Coach</strong> &amp; 🎬 <strong>AI Prompt Studio</strong></li>"
-        "<li>📊 Données marché : produits &amp; créateurs gagnants</li>"
+        "<li><strong>100 vidéos décryptées par mois</strong></li>"
+        "<li>des accroches et des scripts pour <strong>tes</strong> produits</li>"
+        "<li>ce qui vend aujourd'hui dans ton pays</li>"
         "</ul>"
         "<p style=\"background:#f4f5f7;padding:14px;border-radius:10px;\">"
         "<strong>Qeerah Pro</strong> : 29,99 € TTC/mois, ou 299 € TTC/an avec deux mois offerts. "
-        "Tout est inclus, sans engagement.</p>"
+        "Sans engagement.</p>"
     )
-    cta = _button("Découvrir Qeerah Pro", APP_URL + "/pricing")
+    cta = _button("Passer à Qeerah Pro", APP_URL + "/pricing")
     foot = (
-        f'<p style="font-size:12px;color:#9a9ab0;margin-top:22px;">Tu reçois cet email car tu as un compte '
-        f'Qeerah. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Se désinscrire des emails '
-        f'promotionnels</a>.</p>'
+        f'<p style="font-size:12px;color:#9a9ab0;margin-top:22px;">Tu reçois cet e-mail car tu as un compte '
+        f'Qeerah. <a href="{unsubscribe_url}" style="color:#9a9ab0;">Ne plus recevoir ces e-mails</a>.</p>'
     )
     return intro + benefits + cta + foot
 
@@ -290,8 +288,8 @@ class EmailService:
         """Email de bienvenue après création de compte."""
         return await self._send(
             email,
-            "Bienvenue sur Qeerah 🎉",
-            _wrap("Bienvenue à bord 🎉", _welcome_body()),
+            "Ta mission commence : décrypte une vidéo qui vend",
+            _wrap("Bienvenue sur Qeerah", _welcome_body()),
         )
 
     async def send_temporary_password_email(self, email: str, temp_password: str) -> bool:
@@ -306,7 +304,7 @@ class EmailService:
         """Email contenant un lien magique de réinitialisation."""
         return await self._send(
             email,
-            "Réinitialiser votre mot de passe — Qeerah",
+            "Réinitialise ton mot de passe — Qeerah",
             _wrap("Réinitialisation de mot de passe", _magic_link_body(reset_link)),
         )
 
@@ -314,17 +312,15 @@ class EmailService:
         """Confirmation après changement de mot de passe."""
         return await self._send(
             email,
-            "Votre mot de passe a été modifié — Qeerah",
+            "Ton mot de passe a été modifié — Qeerah",
             _wrap("Mot de passe modifié", _password_changed_body()),
         )
 
     async def send_upsell_email(self, email: str, unsubscribe_url: str, kind: str = "quota") -> bool:
         """Email promotionnel free → payant (avec lien de désinscription RGPD)."""
-        subject = ("Tu as atteint ta limite gratuite 🚀" if kind == "quota"
-                   else "Débloque tout le potentiel de Qeerah 🚀")
         return await self._send(
-            email, subject,
-            _wrap("Passe à la vitesse supérieure 🚀", _upsell_body(kind, unsubscribe_url)),
+            email, "Tu as utilisé toutes tes analyses d'essai",
+            _wrap("Tes analyses d'essai sont utilisées", _upsell_body(kind, unsubscribe_url)),
         )
 
 

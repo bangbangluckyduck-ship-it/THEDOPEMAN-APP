@@ -32,16 +32,20 @@ load_dotenv()
 
 
 def main() -> int:
+    # Le job Render s'appelle toujours « upsell-j3 », mais il exécute désormais la
+    # séquence d'essai J2 / J5 / J7 calée sur la mission (essai_emails.py), qui
+    # remplace l'ancienne relance J+3 promotionnelle. Aucun réglage Render à
+    # changer — sauf ESSAI_EMAILS_ACTIFS=1 pour sortir du mode simulation.
     from supabase_client import supabase_service
-    import upsell_j3
+    import essai_emails
 
     if not supabase_service:
-        print("❌ upsell-j3 : client Supabase indisponible "
+        print("❌ essai-emails : client Supabase indisponible "
               "(SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY manquants ?)")
         return 1
 
-    resultat = asyncio.run(upsell_j3.run_upsell_j3(supabase_service))
-    print("Relance J+3 terminée :", resultat)
+    resultat = asyncio.run(essai_emails.run(supabase_service))
+    print("Séquence d'essai terminée :", resultat)
     return 0 if resultat.get("ok") else 1
 
 

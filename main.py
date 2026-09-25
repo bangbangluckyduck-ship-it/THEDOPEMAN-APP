@@ -1232,10 +1232,14 @@ async def _maybe_upsell_free_quota(user: dict) -> None:
         if (user.get("tier") or "free").lower() != "free":
             return
         email = user["email"]
-        from auth import supabase_get_monthly_count, make_unsubscribe_token, TIER_CONFIG
-        limit = (TIER_CONFIG.get("free") or {}).get("monthly") or 3
-        if supabase_get_monthly_count(email) < limit:
-            return  # pas encore à la limite
+        from auth import make_unsubscribe_token
+        import analysis_quota
+        # Uniquement un essai EN COURS dont toutes les analyses sont utilisées.
+        # L'ancien calcul (3 analyses par mois calendaire) partait en plein essai
+        # de 10 analyses, avec un message faux.
+        state = analysis_quota.get_state(email, user.get("tier") or "free")
+        if state.get("kind") != "trial" or not state.get("blocked"):
+            return
         month = date.today().strftime("%Y-%m")
         row = supabase_client.table("users").select(
             "marketing_opt_out,upsell_quota_email_month").eq("email", email).limit(1).execute()
@@ -1314,8 +1318,9 @@ async def cron_upsell_j3(request: Request, key: str = Query("")):
     rencontré sur feed-radar-collect). Cf. `upsell_j3.py`.
     """
     _check_cron_secret(request, key)
-    import upsell_j3
-    return await upsell_j3.run_upsell_j3(supabase_client)
+    # Remplacée par la séquence d'essai calée sur la mission (essai_emails.py).
+    import essai_emails
+    return await essai_emails.run(supabase_client)
 
 
 @app.get("/api/_cron/feed-radar-collect")
@@ -5495,51 +5500,14 @@ async def carousel_history(request: Request):
 # Tout est DÉDUIT des tables existantes : aucune migration, et rien à tenir à
 # jour à la main. Les compteurs servent aussi au bilan de fin d'essai.
 # ════════════════════════════════════════════════════════════════════════════
-def _dates_colonne(table: str, email: str, extra=None, limit: int = 500) -> list:
-    """Dates de création (ISO, triées) des lignes d'un compte. [] si indisponible."""
-    try:
-        q = supabase_client.table(table).select("created_at").eq("email", email)
-        for col, val in (extra or {}).items():
-            q = q.eq(col, val)
-        r = q.order("created_at", desc=False).limit(limit).execute()
-        return [row["created_at"] for row in (r.data or []) if row.get("created_at")]
-    except Exception as e:
-        print(f"/api/mission {table}: {e}")
-        return []
-
-
 @app.get("/api/mission")
 async def mission_etat(request: Request):
     user = get_user_from_request(request)
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
-    email = user["email"]
-
-    analyses = _dates_colonne("analysis_jobs", email, {"status": "done"})
-    scripts = _dates_colonne("script_generations", email)
-    gardes = _dates_colonne("user_favorites", email, {"item_type": "script"})
-
-    premier_garde = gardes[0] if gardes else None
-    # Les dates ISO de Supabase sont comparables en tant que chaînes (même format).
-    apres_script = [d for d in analyses if premier_garde and d > premier_garde]
-
-    etapes = [
-        {"id": 1, "fait": len(analyses) >= 1},
-        {"id": 2, "fait": len(scripts) >= 1},
-        {"id": 3, "fait": len(gardes) >= 1},
-        {"id": 4, "fait": len(apres_script) >= 1},
-    ]
-    return {
-        "ok": True,
-        "etapes": etapes,
-        "terminees": sum(1 for e in etapes if e["fait"]),
-        "bilan": {
-            "videos_decryptees": len(analyses),
-            "generations_scripts": len(scripts),
-            "scripts_gardes": len(gardes),
-        },
-        "usage": usage_info(user),
-    }
+    import mission
+    etat = mission.etat(supabase_client, user["email"])
+    return {"ok": True, **etat, "usage": usage_info(user)}
 
 
 # ════════════════════════════════════════════════════════════════════════════
