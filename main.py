@@ -4259,7 +4259,7 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     region = (region or "").strip().upper() or None
     # v2 : ajoute video_url (bouton « Décrypter » de l'accueil). Nouvelle clef pour
     # ne pas resservir pendant 6 h un aperçu en cache sans lien.
-    cache_key = f"feedradar::teaser::v2::{region or 'all'}"
+    cache_key = f"feedradar::teaser::v3::{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
         cols = "video_id,video_url,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
@@ -4278,6 +4278,12 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
 
         try:
             teaser = _fetch(cols)
+            # Lien propre : l'URL collectée porte les paramètres de partage de
+            # celui qui l'a partagée (u_code, sharer_language…). Inutiles pour
+            # l'analyse, et rien à faire dans le champ d'un visiteur.
+            for row in teaser:
+                if row.get("video_url"):
+                    row["video_url"] = row["video_url"].split("?", 1)[0]
         except Exception as e:
             # Migration supabase_migrations_feed_radar_real_gmv.sql pas encore appliquée.
             print(f"/api/feed-radar/teaser real-gmv-cols fallback: {e}")

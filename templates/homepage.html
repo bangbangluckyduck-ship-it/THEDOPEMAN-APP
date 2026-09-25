@@ -1088,8 +1088,7 @@
     </div>
   </a>
   <nav>
-    <a href="#how" class="nav-link" data-i18n="nav_how">Comment ça marche</a>
-    <a href="#features" class="nav-link" data-i18n="nav_features">Fonctionnalités</a>
+    <a href="#methode" class="nav-link" data-i18n="nav_how">La méthode</a>
     <a href="#pricing" class="nav-link" data-i18n="nav_pricing">Tarifs</a>
     {#- Sélecteur de langue. Chaque langue est une URL distincte (rendu serveur,
         cf. homepage_i18n.py) : le sélecteur NAVIGUE, il ne réécrit pas la page.
@@ -1426,10 +1425,46 @@
     border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-style: italic;
   }
 
+  .demo-next {
+    margin-top: 10px; background: rgba(212,175,55,.14); border: 1px solid rgba(212,175,55,.55);
+    border-radius: 10px; padding: 11px 13px; font-size: 14px; line-height: 1.5; color: #F8FAFC;
+  }
+  .demo-next-k {
+    display: block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: #FFD966; margin-bottom: 3px;
+  }
+  /* Mobile : onglets à la taille du pouce (44 px), textes lisibles sans zoom. */
   @media (max-width: 560px) {
     .demo-head h2 { font-size: 22px; }
     .demo-stage { padding: 16px 14px 18px; min-height: 250px; }
-    .demo-tab { flex: 1; min-width: 0; font-size: 12.5px; padding: 9px 8px; }
+    .demo-line { font-size: 14px; }
+    .demo-row { font-size: 14px; line-height: 1.45; }
+    .demo-tabs { flex-wrap: nowrap; gap: 6px; }
+    .demo-tab { flex: 1; min-width: 0; min-height: 44px; font-size: 13.5px; padding: 8px 6px; line-height: 1.2; border-radius: 12px; }
+    .demo-panel { padding: 16px; font-size: 15px; }
+  }
+
+  /* ═══ LA MÉTHODE QEERAH ═══ */
+  .methode { padding: 64px 20px; background: var(--bg); }
+  .methode-wrap { max-width: 760px; margin: 0 auto; }
+  .methode-etapes { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 14px; }
+  .methode-etape {
+    display: flex; gap: 14px; align-items: flex-start; background: var(--surface, #fff);
+    border: 1px solid var(--border); border-radius: 16px; padding: 18px;
+  }
+  .methode-num {
+    flex: 0 0 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dk)); color: #fff; font-weight: 800; font-size: 17px;
+  }
+  .methode-k { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink, #8B6914); }
+  .methode-p { font-size: 16px; line-height: 1.5; color: var(--text); margin: 4px 0 0; font-weight: 600; }
+  .methode-liste { margin: 10px 0 0; padding-left: 18px; font-size: 14.5px; line-height: 1.55; color: var(--text); }
+  .methode-liste li { margin-bottom: 4px; }
+  .methode-outils { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  @media (max-width: 560px) {
+    .methode { padding: 48px 16px; }
+    .methode-etape { padding: 16px 14px; gap: 12px; }
+    .methode-p { font-size: 15.5px; }
   }
   /* Respecte le réglage système « animations réduites » */
   @media (prefers-reduced-motion: reduce) {
@@ -1468,6 +1503,10 @@
             <div class="demo-row" data-i18n="demo_row_2">Preuve sociale et rareté activées entre 0:04 et 0:11</div>
             <div class="demo-row warn" data-i18n="demo_row_3">Appel à l'action tardif — la chute d'attention démarre à 0:14</div>
           </div>
+          <div class="demo-next">
+            <span class="demo-next-k" data-i18n="demo_next_k">Ce que tu fais ensuite</span>
+            <span data-i18n="demo_next">Dis ton appel à l'action à 0:08, juste après la démonstration — pas à 0:14.</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1481,7 +1520,7 @@
     <div class="demo-tabs" role="tablist" data-i18n-aria="demo_tabs_aria" aria-label="Détail du rapport">
       <button class="demo-tab" role="tab" id="tab-0" aria-controls="panel-0" aria-selected="true" data-i18n="demo_tab_0">Accroche décryptée</button>
       <button class="demo-tab" role="tab" id="tab-1" aria-controls="panel-1" aria-selected="false" data-i18n="demo_tab_1">Déclencheurs</button>
-      <button class="demo-tab" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false" data-i18n="demo_tab_2">Plan d'action</button>
+      <button class="demo-tab" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false" data-i18n="demo_tab_2">Ce que tu fais ensuite</button>
     </div>
 
     <div class="demo-panel" role="tabpanel" id="panel-0" aria-labelledby="tab-0">
@@ -1840,78 +1879,57 @@
   </div>
 </section>
 
-<!-- ════════════════════ HOW IT WORKS ════════════════════ -->
-<section class="how-it-works" id="how">
-  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-    <h2 class="section-title" data-i18n="how_title">Comment ça marche ?</h2>
-    <p class="section-subtitle" data-i18n="how_sub">3 étapes pour décrypter n'importe quelle vidéo virale</p>
+<!-- ════════════════════ LA MÉTHODE QEERAH ════════════════════
+     Remplace « Comment ça marche » (3 étapes centrées sur l'outil) et « Une
+     analyse complète » (liste de modules). Chaque étape = UN bénéfice ; les
+     outils ne viennent qu'en petit, comme moyens. -->
+<section class="methode" id="methode" aria-labelledby="methode-title">
+  <div class="methode-wrap">
+    <h2 class="section-title" id="methode-title" data-i18n="meth_title">La méthode Qeerah</h2>
+    <p class="section-subtitle" data-i18n="meth_sub">Trouver, comprendre, créer, améliorer. Quatre étapes, et tu recommences à chaque vidéo.</p>
 
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-icon"></div>
-        <h3 data-i18n="how_1_h">1. Colle un lien TikTok</h3>
-        <p data-i18n="how_1_p">N'importe quelle vidéo TikTok Shop, virale ou non. Quelques secondes suffisent.</p>
-      </div>
+    <ol class="methode-etapes">
+      <li class="methode-etape">
+        <span class="methode-num" aria-hidden="true">1</span>
+        <div>
+          <div class="methode-k" data-i18n="meth_1_k">Trouver</div>
+          <p class="methode-p" data-i18n="meth_1_p">Repère les vidéos et les produits qui vendent en ce moment dans ton pays.</p>
+          <p class="methode-outils" data-i18n="meth_1_o">Feed Radar · produits et créateurs qui vendent</p>
+        </div>
+      </li>
+      <li class="methode-etape">
+        <span class="methode-num" aria-hidden="true">2</span>
+        <div>
+          <div class="methode-k" data-i18n="meth_2_k">Comprendre</div>
+          <p class="methode-p" data-i18n="meth_2_p">Vois pourquoi une vidéo vend : ce que tu n'avais pas remarqué au premier visionnage.</p>
+          <ul class="methode-liste">
+            <li data-i18n="feat_1_h">Comprends pourquoi on te scrolle en 3 secondes</li>
+            <li data-i18n="feat_3_h">Identifie la seconde exacte où les gens décrochent</li>
+            <li data-i18n="feat_4_h">Comprends pourquoi ils regardent sans jamais cliquer</li>
+          </ul>
+          <p class="methode-outils" data-i18n="meth_2_o">Décryptage par lien ou par fichier · plusieurs vidéos d'un coup</p>
+        </div>
+      </li>
+      <li class="methode-etape">
+        <span class="methode-num" aria-hidden="true">3</span>
+        <div>
+          <div class="methode-k" data-i18n="meth_3_k">Créer</div>
+          <p class="methode-p" data-i18n="meth_3_p">Transforme ce que tu as compris en accroches et en scripts pour ton produit.</p>
+          <p class="methode-outils" data-i18n="meth_3_o">Scripts multi-angles · studio d'accroches · carrousels photo</p>
+        </div>
+      </li>
+      <li class="methode-etape">
+        <span class="methode-num" aria-hidden="true">4</span>
+        <div>
+          <div class="methode-k" data-i18n="meth_4_k">Améliorer</div>
+          <p class="methode-p" data-i18n="meth_4_p">Décrypte tes propres vidéos une fois publiées : garde ce qui marche, corrige le reste, recommence.</p>
+          <p class="methode-outils" data-i18n="meth_4_o">Décryptage de tes vidéos · tes habitudes gagnantes et perdantes</p>
+        </div>
+      </li>
+    </ol>
 
-      <div class="step-card">
-        <div class="step-icon"></div>
-        <h3 data-i18n="how_2_h">2. Découvre ce qui la fait vendre</h3>
-        <p data-i18n="how_2_p"
-           data-var-count="{{ ANALYSIS_DIMENSIONS_COUNT }}"
-           data-var-dims="{{ ANALYSIS_DIMENSIONS_TEXT }}">Analyse en {{ ANALYSIS_DIMENSIONS_COUNT }} dimensions : {{ ANALYSIS_DIMENSIONS_TEXT }}.</p>
-      </div>
-
-      <div class="step-card">
-        <div class="step-icon">📈</div>
-        <h3 data-i18n="how_3_h">3. Applique la méthode à ton produit</h3>
-        <p data-i18n="how_3_p">Plan d'action détaillé pour reproduire le succès avec TES produits.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ════════════════════ FEATURES ════════════════════ -->
-<section class="features" id="features">
-  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-    <h2 class="section-title" data-i18n="feat_title">Une analyse complète</h2>
-    <p class="section-subtitle" data-i18n="feat_sub">Tout ce que les top créateurs cachent, révélé en temps réel</p>
-
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-emoji"></div>
-        <h3 data-i18n="feat_1_h">Comprends pourquoi on te scrolle en 3 secondes</h3>
-        <p data-i18n="feat_1_p">Ton accroche reçoit une note, et ce qui fait fuir est nommé : type, force d'interruption, promesse tenue ou non.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-emoji"></div>
-        <h3 data-i18n="feat_2_h">Repère les déclencheurs qui font acheter, chez toi comme chez tes concurrents</h3>
-        <p data-i18n="feat_2_p">Autorité, preuve sociale, rareté, urgence : ceux que la vidéo active, et ceux qui manquent.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-emoji">️</div>
-        <h3 data-i18n="feat_3_h">Identifie la seconde exacte où les gens décrochent</h3>
-        <p data-i18n="feat_3_p">Boucles ouvertes, coupes, transitions : ce qui retient l'attention, et ce qui la casse.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-emoji">💰</div>
-        <h3 data-i18n="feat_4_h">Comprends pourquoi ils regardent sans jamais cliquer</h3>
-        <p data-i18n="feat_4_p">Appels à l'action visibles ou implicites, objections levées ou laissées en suspens.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-emoji"></div>
-        <h3 data-i18n="feat_5_h">Découvre pourquoi TikTok a poussé sa vidéo et pas la tienne</h3>
-        <p data-i18n="feat_5_p">Les signaux que l'algorithme récompense, et ceux qui manquent à la tienne.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-emoji"></div>
-        <h3 data-i18n="feat_6_h">Récupère les accroches du gagnant, adaptées à ton produit</h3>
-        <p data-i18n="feat_6_p">Accroches réécrites, appels à l'action optimisés, angles prêts à tourner.</p>
-      </div>
+    <div style="text-align:center;margin-top:28px">
+      <a href="#tool" class="hero-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</a>
     </div>
   </div>
 </section>
@@ -2203,8 +2221,7 @@
   <div class="footer-content">
     <div class="footer-section">
       <h3 data-i18n="ft_product">Produit</h3>
-      <a href="#how" data-i18n="ft_how">Comment ça marche</a>
-      <a href="#features" data-i18n="ft_features">Fonctionnalités</a>
+      <a href="#methode" data-i18n="ft_how">La méthode</a>
       <a href="#faq" data-i18n="ft_faq">FAQ</a>
       <a href="/pricing" data-i18n="ft_pricing">Tarifs</a>
       <a href="/pricing/compare" data-i18n="ft_compare">Tout ce qui est inclus</a>
