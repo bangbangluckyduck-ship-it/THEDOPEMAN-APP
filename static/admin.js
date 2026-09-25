@@ -134,6 +134,7 @@ function showView(view) {
   if (view === 'stats') loadStats();
   if (view === 'users') loadUsers();
   if (view === 'usage') loadUsage();
+  if (view === 'entonnoir') loadEntonnoir();
   if (view === 'hooks') initHooksView();
   if (view === 'temoignages') loadTemoignages();
   if (view === 'notifs') initNotifsView();
@@ -631,6 +632,47 @@ async function loadUsage() {
     renderUsage();
   } catch (e) {
     if (list) list.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
+  }
+}
+
+/* ── ENTONNOIR — marches de l'escalier et taux de passage ─────────────── */
+let _entJours = 30;
+async function loadEntonnoir(jours) {
+  if (jours) _entJours = jours;
+  document.querySelectorAll('.ent-per').forEach(b => b.classList.toggle('on', parseInt(b.dataset.jours, 10) === _entJours));
+  const box = document.getElementById('entonnoir-table');
+  if (box) box.innerHTML = '<div class="empty">Chargement…</div>';
+  try {
+    const res = await fetch('/admin/entonnoir?jours=' + _entJours, { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 403) { showLogin(); return; }
+      const d = await res.json().catch(() => ({}));
+      if (box) box.innerHTML = `<div class="empty">❌ ${esc(d.detail || 'Erreur de chargement')}</div>`;
+      return;
+    }
+    const d = await res.json();
+    const fmt = v => (v === null || v === undefined) ? '—' : Number(v).toLocaleString('fr-FR');
+    const pct = v => (v === null || v === undefined) ? '—' : String(v).replace('.', ',') + ' %';
+    const max = Math.max(1, ...(d.marches || []).map(m => m.total || 0));
+    const lignes = (d.marches || []).map((m, i) => `
+      <tr>
+        <td>${esc(m.libelle)}<div class="ent-bar" style="width:${Math.round(100 * (m.total || 0) / max)}%"></div></td>
+        <td class="n">${fmt(m.total)}</td>
+        <td class="n ${m.taux !== null && m.taux < 20 && i > 0 ? 'ent-faible' : ''}">${i === 0 ? '' : pct(m.taux)}</td>
+        <td class="n">${pct(m.depuis_debut)}</td>
+      </tr>`).join('');
+    const annexes = (d.annexes || []).map(a => `<tr><td>${esc(a.libelle)}</td><td class="n">${fmt(a.total)}</td></tr>`).join('');
+    box.innerHTML = `
+      <table class="ent-table">
+        <thead><tr><th>Marche</th><th style="text-align:right">Nombre</th><th style="text-align:right">Passage</th><th style="text-align:right">Depuis la vue</th></tr></thead>
+        <tbody>${lignes}</tbody>
+      </table>
+      <table class="ent-table ent-annexes">
+        <thead><tr><th>À côté de l'escalier</th><th style="text-align:right">Nombre</th></tr></thead>
+        <tbody>${annexes}</tbody>
+      </table>`;
+  } catch (e) {
+    if (box) box.innerHTML = '<div class="empty">❌ Erreur réseau</div>';
   }
 }
 

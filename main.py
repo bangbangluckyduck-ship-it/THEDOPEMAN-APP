@@ -468,11 +468,13 @@ def _asset_version() -> str:
     dur — le cache-busting cessait alors silencieusement de fonctionner et les
     visiteurs conservaient d'anciennes versions du JS.
     """
+    # TOUS les .js/.css servis : la liste en dur oubliait qeerah-analytics.js,
+    # admin.js et qeerah-promo.js — une modification de l'un d'eux seul ne
+    # changeait pas la version, et le navigateur gardait l'ancien fichier.
     stamps = []
-    for name in ("app_v3.js", "qeerah-scanner.js", "qeerah-consent.js",
-                 "qeerah-tiktok.js"):
+    for f in list(Path("static").glob("*.js")) + list(Path("static").glob("*.css")):
         try:
-            stamps.append(int(Path("static", name).stat().st_mtime))
+            stamps.append(int(f.stat().st_mtime))
         except Exception:
             pass
     return str(max(stamps)) if stamps else "1"
@@ -1577,6 +1579,9 @@ async def register(request: Request):
         await email_service.send_welcome_email(email)
     except Exception as mail_err:
         print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
+
+    import entonnoir
+    entonnoir.enregistrer(supabase, "compte_cree")
 
     token = create_access_token(email)
     return {"ok": True, "email": email, "tier": "free", "created": True, "token": token}
@@ -3425,6 +3430,11 @@ async def stripe_webhook_v1(request: Request):
         # uniquement si la finalité publicité a été acceptée. Sans lui, on
         # n'envoie rien — un envoi serveur reste un traitement publicitaire.
         await _tiktok_complete_payment(obj, email)
+        try:
+            import entonnoir
+            entonnoir.enregistrer(supabase_client, "abonnement")
+        except Exception as _e:
+            print(f"[entonnoir] abonnement : {_e}")
 
     # ── Renouvellement payé → le quota repart sur le nouveau cycle ──
     # Sans cet événement, un abonné mensuel restait bloqué sur la fenêtre de
@@ -3539,6 +3549,9 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
     # `nouveau=1` signale au front que ce retour a CRÉÉ le compte, pour qu'il émette
     # l'événement `compte_cree` — sans ce marqueur, une inscription via Google est
     # indiscernable d'une simple reconnexion côté mesure.
+    if is_new_account:
+        import entonnoir
+        entonnoir.enregistrer(supabase_client, "compte_cree")
     frag = f"gauth={token}" + ("&nouveau=1" if is_new_account else "")
     return RedirectResponse(f"{app_url}/app#{frag}")
 
@@ -5508,6 +5521,36 @@ async def carousel_history(request: Request):
 # Tout est DÉDUIT des tables existantes : aucune migration, et rien à tenir à
 # jour à la main. Les compteurs servent aussi au bilan de fin d'essai.
 # ════════════════════════════════════════════════════════════════════════════
+# Événements anonymes de l'entonnoir (cf. entonnoir.py) : aucun cookie, aucune
+# IP stockée, liste blanche d'événements. Plafond par IP en mémoire pour qu'un
+# script ne puisse pas gonfler les compteurs à volonté.
+_EVT_FENETRE = 60.0
+_EVT_MAX = 40
+_EVT_PAR_IP: dict = {}
+
+
+@app.post("/api/evt")
+async def evenement_entonnoir(request: Request):
+    import entonnoir
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    e = str((body or {}).get("e") or "").strip()
+    if e not in entonnoir.DEPUIS_NAVIGATEUR:
+        return JSONResponse({"ok": False}, status_code=400)
+    ip = request.client.host if request.client else "?"
+    maintenant = time.time()
+    recents = [t for t in _EVT_PAR_IP.get(ip, []) if maintenant - t < _EVT_FENETRE]
+    if len(recents) >= _EVT_MAX:
+        _EVT_PAR_IP[ip] = recents
+        return JSONResponse({"ok": False}, status_code=429)
+    recents.append(maintenant)
+    _EVT_PAR_IP[ip] = recents
+    entonnoir.enregistrer(supabase_client, e)
+    return {"ok": True}
+
+
 @app.get("/api/mission")
 async def mission_etat(request: Request):
     user = get_user_from_request(request)

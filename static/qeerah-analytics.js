@@ -15,8 +15,70 @@
 (function () {
   'use strict';
 
-  /** Émet un événement. Sans effet si Analytics n'est pas chargé. */
+  // ── Entonnoir interne (cf. entonnoir.py) ─────────────────────────────────
+  // Compteur ANONYME, indépendant du consentement : aucun cookie, aucun
+  // identifiant, seulement le nom de l'étape. Il existe parce que GA4 et le
+  // pixel ne voient que les visiteurs qui acceptent les cookies — les taux de
+  // passage entre marches y sont faux par construction.
+  var INTERNE = {
+    page_vue_accueil: 'accueil_vue',
+    clic_cta_principal: 'cta_clic',
+    analyse_demarree: 'analyse_lancee',
+    resultat_partiel_affiche: 'resultat_partiel',
+    clic_debloquer_resultat: 'debloquer_clic',
+    clic_decrypter_feed_radar: 'feedradar_decrypter'
+  };
+  // Une seule fois par onglet : un visiteur qui recharge ou reclique ne doit
+  // pas gonfler la marche.
+  var UNE_FOIS_PAR_ONGLET = { accueil_vue: 1, cta_clic: 1 };
+
+  function interne(etape) {
+    try {
+      if (UNE_FOIS_PAR_ONGLET[etape]) {
+        var cle = 'q_evt_' + etape;
+        if (sessionStorage.getItem(cle)) return;
+        sessionStorage.setItem(cle, '1');
+      }
+    } catch (e) { /* stockage indisponible : on compte quand même */ }
+    try {
+      var corps = JSON.stringify({ e: etape });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/evt', new Blob([corps], { type: 'application/json' }));
+      } else {
+        fetch('/api/evt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corps, keepalive: true });
+      }
+    } catch (e) {}
+  }
+
+  // ── Pixel TikTok : les marches qui lui manquaient ─────────────────────────
+  // QeerahTikTok ne fait rien sans consentement « publicité » (cf. qeerah-tiktok.js).
+  // La vue de page part déjà seule (ttq.page) ; compte créé et paiement ont
+  // leurs propres envois (CompleteRegistration navigateur, CompletePayment
+  // serveur).
+  var PIXEL = {
+    cta_clic: ['ClickButton', { content_name: 'analyser_premiere_video' }],
+    analyse_lancee: ['SubmitForm', { content_name: 'analyse_video' }],
+    analyse_terminee: ['AnalyseTerminee', {}],
+    mission_1: ['MissionEtape1', {}],
+    mission_2: ['MissionEtape2', {}],
+    mission_3: ['MissionEtape3', {}],
+    mission_4: ['MissionEtape4', {}]
+  };
+  function pixel(etape) {
+    try {
+      var p = PIXEL[etape];
+      if (p && window.QeerahTikTok && typeof window.QeerahTikTok.track === 'function') {
+        window.QeerahTikTok.track(p[0], p[1], { event_id: window.QeerahTikTok.newEventId ? window.QeerahTikTok.newEventId() : undefined });
+      }
+    } catch (e) {}
+  }
+
+  /** Émet un événement : GA4 (si consentement), entonnoir interne, pixel. */
   function track(nom, props) {
+    var etape = INTERNE[nom];
+    if (nom === 'analyse_terminee' && props && props.resultat === 'succes') etape = 'analyse_terminee';
+    if (nom === 'mission_etape_terminee' && props && props.etape) etape = 'mission_' + props.etape;
+    if (etape) { interne(etape); pixel(etape); }
     try {
       if (typeof window.gtag !== 'function') return;
       window.gtag('event', nom, props || {});
@@ -37,7 +99,9 @@
     var chemin = location.pathname.replace(/\/+$/, '') || '/';
 
     // 1 & 7 — vues de page structurantes
-    if (chemin === '/') trackUnique('page_vue_accueil');
+    // Accueil dans toutes les langues servies (/, /en, /en-ie, /pt-br, /es,
+    // /es-mx, /it, /de) — seul « / » était compté.
+    if (/^\/(|en|en-ie|pt-br|es|es-mx|it|de)$/.test(chemin)) trackUnique('page_vue_accueil');
     if (chemin === '/pricing' || chemin === '/pricing/compare') trackUnique('page_vue_tarifs');
 
     // 2 — clic sur l'appel à l'action principal

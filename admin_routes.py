@@ -139,6 +139,20 @@ def _usage_fetch_all(supabase, table: str, columns: str) -> list[dict]:
     return rows
 
 
+@router.get("/entonnoir")
+async def admin_entonnoir(request: Request, jours: int = 30):
+    """Les marches de l'escalier et le taux de passage de l'une à l'autre."""
+    _require_admin(request)
+    try:
+        from supabase_client import supabase_service as supabase, SUPABASE_ENABLED
+    except Exception:
+        supabase, SUPABASE_ENABLED = None, False
+    if not (SUPABASE_ENABLED and supabase):
+        raise HTTPException(status_code=503, detail="Base de données indisponible.")
+    import entonnoir
+    return entonnoir.tableau(supabase, jours)
+
+
 @router.get("/usage")
 async def admin_usage(request: Request):
     """Un compte par ligne : inscription, statut, volume et régularité d'usage."""
