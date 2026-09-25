@@ -1033,6 +1033,34 @@ function updateSessionUI() {
   }
 }
 
+// ── ACCÈS COMPLET ─────────────────────────────────────────────
+// Même règle que auth.has_full_access() côté serveur : il n'y a plus de palier.
+// Abonné, admin ou essai en cours = tout est ouvert. Un compte en essai porte le
+// tier `free` : se fier au tier seul verrouillait l'analyse de liens, le Studio
+// d'accroches et le carrousel à quelqu'un à qui on venait de promettre « 7 jours
+// d'accès complet ». Le serveur reste l'autorité (402 si l'essai est fini).
+function hasFullAccess() {
+  const u = window.__userInfo || {};
+  if (u.is_admin) return true;
+  const tier = (u.tier || 'free').toLowerCase();
+  if (['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier)) return true;
+  const kind = (window.__usage || u.usage || {}).kind;
+  return kind === 'trial' || kind === 'subscription' || kind === 'unlimited';
+}
+window.hasFullAccess = hasFullAccess;
+
+// Message quand l'accès est refusé : un essai terminé n'est pas un visiteur.
+function refuserAcces() {
+  const token = localStorage.getItem('tts_token');
+  if (!token) {
+    const modal = document.getElementById('auth-modal');
+    if (modal) modal.classList.add('active');
+    return;
+  }
+  switchTab('pricing');
+  showToast("Ton essai est terminé. Passe à Qeerah Pro pour continuer à décrypter des vidéos.");
+}
+
 // Fetch user info from server. Renvoie une Promise (résolue avec les infos plan)
 // pour que les vues qui dépendent du tier puissent l'attendre (ex: Photo Slide).
 function fetchUserInfo() {
@@ -1053,7 +1081,7 @@ function fetchUserInfo() {
       // menu burger (rendu par renderAuthMenu).
       try {
         const tier = (data?.tier || 'free').toLowerCase();
-        const isPaid = ['pro','gold','agency','beta','admin'].includes(tier);
+        const isPaid = hasFullAccess();
         const myBtn = document.getElementById('my-analyses-btn');
         if (myBtn) myBtn.style.display = isPaid ? 'inline-block' : 'none';
         const uploadAsync = document.getElementById('analyze-upload-async-btn');
@@ -1561,8 +1589,7 @@ async function analyzeVideo() {
   // survit à une coupure réseau, et elle continue en arrière-plan (backup email +
   // « Mes analyses »). On garde le chemin synchrone pour les comptes gratuits
   // (l'async est réservé Pro+ côté serveur, et leur pipeline léger tient dans le délai).
-  const _tierNow = (window.__userInfo?.tier || 'free').toLowerCase();
-  if (selectedFile && ['pro', 'gold', 'agency', 'beta', 'admin'].includes(_tierNow)) {
+  if (selectedFile && hasFullAccess()) {
     return runUploadAnalysisAsyncInline();
   }
 
@@ -1710,7 +1737,7 @@ async function analyzeVideo() {
       console.log('[DEBUG] About to call showResults');
       showResults(data);
 
-      if (data.donnees_marche && (window.__userInfo?.tier === 'gold' || window.__userInfo?.tier === 'agency' || window.__userInfo?.tier === 'beta')) {
+      if (data.donnees_marche && hasFullAccess()) {
         renderMarketSection(data.donnees_marche);
         document.getElementById('market-section').style.display = 'block';
       }
@@ -1740,11 +1767,7 @@ async function analyzeSingleUrl() {
 
   const tier  = window.__userInfo?.tier || 'free';
   const token = localStorage.getItem('tts_token');
-  if (!token || tier === 'free') {
-    switchTab('pricing');
-    showToast("Abonne-toi à Qeerah Pro pour analyser des liens TikTok directement.");
-    return;
-  }
+  if (!token || !hasFullAccess()) { refuserAcces(); return; }
 
   // Champs DÉDIÉS au bloc « 1 lien » (nom produit + prix obligatoires).
   const productInput = document.getElementById('single-product');
@@ -1817,7 +1840,7 @@ async function analyzeSingleUrl() {
     }
     saveToHistory(completeData, url);
     showResults(completeData);
-    if (completeData.donnees_marche && (tier === 'gold' || tier === 'agency' || tier === 'beta')) {
+    if (completeData.donnees_marche && hasFullAccess()) {
       renderMarketSection(completeData.donnees_marche);
       const ms = document.getElementById('market-section'); if (ms) ms.style.display = 'block';
     }
@@ -1841,19 +1864,8 @@ async function analyzeUrls() {
   const tier  = window.__userInfo?.tier || 'free';
   const token = localStorage.getItem('tts_token');
 
-  // ── BLOCAGE 1 : anonyme ou FREE → upsell Pro ──
-  if (!token || tier === 'free') {
-    switchTab('pricing');
-    showToast("Abonne-toi à Qeerah Pro pour analyser des liens TikTok sans rien télécharger.");
-    return;
-  }
-
-  // ── (supprimé) L'analyse multi-liens est incluse dans Qeerah Pro ──
-  if (tier === 'pro' && urls.length > 1) {
-    switchTab('pricing');
-    showToast("Analyse de plusieurs liens en cours…");
-    return;
-  }
+  // ── Anonyme ou essai terminé → pas d'analyse (le serveur refuserait aussi) ──
+  if (!token || !hasFullAccess()) { refuserAcces(); return; }
 
   // Multi-liens = analyse de PATTERNS sur plusieurs vidéos → produit/prix NON requis
   // (souvent des vidéos/produits différents). On les transmet seulement s'ils sont saisis.
@@ -1943,12 +1955,12 @@ async function analyzeUrls() {
   // ── Bilan ──
   document.getElementById('loading-section').style.display = 'none';
   if (lastData) {
-    const _canPatterns = results.length >= 2 && ['gold', 'agency', 'beta', 'admin'].includes(tier);
+    const _canPatterns = results.length >= 2 && hasFullAccess();
     const _note = failed.length ? ` (${failed.length} échec${failed.length > 1 ? 's' : ''} : vidéo${failed.length > 1 ? 's' : ''} ${failed.join(', ')})` : '';
     if (total === 1 || !_canPatterns) {
       // Analyse simple (ou pas assez de vidéos réussies pour des patterns) → rapport complet.
       showResults(lastData);
-      if (lastData.donnees_marche && ['gold', 'agency', 'beta'].includes(tier)) {
+      if (lastData.donnees_marche && hasFullAccess()) {
         renderMarketSection(lastData.donnees_marche);
         document.getElementById('market-section').style.display = 'block';
       }
@@ -1963,7 +1975,7 @@ async function analyzeUrls() {
 
     // ── Méta-synthèse cross-vidéos : détection des patterns gagnants/perdants ──
     // Réservé aux tiers gold/agency/beta/admin et nécessite ≥2 analyses réussies.
-    if (results.length >= 2 && ['gold', 'agency', 'beta', 'admin'].includes(tier)) {
+    if (results.length >= 2 && hasFullAccess()) {
       try {
         const patternsSection = document.getElementById('batch-patterns-section');
         if (patternsSection) {
@@ -2471,7 +2483,7 @@ function showResults(d) {
   const marketData = d.donnees_marche;
   const userTier = window.__userInfo?.tier || 'free';
   const isAdmin = window.__userInfo?.is_admin || false;
-  const hasMarketAccess = ['gold', 'agency', 'beta'].includes(userTier) || isAdmin;
+  const hasMarketAccess = hasFullAccess();
 
   const marketIntelligenceSection = document.getElementById('market-intelligence-section');
   if (marketIntelligenceSection && marketData) {
@@ -2702,7 +2714,7 @@ function showResults(d) {
   // premium, l'ancien encart "🤖 Coach IA" faisait DOUBLON avec les autres volets
   // (conseils déjà couverts par points à améliorer / structure / stratégie) → retiré.
   const userTierForCoaching = window.__userInfo?.tier || 'free';
-  const isFreemium = userTierForCoaching === 'free' || userTierForCoaching === 'pro';
+  const isFreemium = !hasFullAccess();
   document.getElementById('coaching-section')?.remove();   // nettoie un éventuel encart obsolète
   if (isFreemium && d.conseils_concrets?.length > 0) {
     showLockedCoachingSection(d.conseils_concrets[0]);
@@ -3571,11 +3583,11 @@ function renderAccountPage() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
             <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Analyses ce mois</div>
-            <div style="font-size:24px;font-weight:700;color:var(--navy)">${getUsage()}</div>
+            <div style="font-size:24px;font-weight:700;color:var(--navy)">${(window.__usage && window.__usage.used != null) ? window.__usage.used : getUsage()}</div>
           </div>
           <div>
             <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Limite</div>
-            <div style="font-size:24px;font-weight:700;color:${tier === 'free' || tier === 'pro' ? 'var(--warning)' : 'var(--success)'}">${tier === 'free' ? '3' : tier === 'pro' ? '20' : '∞'}</div>
+            <div style="font-size:24px;font-weight:700;color:var(--navy)">${(window.__usage && window.__usage.limit) || '∞'}</div>
           </div>
         </div>
       </div>
@@ -3727,7 +3739,7 @@ function renderProgressionChart() {
   const showCard = () => { if (card) card.style.display = ''; };
   const hideCard = () => { if (card) card.style.display = 'none'; };
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
-  const isPaid = ['pro', 'gold', 'agency', 'beta', 'admin'].includes(tier) || window.__userInfo?.is_admin;
+  const isPaid = hasFullAccess();
 
   // Données : derniers scores, du plus ancien au plus récent (max 15)
   const pts = getHistory()
@@ -4693,7 +4705,7 @@ async function initPhotoSlideTab() {
     try { await (window.__userInfoPromise || fetchUserInfo()); } catch (e) {}
   }
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
-  const premium = PS_PREMIUM_TIERS.includes(tier) || window.__userInfo?.is_admin;
+  const premium = hasFullAccess();
   const gate = document.getElementById('ps-gate');
   const form = document.getElementById('ps-form');
   if (gate) gate.style.display = premium ? 'none' : 'block';
@@ -5003,7 +5015,7 @@ function _vpVal(id) { return document.getElementById(id)?.value || ''; }
 async function initPromptStudioTab() {
   if (!window.__userInfo) { try { await (window.__userInfoPromise || fetchUserInfo()); } catch (e) {} }
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
-  const premium = VP_PREMIUM.includes(tier) || window.__userInfo?.is_admin;
+  const premium = hasFullAccess();
   const gate = document.getElementById('vp-gate'), form = document.getElementById('vp-form');
   if (gate) gate.style.display = premium ? 'none' : 'block';
   if (form) form.style.display = premium ? 'block' : 'none';
@@ -5362,7 +5374,7 @@ function initRechercheTab() {
   const result = document.getElementById('recherche-result');
   const quotaLabel = document.getElementById('recherche-quota-label');
   if (!locked || !result) return;
-  if (tier === 'free') {
+  if (!hasFullAccess()) {
     locked.style.display = 'block';
     result.style.display = 'none';
     quotaLabel.textContent = '';
@@ -5379,7 +5391,7 @@ function initRechercheTab() {
 
 async function runRechercheSearch(refresh) {
   const tier = (window.__userInfo?.tier || 'free').toLowerCase();
-  if (tier === 'free') { switchTab('pricing'); return; }
+  if (!hasFullAccess()) { refuserAcces(); return; }
 
   const input = document.getElementById('recherche-handle');
   const handle = (input?.value || window.__rechercheLastHandle || '').trim();
