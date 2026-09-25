@@ -3090,7 +3090,7 @@ function renderPremiumStrategy(d) {
     sec.id = 'premium-strategy-section';
     sec.className = 'section premium-strategy';
     sec.innerHTML = `
-      <h2 style="display:flex;align-items:center;gap:8px;">${escapeHtml(sp.titre || '👑 Stratégie de Conversion (Premium)')}</h2>
+      <h2 style="display:flex;align-items:center;gap:8px;">${escapeHtml(sp.titre || '🎯 Ton plan pour vendre ce produit')}</h2>
       ${sp.produit_identifie ? `<p class="premium-product">🛍️ Produit identifié : <strong>${escapeHtml(sp.produit_identifie)}</strong></p>` : ''}
 
       <div class="premium-block">
