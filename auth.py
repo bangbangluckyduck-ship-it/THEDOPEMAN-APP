@@ -292,7 +292,11 @@ def get_user_from_request(request: Request) -> dict:
 # ── QUOTA ─────────────────────────────────────────────────────
 
 def is_admin(user: dict) -> bool:
-    return user.get("is_admin", False) or user.get("tier") == "admin"
+    # ⚠️ SÉCURITÉ : seul ADMIN_EMAIL est administrateur (is_admin posé par
+    # get_user_from_request). Un palier « admin » en base ne suffit PLUS : des
+    # comptes de test portant ce palier avaient leur mot de passe publié dans
+    # le dépôt, ce qui ouvrait /dope-admin à n'importe qui.
+    return bool(user.get("is_admin", False))
 
 
 def has_full_access(user: dict) -> bool:

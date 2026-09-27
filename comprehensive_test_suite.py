@@ -20,32 +20,32 @@ BASE_URL = os.getenv("API_URL", "https://qeerah.com").rstrip('/')
 BOTS = {
     "FREE": {
         "email": "bot-free@tts-test.com",
-        "password": "BotFreePass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "free",
     },
     "PRO": {
         "email": "bot-pro@tts-test.com",
-        "password": "BotProPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "pro",
     },
     "GOLD": {
         "email": "bot-gold@tts-test.com",
-        "password": "BotGoldPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "gold",
     },
     "BETA": {
         "email": "bot-beta@tts-test.com",
-        "password": "BotBetaPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "beta",
     },
     "AGENCY": {
         "email": "bot-agency@tts-test.com",
-        "password": "BotAgencyPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "agency",
     },
     "ADMIN": {
         "email": "bot-admin@tts-test.com",
-        "password": "BotAdminPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "admin",
     }
 }

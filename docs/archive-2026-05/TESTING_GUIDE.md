@@ -54,12 +54,12 @@ All test bots are automatically created in Supabase. Here are their credentials:
 
 | Tier | Email | Password | Tier Name |
 |------|-------|----------|-----------|
-| **FREE** | bot-free@tts-test.com | BotFreePass123! | free |
-| **PRO** | bot-pro@tts-test.com | BotProPass123! | pro |
-| **GOLD** | bot-gold@tts-test.com | BotGoldPass123! | gold |
-| **BETA** | bot-beta@tts-test.com | BotBetaPass123! | beta |
-| **AGENCY** | bot-agency@tts-test.com | BotAgencyPass123! | agency |
-| **ADMIN** | bot-admin@tts-test.com | BotAdminPass123! | admin |
+| **FREE** | bot-free@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | free |
+| **PRO** | bot-pro@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | pro |
+| **GOLD** | bot-gold@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | gold |
+| **BETA** | bot-beta@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | beta |
+| **AGENCY** | bot-agency@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | agency |
+| **ADMIN** | bot-admin@tts-test.com | *(retiré — variable TEST_BOT_PASSWORD)* | admin |
 
 ---
 

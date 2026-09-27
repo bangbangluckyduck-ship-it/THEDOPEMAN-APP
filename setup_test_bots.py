@@ -29,37 +29,37 @@ supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 BOTS = {
     "FREE": {
         "email": "bot-free@tts-test.com",
-        "password": "BotFreePass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "free",
         "description": "Free tier - 3 analyses max"
     },
     "PRO": {
         "email": "bot-pro@tts-test.com",
-        "password": "BotProPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "pro",
         "description": "Pro tier - Analyses illimitées"
     },
     "GOLD": {
         "email": "bot-gold@tts-test.com",
-        "password": "BotGoldPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "gold",
         "description": "Gold tier - Premium complet"
     },
     "BETA": {
         "email": "bot-beta@tts-test.com",
-        "password": "BotBetaPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "beta",
         "description": "Beta tier - Features beta"
     },
     "AGENCY": {
         "email": "bot-agency@tts-test.com",
-        "password": "BotAgencyPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "agency",
         "description": "Agency tier - Max tier"
     },
     "ADMIN": {
         "email": "bot-admin@tts-test.com",
-        "password": "BotAdminPass123!",
+        "password": os.getenv("TEST_BOT_PASSWORD", ""),
         "tier": "admin",
         "description": "Admin tier - All access"
     }

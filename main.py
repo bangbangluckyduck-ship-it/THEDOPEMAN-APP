@@ -1417,7 +1417,7 @@ async def admin_stats(request: Request):
     Les bots de test (@tts-test.com) et comptes internes sont exclus des chiffres.
     """
     user = get_user_from_request(request)
-    if not user.get("valid") or not (user.get("is_admin") or user.get("tier") == "admin"):
+    if not user.get("valid") or not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accès admin requis.")
 
     try:
@@ -4533,7 +4533,7 @@ async def aiml_models(request: Request, token: Optional[str] = Query(None), filt
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4576,7 +4576,7 @@ async def image_selftest(request: Request, token: Optional[str] = Query(None),
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4619,7 +4619,7 @@ async def ai_selftest(request: Request, token: Optional[str] = Query(None)):
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4682,7 +4682,7 @@ async def email_selftest(request: Request, token: Optional[str] = Query(None), t
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4727,7 +4727,7 @@ async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4747,7 +4747,7 @@ async def keyapi_selftest(request: Request, token: Optional[str] = Query(None)):
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4784,7 +4784,7 @@ async def admin_analyzed_products(request: Request, token: Optional[str] = Query
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -4891,7 +4891,7 @@ async def admin_feature_flags(request: Request, token: Optional[str] = Query(Non
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
@@ -5071,7 +5071,7 @@ async def push_subscribe(request: Request):
     sub = body.get("subscription") or body
     user = get_user_from_request(request)
     email = user["email"] if user.get("valid") else None
-    is_admin = bool(user.get("is_admin") or user.get("tier") == "admin")
+    is_admin = bool(user.get("is_admin"))
     ua = request.headers.get("user-agent", "")
     ok = push.save_subscription(supabase_client, sub, email, is_admin, ua)
     if not ok:
@@ -5308,7 +5308,7 @@ async def product_detail_selftest(request: Request, token: Optional[str] = Query
     ok_admin = False
     try:
         u = get_user_from_request(request)
-        ok_admin = bool(u.get("is_admin") or u.get("tier") == "admin")
+        ok_admin = bool(u.get("is_admin"))
     except Exception:
         ok_admin = False
     if not ok_admin and token:
