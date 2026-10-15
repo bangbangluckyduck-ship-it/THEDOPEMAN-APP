@@ -41,7 +41,7 @@ TYPE_CREATEUR = "createur"
 TYPE_AGENCE = "agence"
 TYPES = (TYPE_CREATEUR, TYPE_AGENCE)
 # Taux par défaut en % ; un taux personnalisé (affiliates.commission_rate) prime.
-DEFAULT_RATES = {TYPE_CREATEUR: 20.0, TYPE_AGENCE: 30.0}
+DEFAULT_RATES = {TYPE_CREATEUR: 25.0, TYPE_AGENCE: 20.0}
 DELAI_VALIDATION_JOURS = 30
 
 COMM_PENDING = "pending"      # en attente, ou payable si payable_at est passé

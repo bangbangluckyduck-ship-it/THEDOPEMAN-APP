@@ -101,9 +101,9 @@ def _facture(id_="in_1", montant=2999, jours=0, charge="ch_1"):
 
 # ── Calcul ───────────────────────────────────────────────────────────────────
 def test_taux_par_defaut_selon_le_type():
-    assert aff.taux_effectif({"type": "createur"}) == 20.0
-    assert aff.taux_effectif({"type": "agence"}) == 30.0
-    assert aff.taux_effectif({}) == 20.0
+    assert aff.taux_effectif({"type": "createur"}) == 25.0
+    assert aff.taux_effectif({"type": "agence"}) == 20.0
+    assert aff.taux_effectif({}) == 25.0
 
 
 def test_un_taux_personnalise_prime():
@@ -169,7 +169,7 @@ def test_pas_d_attribution_a_un_affilie_desactive():
 def test_paiement_d_un_client_parraine():
     sb = _monde(type_="agence")
     l = aff.record_invoice(sb, _facture(montant=29900), "client@ex.com")
-    assert l["commission_cents"] == 8970 and l["rate"] == 30.0
+    assert l["commission_cents"] == 5980 and l["rate"] == 20.0
     assert len(sb.base["affiliate_commissions"]) == 1
 
 
@@ -209,7 +209,7 @@ def test_le_taux_est_fige_au_moment_du_paiement():
     sb.base["affiliates"][0]["commission_rate"] = 50
     aff.record_invoice(sb, _facture(id_="in_b"), "client@ex.com")
     taux = [l["rate"] for l in sb.base["affiliate_commissions"]]
-    assert taux == [20.0, 50.0]
+    assert taux == [25.0, 50.0]
 
 
 # ── Remboursements ───────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ def test_remboursement_partiel_avant_versement_reduit():
     aff.record_invoice(sb, _facture(montant=3000), "client@ex.com")
     aff.handle_refund(sb, {"id": "ch_1", "amount": 3000, "amount_refunded": 1500})
     l = sb.base["affiliate_commissions"][0]
-    assert l["status"] == "pending" and l["commission_cents"] == 300
+    assert l["status"] == "pending" and l["commission_cents"] == 375
 
 
 def test_remboursement_apres_versement_cree_un_ajustement_negatif():
@@ -236,7 +236,7 @@ def test_remboursement_apres_versement_cree_un_ajustement_negatif():
     aff.handle_refund(sb, {"id": "ch_1", "amount": 3000, "amount_refunded": 3000})
     aff.handle_refund(sb, {"id": "ch_1", "amount": 3000, "amount_refunded": 3000})  # relivré
     ajusts = [l for l in sb.base["affiliate_commissions"] if l["amount_cents"] == 0]
-    assert len(ajusts) == 1 and ajusts[0]["commission_cents"] == -600
+    assert len(ajusts) == 1 and ajusts[0]["commission_cents"] == -750
 
 
 def test_remboursement_retrouve_par_payment_intent():
@@ -253,7 +253,7 @@ def test_marquer_verse_ne_touche_que_le_valide():
     aff.record_invoice(sb, _facture(id_="vieux", jours=40), "client@ex.com")
     aff.record_invoice(sb, _facture(id_="recent", jours=2), "client@ex.com")
     res = aff.mark_paid(sb, "abcd1234")
-    assert res["ok"] and res["total_cents"] == 600 and res["count"] == 1
+    assert res["ok"] and res["total_cents"] == 750 and res["count"] == 1
     statuts = {l["stripe_invoice_id"]: l["status"] for l in sb.base["affiliate_commissions"]}
     assert statuts == {"vieux": "paid", "recent": "pending"}
 
