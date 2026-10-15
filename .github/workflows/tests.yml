@@ -47,6 +47,12 @@ jobs:
       - name: Tests des guides du blog
         run: python -m pytest test_blog_articles.py -v --tb=short
 
+      # Affiliation : c'est de l'argent. Commission comptée deux fois, versée sur
+      # une facture remboursée ou attribuée au mauvais affilié — rien de visible,
+      # ça se paie.
+      - name: Tests de l'affiliation
+        run: python -m pytest test_affiliates.py -v --tb=short
+
       # Filet supplémentaire : une erreur de syntaxe dans un module jamais importé
       # par les tests ne casserait qu'au démarrage sur Render, donc en production.
       - name: Vérifier la syntaxe de tous les modules

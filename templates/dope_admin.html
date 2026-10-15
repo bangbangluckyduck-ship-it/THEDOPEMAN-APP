@@ -517,15 +517,21 @@
       <!-- ── VUE AFFILIÉS ── -->
       <section id="view-affiliates" class="view">
         <h1 class="view-title">🤝 Affiliés</h1>
-        <p class="view-sub">Approuve les candidatures ou crée un affilié directement. Chaque affilié approuvé obtient un lien et voit ses inscrits.</p>
+        <p class="view-sub">Chaque affilié touche un % de chaque paiement des clients qu'il a amenés, à vie, payable 30 jours après le paiement. Taux par défaut : 20 % créateur, 30 % agence — réglable par affilié.</p>
 
         <div style="background:var(--surface,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px;margin-bottom:18px">
           <label style="font-size:12px;font-weight:700">Créer un affilié (déjà approuvé)</label>
-          <div style="display:flex;gap:10px;margin-top:6px">
-            <input id="aff-email" type="email" placeholder="email@exemple.com" style="flex:1;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px" onkeydown="if(event.key==='Enter')createAffiliate()">
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+            <input id="aff-email" type="email" placeholder="email@exemple.com" style="flex:2;min-width:200px;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px" onkeydown="if(event.key==='Enter')createAffiliate()">
+            <input id="aff-name" type="text" placeholder="Nom (optionnel)" style="flex:1;min-width:140px;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px">
+            <select id="aff-type" style="padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px">
+              <option value="createur">Créateur</option>
+              <option value="agence">Agence</option>
+            </select>
+            <input id="aff-rate" type="number" min="0" max="100" step="0.5" placeholder="Taux % (défaut)" style="width:130px;padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px">
             <button class="btn btn-primary" onclick="createAffiliate()">➕ Créer</button>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">Le compte doit déjà exister. Un code d'affiliation est généré automatiquement.</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Le compte doit déjà exister. Un code d'affiliation est généré automatiquement. Taux vide = taux par défaut du type.</div>
         </div>
 
         <div class="toolbar"><button class="btn btn-ghost" onclick="loadAffiliates()">🔄 Rafraîchir</button></div>

@@ -3622,7 +3622,7 @@ function renderAccountPage() {
         <div id="acc-credits-packs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
       </div>`;
 
-  // 🤝 Programme d'affiliation — lien perso + nombre d'inscrits
+  // 🤝 Programme d'affiliation — lien perso, abonnés actifs, commissions
   html += `
       <div id="affiliate-card" style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
         <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">🤝 Programme d'affiliation</div>
@@ -3683,7 +3683,7 @@ async function renderAffiliate() {
 
     if (!d.is_affiliate) {
       box.innerHTML = `
-        <div style="margin-bottom:10px">Recommande Qeerah et suis le nombre d'inscrits via ton lien personnel. Ta demande est validée manuellement par l'équipe.</div>
+        <div style="margin-bottom:10px">Recommande Qeerah avec ton lien personnel et touche une commission sur chaque paiement des abonnés que tu amènes, tant qu'ils restent abonnés. Ta demande est validée manuellement par l'équipe.</div>
         <button class="btn btn-primary" id="aff-apply-btn" onclick="applyAffiliate()" style="font-size:13px">🚀 Devenir affilié</button>`;
       return;
     }
@@ -3692,10 +3692,22 @@ async function renderAffiliate() {
       return;
     }
     if (d.status === 'approved' && d.link) {
+      const r = d.releve || {};
+      const eur = c => (Number(c || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+      const tuile = (val, label) => `
+          <div style="flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px">
+            <div style="font-size:20px;font-weight:800;color:var(--navy)">${val}</div>
+            <div style="font-size:11.5px;color:var(--muted);line-height:1.35">${label}</div>
+          </div>`;
       box.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <div style="font-size:26px;font-weight:800;color:var(--navy)">${d.signups || 0}</div>
-          <div style="font-size:12px;color:var(--muted)">inscription(s)<br>via ton lien</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          ${tuile(d.signups || 0, 'inscrit(s) via ton lien')}
+          ${tuile(d.active_subscribers || 0, 'abonné(s) actif(s)')}
+          ${tuile(eur(r.a_verser), 'à recevoir')}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+          Ta commission : <strong>${d.rate}%</strong> de chaque paiement de tes abonnés, tant qu'ils restent abonnés.<br>
+          ⏳ En validation (${d.validation_days} jours après chaque paiement) : <strong>${eur(r.en_attente)}</strong> · ✔️ Déjà versé : <strong>${eur(r.verse)}</strong>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Ton lien d'affiliation</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">

@@ -633,10 +633,23 @@ async def admin_recherche_gmv(request: Request, handle: str):
 # ── PROGRAMME D'AFFILIATION ──────────────────────────────────
 class AffiliateEmailBody(BaseModel):
     email: str
+    type: str = "createur"           # createur | agence
+    rate: Optional[float] = None     # % personnalisé ; vide = taux par défaut du type
+    name: Optional[str] = None
 
 class AffiliateStatusBody(BaseModel):
     email: str
     status: str          # pending | approved | rejected | disabled
+
+class AffiliateSettingsBody(BaseModel):
+    email: str
+    type: Optional[str] = None
+    rate: Optional[float] = None
+    name: Optional[str] = None
+    reset_rate: bool = False         # revenir au taux par défaut du type
+
+class AffiliateCodeBody(BaseModel):
+    code: str
 
 
 @router.get("/affiliates")
@@ -653,10 +666,45 @@ async def admin_create_affiliate(body: AffiliateEmailBody, request: Request):
     _require_admin(request)
     import affiliates as aff
     from supabase_client import supabase_service
-    res = aff.create_approved(supabase_service, body.email)
+    res = aff.create_approved(supabase_service, body.email, body.type, body.rate, body.name)
     if not res.get("ok"):
         raise HTTPException(status_code=400, detail=res.get("error", "Échec création."))
     return {"ok": True, "affiliate": res.get("affiliate")}
+
+
+@router.post("/affiliates/settings")
+async def admin_affiliate_settings(body: AffiliateSettingsBody, request: Request):
+    """Type (créateur / agence), taux personnalisé, nom affiché."""
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    res = aff.update_settings(supabase_service, body.email, body.type, body.rate,
+                              body.name, reset_rate=body.reset_rate)
+    if not res.get("ok"):
+        code = res.get("error", "")
+        raise HTTPException(status_code=404 if code == "not_found" else 400, detail=code or "Échec.")
+    return {"ok": True, "affiliate": res.get("affiliate")}
+
+
+@router.get("/affiliates/{code}/statement")
+async def admin_affiliate_statement(code: str, request: Request):
+    """Relevé détaillé : totaux et 50 dernières commissions."""
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    return {"ok": True, **aff.statement(supabase_service, code)}
+
+
+@router.post("/affiliates/mark-paid")
+async def admin_affiliate_mark_paid(body: AffiliateCodeBody, request: Request):
+    """À cliquer APRÈS le virement : passe les commissions validées en « versé »."""
+    _require_admin(request)
+    import affiliates as aff
+    from supabase_client import supabase_service
+    res = aff.mark_paid(supabase_service, body.code)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Échec."))
+    return res
 
 
 @router.post("/affiliates/status")

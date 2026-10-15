@@ -783,14 +783,34 @@ async function loadAffiliates() {
     if (!rows.length) { list.innerHTML = '<div class="empty">Aucun affilié pour le moment.</div>'; return; }
     const badge = s => s === 'approved' ? '🟢 Approuvé' : s === 'pending' ? '🟡 En attente'
                      : s === 'disabled' ? '⚫ Désactivé' : '🔴 Rejeté';
-    list.innerHTML = rows.map(a => {
+    // Total à verser, tous affiliés confondus : ce que tu dois payer ce mois-ci.
+    const totalDu = rows.reduce((s, a) => s + ((a.releve || {}).a_verser || 0), 0);
+    const entete = `<div class="user-card" style="border-color:var(--primary,#D4AF37)">
+        <div style="font-size:13px">💶 À verser maintenant, tous affiliés : <strong style="font-size:18px">${euros(totalDu)}</strong></div>
+      </div>`;
+    list.innerHTML = entete + rows.map(a => {
       const em = esc(a.email);
+      const r = a.releve || {};
+      const perso = a.commission_rate !== null && a.commission_rate !== undefined && a.commission_rate !== '';
       return `
       <div class="user-card">
-        <div style="font-size:11px;font-weight:700;color:var(--muted)">${badge(a.status)}${a.code ? ' · code <code>' + esc(a.code) + '</code>' : ''}</div>
-        <div style="font-weight:700;margin:4px 0">${em}</div>
-        <div style="font-size:13px;margin-bottom:6px">👥 <strong>${a.signups || 0}</strong> inscrit(s) via ce lien</div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted)">${badge(a.status)}${a.code ? ' · code <code>' + esc(a.code) + '</code>' : ''}
+          · ${a.type === 'agence' ? '🏢 Agence' : '🎥 Créateur'} · ${a.rate_effective}%${perso ? ' (perso)' : ' (défaut)'}</div>
+        <div style="font-weight:700;margin:4px 0">${a.name ? esc(a.name) + ' — ' : ''}${em}</div>
+        <div style="font-size:13px;margin-bottom:6px;line-height:1.7">
+          👥 <strong>${a.signups || 0}</strong> inscrit(s) · ✅ <strong>${a.active_subscribers || 0}</strong> abonné(s) actif(s) · ${r.paiements || 0} paiement(s), ${euros(r.chiffre_affaires || 0)} encaissés<br>
+          ⏳ En validation : <strong>${euros(r.en_attente || 0)}</strong> · 💶 À verser : <strong>${euros(r.a_verser || 0)}</strong> · ✔️ Déjà versé : ${euros(r.verse || 0)}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="aff-t-${a.id}" style="padding:6px;border:1px solid var(--border,#e5e7eb);border-radius:6px">
+            <option value="createur" ${a.type !== 'agence' ? 'selected' : ''}>Créateur</option>
+            <option value="agence" ${a.type === 'agence' ? 'selected' : ''}>Agence</option>
+          </select>
+          <input id="aff-r-${a.id}" type="number" min="0" max="100" step="0.5" value="${perso ? a.commission_rate : ''}" placeholder="défaut" style="width:90px;padding:6px;border:1px solid var(--border,#e5e7eb);border-radius:6px">
+          <button class="btn" onclick="saveAffiliateSettings(${a.id},'${em}')">💾 Enregistrer</button>
+        </div>
         <div class="actions">
+          ${(r.a_verser || 0) > 0 ? `<button class="btn btn-primary btn-block" onclick="markAffiliatePaid('${esc(a.code)}', ${r.a_verser}, '${em}')">💶 J'ai versé ${euros(r.a_verser)}</button>` : ''}
           ${a.status !== 'approved' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','approved')">✅ Approuver</button>` : ''}
           ${a.status === 'approved' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','disabled')">🚫 Désactiver</button>` : ''}
           ${a.status === 'pending' ? `<button class="btn btn-block" onclick="setAffiliateStatus('${em}','rejected')">🗑️ Rejeter</button>` : ''}
@@ -801,20 +821,65 @@ async function loadAffiliates() {
   } catch (e) { list.innerHTML = '<div class="empty">❌ Erreur réseau</div>'; }
 }
 
+function euros(cents) {
+  return (Number(cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+}
+
 async function createAffiliate() {
   const input = document.getElementById('aff-email');
   const email = (input.value || '').trim().toLowerCase();
   if (!email || email.indexOf('@') < 0) { showToast('Email invalide'); return; }
+  const rateRaw = (document.getElementById('aff-rate').value || '').trim();
+  const body = {
+    email,
+    type: document.getElementById('aff-type').value,
+    name: (document.getElementById('aff-name').value || '').trim() || null,
+    rate: rateRaw === '' ? null : Number(rateRaw),
+  };
   try {
     const res = await fetch('/admin/affiliates', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { showToast('❌ ' + (data.detail || 'Échec')); return; }
     input.value = '';
+    document.getElementById('aff-name').value = '';
+    document.getElementById('aff-rate').value = '';
     showToast('✅ Affilié créé');
+    loadAffiliates();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function saveAffiliateSettings(id, email) {
+  const type = document.getElementById('aff-t-' + id).value;
+  const rateRaw = (document.getElementById('aff-r-' + id).value || '').trim();
+  const body = rateRaw === '' ? { email, type, reset_rate: true } : { email, type, rate: Number(rateRaw) };
+  try {
+    const res = await fetch('/admin/affiliates/settings', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (data.detail || 'Échec')); return; }
+    showToast('✅ Réglages enregistrés (s\'appliquent aux prochains paiements)');
+    loadAffiliates();
+  } catch (e) { showToast('❌ Erreur réseau'); }
+}
+
+async function markAffiliatePaid(code, cents, email) {
+  if (!confirm(`Confirmer que tu as bien viré ${euros(cents)} à ${email} ?\n\nLes commissions validées passeront en « versé ».`)) return;
+  try {
+    const res = await fetch('/admin/affiliates/mark-paid', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast('❌ ' + (data.detail || 'Échec')); return; }
+    showToast(`✅ ${euros(data.total_cents)} marqués comme versés`);
     loadAffiliates();
   } catch (e) { showToast('❌ Erreur réseau'); }
 }

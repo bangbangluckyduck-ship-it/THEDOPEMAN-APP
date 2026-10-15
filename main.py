@@ -455,6 +455,27 @@ app.add_middleware(CanonicalHostRedirect,
                    canonical_host=os.getenv("CANONICAL_HOST", "qeerah.com"))
 app.add_middleware(SecurityHeaders)
 app.middleware("http")(rate_limit_middleware)
+
+
+# ── Affiliation : capture de ?ref=CODE sur TOUTES les pages ──────────────────
+# Le cookie n'était posé qu'en JavaScript, sur l'accueil et sur /app : un lien
+# d'affilié vers /pricing, un guide du blog ou une page d'atterrissage ne
+# comptait pas. Posé ici, côté serveur, il marche partout et sans dépendre du
+# JavaScript. Dernier clic gagnant pendant 90 jours, comme le script existant ;
+# l'attribution, elle, ne remplace jamais un affilié déjà rattaché au compte.
+_REF_VALIDE = __import__("re").compile(r"^[A-Za-z0-9]{4,16}$")
+
+
+@app.middleware("http")
+async def capture_ref_affilie(request: Request, call_next):
+    response = await call_next(request)
+    ref = request.query_params.get("ref") if request.method == "GET" else None
+    if ref and _REF_VALIDE.match(ref) and not request.url.path.startswith(("/api/", "/static/", "/admin")):
+        response.set_cookie("qeerah_ref", ref.lower(), max_age=60 * 60 * 24 * 90,
+                            samesite="lax", path="/", secure=COOKIE_SECURE)
+    return response
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(stripe_router)
 app.include_router(admin_router)
@@ -3368,6 +3389,45 @@ async def _tiktok_complete_payment(obj: dict, email: str) -> None:
         print(f"[tiktok_events] CompletePayment ignoré : {e}")
 
 
+def _ref_de_facture(invoice: dict) -> str:
+    """Code d'affiliation posé dans les métadonnées de l'abonnement au checkout.
+
+    Deux emplacements selon la version d'API Stripe du compte : à plat
+    (`subscription_details`) ou sous `parent` (API 2025+)."""
+    for details in (invoice.get("subscription_details"),
+                    ((invoice.get("parent") or {}).get("subscription_details"))):
+        ref = ((details or {}).get("metadata") or {}).get("ref")
+        if ref:
+            return str(ref)
+    return ""
+
+
+def _commission_affilie(invoice: dict, email: str) -> None:
+    """Facture payée → commission d'affiliation éventuelle. Ne lève jamais."""
+    try:
+        import affiliates as _aff
+        # Client qui a payé sans s'être inscrit via le lien : le code voyage
+        # dans les métadonnées de l'abonnement. Les événements Stripe n'arrivent
+        # pas dans un ordre garanti, d'où l'attribution ICI aussi et pas
+        # seulement sur checkout.session.completed.
+        ref = _ref_de_facture(invoice)
+        if ref:
+            _aff.attribute_signup(supabase_client, email, ref)
+        # Versions récentes de l'API : la facture ne porte plus `charge` ni
+        # `payment_intent` ; on les relit pour pouvoir retrouver la commission
+        # en cas de remboursement.
+        if not invoice.get("charge") and not invoice.get("payment_intent") and invoice.get("id"):
+            try:
+                paiements = stripe.InvoicePayment.list(invoice=invoice["id"], limit=1)
+                p = (paiements.get("data") or [{}])[0].get("payment") or {}
+                invoice = {**invoice, "payment_intent": p.get("payment_intent"), "charge": p.get("charge")}
+            except Exception:
+                pass
+        _aff.record_invoice(supabase_client, invoice, email)
+    except Exception as e:
+        print(f"[affiliation] commission non enregistrée : {e}")
+
+
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook_v1(request: Request):
     """
@@ -3475,6 +3535,15 @@ async def stripe_webhook_v1(request: Request):
             set_user_tier(email_norm, plan, customer_id=cust_id, subscription_id=sub_id, expiry=expiry)
             if period_start:
                 analysis_quota.set_billing_period(email_norm, period_start, period_end)
+            # Affiliation : un client qui paie sans avoir créé de compte via le
+            # lien n'a jamais été rattaché (set_user_tier vient de créer son
+            # compte). Le code a voyagé dans les métadonnées du checkout.
+            if meta.get("ref"):
+                try:
+                    import affiliates as _aff
+                    _aff.attribute_signup(supabase_client, email_norm, meta["ref"])
+                except Exception as _e:
+                    print(f"[affiliation] attribution au paiement : {_e}")
 
         # 5) Conversion TikTok Ads — CompletePayment, envoyé depuis le SERVEUR.
         #
@@ -3507,6 +3576,10 @@ async def stripe_webhook_v1(request: Request):
                     email = (stripe.Customer.retrieve(cust_id).get("email") or "").strip().lower()
                 except Exception:
                     email = ""
+        # Commission d'affiliation : sur TOUTE facture payée (souscription,
+        # renouvellement, pack de crédits), avant la logique d'abonnement.
+        if email:
+            _commission_affilie(obj, email)
         if email and sub_id:
             try:
                 sub = stripe.Subscription.retrieve(sub_id)
@@ -3530,6 +3603,15 @@ async def stripe_webhook_v1(request: Request):
     elif etype == "invoice.payment_failed":
         print(f"stripe_webhook_v1: paiement échoué "
               f"(customer={obj.get('customer')}, invoice={obj.get('id')})")
+
+    # ── Remboursement → commission d'affiliation réduite ou annulée ──
+    # ⚠️ Événement à cocher dans Stripe → Webhooks pour cet endpoint.
+    elif etype == "charge.refunded":
+        try:
+            import affiliates as _aff
+            _aff.handle_refund(supabase_client, obj)
+        except Exception as e:
+            print(f"[affiliation] remboursement non répercuté : {e}")
 
     # ── Abonnement annulé / expiré → downgrade ──
     elif etype == "customer.subscription.deleted":

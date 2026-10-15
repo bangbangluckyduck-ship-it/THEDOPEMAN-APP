@@ -23,6 +23,7 @@ Variables d'environnement Render à configurer :
 """
 from __future__ import annotations
 import os
+import re
 import stripe
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
@@ -133,6 +134,17 @@ def _tiktok_metadata(body: CheckoutRequest, request: Request) -> dict:
     return {k: v[:500] for k, v in donnees.items() if v}
 
 
+_REF_VALIDE = re.compile(r"^[a-z0-9]{4,16}$")
+
+
+def _ref_metadata(request: Request) -> dict:
+    """Code d'affiliation du cookie `qeerah_ref`, pour un client qui paie sans
+    s'être inscrit via le lien. Le webhook ne l'utilise que si le compte n'est
+    rattaché à aucun affilié (cf. affiliates.attribute_signup)."""
+    ref = (request.cookies.get("qeerah_ref") or "").strip().lower()
+    return {"ref": ref} if _REF_VALIDE.match(ref) else {}
+
+
 @router.post("/create-checkout-session")
 async def create_checkout_session(body: CheckoutRequest, request: Request):
     """Crée une session Stripe Checkout et retourne l'URL de paiement."""
@@ -168,7 +180,8 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         # commercial avec un paramètre orphelin dans l'URL, sans confirmation.
         "success_url":  f"{base}/app?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url":   f"{base}/pricing?checkout=cancel",
-        "metadata":     {"plan": plan, "billing": billing, **_tiktok_metadata(body, request)},
+        "metadata":     {"plan": plan, "billing": billing, **_tiktok_metadata(body, request),
+                         **_ref_metadata(request)},
         # ── Facturation entreprise ────────────────────────────────────────
         # Sans ces deux options, la facture d'abonnement générée par Stripe ne
         # portait que l'e-mail : ni raison sociale, ni adresse, ni n° de TVA —
@@ -194,6 +207,13 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     if buyer_email:
         params["customer_email"] = buyer_email
         params["client_reference_id"] = buyer_email
+
+    # Le code d'affiliation suit aussi l'ABONNEMENT : ses factures le portent,
+    # et l'ordre d'arrivée des webhooks Stripe n'est pas garanti (invoice.paid
+    # peut précéder checkout.session.completed).
+    ref = _ref_metadata(request)
+    if ref:
+        params["subscription_data"] = {"metadata": ref}
 
     # Promo de lancement (variante B) : si STRIPE_LAUNCH_COUPON est défini, la remise
     # est appliquée AUTOMATIQUEMENT (le client ne tape rien). Sinon, on autorise la
