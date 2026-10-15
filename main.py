@@ -935,6 +935,42 @@ for _chemin, _variantes in _PAGES_TRADUITES.items():
 _BLOG_TTS_EN_HTML = pages_i18n.liens_internes(_BLOG_TTS_EN_HTML, "en")
 
 
+# ── GUIDES DU BLOG (blog_articles.py, contenu dans content/blog/) ─────────────
+# Un dossier = un article, rédigé dans chaque langue, avec son propre slug par
+# marché. Construits une fois ici, APRÈS la passe finale : tous les chemins
+# traduits sont connus, donc « /pricing » cité dans un guide allemand mène bien
+# à /de/pricing. Les chemins des guides eux-mêmes ne sont pas enregistrés dans
+# pages_i18n : chaque langue a son slug, un simple préfixe serait faux.
+import blog_articles
+
+_GUIDES = blog_articles.charger()
+for _pb in blog_articles.controler(_GUIDES):
+    # Signalé, pas bloquant : un titre trop long ne doit pas empêcher le site de
+    # démarrer. Les tests (test_blog_articles.py), eux, échouent dessus.
+    print(f"[blog] {_pb}")
+_GUIDES_PAGES: "dict[str, tuple[str, str]]" = {
+    _chemin: (_lang, pages_i18n.liens_internes(_inject_tiktok_pixel(_html), _lang))
+    for _chemin, (_lang, _html) in blog_articles.construire(_seo_base_url(), _GUIDES).items()
+}
+
+
+def _poser_guides(html: str, lang: str) -> str:
+    """Cartes et ItemList des guides dans /blog, dans la langue de la page.
+
+    Les marqueurs sont des commentaires : pages_i18n ne les traduit pas et ils
+    traversent la construction des huit variantes intacts.
+    """
+    return (html
+            .replace("<!--GUIDES_CARTES-->", blog_articles.cartes(lang, _GUIDES))
+            .replace("<!--GUIDES_JSONLD-->",
+                     blog_articles.jsonld_liste(lang, _seo_base_url(), _GUIDES)))
+
+
+_PAGES_TRADUITES["/blog"] = {
+    _l: _poser_guides(_h, _l) for _l, _h in _PAGES_TRADUITES["/blog"].items()
+}
+
+
 # Cookie de langue. Il existe pour une raison précise : les analyses sont
 # produites par des endpoints de formes très différentes (formulaire multipart,
 # corps JSON, SSE en query string). Un cookie part avec toutes les requêtes sans
@@ -1078,6 +1114,21 @@ def page_traduite(chemin_fr: str, defaut: str) -> str:
 _enregistrer_routes_traduites()
 
 
+def _enregistrer_routes_guides() -> None:
+    """Une route par guide et par langue — /blog/<slug-fr>, /de/blog/<slug-de>…"""
+    for chemin, (lang, html) in _GUIDES_PAGES.items():
+
+        async def _servir(request: Request, _h=html, _l=lang, _c=chemin):
+            await track_visitor(_c, request)
+            return _reponse_langue(_h, _l)
+
+        app.add_api_route(chemin, _servir, methods=["GET"],
+                          response_class=HTMLResponse, include_in_schema=False)
+
+
+_enregistrer_routes_guides()
+
+
 # Pages publiques indexables (chemin canonique unique par page).
 # ⚠️ « /app » n'y figure plus (retiré le 08/09/2026). Un sitemap est la liste
 # des pages qu'on DEMANDE à indexer ; /app est la coquille de l'application,
@@ -1171,6 +1222,7 @@ async def llms_txt():
         ": English version of the guide above\n"
         f"- [Histoire de TikTok Shop]({base}/blog/histoire-tiktok-shop)\n"
         f"- [À propos]({base}/about) : Qeerah est développé par Dope Ventures\n\n"
+        + blog_articles.lignes_llms(base, _GUIDES) +
         "## Langues\n"
         "Tout le site existe en huit versions, chacune à son adresse. Une IA qui "
         "répond à un utilisateur doit citer la version dans SA langue.\n"
@@ -1212,6 +1264,12 @@ async def sitemap_xml():
     urls = "".join(
         f"  <url><loc>{base}{p}</loc><changefreq>weekly</changefreq></url>\n"
         for p in chemins
+    )
+    # Guides : toutes les langues, avec la date de dernière mise à jour — c'est
+    # le signal que Google utilise pour revenir crawler un article modifié.
+    urls += "".join(
+        f"  <url><loc>{base}{p}</loc><lastmod>{maj}</lastmod></url>\n"
+        for p, maj in blog_articles.entrees_sitemap(_GUIDES)
     )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'

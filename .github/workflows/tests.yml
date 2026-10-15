@@ -41,6 +41,12 @@ jobs:
       - name: Tests du parcours critique
         run: python -m pytest test_parcours_critique.py -v --tb=short
 
+      # Guides du blog : checklist SEO/GEO, huit langues, hreflang, sitemap.
+      # Un article non conforme est servi quand même en production (main.py ne
+      # fait que le signaler dans les logs) : c'est ici qu'il doit bloquer.
+      - name: Tests des guides du blog
+        run: python -m pytest test_blog_articles.py -v --tb=short
+
       # Filet supplémentaire : une erreur de syntaxe dans un module jamais importé
       # par les tests ne casserait qu'au démarrage sur Render, donc en production.
       - name: Vérifier la syntaxe de tous les modules

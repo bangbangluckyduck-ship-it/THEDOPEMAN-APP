@@ -1,0 +1,94 @@
+{
+  "requete": "améliorer ses résultats TikTok Shop",
+  "intention": "mixte",
+  "publie": "2026-10-15",
+  "maj": "2026-10-15",
+  "lecture_min": 7,
+  "cta": "analyse",
+  "lies": ["analyser-ses-videos", "analyser-ses-hooks"],
+  "sources": [
+    {"titre": "Lengow — TikTok Shop Europe Q2 2026: €500M across four markets (données Kalodata, 90 jours au 9 juillet 2026)", "url": "https://blog.lengow.com/tiktok-shop-europe-q2-2026-e500m-across-four-markets/"},
+    {"titre": "PPC Land — TikTok Shop's shoppable video content guide tells creators what actually works (TikTok Shop Academy, mai 2026)", "url": "https://ppc.land/tiktok-shops-shoppable-video-content-guide-tells-creators-what-actually-works/"},
+    {"titre": "Buffer — Longer TikToks get more views (analyse de 1,1 million de vidéos, 2025)", "url": "https://buffer.com/resources/longer-tiktoks-get-more-views-data/"}
+  ],
+  "langues": {
+    "fr": {
+      "slug": "ameliorer-ses-resultats-tiktok-shop",
+      "titre": "Améliorer ses résultats TikTok Shop : les 5 leviers",
+      "h1": "Améliorer ses résultats TikTok Shop : les 5 leviers qui comptent",
+      "description": "Améliorer ses résultats TikTok Shop : hook, offre, rythme, appel à l'action, données. Par quel levier commencer selon tes stats, chiffres sourcés.",
+      "categorie": "🚀 STRATÉGIE",
+      "chapo": "Pour améliorer ses résultats TikTok Shop, on travaille cinq leviers — le hook, l'offre, le rythme de publication, l'appel à l'action et la lecture des données — mais un seul à la fois : celui que tes statistiques désignent comme le point de blocage. En France, la vidéo courte porte 61,6 % des ventes : c'est là que se joue l'essentiel.",
+      "faq": [
+        {"q": "Comment augmenter ses ventes sur TikTok Shop ?", "r": "En identifiant d'abord où tes vidéos perdent des acheteurs : accroche, rétention, clic produit ou conversion. Puis en travaillant le levier correspondant — hook, offre, rythme, appel à l'action ou lecture des données — une seule modification à la fois, mesurée sur plusieurs vidéos."},
+        {"q": "Vidéo ou live : qu'est-ce qui vend le plus sur TikTok Shop ?", "r": "En France, sur les 90 jours arrêtés au 9 juillet 2026, la vidéo a porté 61,6 % du chiffre d'affaires de TikTok Shop, le live 20,2 % et la fiche produit seule 18,2 %, selon les estimations Kalodata publiées par Lengow. La vidéo reste le premier canal ; le live est un complément."},
+        {"q": "Pourquoi j'ai des clics mais pas de ventes sur TikTok Shop ?", "r": "Quand les spectateurs cliquent sans acheter, le problème vient généralement de la fiche produit et non de la vidéo : prix plus élevé que prévu, avis faibles, délai de livraison ou promesse exagérée dans la vidéo. Il faut alors changer de produit ou ajuster la promesse."}
+      ]
+    },
+    "en": {
+      "slug": "improve-tiktok-shop-sales",
+      "titre": "How to Improve Your TikTok Shop Sales: 5 Levers",
+      "h1": "How to improve your TikTok Shop results: the 5 levers that matter",
+      "description": "Improve your TikTok Shop results: hook, offer, posting rhythm, call to action, data. Which lever to start with based on your stats, with sourced figures.",
+      "categorie": "🚀 STRATEGY",
+      "chapo": "To improve your TikTok Shop results, work on five levers — the hook, the offer, your posting rhythm, the call to action and reading your data — but only one at a time: the one your statistics point to as the bottleneck. In France, short video carries 61.6% of sales, so that is where most of it is decided.",
+      "faq": [
+        {"q": "How do I increase my sales on TikTok Shop?", "r": "First find where your videos lose buyers: hook, retention, product click or conversion. Then work on the matching lever — hook, offer, rhythm, call to action or data — one change at a time, measured across several videos."},
+        {"q": "Video or live: what sells more on TikTok Shop?", "r": "In France, over the 90 days to 9 July 2026, video carried 61.6% of TikTok Shop revenue, live 20.2% and the product card alone 18.2%, according to Kalodata estimates published by Lengow. Video remains the main channel; live is a complement."},
+        {"q": "Why do I get clicks but no sales on TikTok Shop?", "r": "When viewers click without buying, the problem is usually the product page rather than the video: a higher price than expected, weak reviews, delivery times or an exaggerated promise in the video. Change the product or adjust the promise."}
+      ]
+    },
+    "pt-br": {
+      "slug": "melhorar-resultados-tiktok-shop",
+      "titre": "Como melhorar seus resultados no TikTok Shop: 5 alavancas",
+      "h1": "Como melhorar seus resultados no TikTok Shop: as 5 alavancas",
+      "description": "Melhore seus resultados no TikTok Shop: gancho, oferta, ritmo, chamada para ação e dados. Por qual alavanca começar segundo suas estatísticas.",
+      "categorie": "🚀 ESTRATÉGIA",
+      "chapo": "Para melhorar seus resultados no TikTok Shop, trabalhe cinco alavancas — o gancho, a oferta, o ritmo de publicação, a chamada para ação e a leitura dos dados — mas uma de cada vez: a que suas estatísticas apontam como o gargalo. Na França, o vídeo curto responde por 61,6% das vendas: é ali que quase tudo se decide.",
+      "faq": [
+        {"q": "Como aumentar as vendas no TikTok Shop?", "r": "Primeiro descubra onde seus vídeos perdem compradores: gancho, retenção, clique no produto ou conversão. Depois trabalhe a alavanca correspondente — gancho, oferta, ritmo, chamada para ação ou dados — uma mudança por vez, medida em vários vídeos."},
+        {"q": "Vídeo ou live: o que vende mais no TikTok Shop?", "r": "Na França, nos 90 dias encerrados em 9 de julho de 2026, o vídeo respondeu por 61,6% da receita do TikTok Shop, a live por 20,2% e a página de produto sozinha por 18,2%, segundo estimativas da Kalodata publicadas pela Lengow. O vídeo continua sendo o principal canal; a live é um complemento."},
+        {"q": "Por que tenho cliques mas não vendas no TikTok Shop?", "r": "Quando os espectadores clicam sem comprar, o problema costuma estar na página do produto e não no vídeo: preço acima do esperado, avaliações fracas, prazo de entrega ou uma promessa exagerada no vídeo. Troque de produto ou ajuste a promessa."}
+      ]
+    },
+    "es": {
+      "slug": "mejorar-resultados-tiktok-shop",
+      "titre": "Cómo mejorar tus resultados en TikTok Shop: 5 palancas",
+      "h1": "Cómo mejorar tus resultados en TikTok Shop: las 5 palancas",
+      "description": "Mejora tus resultados en TikTok Shop: gancho, oferta, ritmo, llamada a la acción y datos. Por qué palanca empezar según tus estadísticas.",
+      "categorie": "🚀 ESTRATEGIA",
+      "chapo": "Para mejorar tus resultados en TikTok Shop, trabaja cinco palancas —el gancho, la oferta, el ritmo de publicación, la llamada a la acción y la lectura de datos—, pero de una en una: la que tus estadísticas señalan como cuello de botella. En Francia, el vídeo corto genera el 61,6 % de las ventas: ahí se decide casi todo.",
+      "faq": [
+        {"q": "¿Cómo aumentar las ventas en TikTok Shop?", "r": "Primero identifica dónde pierden compradores tus vídeos: gancho, retención, clic en producto o conversión. Después trabaja la palanca correspondiente —gancho, oferta, ritmo, llamada a la acción o datos—, un cambio cada vez, medido en varios vídeos."},
+        {"q": "Vídeo o directo: ¿qué vende más en TikTok Shop?", "r": "En Francia, en los 90 días hasta el 9 de julio de 2026, el vídeo generó el 61,6 % de la facturación de TikTok Shop, el directo el 20,2 % y la ficha de producto sola el 18,2 %, según estimaciones de Kalodata publicadas por Lengow. El vídeo sigue siendo el canal principal; el directo es un complemento."},
+        {"q": "¿Por qué tengo clics pero no ventas en TikTok Shop?", "r": "Cuando los espectadores hacen clic sin comprar, el problema suele estar en la ficha del producto y no en el vídeo: precio más alto de lo esperado, malas reseñas, plazos de entrega o una promesa exagerada en el vídeo. Cambia de producto o ajusta la promesa."}
+      ]
+    },
+    "it": {
+      "slug": "migliorare-risultati-tiktok-shop",
+      "titre": "Come migliorare i risultati su TikTok Shop: 5 leve",
+      "h1": "Come migliorare i risultati su TikTok Shop: le 5 leve che contano",
+      "description": "Migliora i tuoi risultati su TikTok Shop: hook, offerta, ritmo, call to action e dati. Da quale leva partire in base alle tue statistiche.",
+      "categorie": "🚀 STRATEGIA",
+      "chapo": "Per migliorare i risultati su TikTok Shop si lavorano cinque leve — l'hook, l'offerta, il ritmo di pubblicazione, la call to action e la lettura dei dati — ma una alla volta: quella che le tue statistiche indicano come collo di bottiglia. In Francia il video breve porta il 61,6% delle vendite: è lì che si decide quasi tutto.",
+      "faq": [
+        {"q": "Come aumentare le vendite su TikTok Shop?", "r": "Prima individua dove i tuoi video perdono acquirenti: hook, retention, clic sul prodotto o conversione. Poi lavora la leva corrispondente — hook, offerta, ritmo, call to action o dati — una modifica alla volta, misurata su più video."},
+        {"q": "Video o live: cosa vende di più su TikTok Shop?", "r": "In Francia, nei 90 giorni fino al 9 luglio 2026, il video ha generato il 61,6% del fatturato di TikTok Shop, il live il 20,2% e la sola scheda prodotto il 18,2%, secondo le stime Kalodata pubblicate da Lengow. Il video resta il canale principale; il live è un complemento."},
+        {"q": "Perché ho clic ma non vendite su TikTok Shop?", "r": "Quando gli spettatori cliccano senza comprare, il problema di solito è nella scheda prodotto e non nel video: prezzo più alto del previsto, recensioni deboli, tempi di consegna o una promessa esagerata nel video. Cambia prodotto o ridimensiona la promessa."}
+      ]
+    },
+    "de": {
+      "slug": "tiktok-shop-ergebnisse-verbessern",
+      "titre": "TikTok-Shop-Ergebnisse verbessern: die 5 Hebel",
+      "h1": "TikTok-Shop-Ergebnisse verbessern: die 5 Hebel, die zählen",
+      "description": "So verbesserst du deine TikTok-Shop-Ergebnisse: Hook, Angebot, Rhythmus, Call-to-Action, Daten. Mit welchem Hebel du laut deinen Zahlen startest.",
+      "categorie": "🚀 STRATEGIE",
+      "chapo": "Um deine TikTok-Shop-Ergebnisse zu verbessern, arbeitest du an fünf Hebeln — Hook, Angebot, Posting-Rhythmus, Call-to-Action und Datenauswertung —, aber immer nur an einem: dem, den deine Statistiken als Engpass zeigen. In Frankreich tragen Kurzvideos 61,6 % der Verkäufe, dort entscheidet sich also das meiste.",
+      "faq": [
+        {"q": "Wie steigere ich meine Verkäufe auf TikTok Shop?", "r": "Finde zuerst heraus, wo deine Videos Käufer verlieren: Hook, Retention, Produktklick oder Conversion. Arbeite dann am passenden Hebel — Hook, Angebot, Rhythmus, Call-to-Action oder Daten —, immer nur eine Änderung, gemessen über mehrere Videos."},
+        {"q": "Video oder Live: Was verkauft auf TikTok Shop mehr?", "r": "In Frankreich trug das Video in den 90 Tagen bis zum 9. Juli 2026 61,6 % des TikTok-Shop-Umsatzes, Live 20,2 % und die reine Produktkarte 18,2 %, laut Kalodata-Schätzungen, veröffentlicht von Lengow. Video bleibt der Hauptkanal; Live ist eine Ergänzung."},
+        {"q": "Warum habe ich Klicks, aber keine Verkäufe auf TikTok Shop?", "r": "Wenn Zuschauer klicken, ohne zu kaufen, liegt es meist an der Produktseite und nicht am Video: höherer Preis als erwartet, schwache Bewertungen, Lieferzeiten oder ein übertriebenes Versprechen im Video. Wechsle das Produkt oder passe das Versprechen an."}
+      ]
+    }
+  }
+}
