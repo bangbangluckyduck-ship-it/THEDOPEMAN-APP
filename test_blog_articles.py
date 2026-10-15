@@ -123,6 +123,31 @@ def test_json_ld_valide():
             "l'éditeur doit être la même entité que l'Organization de l'accueil"
 
 
+# ── Images ───────────────────────────────────────────────────────────────────
+def test_chaque_guide_a_son_image_de_partage():
+    """Sinon le guide se partage avec le logo. Relancer generate_og_images.py."""
+    for a in GUIDES:
+        for lang in blog_articles.LANGUES_REDIGEES:
+            f = blog_articles.OG_DOSSIER / blog_articles.nom_image_og(a.id, lang)
+            assert f.exists(), f"{f} absente — lancer generate_og_images.py"
+
+
+def test_l_image_de_partage_est_dans_la_langue_de_la_page():
+    for a, lang, chemin in _toutes_les_pages():
+        html = _page(chemin)
+        attendu = f"/static/og/{blog_articles.nom_image_og(a.id, lang)}"
+        assert f'<meta property="og:image" content="{BASE}{attendu}">' in html, f"{chemin} : og:image"
+        assert client.get(attendu).status_code == 200, f"{attendu} non servie"
+
+
+def test_les_schemas_sont_dessines():
+    for a, lang, chemin in _toutes_les_pages():
+        html = _page(chemin)
+        assert "<!--SCHEMA-->" not in html, f"{chemin} : marqueur de schéma non remplacé"
+        if a.schema:
+            assert '<figure class="schema"><svg' in html, f"{chemin} : schéma absent"
+
+
 # ── Liens ────────────────────────────────────────────────────────────────────
 def test_aucun_lien_guide_non_resolu():
     for _a, _lang, chemin in _toutes_les_pages():

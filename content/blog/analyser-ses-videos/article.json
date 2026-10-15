@@ -5,11 +5,23 @@
   "maj": "2026-10-15",
   "lecture_min": 7,
   "cta": "analyse",
-  "lies": ["analyser-ses-hooks", "ameliorer-resultats"],
+  "lies": [
+    "analyser-ses-hooks",
+    "ameliorer-resultats"
+  ],
   "sources": [
-    {"titre": "Lengow — TikTok Shop Europe Q2 2026: €500M across four markets (données Kalodata, 90 jours au 9 juillet 2026)", "url": "https://blog.lengow.com/tiktok-shop-europe-q2-2026-e500m-across-four-markets/"},
-    {"titre": "Buffer — Longer TikToks get more views (analyse de 1,1 million de vidéos, 2025)", "url": "https://buffer.com/resources/longer-tiktoks-get-more-views-data/"},
-    {"titre": "PPC Land — TikTok Shop's shoppable video content guide tells creators what actually works (TikTok Shop Academy, mai 2026)", "url": "https://ppc.land/tiktok-shops-shoppable-video-content-guide-tells-creators-what-actually-works/"}
+    {
+      "titre": "Lengow — TikTok Shop Europe Q2 2026: €500M across four markets (données Kalodata, 90 jours au 9 juillet 2026)",
+      "url": "https://blog.lengow.com/tiktok-shop-europe-q2-2026-e500m-across-four-markets/"
+    },
+    {
+      "titre": "Buffer — Longer TikToks get more views (analyse de 1,1 million de vidéos, 2025)",
+      "url": "https://buffer.com/resources/longer-tiktoks-get-more-views-data/"
+    },
+    {
+      "titre": "PPC Land — TikTok Shop's shoppable video content guide tells creators what actually works (TikTok Shop Academy, mai 2026)",
+      "url": "https://ppc.land/tiktok-shops-shoppable-video-content-guide-tells-creators-what-actually-works/"
+    }
   ],
   "langues": {
     "fr": {
@@ -20,10 +32,36 @@
       "categorie": "📊 MÉTHODE",
       "chapo": "Pour analyser ses vidéos TikTok Shop, on lit ses statistiques comme un entonnoir à cinq étages — vues, accroche, rétention, clics produit, commandes — et on cherche l'étage où la perte est la plus forte par rapport à sa meilleure vidéo. C'est lui qu'on corrige en premier, une seule variable à la fois.",
       "faq": [
-        {"q": "Où trouver les statistiques de ses vidéos TikTok Shop ?", "r": "Les statistiques de contenu (vues, durée moyenne de visionnage, courbe de rétention) se trouvent dans TikTok Studio, dans l'analyse de chaque vidéo. Les statistiques de vente (clics produit, commandes, chiffre d'affaires, commissions) se trouvent dans le tableau de bord affilié ou le Seller Center."},
-        {"q": "Quel est l'indicateur le plus important pour une vidéo TikTok Shop ?", "r": "Aucun indicateur ne suffit seul. Le plus utile est l'enchaînement des taux : accroche à 3 secondes, rétention au moment où le produit apparaît, taux de clic produit, puis taux de conversion. L'étage où la chute est la plus forte indique quoi corriger."},
-        {"q": "Combien de temps attendre avant d'analyser une vidéo TikTok Shop ?", "r": "Au moins 48 à 72 heures. TikTok diffuse les vidéos par vagues, et une vidéo peut repartir plusieurs jours après sa publication : la juger trop tôt fausse le diagnostic."}
-      ]
+        {
+          "q": "Où trouver les statistiques de ses vidéos TikTok Shop ?",
+          "r": "Les statistiques de contenu (vues, durée moyenne de visionnage, courbe de rétention) se trouvent dans TikTok Studio, dans l'analyse de chaque vidéo. Les statistiques de vente (clics produit, commandes, chiffre d'affaires, commissions) se trouvent dans le tableau de bord affilié ou le Seller Center."
+        },
+        {
+          "q": "Quel est l'indicateur le plus important pour une vidéo TikTok Shop ?",
+          "r": "Aucun indicateur ne suffit seul. Le plus utile est l'enchaînement des taux : accroche à 3 secondes, rétention au moment où le produit apparaît, taux de clic produit, puis taux de conversion. L'étage où la chute est la plus forte indique quoi corriger."
+        },
+        {
+          "q": "Combien de temps attendre avant d'analyser une vidéo TikTok Shop ?",
+          "r": "Au moins 48 à 72 heures. TikTok diffuse les vidéos par vagues, et une vidéo peut repartir plusieurs jours après sa publication : la juger trop tôt fausse le diagnostic."
+        }
+      ],
+      "schema": {
+        "titre": "L'entonnoir d'une vidéo TikTok Shop, en cinq étages",
+        "legende": "Chaque étage se lit par rapport au précédent : l'endroit où la perte est la plus forte est ton chantier prioritaire.",
+        "etiquettes": [
+          "Vues",
+          "Encore là à 3 s",
+          "Encore là au produit",
+          "Clic sur le produit",
+          "Commande"
+        ],
+        "notes": [
+          "taux d'accroche",
+          "rétention utile",
+          "taux de clic produit",
+          "taux de conversion"
+        ]
+      }
     },
     "en": {
       "slug": "how-to-analyze-tiktok-shop-videos",
@@ -33,10 +71,36 @@
       "categorie": "📊 METHOD",
       "chapo": "To analyse your TikTok Shop videos, read your statistics as a five-level funnel — views, hook, retention, product clicks, orders — and look for the level with the biggest drop compared with your best video. Fix that one first, one variable at a time.",
       "faq": [
-        {"q": "Where can I find the statistics for my TikTok Shop videos?", "r": "Content statistics (views, average watch time, retention curve) are in TikTok Studio, in each video's analytics. Sales statistics (product clicks, orders, revenue, commissions) are in the affiliate dashboard or Seller Center."},
-        {"q": "What is the most important metric for a TikTok Shop video?", "r": "No single metric is enough. The most useful view is the chain of rates: hook at 3 seconds, retention when the product appears, product click rate, then conversion rate. The level with the sharpest drop tells you what to fix."},
-        {"q": "How long should I wait before analysing a TikTok Shop video?", "r": "At least 48 to 72 hours. TikTok distributes videos in waves, and a video can pick up again several days after posting, so judging it too early skews the diagnosis."}
-      ]
+        {
+          "q": "Where can I find the statistics for my TikTok Shop videos?",
+          "r": "Content statistics (views, average watch time, retention curve) are in TikTok Studio, in each video's analytics. Sales statistics (product clicks, orders, revenue, commissions) are in the affiliate dashboard or Seller Center."
+        },
+        {
+          "q": "What is the most important metric for a TikTok Shop video?",
+          "r": "No single metric is enough. The most useful view is the chain of rates: hook at 3 seconds, retention when the product appears, product click rate, then conversion rate. The level with the sharpest drop tells you what to fix."
+        },
+        {
+          "q": "How long should I wait before analysing a TikTok Shop video?",
+          "r": "At least 48 to 72 hours. TikTok distributes videos in waves, and a video can pick up again several days after posting, so judging it too early skews the diagnosis."
+        }
+      ],
+      "schema": {
+        "titre": "The five-level funnel of a TikTok Shop video",
+        "legende": "Each level is read against the previous one: where the biggest drop happens is your priority.",
+        "etiquettes": [
+          "Views",
+          "Still there at 3 s",
+          "Still there at the product",
+          "Product click",
+          "Order"
+        ],
+        "notes": [
+          "hook rate",
+          "useful retention",
+          "product click rate",
+          "conversion rate"
+        ]
+      }
     },
     "pt-br": {
       "slug": "como-analisar-videos-tiktok-shop",
@@ -46,10 +110,36 @@
       "categorie": "📊 MÉTODO",
       "chapo": "Para analisar seus vídeos do TikTok Shop, leia suas estatísticas como um funil de cinco níveis — visualizações, gancho, retenção, cliques no produto, pedidos — e procure o nível com a maior queda em relação ao seu melhor vídeo. É ele que você corrige primeiro, uma variável por vez.",
       "faq": [
-        {"q": "Onde encontrar as estatísticas dos meus vídeos do TikTok Shop?", "r": "As estatísticas de conteúdo (visualizações, tempo médio de exibição, curva de retenção) ficam no TikTok Studio, na análise de cada vídeo. As de vendas (cliques no produto, pedidos, faturamento, comissões) ficam no painel de afiliado ou no Seller Center."},
-        {"q": "Qual é a métrica mais importante de um vídeo do TikTok Shop?", "r": "Nenhuma métrica basta sozinha. O mais útil é a sequência de taxas: gancho aos 3 segundos, retenção quando o produto aparece, taxa de clique no produto e taxa de conversão. O nível com a maior queda indica o que corrigir."},
-        {"q": "Quanto tempo esperar antes de analisar um vídeo do TikTok Shop?", "r": "Pelo menos 48 a 72 horas. O TikTok distribui os vídeos em ondas, e um vídeo pode voltar a crescer dias depois da publicação; julgar cedo demais distorce o diagnóstico."}
-      ]
+        {
+          "q": "Onde encontrar as estatísticas dos meus vídeos do TikTok Shop?",
+          "r": "As estatísticas de conteúdo (visualizações, tempo médio de exibição, curva de retenção) ficam no TikTok Studio, na análise de cada vídeo. As de vendas (cliques no produto, pedidos, faturamento, comissões) ficam no painel de afiliado ou no Seller Center."
+        },
+        {
+          "q": "Qual é a métrica mais importante de um vídeo do TikTok Shop?",
+          "r": "Nenhuma métrica basta sozinha. O mais útil é a sequência de taxas: gancho aos 3 segundos, retenção quando o produto aparece, taxa de clique no produto e taxa de conversão. O nível com a maior queda indica o que corrigir."
+        },
+        {
+          "q": "Quanto tempo esperar antes de analisar um vídeo do TikTok Shop?",
+          "r": "Pelo menos 48 a 72 horas. O TikTok distribui os vídeos em ondas, e um vídeo pode voltar a crescer dias depois da publicação; julgar cedo demais distorce o diagnóstico."
+        }
+      ],
+      "schema": {
+        "titre": "O funil de cinco níveis de um vídeo do TikTok Shop",
+        "legende": "Cada nível se lê em relação ao anterior: onde está a maior queda, está a sua prioridade.",
+        "etiquettes": [
+          "Visualizações",
+          "Ainda lá aos 3 s",
+          "Ainda lá no produto",
+          "Clique no produto",
+          "Pedido"
+        ],
+        "notes": [
+          "taxa de gancho",
+          "retenção útil",
+          "taxa de clique no produto",
+          "taxa de conversão"
+        ]
+      }
     },
     "es": {
       "slug": "como-analizar-videos-tiktok-shop",
@@ -59,10 +149,36 @@
       "categorie": "📊 MÉTODO",
       "chapo": "Para analizar tus vídeos de TikTok Shop, lee tus estadísticas como un embudo de cinco niveles —visualizaciones, gancho, retención, clics en producto, pedidos— y busca el nivel con la mayor caída respecto a tu mejor vídeo. Ese es el que corriges primero, una variable cada vez.",
       "faq": [
-        {"q": "¿Dónde encuentro las estadísticas de mis vídeos de TikTok Shop?", "r": "Las estadísticas de contenido (visualizaciones, tiempo medio de visualización, curva de retención) están en TikTok Studio, en el análisis de cada vídeo. Las de venta (clics en producto, pedidos, facturación, comisiones) están en el panel de afiliado o en el Seller Center."},
-        {"q": "¿Cuál es la métrica más importante de un vídeo de TikTok Shop?", "r": "Ninguna métrica basta por sí sola. Lo más útil es la cadena de tasas: gancho a los 3 segundos, retención cuando aparece el producto, tasa de clic en producto y tasa de conversión. El nivel con la caída más fuerte indica qué corregir."},
-        {"q": "¿Cuánto esperar antes de analizar un vídeo de TikTok Shop?", "r": "Al menos 48 a 72 horas. TikTok distribuye los vídeos por oleadas y un vídeo puede repuntar varios días después de publicarse; juzgarlo demasiado pronto falsea el diagnóstico."}
-      ]
+        {
+          "q": "¿Dónde encuentro las estadísticas de mis vídeos de TikTok Shop?",
+          "r": "Las estadísticas de contenido (visualizaciones, tiempo medio de visualización, curva de retención) están en TikTok Studio, en el análisis de cada vídeo. Las de venta (clics en producto, pedidos, facturación, comisiones) están en el panel de afiliado o en el Seller Center."
+        },
+        {
+          "q": "¿Cuál es la métrica más importante de un vídeo de TikTok Shop?",
+          "r": "Ninguna métrica basta por sí sola. Lo más útil es la cadena de tasas: gancho a los 3 segundos, retención cuando aparece el producto, tasa de clic en producto y tasa de conversión. El nivel con la caída más fuerte indica qué corregir."
+        },
+        {
+          "q": "¿Cuánto esperar antes de analizar un vídeo de TikTok Shop?",
+          "r": "Al menos 48 a 72 horas. TikTok distribuye los vídeos por oleadas y un vídeo puede repuntar varios días después de publicarse; juzgarlo demasiado pronto falsea el diagnóstico."
+        }
+      ],
+      "schema": {
+        "titre": "El embudo de cinco niveles de un vídeo de TikTok Shop",
+        "legende": "Cada nivel se lee respecto al anterior: donde está la mayor caída, está tu prioridad.",
+        "etiquettes": [
+          "Visualizaciones",
+          "Siguen a los 3 s",
+          "Siguen en el producto",
+          "Clic en el producto",
+          "Pedido"
+        ],
+        "notes": [
+          "tasa de gancho",
+          "retención útil",
+          "tasa de clic en producto",
+          "tasa de conversión"
+        ]
+      }
     },
     "it": {
       "slug": "come-analizzare-video-tiktok-shop",
@@ -72,10 +188,36 @@
       "categorie": "📊 METODO",
       "chapo": "Per analizzare i tuoi video TikTok Shop, leggi le statistiche come un funnel a cinque livelli — visualizzazioni, hook, retention, clic sul prodotto, ordini — e cerca il livello con il calo più forte rispetto al tuo video migliore. È quello da correggere per primo, una variabile alla volta.",
       "faq": [
-        {"q": "Dove trovo le statistiche dei miei video TikTok Shop?", "r": "Le statistiche dei contenuti (visualizzazioni, tempo medio di visione, curva di retention) sono in TikTok Studio, nell'analisi di ogni video. Quelle di vendita (clic sul prodotto, ordini, fatturato, commissioni) sono nella dashboard affiliato o nel Seller Center."},
-        {"q": "Qual è la metrica più importante per un video TikTok Shop?", "r": "Nessuna metrica basta da sola. La lettura più utile è la catena dei tassi: hook a 3 secondi, retention quando compare il prodotto, tasso di clic sul prodotto e tasso di conversione. Il livello con il calo più netto indica cosa correggere."},
-        {"q": "Quanto aspettare prima di analizzare un video TikTok Shop?", "r": "Almeno 48-72 ore. TikTok distribuisce i video a ondate e un video può ripartire diversi giorni dopo la pubblicazione: giudicarlo troppo presto falsa la diagnosi."}
-      ]
+        {
+          "q": "Dove trovo le statistiche dei miei video TikTok Shop?",
+          "r": "Le statistiche dei contenuti (visualizzazioni, tempo medio di visione, curva di retention) sono in TikTok Studio, nell'analisi di ogni video. Quelle di vendita (clic sul prodotto, ordini, fatturato, commissioni) sono nella dashboard affiliato o nel Seller Center."
+        },
+        {
+          "q": "Qual è la metrica più importante per un video TikTok Shop?",
+          "r": "Nessuna metrica basta da sola. La lettura più utile è la catena dei tassi: hook a 3 secondi, retention quando compare il prodotto, tasso di clic sul prodotto e tasso di conversione. Il livello con il calo più netto indica cosa correggere."
+        },
+        {
+          "q": "Quanto aspettare prima di analizzare un video TikTok Shop?",
+          "r": "Almeno 48-72 ore. TikTok distribuisce i video a ondate e un video può ripartire diversi giorni dopo la pubblicazione: giudicarlo troppo presto falsa la diagnosi."
+        }
+      ],
+      "schema": {
+        "titre": "Il funnel a cinque livelli di un video TikTok Shop",
+        "legende": "Ogni livello si legge rispetto al precedente: dove il calo è più forte, lì c'è la tua priorità.",
+        "etiquettes": [
+          "Visualizzazioni",
+          "Ancora lì a 3 s",
+          "Ancora lì al prodotto",
+          "Clic sul prodotto",
+          "Ordine"
+        ],
+        "notes": [
+          "tasso di hook",
+          "retention utile",
+          "tasso di clic sul prodotto",
+          "tasso di conversione"
+        ]
+      }
     },
     "de": {
       "slug": "tiktok-shop-videos-analysieren",
@@ -85,10 +227,37 @@
       "categorie": "📊 METHODE",
       "chapo": "Um deine TikTok-Shop-Videos zu analysieren, liest du deine Statistiken als Trichter mit fünf Stufen — Aufrufe, Hook, Retention, Produktklicks, Bestellungen — und suchst die Stufe mit dem größten Einbruch im Vergleich zu deinem besten Video. Die verbesserst du zuerst, immer nur eine Variable auf einmal.",
       "faq": [
-        {"q": "Wo finde ich die Statistiken meiner TikTok-Shop-Videos?", "r": "Content-Statistiken (Aufrufe, durchschnittliche Wiedergabezeit, Retention-Kurve) findest du in TikTok Studio in der Analyse jedes Videos. Verkaufsstatistiken (Produktklicks, Bestellungen, Umsatz, Provisionen) findest du im Affiliate-Dashboard oder im Seller Center."},
-        {"q": "Welche Kennzahl ist für ein TikTok-Shop-Video am wichtigsten?", "r": "Keine Kennzahl reicht allein. Am aussagekräftigsten ist die Kette der Raten: Hook nach 3 Sekunden, Retention beim Erscheinen des Produkts, Produkt-Klickrate und Conversion-Rate. Die Stufe mit dem stärksten Einbruch zeigt, was du ändern musst."},
-        {"q": "Wie lange sollte ich warten, bevor ich ein TikTok-Shop-Video analysiere?", "r": "Mindestens 48 bis 72 Stunden. TikTok spielt Videos in Wellen aus, und ein Video kann Tage nach der Veröffentlichung wieder anziehen; zu frühes Urteilen verfälscht die Diagnose."}
-      ]
+        {
+          "q": "Wo finde ich die Statistiken meiner TikTok-Shop-Videos?",
+          "r": "Content-Statistiken (Aufrufe, durchschnittliche Wiedergabezeit, Retention-Kurve) findest du in TikTok Studio in der Analyse jedes Videos. Verkaufsstatistiken (Produktklicks, Bestellungen, Umsatz, Provisionen) findest du im Affiliate-Dashboard oder im Seller Center."
+        },
+        {
+          "q": "Welche Kennzahl ist für ein TikTok-Shop-Video am wichtigsten?",
+          "r": "Keine Kennzahl reicht allein. Am aussagekräftigsten ist die Kette der Raten: Hook nach 3 Sekunden, Retention beim Erscheinen des Produkts, Produkt-Klickrate und Conversion-Rate. Die Stufe mit dem stärksten Einbruch zeigt, was du ändern musst."
+        },
+        {
+          "q": "Wie lange sollte ich warten, bevor ich ein TikTok-Shop-Video analysiere?",
+          "r": "Mindestens 48 bis 72 Stunden. TikTok spielt Videos in Wellen aus, und ein Video kann Tage nach der Veröffentlichung wieder anziehen; zu frühes Urteilen verfälscht die Diagnose."
+        }
+      ],
+      "schema": {
+        "titre": "Der Fünf-Stufen-Trichter eines TikTok-Shop-Videos",
+        "legende": "Jede Stufe wird im Verhältnis zur vorherigen gelesen: Wo der größte Einbruch ist, liegt deine Priorität.",
+        "etiquettes": [
+          "Aufrufe",
+          "Nach 3 s noch da",
+          "Beim Produkt noch da",
+          "Produktklick",
+          "Bestellung"
+        ],
+        "notes": [
+          "Hook-Rate",
+          "nützliche Retention",
+          "Produkt-Klickrate",
+          "Conversion-Rate"
+        ]
+      }
     }
-  }
+  },
+  "schema": "entonnoir"
 }

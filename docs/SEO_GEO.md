@@ -40,11 +40,13 @@
 
 3. **Relire le français** (c'est la version de référence) et vérifier les chiffres
    contre les sources.
-4. **Lancer les tests** : `venv\Scripts\python.exe test_blog_articles.py` → tout doit être `ok`.
-5. **Déployer** (push → Render). Le sitemap, `/blog`, `llms.txt` et les hreflang
+4. **Générer les images de partage** : `venv\Scripts\python.exe generate_og_images.py`
+   (une image 1200×630 par langue dans `static/og/`, avec le titre de l'article).
+5. **Lancer les tests** : `venv\Scripts\python.exe test_blog_articles.py` → tout doit être `ok`.
+6. **Déployer** (push → Render). Le sitemap, `/blog`, `llms.txt` et les hreflang
    se mettent à jour seuls.
-6. **Search Console** : « Inspection de l'URL » sur la version française → « Demander une indexation ».
-7. **Cocher la requête** dans le backlog (§4).
+7. **Search Console** : « Inspection de l'URL » sur la version française → « Demander une indexation ».
+8. **Cocher la requête** dans le backlog (§4).
 
 Rythme visé : 1 à 2 articles par créneau libre.
 
@@ -96,6 +98,13 @@ content/blog/<id>/
 - Lien vers un autre guide : `<a href="guide:<id>">…</a>` (résolu dans la bonne langue).
 - Lien vers une page du site : chemin **français** (`/pricing`, `/analyser-une-video-tiktok-shop`) — préfixé automatiquement pour les autres langues.
 - Blocs disponibles : `<div class="tableau"><table>…</table></div>`, `<div class="encadre">`, `<div class="exemple">` (pour les exemples chiffrés fictifs, toujours signalés comme tels).
+- **Schéma** (optionnel, un par article) : placer `<!--SCHEMA-->` dans le corps, déclarer
+  `"schema": "entonnoir" | "couches" | "leviers"` en tête de `article.json`, et dans chaque
+  langue `"schema": {"titre", "legende", "etiquettes": [...], "notes": [...]}`
+  (entonnoir : 5 étiquettes + 4 notes ; couches : 4 + 1 ; leviers : 5 + 1). Dessiné en SVG,
+  traduit comme le reste. Nouveau type de schéma → `blog_articles.SCHEMAS`.
+- **Captures réelles** (analyse Qeerah, TikTok Studio) : les déposer dans `static/blog/`,
+  en WebP, avec `<img … loading="lazy" width height alt>` — à ajouter dès qu'on en a.
 - 800 à 1 700 mots en français (vérifié).
 
 ### Règles de contenu (GEO)

@@ -5,12 +5,27 @@
   "maj": "2026-10-15",
   "lecture_min": 7,
   "cta": "hooks",
-  "lies": ["analyser-ses-videos", "ameliorer-resultats"],
+  "lies": [
+    "analyser-ses-videos",
+    "ameliorer-resultats"
+  ],
   "sources": [
-    {"titre": "PPC Land — TikTok Shop's shoppable video content guide tells creators what actually works (TikTok Shop Academy, mai 2026)", "url": "https://ppc.land/tiktok-shops-shoppable-video-content-guide-tells-creators-what-actually-works/"},
-    {"titre": "Buffer — Longer TikToks get more views (analyse de 1,1 million de vidéos, 2025)", "url": "https://buffer.com/resources/longer-tiktoks-get-more-views-data/"},
-    {"titre": "Motion — Key metrics for creative performance (hook rate / thumbstop rate)", "url": "https://motionapp.com/blog/key-creative-performance-metrics"},
-    {"titre": "TikTok for Business — TikTok Shop Mastery: making TikTok videos for high engagement", "url": "https://ads.tiktok.com/business/en-US/blog/tiktok-short-video-best-practice"}
+    {
+      "titre": "PPC Land — TikTok Shop's shoppable video content guide tells creators what actually works (TikTok Shop Academy, mai 2026)",
+      "url": "https://ppc.land/tiktok-shops-shoppable-video-content-guide-tells-creators-what-actually-works/"
+    },
+    {
+      "titre": "Buffer — Longer TikToks get more views (analyse de 1,1 million de vidéos, 2025)",
+      "url": "https://buffer.com/resources/longer-tiktoks-get-more-views-data/"
+    },
+    {
+      "titre": "Motion — Key metrics for creative performance (hook rate / thumbstop rate)",
+      "url": "https://motionapp.com/blog/key-creative-performance-metrics"
+    },
+    {
+      "titre": "TikTok for Business — TikTok Shop Mastery: making TikTok videos for high engagement",
+      "url": "https://ads.tiktok.com/business/en-US/blog/tiktok-short-video-best-practice"
+    }
   ],
   "langues": {
     "fr": {
@@ -21,10 +36,32 @@
       "categorie": "🎣 ACCROCHES",
       "chapo": "Pour analyser un hook TikTok Shop, mesure deux chiffres — la part des spectateurs encore là à 3 secondes et le taux de clic produit — puis décortique ses quatre couches : image d'ouverture, texte à l'écran, première phrase, mouvement. Un bon hook aligne au moins trois couches sur une même promesse liée au produit.",
       "faq": [
-        {"q": "Combien de secondes dure un hook TikTok Shop ?", "r": "Le guide de TikTok Shop Academy publié en mai 2026 situe le hook dans les 3 à 6 premières secondes de la vidéo, suivi du message clé puis de l'appel à l'action. En pratique, la décision de rester se joue souvent dès la première ou la deuxième seconde."},
-        {"q": "Qu'est-ce qu'un bon taux d'accroche sur TikTok ?", "r": "Pour la publicité vidéo, la plateforme Motion considère qu'un taux d'accroche (vues à 3 secondes ÷ impressions) sous 25 % est à retravailler, entre 25 et 35 % solide, et au-dessus de 35 % performant. Pour du contenu organique, la meilleure référence reste ta propre médiane sur tes vingt dernières vidéos."},
-        {"q": "Pourquoi mon hook fait rester mais ne fait pas vendre ?", "r": "Parce qu'il n'est pas lié au produit. Une accroche qui retient avec un sujet sans rapport attire des spectateurs qui ne sont pas acheteurs : le taux d'accroche monte, le taux de clic produit chute. TikTok Shop Academy recommande un hook lié au produit présenté."}
-      ]
+        {
+          "q": "Combien de secondes dure un hook TikTok Shop ?",
+          "r": "Le guide de TikTok Shop Academy publié en mai 2026 situe le hook dans les 3 à 6 premières secondes de la vidéo, suivi du message clé puis de l'appel à l'action. En pratique, la décision de rester se joue souvent dès la première ou la deuxième seconde."
+        },
+        {
+          "q": "Qu'est-ce qu'un bon taux d'accroche sur TikTok ?",
+          "r": "Pour la publicité vidéo, la plateforme Motion considère qu'un taux d'accroche (vues à 3 secondes ÷ impressions) sous 25 % est à retravailler, entre 25 et 35 % solide, et au-dessus de 35 % performant. Pour du contenu organique, la meilleure référence reste ta propre médiane sur tes vingt dernières vidéos."
+        },
+        {
+          "q": "Pourquoi mon hook fait rester mais ne fait pas vendre ?",
+          "r": "Parce qu'il n'est pas lié au produit. Une accroche qui retient avec un sujet sans rapport attire des spectateurs qui ne sont pas acheteurs : le taux d'accroche monte, le taux de clic produit chute. TikTok Shop Academy recommande un hook lié au produit présenté."
+        }
+      ],
+      "schema": {
+        "titre": "Les quatre couches d'un hook TikTok Shop",
+        "legende": "Un hook qui vend aligne au moins trois couches sur la même promesse.",
+        "etiquettes": [
+          "Image d'ouverture",
+          "Texte à l'écran",
+          "Première phrase",
+          "Mouvement et son"
+        ],
+        "notes": [
+          "Une seule promesse liée au produit"
+        ]
+      }
     },
     "en": {
       "slug": "tiktok-shop-hook-analysis",
@@ -34,10 +71,32 @@
       "categorie": "🎣 HOOKS",
       "chapo": "To analyse a TikTok Shop hook, measure two numbers — the share of viewers still watching at 3 seconds and the product click rate — then break down its four layers: opening frame, on-screen text, first sentence, movement. A good hook lines up at least three layers behind a single promise tied to the product.",
       "faq": [
-        {"q": "How many seconds is a TikTok Shop hook?", "r": "TikTok Shop Academy's guide published in May 2026 places the hook in the first 3 to 6 seconds of the video, followed by the key message and then the call to action. In practice, the decision to stay is often made in the first or second second."},
-        {"q": "What is a good hook rate on TikTok?", "r": "For video ads, the Motion platform considers a hook rate (3-second views ÷ impressions) below 25% as needing work, 25 to 35% as solid and above 35% as strong. For organic content, the best reference is your own median across your last twenty videos."},
-        {"q": "Why does my hook keep viewers but not sell?", "r": "Because it isn't tied to the product. A hook that holds attention with an unrelated topic attracts viewers who aren't buyers: the hook rate goes up and the product click rate drops. TikTok Shop Academy recommends a hook related to the featured product."}
-      ]
+        {
+          "q": "How many seconds is a TikTok Shop hook?",
+          "r": "TikTok Shop Academy's guide published in May 2026 places the hook in the first 3 to 6 seconds of the video, followed by the key message and then the call to action. In practice, the decision to stay is often made in the first or second second."
+        },
+        {
+          "q": "What is a good hook rate on TikTok?",
+          "r": "For video ads, the Motion platform considers a hook rate (3-second views ÷ impressions) below 25% as needing work, 25 to 35% as solid and above 35% as strong. For organic content, the best reference is your own median across your last twenty videos."
+        },
+        {
+          "q": "Why does my hook keep viewers but not sell?",
+          "r": "Because it isn't tied to the product. A hook that holds attention with an unrelated topic attracts viewers who aren't buyers: the hook rate goes up and the product click rate drops. TikTok Shop Academy recommends a hook related to the featured product."
+        }
+      ],
+      "schema": {
+        "titre": "The four layers of a TikTok Shop hook",
+        "legende": "A hook that sells lines up at least three layers behind the same promise.",
+        "etiquettes": [
+          "Opening frame",
+          "On-screen text",
+          "First sentence",
+          "Movement & sound"
+        ],
+        "notes": [
+          "One promise tied to the product"
+        ]
+      }
     },
     "pt-br": {
       "slug": "como-analisar-ganchos-tiktok-shop",
@@ -47,10 +106,32 @@
       "categorie": "🎣 GANCHOS",
       "chapo": "Para analisar um gancho no TikTok Shop, meça dois números — a parcela de espectadores ainda presentes aos 3 segundos e a taxa de clique no produto — e destrinche suas quatro camadas: quadro de abertura, texto na tela, primeira frase e movimento. Um bom gancho alinha pelo menos três camadas numa mesma promessa ligada ao produto.",
       "faq": [
-        {"q": "Quantos segundos dura um gancho no TikTok Shop?", "r": "O guia da TikTok Shop Academy publicado em maio de 2026 situa o gancho nos 3 a 6 primeiros segundos do vídeo, seguido da mensagem principal e da chamada para ação. Na prática, a decisão de ficar costuma acontecer já no primeiro ou segundo segundo."},
-        {"q": "O que é uma boa taxa de gancho no TikTok?", "r": "Para anúncios em vídeo, a plataforma Motion considera que uma taxa de gancho (visualizações de 3 segundos ÷ impressões) abaixo de 25% precisa de trabalho, entre 25% e 35% é sólida e acima de 35% é forte. Para conteúdo orgânico, a melhor referência é a sua própria mediana nos últimos vinte vídeos."},
-        {"q": "Por que meu gancho segura o público mas não vende?", "r": "Porque não está ligado ao produto. Um gancho que prende com um assunto sem relação atrai espectadores que não são compradores: a taxa de gancho sobe e a taxa de clique no produto cai. A TikTok Shop Academy recomenda um gancho ligado ao produto apresentado."}
-      ]
+        {
+          "q": "Quantos segundos dura um gancho no TikTok Shop?",
+          "r": "O guia da TikTok Shop Academy publicado em maio de 2026 situa o gancho nos 3 a 6 primeiros segundos do vídeo, seguido da mensagem principal e da chamada para ação. Na prática, a decisão de ficar costuma acontecer já no primeiro ou segundo segundo."
+        },
+        {
+          "q": "O que é uma boa taxa de gancho no TikTok?",
+          "r": "Para anúncios em vídeo, a plataforma Motion considera que uma taxa de gancho (visualizações de 3 segundos ÷ impressões) abaixo de 25% precisa de trabalho, entre 25% e 35% é sólida e acima de 35% é forte. Para conteúdo orgânico, a melhor referência é a sua própria mediana nos últimos vinte vídeos."
+        },
+        {
+          "q": "Por que meu gancho segura o público mas não vende?",
+          "r": "Porque não está ligado ao produto. Um gancho que prende com um assunto sem relação atrai espectadores que não são compradores: a taxa de gancho sobe e a taxa de clique no produto cai. A TikTok Shop Academy recomenda um gancho ligado ao produto apresentado."
+        }
+      ],
+      "schema": {
+        "titre": "As quatro camadas de um gancho no TikTok Shop",
+        "legende": "Um gancho que vende alinha pelo menos três camadas na mesma promessa.",
+        "etiquettes": [
+          "Quadro de abertura",
+          "Texto na tela",
+          "Primeira frase",
+          "Movimento e som"
+        ],
+        "notes": [
+          "Uma só promessa ligada ao produto"
+        ]
+      }
     },
     "es": {
       "slug": "como-analizar-ganchos-tiktok-shop",
@@ -60,10 +141,32 @@
       "categorie": "🎣 GANCHOS",
       "chapo": "Para analizar un gancho de TikTok Shop, mide dos cifras —la parte de espectadores que sigue a los 3 segundos y la tasa de clic en producto— y desmonta sus cuatro capas: fotograma de apertura, texto en pantalla, primera frase y movimiento. Un buen gancho alinea al menos tres capas en una misma promesa ligada al producto.",
       "faq": [
-        {"q": "¿Cuántos segundos dura un gancho en TikTok Shop?", "r": "La guía de TikTok Shop Academy publicada en mayo de 2026 sitúa el gancho en los primeros 3 a 6 segundos del vídeo, seguido del mensaje clave y de la llamada a la acción. En la práctica, la decisión de quedarse suele tomarse en el primer o segundo segundo."},
-        {"q": "¿Qué es una buena tasa de gancho en TikTok?", "r": "Para anuncios en vídeo, la plataforma Motion considera que una tasa de gancho (visualizaciones de 3 segundos ÷ impresiones) por debajo del 25 % necesita trabajo, entre el 25 % y el 35 % es sólida y por encima del 35 % es fuerte. Para contenido orgánico, la mejor referencia es tu propia mediana en tus últimos veinte vídeos."},
-        {"q": "¿Por qué mi gancho retiene pero no vende?", "r": "Porque no está relacionado con el producto. Un gancho que retiene con un tema ajeno atrae a espectadores que no son compradores: la tasa de gancho sube y la tasa de clic en producto baja. TikTok Shop Academy recomienda un gancho relacionado con el producto presentado."}
-      ]
+        {
+          "q": "¿Cuántos segundos dura un gancho en TikTok Shop?",
+          "r": "La guía de TikTok Shop Academy publicada en mayo de 2026 sitúa el gancho en los primeros 3 a 6 segundos del vídeo, seguido del mensaje clave y de la llamada a la acción. En la práctica, la decisión de quedarse suele tomarse en el primer o segundo segundo."
+        },
+        {
+          "q": "¿Qué es una buena tasa de gancho en TikTok?",
+          "r": "Para anuncios en vídeo, la plataforma Motion considera que una tasa de gancho (visualizaciones de 3 segundos ÷ impresiones) por debajo del 25 % necesita trabajo, entre el 25 % y el 35 % es sólida y por encima del 35 % es fuerte. Para contenido orgánico, la mejor referencia es tu propia mediana en tus últimos veinte vídeos."
+        },
+        {
+          "q": "¿Por qué mi gancho retiene pero no vende?",
+          "r": "Porque no está relacionado con el producto. Un gancho que retiene con un tema ajeno atrae a espectadores que no son compradores: la tasa de gancho sube y la tasa de clic en producto baja. TikTok Shop Academy recomienda un gancho relacionado con el producto presentado."
+        }
+      ],
+      "schema": {
+        "titre": "Las cuatro capas de un gancho de TikTok Shop",
+        "legende": "Un gancho que vende alinea al menos tres capas en la misma promesa.",
+        "etiquettes": [
+          "Fotograma inicial",
+          "Texto en pantalla",
+          "Primera frase",
+          "Movimiento y sonido"
+        ],
+        "notes": [
+          "Una sola promesa ligada al producto"
+        ]
+      }
     },
     "it": {
       "slug": "come-analizzare-hook-tiktok-shop",
@@ -73,10 +176,32 @@
       "categorie": "🎣 HOOK",
       "chapo": "Per analizzare un hook su TikTok Shop, misura due numeri — la quota di spettatori ancora presenti a 3 secondi e il tasso di clic sul prodotto — poi scomponi i suoi quattro livelli: fotogramma di apertura, testo a schermo, prima frase e movimento. Un buon hook allinea almeno tre livelli su un'unica promessa legata al prodotto.",
       "faq": [
-        {"q": "Quanti secondi dura un hook su TikTok Shop?", "r": "La guida di TikTok Shop Academy pubblicata a maggio 2026 colloca l'hook nei primi 3-6 secondi del video, seguito dal messaggio chiave e dalla call to action. In pratica, la decisione di restare si gioca spesso già al primo o al secondo secondo."},
-        {"q": "Qual è un buon tasso di hook su TikTok?", "r": "Per la pubblicità video, la piattaforma Motion considera un tasso di hook (visualizzazioni a 3 secondi ÷ impression) sotto il 25% da migliorare, tra il 25 e il 35% solido e sopra il 35% forte. Per i contenuti organici, il riferimento migliore resta la tua mediana sugli ultimi venti video."},
-        {"q": "Perché il mio hook trattiene ma non vende?", "r": "Perché non è legato al prodotto. Un hook che trattiene con un argomento estraneo attira spettatori che non sono acquirenti: il tasso di hook sale e il tasso di clic sul prodotto scende. TikTok Shop Academy consiglia un hook legato al prodotto presentato."}
-      ]
+        {
+          "q": "Quanti secondi dura un hook su TikTok Shop?",
+          "r": "La guida di TikTok Shop Academy pubblicata a maggio 2026 colloca l'hook nei primi 3-6 secondi del video, seguito dal messaggio chiave e dalla call to action. In pratica, la decisione di restare si gioca spesso già al primo o al secondo secondo."
+        },
+        {
+          "q": "Qual è un buon tasso di hook su TikTok?",
+          "r": "Per la pubblicità video, la piattaforma Motion considera un tasso di hook (visualizzazioni a 3 secondi ÷ impression) sotto il 25% da migliorare, tra il 25 e il 35% solido e sopra il 35% forte. Per i contenuti organici, il riferimento migliore resta la tua mediana sugli ultimi venti video."
+        },
+        {
+          "q": "Perché il mio hook trattiene ma non vende?",
+          "r": "Perché non è legato al prodotto. Un hook che trattiene con un argomento estraneo attira spettatori che non sono acquirenti: il tasso di hook sale e il tasso di clic sul prodotto scende. TikTok Shop Academy consiglia un hook legato al prodotto presentato."
+        }
+      ],
+      "schema": {
+        "titre": "I quattro livelli di un hook TikTok Shop",
+        "legende": "Un hook che vende allinea almeno tre livelli sulla stessa promessa.",
+        "etiquettes": [
+          "Fotogramma iniziale",
+          "Testo a schermo",
+          "Prima frase",
+          "Movimento e suono"
+        ],
+        "notes": [
+          "Un'unica promessa legata al prodotto"
+        ]
+      }
     },
     "de": {
       "slug": "tiktok-shop-hooks-analysieren",
@@ -86,10 +211,33 @@
       "categorie": "🎣 HOOKS",
       "chapo": "Um einen TikTok-Shop-Hook zu analysieren, misst du zwei Zahlen — den Anteil der Zuschauer, die nach 3 Sekunden noch da sind, und die Produkt-Klickrate — und zerlegst dann seine vier Ebenen: erster Frame, Text im Bild, erster Satz, Bewegung. Ein guter Hook richtet mindestens drei Ebenen auf ein einziges, produktbezogenes Versprechen aus.",
       "faq": [
-        {"q": "Wie viele Sekunden dauert ein TikTok-Shop-Hook?", "r": "Der im Mai 2026 veröffentlichte Leitfaden der TikTok Shop Academy verortet den Hook in den ersten 3 bis 6 Sekunden, gefolgt von Kernbotschaft und Call-to-Action. In der Praxis fällt die Entscheidung zu bleiben oft schon in der ersten oder zweiten Sekunde."},
-        {"q": "Was ist eine gute Hook-Rate auf TikTok?", "r": "Für Videowerbung stuft die Plattform Motion eine Hook-Rate (3-Sekunden-Aufrufe ÷ Impressionen) unter 25 % als verbesserungsbedürftig ein, 25 bis 35 % als solide und über 35 % als stark. Für organischen Content ist dein eigener Median der letzten zwanzig Videos die beste Referenz."},
-        {"q": "Warum hält mein Hook Zuschauer, verkauft aber nicht?", "r": "Weil er nicht mit dem Produkt zusammenhängt. Ein Hook, der mit einem fremden Thema fesselt, zieht Zuschauer an, die keine Käufer sind: Die Hook-Rate steigt, die Produkt-Klickrate sinkt. Die TikTok Shop Academy empfiehlt einen produktbezogenen Hook."}
-      ]
+        {
+          "q": "Wie viele Sekunden dauert ein TikTok-Shop-Hook?",
+          "r": "Der im Mai 2026 veröffentlichte Leitfaden der TikTok Shop Academy verortet den Hook in den ersten 3 bis 6 Sekunden, gefolgt von Kernbotschaft und Call-to-Action. In der Praxis fällt die Entscheidung zu bleiben oft schon in der ersten oder zweiten Sekunde."
+        },
+        {
+          "q": "Was ist eine gute Hook-Rate auf TikTok?",
+          "r": "Für Videowerbung stuft die Plattform Motion eine Hook-Rate (3-Sekunden-Aufrufe ÷ Impressionen) unter 25 % als verbesserungsbedürftig ein, 25 bis 35 % als solide und über 35 % als stark. Für organischen Content ist dein eigener Median der letzten zwanzig Videos die beste Referenz."
+        },
+        {
+          "q": "Warum hält mein Hook Zuschauer, verkauft aber nicht?",
+          "r": "Weil er nicht mit dem Produkt zusammenhängt. Ein Hook, der mit einem fremden Thema fesselt, zieht Zuschauer an, die keine Käufer sind: Die Hook-Rate steigt, die Produkt-Klickrate sinkt. Die TikTok Shop Academy empfiehlt einen produktbezogenen Hook."
+        }
+      ],
+      "schema": {
+        "titre": "Die vier Ebenen eines TikTok-Shop-Hooks",
+        "legende": "Ein Hook, der verkauft, richtet mindestens drei Ebenen auf dasselbe Versprechen aus.",
+        "etiquettes": [
+          "Erster Frame",
+          "Text im Bild",
+          "Erster Satz",
+          "Bewegung & Ton"
+        ],
+        "notes": [
+          "Ein Versprechen, passend zum Produkt"
+        ]
+      }
     }
-  }
+  },
+  "schema": "couches"
 }

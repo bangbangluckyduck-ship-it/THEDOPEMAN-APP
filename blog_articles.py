@@ -63,6 +63,15 @@ SUFFIXE_TITRE = " | Qeerah"
 _SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _H2 = re.compile(r'<h2 id="([^"]+)">(.*?)</h2>', re.S)
 _LIEN_GUIDE = re.compile(r'href="guide:([a-z0-9-]+)"')
+_MARQUEUR_SCHEMA = "<!--SCHEMA-->"
+
+# Images de partage : générées par generate_og_images.py, versionnées ici.
+OG_DOSSIER = Path("static/og")
+OG_LARGEUR, OG_HAUTEUR = 1200, 630
+
+
+def nom_image_og(article_id: str, lang: str) -> str:
+    return f"{article_id}-{source(lang)}.jpg"
 
 
 def source(lang: str) -> str:
@@ -187,6 +196,7 @@ class Article:
     sources: "list[dict]"
     langues: "dict[str, dict]"   # langue rédigée → métadonnées
     corps: "dict[str, str]"      # langue rédigée → fragment HTML
+    schema: str = ""             # type de schéma posé à <!--SCHEMA--> (cf. SCHEMAS)
     brouillon: bool = False
     dossier: Path = field(default_factory=Path)
 
@@ -195,6 +205,16 @@ class Article:
 
     def chemin(self, lang: str) -> str:
         return _hp.chemin_langue(lang, "/blog/" + self.meta(lang)["slug"])
+
+    def image(self, lang: str, base: str) -> "tuple[str, bool]":
+        """(URL de l'image de partage, True si elle est propre à l'article).
+
+        Repli sur le logo si l'image n'a pas été générée : un article publié
+        avant d'avoir lancé generate_og_images.py reste partageable."""
+        nom = nom_image_og(self.id, lang)
+        if (OG_DOSSIER / nom).exists():
+            return f"{base}/static/og/{nom}", True
+        return f"{base}/static/qeerah-logo.png", False
 
 
 def _date(v: str) -> date:
@@ -241,6 +261,7 @@ def _charger_un(d: Path) -> Article:
         sources=list(meta.get("sources", [])),
         langues=meta["langues"],
         corps=corps,
+        schema=meta.get("schema", ""),
         brouillon=bool(meta.get("brouillon", False)),
         dossier=d,
     )
@@ -313,6 +334,7 @@ def controler(articles: "list[Article]") -> "list[str]":
             internes = len(re.findall(r'href="(?:/|guide:)', corps)) + len(a.lies)
             if internes < 2:
                 pb.append(f"{q} moins de 2 liens internes")
+            pb.extend(f"{q} {e}" for e in _controler_schema(a, m, corps))
             if nb_faq is None:
                 nb_faq = len(m.get("faq", []))
             elif len(m.get("faq", [])) != nb_faq:
@@ -360,7 +382,7 @@ def _jsonld_article(a: Article, lang: str, base: str) -> str:
             "@type": "Article",
             "headline": m["h1"],
             "description": m["description"],
-            "image": f"{base}/static/qeerah-logo.png",
+            "image": a.image(lang, base)[0],
             "author": org,
             "publisher": org,
             "datePublished": a.publie.isoformat(),
@@ -395,7 +417,141 @@ def _corps(a: Article, lang: str, par_id: "dict[str, Article]") -> str:
     def repl(m: re.Match) -> str:
         cible = par_id.get(m.group(1))
         return f'href="{cible.chemin(lang)}"' if cible else 'href="/blog"'
-    return _LIEN_GUIDE.sub(repl, a.corps[source(lang)])
+    corps = _LIEN_GUIDE.sub(repl, a.corps[source(lang)])
+    if _MARQUEUR_SCHEMA in corps and a.schema in SCHEMAS:
+        corps = corps.replace(_MARQUEUR_SCHEMA, schema_html(a, lang), 1)
+    return corps
+
+
+# ── Schémas ──────────────────────────────────────────────────────────────────
+# Dessinés en SVG dans la page, pas en image : quelques centaines d'octets,
+# nets à toutes les tailles, et leur texte est lisible par Google et par les
+# IA. Les étiquettes viennent de article.json (clef « schema » de chaque
+# langue) : un schéma se traduit comme le reste de l'article.
+#
+# viewBox de 480 de large : sur un téléphone (≈ 340 px utiles), un texte en
+# 15 reste lisible à ≈ 11 px.
+_POLICE_SVG = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"
+_NAVY, _ACCENT, _OR, _GRIS = "#1F3A70", "#2563EB", "#D4AF37", "#5B6472"
+
+
+def _t(s: str) -> str:
+    return _html.escape(s, quote=True)
+
+
+def _lignes(texte: str, max_car: int) -> "list[str]":
+    lignes, ligne = [], ""
+    for mot in texte.split():
+        if len(f"{ligne} {mot}".strip()) <= max_car:
+            ligne = f"{ligne} {mot}".strip()
+        else:
+            lignes.append(ligne)
+            ligne = mot
+    return lignes + [ligne]
+
+
+def _svg_entonnoir(etiquettes: "list[str]", notes: "list[str]") -> "tuple[int, str]":
+    """Cinq étages qui rétrécissent ; entre deux étages, le taux qui les relie."""
+    couleurs = [_NAVY, "#24488C", "#2A56A8", _ACCENT, _OR]
+    h, ecart, y, out = 38, 26, 10, []
+    for i, etiquette in enumerate(etiquettes):
+        larg = 440 - i * 60
+        x = (480 - larg) / 2
+        out.append(f'<rect x="{x}" y="{y}" width="{larg}" height="{h}" rx="8" fill="{couleurs[i]}"/>')
+        texte = _NAVY if i == len(etiquettes) - 1 else "#fff"
+        out.append(f'<text x="240" y="{y + h / 2}" text-anchor="middle" dominant-baseline="central" '
+                   f'font-size="16" font-weight="700" fill="{texte}">{_t(etiquette)}</text>')
+        y += h
+        if i < len(notes):
+            out.append(f'<text x="240" y="{y + ecart / 2}" text-anchor="middle" dominant-baseline="central" '
+                       f'font-size="14" fill="{_GRIS}">↓ {_t(notes[i])}</text>')
+            y += ecart
+    return y + 10, "".join(out)
+
+
+def _svg_couches(etiquettes: "list[str]", notes: "list[str]") -> "tuple[int, str]":
+    """Quatre couches empilées, réunies par une accolade sur une même promesse."""
+    couleurs = [_NAVY, "#24488C", "#2A56A8", _ACCENT]
+    h, ecart, y0, out = 44, 8, 10, []
+    for i, etiquette in enumerate(etiquettes):
+        y = y0 + i * (h + ecart)
+        out.append(f'<rect x="10" y="{y}" width="300" height="{h}" rx="8" fill="{couleurs[i]}"/>')
+        out.append(f'<text x="28" y="{y + h / 2}" dominant-baseline="central" font-size="15" '
+                   f'font-weight="700" fill="#fff">{i + 1}. {_t(etiquette)}</text>')
+    bas = y0 + len(etiquettes) * (h + ecart) - ecart
+    milieu = (y0 + bas) / 2
+    out.append(f'<path d="M322 {y0} q12 0 12 12 v{milieu - y0 - 24} q0 12 10 12 q-10 0 -10 12 '
+               f'v{bas - milieu - 24} q0 12 -12 12" fill="none" stroke="{_OR}" stroke-width="3"/>')
+    lignes = _lignes(notes[0], 14) if notes else []
+    for j, ligne in enumerate(lignes):
+        y = milieu + (j - (len(lignes) - 1) / 2) * 19
+        out.append(f'<text x="356" y="{y}" dominant-baseline="central" font-size="15" '
+                   f'font-weight="700" fill="{_NAVY}">{_t(ligne)}</text>')
+    return bas + 10, "".join(out)
+
+
+def _svg_leviers(etiquettes: "list[str]", notes: "list[str]") -> "tuple[int, str]":
+    """Cinq leviers numérotés, et la règle qui les gouverne en dessous."""
+    larg, ecart, x0, out = 84, 8, 14, []
+    for i, etiquette in enumerate(etiquettes):
+        x = x0 + i * (larg + ecart)
+        cx = x + larg / 2
+        out.append(f'<rect x="{x}" y="10" width="{larg}" height="88" rx="10" fill="{_NAVY}"/>')
+        out.append(f'<circle cx="{cx}" cy="38" r="15" fill="{_OR}"/>')
+        out.append(f'<text x="{cx}" y="38" text-anchor="middle" dominant-baseline="central" '
+                   f'font-size="15" font-weight="800" fill="{_NAVY}">{i + 1}</text>')
+        out.append(f'<text x="{cx}" y="76" text-anchor="middle" dominant-baseline="central" '
+                   f'font-size="14" font-weight="700" fill="#fff">{_t(etiquette)}</text>')
+    y = 118
+    for ligne in (_lignes(notes[0], 52) if notes else []):
+        out.append(f'<text x="240" y="{y}" text-anchor="middle" dominant-baseline="central" '
+                   f'font-size="14" font-weight="600" fill="{_NAVY}">{_t(ligne)}</text>')
+        y += 19
+    return y, "".join(out)
+
+
+# type → (fonction, nombre d'étiquettes, nombre de notes)
+SCHEMAS = {
+    "entonnoir": (_svg_entonnoir, 5, 4),
+    "couches": (_svg_couches, 4, 1),
+    "leviers": (_svg_leviers, 5, 1),
+}
+
+
+def schema_html(a: Article, lang: str) -> str:
+    s = a.meta(lang)["schema"]
+    dessin, _n, _k = SCHEMAS[a.schema]
+    hauteur, contenu = dessin(s["etiquettes"], s.get("notes", []))
+    ident = f"schema-{a.id}"
+    return (
+        f'<figure class="schema">'
+        f'<svg viewBox="0 0 480 {hauteur:.0f}" role="img" aria-labelledby="{ident}" '
+        f'font-family="{_POLICE_SVG}" xmlns="http://www.w3.org/2000/svg">'
+        f'<title id="{ident}">{_t(s["titre"])}</title>{contenu}</svg>'
+        f'<figcaption>{_t(s["legende"])}</figcaption></figure>'
+    )
+
+
+def _controler_schema(a: Article, m: dict, corps: str) -> "list[str]":
+    pb: list[str] = []
+    marque = _MARQUEUR_SCHEMA in corps
+    if not a.schema:
+        if marque:
+            pb.append("marqueur <!--SCHEMA--> sans « schema » dans article.json")
+        return pb
+    if a.schema not in SCHEMAS:
+        return [f"schéma inconnu : {a.schema}"]
+    if not marque:
+        pb.append("schéma déclaré mais pas de marqueur <!--SCHEMA--> dans le corps")
+    s = m.get("schema") or {}
+    _f, n, k = SCHEMAS[a.schema]
+    if len(s.get("etiquettes", [])) != n:
+        pb.append(f"schéma : {n} étiquettes attendues")
+    if len(s.get("notes", [])) != k:
+        pb.append(f"schéma : {k} notes attendues")
+    if not s.get("titre") or not s.get("legende"):
+        pb.append("schéma : titre ou légende manquant")
+    return pb
 
 
 def rendre(a: Article, lang: str, base: str, articles: "list[Article]") -> str:
@@ -410,7 +566,12 @@ def rendre(a: Article, lang: str, base: str, articles: "list[Article]") -> str:
     alternates.append(("x-default", base + a.chemin(DEFAULT)))
     autres = [(_hp.HTML_LANG[l], _hp.LANG_LABEL[l], a.chemin(l))
               for l in LANGS if l != lang]
+    image, image_dediee = a.image(lang, base)
     return _ENV.get_template("blog_article.html").render(
+        image=image,
+        image_dediee=image_dediee,
+        og_largeur=OG_LARGEUR,
+        og_hauteur=OG_HAUTEUR,
         lang=lang,
         html_lang=_hp.HTML_LANG[lang],
         og_locale=_hp.OG_LOCALE[lang],
