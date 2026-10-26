@@ -53,7 +53,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "hero_h1": "Sabes que tu video no vendió. <span style=\"white-space:nowrap\">No sabes por qué.</span> Y grabas otro igualito.",
         "hero_sub": "Pega el link de un video que vende. En 30 segundos vas a ver lo que se te pasaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
         "hero_cta": "Analizar mi primer video gratis",
-        "hero_cta_note": "Sin tarjeta de crédito",
+        "hero_cta_note": "{regle}",
         "brand_line": "No copies los videos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
         "pb_title": "El problema no siempre es tu producto.",
         "pb_p": "Un video puede fallar por sus primeros segundos, su ángulo, su demostración, sus argumentos, su estructura o su llamado a la acción. Mientras no veas cuál, corriges a ciegas.",
@@ -92,7 +92,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Ganchos y guiones</strong> listos para grabar con tus productos",
         "pr_res3": "<strong>Lo que vende hoy</strong> en tu país: videos, productos, creadores",
         "pr_res4": "El análisis de <strong>tus propios videos</strong>, uno por uno o varios a la vez",
-        "pr_essai": "Empieza sin pagar: <strong>{trial}</strong>, con {a} videos para descifrar.",
+        "pr_essai": "Empieza sin pagar: <strong>{regle}</strong>",
         "hero_social": "Hecho por creadores, para creadores de TikTok Shop",
 
         "auth_eyebrow": "Método probado en la cancha",
@@ -154,7 +154,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "tool_drop": "Haz clic o suelta aquí tu video",
         "tool_drop_hint": "MP4, MOV • 500 MB máximo",
         "tool_analyze_file": "Analizar este archivo",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Extrayendo las imágenes…",
         "results_counter": "{trial} — crea tu cuenta para aprovecharlo",
         "res_score_label": "Puntuación de persuasión / 100",
@@ -274,7 +274,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "au_title": "Entrar a mi cuenta",
         "au_sub": "Entra a tu cuenta de Qeerah.",
         "au_title_signup": "Crear mi cuenta",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "tu@email.com",
         "au_pwd_ph": "Contraseña",
         "au_pwd_ph_signup": "Elige una contraseña (mín. 6 caracteres)",
@@ -292,6 +292,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "fp_submit": "Recibir el enlace para restablecerla",
         "fp_note": "Enlace seguro enviado por correo (válido 24 h).",
         "hd_account": "👤 Mi cuenta",
+        "trial_rule": "7 días, 10 análisis, todas las herramientas. Sin tarjeta de crédito.",
     },
 
     # ═══════════════════════════ INDONÉSIEN ═══════════════════════════
