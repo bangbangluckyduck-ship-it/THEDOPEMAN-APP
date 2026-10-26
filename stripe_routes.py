@@ -270,6 +270,13 @@ def _session_checkout(body: CheckoutRequest, request: Request, email_force: Opti
                 raise HTTPException(500, detail=str(e2.user_message or e2))
         else:
             raise HTTPException(500, detail=str(e.user_message or e))
+    try:
+        import entonnoir
+        from supabase_client import supabase_service
+        entonnoir.enregistrer(supabase_service, "checkout_ouvert",
+                              detail="annuel" if billing == "year" else "mensuel", email=buyer_email or None)
+    except Exception:
+        pass
     return session.url
 
 
