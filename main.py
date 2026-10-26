@@ -2771,8 +2771,12 @@ async def analyze_url(request: Request):
         semaphore_acquired = True
 
         # ── 3. Downscale 720p (réduit le temps d'upload + processing Gemini) ──
-        from video_processor import downscale_720p
-        downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
+        from video_processor import downscale_720p, PasDeVideo
+        try:
+            downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
+        except PasDeVideo as e:
+            # Publication en mode photo : erreur de l'utilisateur, pas du serveur.
+            raise HTTPException(status_code=422, detail=str(e))
 
         # ── 4. Contexte marché : scraper retiré (données marché via KeyAPI côté UI) ──
         market_context = None
@@ -4577,21 +4581,28 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     region = (region or "").strip().upper() or None
     # v2 : ajoute video_url (bouton « Décrypter » de l'accueil). Nouvelle clef pour
     # ne pas resservir pendant 6 h un aperçu en cache sans lien.
-    cache_key = f"feedradar::teaser::v3::{region or 'all'}"
+    # v4 : sans carrousels photo (rien à « décrypter » : l'analyse vidéo échoue).
+    cache_key = f"feedradar::teaser::v4::{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
         cols = "video_id,video_url,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
         fallback_cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
 
         def _fetch(cols_to_use: str) -> list:
+            # Les publications en mode photo sont écartées : le bouton « Décrypter
+            # cette vidéo » y menait à une analyse vidéo vouée à l'échec.
+            def requete():
+                q = supabase_client.table("feed_radar_videos").select(cols_to_use)
+                try:
+                    return q.or_("is_carousel.is.null,is_carousel.is.false")
+                except Exception:
+                    return q
             rows: list = []
             if region:
-                rows = (supabase_client.table("feed_radar_videos").select(cols_to_use)
-                        .eq("region", region).order("views", desc=True).limit(3)
+                rows = (requete().eq("region", region).order("views", desc=True).limit(3)
                         .execute().data or [])
             if not rows:
-                rows = (supabase_client.table("feed_radar_videos").select(cols_to_use)
-                        .order("views", desc=True).limit(3).execute().data or [])
+                rows = (requete().order("views", desc=True).limit(3).execute().data or [])
             return rows
 
         try:

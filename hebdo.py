@@ -100,6 +100,7 @@ def videos_de_la_semaine(supabase, lang: str, maintenant: datetime) -> list[dict
     try:
         r = (supabase.table("feed_radar_videos").select("video_url,oembed_author_name,views")
              .eq("region", region).gte("collected_at", depuis)
+             .or_("is_carousel.is.null,is_carousel.is.false")
              .order("views", desc=True).limit(3).execute())
         videos = r.data or []
     except Exception as e:

@@ -58,7 +58,7 @@ jobs:
       # qu'il touche (accueil, tarifs, comparatif) : une phrase française
       # reformulée y rend sept langues muettes sans rien casser de visible.
       - name: Tests du tunnel de vente et des traductions
-        run: python -m pytest test_tunnel.py test_mission.py test_essai_emails.py test_fidelisation.py test_entonnoir.py test_i18n_homepage.py test_i18n_pages.py -v --tb=short
+        run: python -m pytest test_video_preparation.py test_tunnel.py test_mission.py test_essai_emails.py test_fidelisation.py test_entonnoir.py test_i18n_homepage.py test_i18n_pages.py -v --tb=short
 
       # Filet supplémentaire : une erreur de syntaxe dans un module jamais importé
       # par les tests ne casserait qu'au démarrage sur Render, donc en production.
