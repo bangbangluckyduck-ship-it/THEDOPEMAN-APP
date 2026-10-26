@@ -37,6 +37,7 @@ class _Req:
     def select(self, *_a, **_k): return self
     def order(self, *_a, **_k): return self
     def limit(self, *_a, **_k): return self
+    def or_(self, *_a, **_k): return self
     def eq(self, col, val): self.filtres.append(lambda r: r.get(col) == val); return self
     def gte(self, col, val): self.filtres.append(lambda r: (r.get(col) or "") >= val); return self
     def insert(self, row): self._ecriture = row; return self

@@ -22,6 +22,23 @@ from typing import List, Optional
 YDL_TIKTOK_EXTRACTOR_ARGS = {"tiktok": {"app_info": [""]}}
 
 
+class PasDeVideo(Exception):
+    """Le fichier n'a aucune image à analyser.
+
+    Cas réel (26/10/2026) : une publication TikTok en mode photo (diaporama +
+    musique). yt-dlp n'en récupère que la bande son (.mp3) ; ré-encodée en
+    « mp4 » sans image, elle partait chez Gemini qui la rejetait (« The file
+    failed to be processed », code 13) — l'utilisateur recevait une erreur 500.
+    Le message est destiné à l'utilisateur : les routes le lui renvoient tel quel.
+    """
+
+
+MESSAGE_PAS_DE_VIDEO = ("Cette publication TikTok est un carrousel photo : il n'y a pas "
+                        "de vidéo à analyser. Colle le lien d'une vidéo.")
+
+_EXT_AUDIO = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".opus", ".flac"}
+
+
 def _ffmpeg() -> str:
     # Use system ffmpeg (installed via apt on Render)
     return "ffmpeg"
@@ -33,27 +50,30 @@ def _probe(video_path: str) -> dict:
     Coût : ~0,1 s (lecture d'en-têtes, aucun décodage). À comparer aux dizaines
     de secondes d'un ré-encodage — d'où l'intérêt de demander avant de faire.
     """
+    # Sortie JSON, un objet par flux. L'ancienne lecture ligne à ligne supposait
+    # que `codec_type` précède `codec_name` ; ffprobe écrit l'inverse. Le codec
+    # vidéo n'était donc jamais reconnu : toute vidéo passait pour « non
+    # conforme » et était ré-encodée (~30 s mesurées en production le 26/10).
     try:
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-show_entries",
-             "stream=codec_name,codec_type,height", "-of", "default=nw=1", video_path],
+             "stream=codec_name,codec_type,height", "-of", "json", video_path],
             capture_output=True, timeout=15, text=True,
         )
         if out.returncode != 0:
             return {}
+        import json
         infos: dict = {"height": 0, "vcodec": "", "acodec": ""}
-        courant = None
-        for ligne in out.stdout.splitlines():
-            cle, _, val = ligne.partition("=")
-            if cle == "codec_type":
-                courant = val
-            elif cle == "codec_name":
-                if courant == "video" and not infos["vcodec"]:
-                    infos["vcodec"] = val
-                elif courant == "audio" and not infos["acodec"]:
-                    infos["acodec"] = val
-            elif cle == "height" and val.isdigit():
-                infos["height"] = max(infos["height"], int(val))
+        for flux in json.loads(out.stdout or "{}").get("streams", []):
+            nom = flux.get("codec_name") or ""
+            if flux.get("codec_type") == "video":
+                # Une pochette d'album (mjpeg/png dans un mp3) n'est pas une vidéo.
+                if nom in ("mjpeg", "png", "bmp", "gif") and os.path.splitext(video_path)[1].lower() in _EXT_AUDIO:
+                    continue
+                infos["vcodec"] = infos["vcodec"] or nom
+                infos["height"] = max(infos["height"], int(flux.get("height") or 0))
+            elif flux.get("codec_type") == "audio":
+                infos["acodec"] = infos["acodec"] or nom
         return infos
     except Exception:
         return {}
@@ -102,6 +122,11 @@ def downscale_720p(video_path: str) -> str:
     # _probe coûte ~0,1 s : on peut se permettre de demander avant de décider.
     infos = _probe(video_path)
     ext = os.path.splitext(video_path)[1].lower()
+    # Aucune image : rien à ré-encoder ni à envoyer (publication en mode photo).
+    # Un _probe vide (ffprobe absent) ne prouve rien : seul le conteneur audio,
+    # ou une lecture réussie sans flux vidéo, tranche.
+    if ext in _EXT_AUDIO or (infos and not infos.get("vcodec") and not infos.get("height")):
+        raise PasDeVideo(MESSAGE_PAS_DE_VIDEO)
     conforme = ext == ".mp4" and infos.get("vcodec") == "h264"
 
     if conforme and taille_mo <= seuil_mo:
@@ -131,9 +156,17 @@ def downscale_720p(video_path: str) -> str:
             capture_output=True, timeout=60,
         )
         if result.returncode == 0 and os.path.getsize(out_path) > 1024:
+            sortie = _probe(out_path)
             print(f"[video] ⏱ préparation : {_t.monotonic() - _t0:.1f}s — ré-encodage "
-                  f"(source {infos.get('height') or '?'}p {infos.get('vcodec') or '?'})", flush=True)
+                  f"(source {infos.get('height') or '?'}p {infos.get('vcodec') or '?'} → "
+                  f"{sortie.get('height') or '?'}p {sortie.get('vcodec') or '?'})", flush=True)
+            if sortie and not sortie.get("vcodec"):
+                # Ré-encodage « réussi » mais sans image : même cas qu'un mp3.
+                os.unlink(out_path)
+                raise PasDeVideo(MESSAGE_PAS_DE_VIDEO)
             return out_path
+    except PasDeVideo:
+        raise
     except Exception:
         pass
     # Échec → on retourne le path original (jamais bloquant)

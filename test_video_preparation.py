@@ -1,0 +1,103 @@
+"""Tests de la préparation vidéo et de l'appel Gemini (incident du 26/10/2026).
+
+Ce qui doit rester vrai :
+  • ffprobe est lu correctement : une vidéo h264 est reconnue comme telle (la
+    lecture ligne à ligne ne voyait jamais le codec → ré-encodage systématique) ;
+  • une publication en mode photo (mp3, aucune image) est refusée avec un
+    message clair au lieu de partir chez Gemini ;
+  • une réponse VIDE de Gemini fait passer au modèle de secours, avec la raison.
+
+Lancement :  venv/bin/python -m pytest test_video_preparation.py -v
+"""
+from __future__ import annotations
+
+import json
+import os
+import types
+
+import pytest
+
+import ai_providers
+import video_processor
+
+
+def _ffprobe(streams):
+    def faux_run(cmd, **_k):
+        return types.SimpleNamespace(returncode=0, stdout=json.dumps({"streams": streams}))
+    return faux_run
+
+
+def test_probe_reconnait_le_codec_video(monkeypatch):
+    # Ordre réel de ffprobe : codec_name AVANT codec_type.
+    monkeypatch.setattr(video_processor.subprocess, "run", _ffprobe([
+        {"codec_name": "h264", "codec_type": "video", "height": 1024},
+        {"codec_name": "aac", "codec_type": "audio"}]))
+    assert video_processor._probe("x.mp4") == {"height": 1024, "vcodec": "h264", "acodec": "aac"}
+
+
+def test_video_h264_legere_n_est_plus_reencodee(monkeypatch, tmp_path):
+    f = tmp_path / "v.mp4"
+    f.write_bytes(b"0" * 2048)
+    monkeypatch.setattr(video_processor.subprocess, "run", _ffprobe([
+        {"codec_name": "h264", "codec_type": "video", "height": 1920}]))
+    assert video_processor.downscale_720p(str(f)) == str(f)
+
+
+def test_publication_photo_refusee_clairement(tmp_path, monkeypatch):
+    f = tmp_path / "v.mp3"
+    f.write_bytes(b"0" * 2048)
+    monkeypatch.setattr(video_processor.subprocess, "run", _ffprobe([
+        {"codec_name": "mp3", "codec_type": "audio"},
+        {"codec_name": "mjpeg", "codec_type": "video", "height": 600}]))   # pochette
+    with pytest.raises(video_processor.PasDeVideo, match="carrousel photo"):
+        video_processor.downscale_720p(str(f))
+
+
+def test_mp4_sans_flux_video_refuse(tmp_path, monkeypatch):
+    f = tmp_path / "v.mp4"
+    f.write_bytes(b"0" * 2048)
+    monkeypatch.setattr(video_processor.subprocess, "run", _ffprobe([
+        {"codec_name": "aac", "codec_type": "audio"}]))
+    with pytest.raises(video_processor.PasDeVideo):
+        video_processor.downscale_720p(str(f))
+
+
+def test_raison_reponse_vide():
+    resp = types.SimpleNamespace(prompt_feedback=None, text="",
+                                 candidates=[types.SimpleNamespace(finish_reason="SAFETY")])
+    assert ai_providers._raison_reponse_vide(resp) == "fin : SAFETY"
+    assert "aucun candidat" in ai_providers._raison_reponse_vide(types.SimpleNamespace(candidates=[]))
+
+
+def test_reponse_vide_passe_au_modele_de_secours(monkeypatch, tmp_path):
+    """Avec un faux client Gemini : le 1er modèle rend du vide, le 2e répond."""
+    f = tmp_path / "v.mp4"
+    f.write_bytes(b"0" * 2048)
+    appels = []
+
+    class Modeles:
+        def generate_content(self, model, contents, config=None):
+            appels.append(model)
+            if len(appels) == 1:
+                return types.SimpleNamespace(text="", prompt_feedback=None,
+                                             candidates=[types.SimpleNamespace(finish_reason="OTHER")])
+            return types.SimpleNamespace(text='{"ok": true}')
+
+    class Fichiers:
+        def upload(self, file, config=None):
+            return types.SimpleNamespace(state=types.SimpleNamespace(name="ACTIVE"), uri="u", name="n")
+
+        def get(self, name):
+            return self.upload(None)
+
+        def delete(self, name):
+            return None
+
+    client = types.SimpleNamespace(models=Modeles(), files=Fichiers())
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    monkeypatch.setenv("GEMINI_VIDEO_FALLBACK_MODEL", "modele-de-secours")
+    from google import genai
+    monkeypatch.setattr(genai, "Client", lambda **_k: client)   # aucun appel réseau
+    out = ai_providers.video_complete(str(f), "prompt")
+    assert out == '{"ok": true}'
+    assert appels[-1] == "modele-de-secours" and len(appels) == 2

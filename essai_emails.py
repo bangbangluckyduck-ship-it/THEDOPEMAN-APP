@@ -374,7 +374,8 @@ def video_du_pays(supabase, lang: str) -> dict | None:
     region = REGION_PAR_LANGUE.get(langue(lang), "FR")
     try:
         r = (supabase.table("feed_radar_videos").select("video_url,oembed_author_name,views")
-             .eq("region", region).order("views", desc=True).limit(1).execute())
+             .eq("region", region).or_("is_carousel.is.null,is_carousel.is.false")
+             .order("views", desc=True).limit(1).execute())
         v = (r.data or [None])[0]
         if v and v.get("video_url"):
             v["video_url"] = v["video_url"].split("?", 1)[0]

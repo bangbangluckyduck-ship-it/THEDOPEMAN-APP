@@ -72,6 +72,24 @@ def _video_failure(err: Optional[Exception]) -> Exception:
                      "reproduit, envoie-nous le lien et on regarde.")
 
 
+def _raison_reponse_vide(resp: Any) -> str:
+    """Pourquoi Gemini n'a rien écrit : blocage du prompt, fin de génération
+    (SAFETY, RECITATION, MAX_TOKENS…). Ne lève jamais."""
+    morceaux = []
+    try:
+        fb = getattr(resp, "prompt_feedback", None)
+        if fb is not None and getattr(fb, "block_reason", None):
+            morceaux.append(f"prompt bloqué : {fb.block_reason}")
+        for c in (getattr(resp, "candidates", None) or [])[:1]:
+            if getattr(c, "finish_reason", None):
+                morceaux.append(f"fin : {c.finish_reason}")
+        if not getattr(resp, "candidates", None):
+            morceaux.append("aucun candidat")
+    except Exception:
+        pass
+    return ", ".join(str(m) for m in morceaux) or "raison inconnue"
+
+
 def any_ai_key() -> bool:
     """Au moins un fournisseur IA est configuré (sinon les features IA sont indispo)."""
     return bool(os.getenv("MISTRAL_API_KEY") or os.getenv("GEMINI_API_KEY")
@@ -330,7 +348,17 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                 _t.sleep(delay)
             try:
                 resp = _try_call(model_name)
-                return resp.text or ""
+                texte = resp.text or ""
+                if texte.strip():
+                    return texte
+                # Réponse VIDE : elle était rendue telle quelle, et l'appelant
+                # échouait sur « réponse Gemini vidéo vide » sans jamais essayer le
+                # modèle de secours, ni dire pourquoi (26/10/2026). On journalise
+                # la raison donnée par Google et on passe au modèle suivant.
+                raison = _raison_reponse_vide(resp)
+                print(f"[ai] {model_name} : réponse vidéo vide ({raison}) → modèle suivant", flush=True)
+                last_err = Exception(f"réponse Gemini vidéo vide ({raison})")
+                break
             except Exception as e:
                 last_err = e
                 if _is_transient(e):
