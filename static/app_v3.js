@@ -483,6 +483,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: 'J-{j}', essai_jours_0: 'dernier jour',
     essai_analyses: '{n} analyses restantes', essai_analyses_1: '1 analyse restante', essai_analyses_0: "plus d'analyse",
     limite_titre: 'Tu as utilisé tes {n} essais de cet outil', limite_texte: 'Avec Qeerah Pro, cet outil reste ouvert chaque mois, comme tous les autres.', limite_btn: 'Passer à Qeerah Pro',
+    gate_titre: "Commence ton essai gratuit",
+    gate_sous: "7 jours, 10 analyses, tous les outils. Sans carte bancaire.",
+    gate_titre_login: "Content de te revoir",
+    gate_sous_login: "Connecte-toi à ton espace Qeerah.",
+    gate_sous_oubli: "On t'envoie un lien pour en choisir un nouveau.",
+    gate_google: "Continuer avec Google",
+    gate_ou: "ou avec ton e-mail",
+    gate_email: "Adresse e-mail",
+    gate_pwd: "Mot de passe",
+    gate_pwd_ph_signup: "Choisis un mot de passe (6 caractères min.)",
+    gate_pwd_ph_login: "Ton mot de passe",
+    gate_btn_signup: "Créer mon compte",
+    gate_btn_login: "Se connecter",
+    gate_switch_membre: "Déjà membre ?",
+    gate_switch_nouveau: "Pas encore de compte ?",
+    gate_lien_login: "Se connecter",
+    gate_lien_signup: "Commencer mon essai",
+    gate_oubli: "Mot de passe oublié ?",
+    gate_oubli_texte: "Entre ton e-mail : tu reçois un lien pour choisir un nouveau mot de passe.",
+    gate_oubli_btn: "Recevoir le lien",
+    gate_oubli_ok: "Si un compte existe pour cette adresse, le lien vient de partir. Pense à regarder dans tes indésirables.",
+    gate_erreur_reseau: "Connexion impossible. Réessaie dans un instant.",
+    gate_champs: "Remplis ton e-mail et ton mot de passe.",
   },
   en: {
     mission_titre: 'Run your first diagnosis in 60 seconds',
@@ -524,6 +547,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: '{j} days left', essai_jours_1: '1 day left', essai_jours_0: 'last day',
     essai_analyses: '{n} analyses left', essai_analyses_1: '1 analysis left', essai_analyses_0: 'no analyses left',
     limite_titre: 'You have used your {n} tries of this tool', limite_texte: 'With Qeerah Pro, this tool stays open every month, like all the others.', limite_btn: 'Upgrade to Qeerah Pro',
+    gate_titre: "Start your free trial",
+    gate_sous: "7 days, 10 analyses, every tool. No credit card.",
+    gate_titre_login: "Good to see you again",
+    gate_sous_login: "Log in to your Qeerah space.",
+    gate_sous_oubli: "We will send you a link to choose a new one.",
+    gate_google: "Continue with Google",
+    gate_ou: "or with your email",
+    gate_email: "Email address",
+    gate_pwd: "Password",
+    gate_pwd_ph_signup: "Choose a password (6 characters min.)",
+    gate_pwd_ph_login: "Your password",
+    gate_btn_signup: "Create my account",
+    gate_btn_login: "Log in",
+    gate_switch_membre: "Already a member?",
+    gate_switch_nouveau: "No account yet?",
+    gate_lien_login: "Log in",
+    gate_lien_signup: "Start my trial",
+    gate_oubli: "Forgot your password?",
+    gate_oubli_texte: "Enter your email: you will get a link to choose a new password.",
+    gate_oubli_btn: "Send me the link",
+    gate_oubli_ok: "If an account exists for this address, the link is on its way. Check your spam folder too.",
+    gate_erreur_reseau: "Could not connect. Try again in a moment.",
+    gate_champs: "Fill in your email and password.",
   },
   'pt-br': {
     mission_titre: 'Faça seu primeiro diagnóstico em 60 segundos',
@@ -565,6 +611,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: 'faltam {j} dias', essai_jours_1: 'falta 1 dia', essai_jours_0: 'último dia',
     essai_analyses: '{n} análises restantes', essai_analyses_1: '1 análise restante', essai_analyses_0: 'nenhuma análise restante',
     limite_titre: 'Você usou seus {n} testes desta ferramenta', limite_texte: 'Com o Qeerah Pro, esta ferramenta fica liberada todo mês, como todas as outras.', limite_btn: 'Passar para o Qeerah Pro',
+    gate_titre: "Comece seu teste grátis",
+    gate_sous: "7 dias, 10 análises, todas as ferramentas. Sem cartão de crédito.",
+    gate_titre_login: "Que bom te ver de novo",
+    gate_sous_login: "Entre no seu espaço Qeerah.",
+    gate_sous_oubli: "Vamos te enviar um link para escolher uma nova.",
+    gate_google: "Continuar com o Google",
+    gate_ou: "ou com seu e-mail",
+    gate_email: "Endereço de e-mail",
+    gate_pwd: "Senha",
+    gate_pwd_ph_signup: "Escolha uma senha (mín. 6 caracteres)",
+    gate_pwd_ph_login: "Sua senha",
+    gate_btn_signup: "Criar minha conta",
+    gate_btn_login: "Entrar",
+    gate_switch_membre: "Já tem conta?",
+    gate_switch_nouveau: "Ainda não tem conta?",
+    gate_lien_login: "Entrar",
+    gate_lien_signup: "Começar meu teste",
+    gate_oubli: "Esqueceu a senha?",
+    gate_oubli_texte: "Digite seu e-mail: você recebe um link para escolher uma nova senha.",
+    gate_oubli_btn: "Receber o link",
+    gate_oubli_ok: "Se existir uma conta com este endereço, o link já foi enviado. Confira também o spam.",
+    gate_erreur_reseau: "Não foi possível conectar. Tente de novo em instantes.",
+    gate_champs: "Preencha seu e-mail e sua senha.",
   },
   es: {
     mission_titre: 'Haz tu primer diagnóstico en 60 segundos',
@@ -606,6 +675,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: 'quedan {j} días', essai_jours_1: 'queda 1 día', essai_jours_0: 'último día',
     essai_analyses: 'quedan {n} análisis', essai_analyses_1: 'queda 1 análisis', essai_analyses_0: 'sin análisis restantes',
     limite_titre: 'Has usado tus {n} pruebas de esta herramienta', limite_texte: 'Con Qeerah Pro, esta herramienta sigue abierta cada mes, como todas las demás.', limite_btn: 'Pasar a Qeerah Pro',
+    gate_titre: "Empieza tu prueba gratuita",
+    gate_sous: "7 días, 10 análisis, todas las herramientas. Sin tarjeta.",
+    gate_titre_login: "Qué bien verte de nuevo",
+    gate_sous_login: "Inicia sesión en tu espacio Qeerah.",
+    gate_sous_oubli: "Te enviamos un enlace para elegir una nueva.",
+    gate_google: "Continuar con Google",
+    gate_ou: "o con tu correo",
+    gate_email: "Correo electrónico",
+    gate_pwd: "Contraseña",
+    gate_pwd_ph_signup: "Elige una contraseña (mín. 6 caracteres)",
+    gate_pwd_ph_login: "Tu contraseña",
+    gate_btn_signup: "Crear mi cuenta",
+    gate_btn_login: "Iniciar sesión",
+    gate_switch_membre: "¿Ya tienes cuenta?",
+    gate_switch_nouveau: "¿Todavía no tienes cuenta?",
+    gate_lien_login: "Iniciar sesión",
+    gate_lien_signup: "Empezar mi prueba",
+    gate_oubli: "¿Olvidaste tu contraseña?",
+    gate_oubli_texte: "Escribe tu correo: recibirás un enlace para elegir una nueva contraseña.",
+    gate_oubli_btn: "Recibir el enlace",
+    gate_oubli_ok: "Si existe una cuenta con esta dirección, el enlace ya está en camino. Revisa también el correo no deseado.",
+    gate_erreur_reseau: "No se pudo conectar. Vuelve a intentarlo en un momento.",
+    gate_champs: "Escribe tu correo y tu contraseña.",
   },
   it: {
     mission_titre: 'Fai la tua prima diagnosi in 60 secondi',
@@ -647,6 +739,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: 'mancano {j} giorni', essai_jours_1: 'manca 1 giorno', essai_jours_0: 'ultimo giorno',
     essai_analyses: '{n} analisi rimaste', essai_analyses_1: '1 analisi rimasta', essai_analyses_0: 'nessuna analisi rimasta',
     limite_titre: 'Hai usato le tue {n} prove di questo strumento', limite_texte: 'Con Qeerah Pro, questo strumento resta aperto ogni mese, come tutti gli altri.', limite_btn: 'Passa a Qeerah Pro',
+    gate_titre: "Inizia la tua prova gratuita",
+    gate_sous: "7 giorni, 10 analisi, tutti gli strumenti. Senza carta di credito.",
+    gate_titre_login: "Bentornato",
+    gate_sous_login: "Accedi al tuo spazio Qeerah.",
+    gate_sous_oubli: "Ti inviamo un link per sceglierne una nuova.",
+    gate_google: "Continua con Google",
+    gate_ou: "oppure con la tua email",
+    gate_email: "Indirizzo email",
+    gate_pwd: "Password",
+    gate_pwd_ph_signup: "Scegli una password (min. 6 caratteri)",
+    gate_pwd_ph_login: "La tua password",
+    gate_btn_signup: "Crea il mio account",
+    gate_btn_login: "Accedi",
+    gate_switch_membre: "Hai già un account?",
+    gate_switch_nouveau: "Non hai ancora un account?",
+    gate_lien_login: "Accedi",
+    gate_lien_signup: "Inizia la mia prova",
+    gate_oubli: "Password dimenticata?",
+    gate_oubli_texte: "Inserisci la tua email: riceverai un link per scegliere una nuova password.",
+    gate_oubli_btn: "Ricevi il link",
+    gate_oubli_ok: "Se esiste un account con questo indirizzo, il link è in arrivo. Controlla anche lo spam.",
+    gate_erreur_reseau: "Connessione impossibile. Riprova tra un momento.",
+    gate_champs: "Inserisci la tua email e la password.",
   },
   de: {
     mission_titre: 'Mach deine erste Diagnose in 60 Sekunden',
@@ -688,6 +803,29 @@ const TRANSLATIONS_MISSION = {
     essai_jours: 'noch {j} Tage', essai_jours_1: 'noch 1 Tag', essai_jours_0: 'letzter Tag',
     essai_analyses: 'noch {n} Analysen', essai_analyses_1: 'noch 1 Analyse', essai_analyses_0: 'keine Analysen mehr',
     limite_titre: 'Du hast deine {n} Versuche mit diesem Tool genutzt', limite_texte: 'Mit Qeerah Pro bleibt dieses Tool jeden Monat offen, wie alle anderen.', limite_btn: 'Zu Qeerah Pro wechseln',
+    gate_titre: "Starte deinen kostenlosen Test",
+    gate_sous: "7 Tage, 10 Analysen, alle Tools. Ohne Kreditkarte.",
+    gate_titre_login: "Schön, dich wiederzusehen",
+    gate_sous_login: "Melde dich in deinem Qeerah-Bereich an.",
+    gate_sous_oubli: "Wir schicken dir einen Link, um ein neues zu wählen.",
+    gate_google: "Weiter mit Google",
+    gate_ou: "oder mit deiner E-Mail",
+    gate_email: "E-Mail-Adresse",
+    gate_pwd: "Passwort",
+    gate_pwd_ph_signup: "Wähle ein Passwort (mind. 6 Zeichen)",
+    gate_pwd_ph_login: "Dein Passwort",
+    gate_btn_signup: "Mein Konto erstellen",
+    gate_btn_login: "Anmelden",
+    gate_switch_membre: "Schon Mitglied?",
+    gate_switch_nouveau: "Noch kein Konto?",
+    gate_lien_login: "Anmelden",
+    gate_lien_signup: "Meinen Test starten",
+    gate_oubli: "Passwort vergessen?",
+    gate_oubli_texte: "Gib deine E-Mail ein: Du bekommst einen Link, um ein neues Passwort zu wählen.",
+    gate_oubli_btn: "Link anfordern",
+    gate_oubli_ok: "Wenn es ein Konto mit dieser Adresse gibt, ist der Link unterwegs. Schau auch im Spam-Ordner nach.",
+    gate_erreur_reseau: "Verbindung nicht möglich. Versuch es gleich noch einmal.",
+    gate_champs: "Gib deine E-Mail und dein Passwort ein.",
   },
 };
 Object.keys(TRANSLATIONS_MISSION).forEach(l => Object.assign(TRANSLATIONS[l], TRANSLATIONS_MISSION[l]));
@@ -1411,6 +1549,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize session from localStorage
   initSessionState();
+  // Analyse faite sans compte sur l'accueil, puis inscription ici : on la rattache.
+  setTimeout(rattacherAnalyseAnonyme, 0);
 
   // Set up UI to match session state
   updateSessionUI();
@@ -4595,9 +4735,7 @@ async function handleAuthSubmit(event) {
 
   try {
     // Jeton CAPTCHA Turnstile (présent uniquement si le widget est activé)
-    const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
-      ? (window.turnstile.getResponse() || '')
-      : '';
+    const cfToken = jetonTurnstile(document.getElementById('auth-modal'));
 
     // Si le widget est affiché mais pas encore validé, on évite une requête vouée
     // à l'échec : on invite l'utilisateur à attendre la coche verte.
@@ -4651,28 +4789,52 @@ async function handleAuthSubmit(event) {
   }
 }
 
-// Connexion depuis l'écran de garde #login-overlay (accès /app réservé aux membres).
-// Réplique la logique éprouvée de handleAuthSubmit ; saveSession() met à jour l'UI et
-// masque l'overlay (updateSessionUI passe en état « connecté »).
-// Bascule connexion ↔ inscription de l'écran de garde /app.
-window.__overlayMode = 'login';
+// Jeton Turnstile du widget contenu dans `racine` : l'app en affiche deux (porte
+// d'entrée et fenêtre de compte), et getResponse() sans argument lirait le premier.
+// Le rendu implicite dépose le jeton dans un champ caché du conteneur.
+function jetonTurnstile(racine) {
+  const champ = racine && racine.querySelector('[name="cf-turnstile-response"]');
+  if (champ && champ.value) return champ.value;
+  return (window.turnstile && typeof window.turnstile.getResponse === 'function')
+    ? (window.turnstile.getResponse() || '') : '';
+}
+
+// Porte d'entrée #login-overlay (visiteur non connecté sur /app).
+// Par défaut : l'essai gratuit (inscription). La connexion des membres et le mot
+// de passe oublié se règlent sur place. saveSession() met à jour l'UI et masque
+// l'overlay (updateSessionUI passe en état « connecté »).
+window.__overlayMode = 'signup';
 
 function setOverlayMode(mode) {
-  window.__overlayMode = (mode === 'signup') ? 'signup' : 'login';
-  const inscription = window.__overlayMode === 'signup';
+  window.__overlayMode = ['signup', 'login', 'oubli'].includes(mode) ? mode : 'signup';
+  const m = window.__overlayMode;
   const set = (id, prop, val) => {
     const el = document.getElementById(id);
     if (el) el[prop] = val;
   };
-  set('lo-submit-btn',   'textContent', inscription ? 'Créer mon compte' : 'Se connecter');
-  set('lo-switch-label', 'textContent', inscription ? 'Tu as déjà un compte ?' : 'Pas encore de compte ?');
-  set('lo-switch-btn',   'textContent', inscription ? 'Se connecter' : 'Créer un compte');
-  const forgot = document.getElementById('lo-forgot-wrap');
-  if (forgot) forgot.style.display = inscription ? 'none' : 'block';
+  const show = (id, visible) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? '' : 'none';
+  };
+  set('lo-titre',        'textContent', t(m === 'signup' ? 'gate_titre' : m === 'login' ? 'gate_titre_login' : 'gate_oubli'));
+  set('lo-sous',         'textContent', t(m === 'signup' ? 'gate_sous' : m === 'login' ? 'gate_sous_login' : 'gate_sous_oubli'));
+  set('lo-submit-btn',   'textContent', t(m === 'signup' ? 'gate_btn_signup' : 'gate_btn_login'));
+  set('lo-switch-label', 'textContent', t(m === 'signup' ? 'gate_switch_membre' : 'gate_switch_nouveau'));
+  set('lo-switch-btn',   'textContent', t(m === 'signup' ? 'gate_lien_login' : 'gate_lien_signup'));
+  show('lo-principal', m !== 'oubli');
+  show('lo-oubli', m === 'oubli');
+  show('lo-forgot-wrap', m === 'login');
+  const msg = document.getElementById('lo-oubli-msg');
+  if (msg) msg.style.display = 'none';
   const pwd = document.getElementById('lo-password');
   if (pwd) {
-    pwd.placeholder = inscription ? 'Choisis un mot de passe (min. 6 caractères)' : 'Ton mot de passe';
-    pwd.setAttribute('autocomplete', inscription ? 'new-password' : 'current-password');
+    pwd.placeholder = t(m === 'signup' ? 'gate_pwd_ph_signup' : 'gate_pwd_ph_login');
+    pwd.setAttribute('autocomplete', m === 'signup' ? 'new-password' : 'current-password');
+  }
+  if (m === 'oubli') {
+    const champ = document.getElementById('lo-oubli-email');
+    const email = document.getElementById('lo-email');
+    if (champ && email && email.value) champ.value = email.value;
   }
 }
 
@@ -4680,16 +4842,41 @@ function toggleOverlayMode() {
   setOverlayMode(window.__overlayMode === 'signup' ? 'login' : 'signup');
 }
 
+// Mot de passe oublié, sans quitter la porte d'entrée. Réponse identique que le
+// compte existe ou non (le serveur ne le révèle pas non plus).
+async function envoyerOubliOverlay(event) {
+  event.preventDefault();
+  const email = (document.getElementById('lo-oubli-email')?.value || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) return;
+  const btn = document.getElementById('lo-oubli-btn');
+  const msg = document.getElementById('lo-oubli-msg');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+    if (msg) {
+      msg.textContent = r.ok ? t('gate_oubli_ok') : ((await r.json().catch(() => ({}))).detail || t('gate_oubli_ok'));
+      msg.style.display = 'block';
+    }
+  } catch (_) {
+    if (msg) { msg.textContent = t('gate_erreur_reseau'); msg.style.display = 'block'; }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.envoyerOubliOverlay = envoyerOubliOverlay;
+window.setOverlayMode = setOverlayMode;
+
 async function submitLoginOverlay(event) {
   event.preventDefault();
   const emailEl = document.getElementById('lo-email');
   const pwdEl = document.getElementById('lo-password');
   const email = (emailEl?.value || '').trim().toLowerCase();
   const password = (pwdEl?.value || '').trim();
-  if (!email || !password) { showToast('Veuillez remplir tous les champs'); return; }
+  if (!email || !password) { showToast(t('gate_champs')); return; }
   try {
-    const cfToken = (window.turnstile && typeof window.turnstile.getResponse === 'function')
-      ? (window.turnstile.getResponse() || '') : '';
+    const cfToken = jetonTurnstile(document.getElementById('login-overlay'));
     const inscription = window.__overlayMode === 'signup';
     const response = await fetch(inscription ? '/api/register' : '/api/login', {
       method: 'POST',
@@ -4706,6 +4893,7 @@ async function submitLoginOverlay(event) {
     const data = await response.json();
     if (data.created && window.qTrackCompteCree) qTrackCompteCree('email');
     saveSession(email, email, data.token); // met à jour l'UI et masque #login-overlay
+    rattacherAnalyseAnonyme();
     if (emailEl) emailEl.value = '';
     if (pwdEl) pwdEl.value = '';
   } catch (err) {
@@ -6788,6 +6976,27 @@ async function missionApresAnalyse(d, source) {
   loadMission();
 }
 window.missionApresAnalyse = missionApresAnalyse;
+
+// Analyse faite sans compte sur l'accueil (identifiant gardé par la page
+// d'accueil) : rattachée au compte dès qu'il existe — elle apparaît dans
+// « Mes analyses » et valide l'étape 1. Expirée → on l'oublie.
+async function rattacherAnalyseAnonyme() {
+  let a = null;
+  try { a = JSON.parse(localStorage.getItem('qeerah_analyse_anonyme') || 'null'); } catch (_) {}
+  const token = localStorage.getItem('tts_token');
+  if (!a || !a.id || !token) return;
+  try {
+    const r = await fetch('/api/analyse-anonyme/rattacher', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anon_id: a.id }),
+    });
+    if (r.ok || r.status === 404) {
+      try { localStorage.removeItem('qeerah_analyse_anonyme'); } catch (_) {}
+    }
+    if (r.ok) loadMission();
+  } catch (_) {}
+}
 
 // Suivi : une étape qui passe à « faite » depuis la dernière visite.
 function _missionSuivre(etapes) {

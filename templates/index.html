@@ -1330,14 +1330,12 @@
   <script src="/static/qeerah-promo.js" defer></script>
 </head>
 <body>
-<!-- Check if user is logged in, redirect to home if not -->
 <script>
-  (function() {
-    const session = JSON.parse(localStorage.getItem('SESSION') || '{}');
-    if (!session.email) {
-      window.location.href = '/';
-    }
-  })();
+  // (supprimé) Un visiteur sans session était renvoyé vers l'accueil avant même
+  // de voir l'app : il tournait en rond entre « Continuer ma mission » et
+  // l'accueil, et un retour Google (#gauth=…) vers /app perdait son jeton dans la
+  // redirection. Il voit désormais la porte d'entrée #login-overlay : essai
+  // gratuit en un clic, connexion juste en dessous.
 
   // Global logout function
   window.logout = function() {
@@ -2285,54 +2283,64 @@
   </div>
 </div>
 
-<!-- LOGIN OVERLAY — accès /app réservé aux membres connectés.
-     Restaure le verrou « login obligatoire » (l'élément avait disparu de la page,
-     le JS le cherchait dans le vide). Écran de connexion plein écran, bloquant,
-     autonome (z-index au-dessus de toute l'app pour éviter les conflits d'empilement).
-     Affiché/masqué par updateSessionUI() ; un mini-script inline le montre immédiatement
-     si aucun token n'est présent (fail-closed, sans clignotement pour les connectés). -->
+<!-- PORTE D'ENTRÉE /app — visiteur non connecté.
+     Un visiteur qui arrive ici (lien partagé, bouton « Continuer ma mission »…)
+     ne doit pas tourner en rond : l'essai gratuit commence ICI, en un clic
+     (Google) ou avec un e-mail et un mot de passe. La connexion reste juste en
+     dessous pour les membres, et le mot de passe oublié se règle sans changer de
+     page. Textes traduits par l'app (clefs `gate_*`, app_v3.js).
+     Affiché/masqué par updateSessionUI() ; un mini-script inline le montre
+     immédiatement si aucun token n'est présent (fail-closed, sans clignotement). -->
 <div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:10050;background:linear-gradient(160deg,#0b1220,#111a2e);align-items:center;justify-content:center;padding:20px;overflow-y:auto">
-  <div style="background:var(--surface,#fff);border-radius:20px;padding:30px 26px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.35)">
-    <div style="text-align:center;margin-bottom:22px">
+  <div style="background:var(--surface,#fff);border-radius:20px;padding:28px 22px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.35)">
+    <div style="text-align:center;margin-bottom:20px">
       <img src="/static/qeerah-logo-128.webp" alt="Qeerah" width="56" height="56" style="width:56px;height:56px;border-radius:14px;object-fit:contain;margin-bottom:12px">
-      <h2 style="font-size:21px;font-weight:800;color:var(--text,#0b1220);margin:0">Connecte-toi pour accéder à l'app</h2>
-      <p style="font-size:14px;color:var(--muted,#6b7280);margin-top:6px">Ton espace Qeerah est réservé aux membres. Les essais gratuits, eux, se font sur la page d'accueil.</p>
+      <h2 id="lo-titre" style="font-size:21px;font-weight:800;color:var(--text,#0b1220);margin:0" data-i18n="gate_titre">Commence ton essai gratuit</h2>
+      <p id="lo-sous" style="font-size:14px;color:var(--muted,#6b7280);margin-top:6px;line-height:1.5" data-i18n="gate_sous">{{ TRIAL_RULE }}</p>
     </div>
-    <button type="button" onclick="window.location.href='/api/auth/google/login'"
-            style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px">
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continuer avec Google
-    </button>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--muted,#6b7280);font-size:12px">
-      <span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>ou par e-mail<span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>
-    </div>
-    <form onsubmit="submitLoginOverlay(event)">
-      <div style="margin-bottom:12px">
-        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)">Adresse e-mail</label>
-        <input type="email" id="lo-email" placeholder="toi@exemple.com" required autocomplete="email"
-          style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:15px;outline:none;background:var(--bg,#fff)">
-      </div>
-      <div style="margin-bottom:6px">
-        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)">Mot de passe</label>
-        <input type="password" id="lo-password" placeholder="Min. 6 caractères" required minlength="6" autocomplete="current-password"
-          style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:15px;outline:none;background:var(--bg,#fff)">
-      </div>
-      <div id="lo-forgot-wrap" style="text-align:right;margin:8px 0 14px">
-        <a href="/" style="font-size:12px;color:var(--muted,#6b7280)">Mot de passe oublié ? (page d'accueil)</a>
-      </div>
-      <button type="submit" id="lo-submit-btn" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy,#0b1220),var(--accent,#6d5efc));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Se connecter</button>
-    </form>
-    <!-- Le bouton annonçait « Se connecter / Créer mon compte » pour un formulaire
-         unique : c'est justement l'ambiguïté qui faisait qu'une adresse mal tapée
-         créait un compte au lieu de signaler l'erreur. Les deux gestes sont séparés. -->
-    <p style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--muted,#6b7280)">
-      <span id="lo-switch-label">Pas encore de compte ?</span>
-      <button type="button" id="lo-switch-btn" onclick="toggleOverlayMode()"
-              style="background:none;border:none;color:var(--accent,#2563EB);font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:13.5px">
-        Créer un compte
+    <div id="lo-principal">
+      <button type="button" onclick="window.location.href='/api/auth/google/login'"
+              style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;padding:11px;min-height:48px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <span data-i18n="gate_google">Continuer avec Google</span>
       </button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--muted,#6b7280);font-size:12px">
+        <span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span><span data-i18n="gate_ou">ou avec ton e-mail</span><span style="flex:1;height:1px;background:var(--border,#e3e8ef)"></span>
+      </div>
+      <form onsubmit="submitLoginOverlay(event)">
+        <div style="margin-bottom:12px">
+          <label for="lo-email" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)" data-i18n="gate_email">Adresse e-mail</label>
+          <input type="email" id="lo-email" placeholder="toi@exemple.com" required autocomplete="email"
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:16px;outline:none;background:var(--bg,#fff)">
+        </div>
+        <div style="margin-bottom:6px">
+          <label for="lo-password" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:var(--text,#0b1220)" data-i18n="gate_pwd">Mot de passe</label>
+          <input type="password" id="lo-password" placeholder="Choisis un mot de passe (6 caractères min.)" required minlength="6" autocomplete="new-password"
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:16px;outline:none;background:var(--bg,#fff)">
+        </div>
+        <div id="lo-forgot-wrap" style="display:none;text-align:right;margin:8px 0 4px">
+          <button type="button" onclick="setOverlayMode('oubli')" style="background:none;border:none;padding:6px 0;font-size:13px;color:var(--muted,#6b7280);text-decoration:underline;cursor:pointer" data-i18n="gate_oubli">Mot de passe oublié ?</button>
+        </div>
+        <!--TURNSTILE_WIDGET-->
+        <button type="submit" id="lo-submit-btn" style="width:100%;margin-top:12px;padding:13px;min-height:48px;background:linear-gradient(135deg,var(--primary,#D4AF37),var(--primary-dk,#B8941F));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">Créer mon compte</button>
+      </form>
+    </div>
+    <!-- Mot de passe oublié, sur place. -->
+    <form id="lo-oubli" style="display:none" onsubmit="envoyerOubliOverlay(event)">
+      <p style="font-size:14px;color:var(--text,#0b1220);line-height:1.5;margin:0 0 12px" data-i18n="gate_oubli_texte">Entre ton e-mail : tu reçois un lien pour choisir un nouveau mot de passe.</p>
+      <input type="email" id="lo-oubli-email" placeholder="toi@exemple.com" required autocomplete="email"
+        style="width:100%;padding:12px 14px;border:1.5px solid var(--border,#e3e8ef);border-radius:10px;font-size:16px;outline:none;background:var(--bg,#fff);margin-bottom:12px">
+      <button type="submit" id="lo-oubli-btn" style="width:100%;padding:13px;min-height:48px;background:var(--navy,#0b1220);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer" data-i18n="gate_oubli_btn">Recevoir le lien</button>
+      <p id="lo-oubli-msg" role="status" style="display:none;font-size:13px;color:#047857;line-height:1.5;margin:12px 0 0"></p>
+      <button type="button" onclick="setOverlayMode('login')" style="display:block;margin:10px auto 0;background:none;border:none;padding:8px 0;font-size:13.5px;font-weight:700;color:var(--accent,#2563EB);cursor:pointer">← <span data-i18n="gate_lien_login">Se connecter</span></button>
+    </form>
+    <!-- Les deux gestes restent séparés : c'est l'ambiguïté d'un formulaire unique
+         qui faisait qu'une adresse mal tapée créait un compte au lieu de le dire. -->
+    <p style="text-align:center;margin-top:16px;font-size:13.5px;color:var(--muted,#6b7280)">
+      <span id="lo-switch-label" data-i18n="gate_switch_membre">Déjà membre ?</span>
+      <button type="button" id="lo-switch-btn" onclick="toggleOverlayMode()"
+              style="background:none;border:none;color:var(--accent,#2563EB);font-weight:700;cursor:pointer;text-decoration:underline;padding:6px 0;font-size:13.5px" data-i18n="gate_lien_login">Se connecter</button>
     </p>
-    <p style="font-size:12px;color:var(--muted,#6b7280);margin-top:14px;text-align:center;line-height:1.5">Pas encore de compte ? Entre ton e-mail et un mot de passe : ton compte est créé automatiquement.</p>
   </div>
 </div>
 <script>
