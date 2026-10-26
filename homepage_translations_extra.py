@@ -217,8 +217,8 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "tm_all": "Ver todas las opiniones →",
 
         "pr_title": "Sigue entendiendo lo que vende, cada mes",
-        "pr_sub": "Un solo plan. Todo incluido, nada bloqueado.",
-        "pr_period": "al mes — o 299 € al año (2 meses gratis)",
+        "pr_sub": "Empieza con la prueba. Continúa con Qeerah Pro.",
+        "pr_period": "al mes — o 299 € al año (2 meses gratis, o sea 24,92 € al mes)",
         "pr_li1": "<strong>Análisis de videos</strong> incluidos cada mes",
         "pr_li2": "Análisis por <strong>archivo y por link de TikTok</strong>",
         "pr_li3": "<strong>Acompañamiento</strong>, guion personalizado y análisis de varios links",
@@ -230,7 +230,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "pr_no_account": "¿Todavía no tienes cuenta? <strong>{trial}</strong> al registrarte, con 10 análisis para probar.",
         "pr_create": "Crear una cuenta →",
         "pr_compare": "Todo lo que incluye →",
-        "pr_subscribe": "Suscribirme ahora",
+        "pr_subscribe": "Suscribirme directamente",
         "pr_badge1": "🛡 Sin compromiso",
         "pr_badge2": "💳 Pago seguro (Stripe)",
         "pr_badge3": "⚡ Activación inmediata · cancelas en 1 clic",
@@ -297,6 +297,13 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "au_google": "Continuar con Google",
         "au_or_email": "o con tu correo",
         "claim_expire": "Este análisis expiró. Vuelve a lanzarlo: con tu cuenta, lo ves completo.",
+        "pr_pitch_pro": "Todo lo que necesita un creador",
+        "pr_agency_pitch": "Para manejar varias cuentas",
+        "pr_agency_devis": "Bajo cotización",
+        "pr_agency_texte": "¿Manejas varios creadores o varias tiendas? Dinos cuántas cuentas: te preparamos una propuesta.",
+        "pr_agency_btn": "Contáctanos",
+        "pr_recharges": "<strong>Recargas de créditos opcionales</strong>, desde {prix} € — si creas mucho.",
+        "pr_recharges_lien": "Ver las recargas →",
     },
 
     # ═══════════════════════════ INDONÉSIEN ═══════════════════════════

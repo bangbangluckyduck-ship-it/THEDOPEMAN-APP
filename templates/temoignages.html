@@ -41,26 +41,27 @@
   <main>
     <h1>Ils utilisent Qeerah</h1>
     <p class="sub">Les retours de créateurs TikTok Shop comme toi.</p>
-    <div class="grid" id="grid"><div class="empty">⏳ Chargement…</div></div>
+    {#- Rendu côté serveur à chaque visite (main.temoignages_page) : la liste à
+        partir de TESTIMONIALS_MIN avis publiés, un état vide propre sinon —
+        jamais de « Chargement… » qui ne finit pas. -#}
+    {%- if temoignages|length >= TESTIMONIALS_MIN %}
+    <div class="grid">
+      {%- for t in temoignages %}
+      <div class="card">
+        <div class="who">
+          <div class="avatar">{% if t.photo_url %}<img src="{{ t.photo_url }}" alt="" loading="lazy">{% else %}{{ (t.nom or "?")|trim|first|upper }}{% endif %}</div>
+          <div><div class="nom">{{ t.nom }}</div>{% if t.note %}<div class="stars">{{ "★" * (t.note|int) }}{{ "☆" * (5 - t.note|int) }}</div>{% endif %}</div>
+        </div>
+        <div class="texte">{{ t.texte }}</div>
+        {%- if t.metrique %}<div class="metrique">📈 {{ t.metrique }}</div>{% endif %}
+        {%- if t.lien_tiktok %}{% set lien = t.lien_tiktok if t.lien_tiktok.startswith("https://") else "https://www.tiktok.com/@" ~ t.lien_tiktok|replace("@", "")|urlencode %}<a class="tiktok" href="{{ lien }}" target="_blank" rel="noopener">🎵 Voir le profil TikTok</a>{% endif %}
+      </div>
+      {%- endfor %}
+    </div>
+    {%- else %}
+    <div class="empty">Les premiers retours de créateurs arrivent. Tu utilises Qeerah ? Ton avis aide les suivants à se lancer.</div>
+    {%- endif %}
     <div class="cta"><a class="btn" href="/avis">Partager mon avis →</a></div>
   </main>
-
-  <script>
-    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function stars(n){ n=parseInt(n)||0; return n? '★'.repeat(n)+'☆'.repeat(5-n) : ''; }
-    fetch('/api/temoignages').then(function(r){return r.json();}).then(function(d){
-      var g=document.getElementById('grid'); var items=(d&&d.items)||[];
-      if(!items.length){ g.innerHTML='<div class="empty">Les premiers témoignages arrivent bientôt 🚀</div>'; return; }
-      g.innerHTML=items.map(function(t){
-        var initial=(t.nom||'?').trim().charAt(0).toUpperCase();
-        var av=t.photo_url?('<img src="'+esc(t.photo_url)+'" alt="">'):esc(initial);
-        var tk=t.lien_tiktok?('<a class="tiktok" href="'+esc(t.lien_tiktok)+'" target="_blank" rel="noopener">🎵 Voir le profil TikTok</a>'):'';
-        var mt=t.metrique?('<div class="metrique">📈 '+esc(t.metrique)+'</div>'):'';
-        var st=t.note?('<div class="stars">'+stars(t.note)+'</div>'):'';
-        return '<div class="card"><div class="who"><div class="avatar">'+av+'</div><div><div class="nom">'+esc(t.nom)+'</div>'+st+'</div></div>'+
-               '<div class="texte">'+esc(t.texte)+'</div>'+mt+tk+'</div>';
-      }).join('');
-    }).catch(function(){ document.getElementById('grid').innerHTML='<div class="empty">Erreur de chargement.</div>'; });
-  </script>
 </body>
 </html>

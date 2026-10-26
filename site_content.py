@@ -72,15 +72,33 @@ CREDITS_PER_MONTH = 30
 CREDITS_PER_CAROUSEL = 10
 CAROUSELS_PER_MONTH = CREDITS_PER_MONTH // CREDITS_PER_CAROUSEL      # 3
 
+# ── RECHARGES DE CRÉDITS ──────────────────────────────────────────────────
+# Prix du plus petit pack, lu dans credits.CREDIT_PACKS (source de vérité de la
+# facturation) : « dès 9 € » ne peut pas diverger du prix réellement vendu.
+import credits as _credits
+RECHARGE_PRIX_MIN = min(p["price"] for p in _credits.CREDIT_PACKS.values())
+
 # ── SECTION PREUVE ────────────────────────────────────────────────────────
-# Valeurs inchangées sur décision d'Aimeric. Écrites côté serveur : l'animation
-# de comptage se superpose ensuite, elle ne part plus de zéro.
+# Marchés montrés dans la bande défilante de l'accueil. Le chiffre « marchés
+# analysés » en découle : la liste et le nombre ne peuvent plus diverger (le
+# site annonçait « +6 » en listant 7 pays).
+# ⚠️ TODO DOPE : confirmer que ces 7 marchés sont bien ceux du corpus d'analyse.
+# Le Feed Radar, lui, ne collecte que FEED_RADAR_REGIONS (FR par défaut dans le
+# code ; la valeur réelle est posée sur Render).
+MARCHES_ANALYSES = ["FR", "US", "GB", "BR", "DE", "IT", "ES"]
+
+# « +10 créateurs TikTok Shop FR » retiré (26/10/2026) : chiffre à confirmer
+# avant de le réafficher. Les autres valeurs sont inchangées (décision d'Aimeric).
 STATS = [
     {"value": 1000, "prefix": "+", "label": "top vidéos analysées"},
     {"value": 31,   "prefix": "+", "label": "leviers de vente décodés"},
-    {"value": 10,   "prefix": "+", "label": "créateurs TikTok Shop FR"},
-    {"value": 6,    "prefix": "+", "label": "marchés analysés"},
+    {"value": len(MARCHES_ANALYSES), "prefix": "", "label": "marchés analysés"},
 ]
+
+# Témoignages : la section de l'accueil, son lien et la page /temoignages ne
+# s'affichent qu'à partir de ce nombre d'avis PUBLIÉS (vérifié à chaque visite,
+# pas au démarrage). En dessous, ils disparaissent proprement.
+TESTIMONIALS_MIN = 3
 
 # ── DIMENSIONS D'ANALYSE ──────────────────────────────────────────────────
 # Sept, et non huit : le site en annonçait huit et n'en listait que sept.
@@ -181,6 +199,9 @@ def context() -> dict:
         "CREDITS_PER_MONTH": CREDITS_PER_MONTH,
         "CAROUSELS_PER_MONTH": CAROUSELS_PER_MONTH,
         "CREDITS_PER_CAROUSEL": CREDITS_PER_CAROUSEL,
+        "RECHARGE_PRIX_MIN": RECHARGE_PRIX_MIN,
+        "MARCHES_ANALYSES": MARCHES_ANALYSES,
+        "TESTIMONIALS_MIN": TESTIMONIALS_MIN,
 
         "STATS": STATS,
         "ANALYSIS_DIMENSIONS": ANALYSIS_DIMENSIONS,

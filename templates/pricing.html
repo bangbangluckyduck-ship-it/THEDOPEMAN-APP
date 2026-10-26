@@ -83,7 +83,7 @@
     .logo span { color:var(--primary); }
     .nav-links a { color:var(--text); text-decoration:none; font-size:14px; font-weight:600; margin-left:18px; }
     .nav-links a:hover { color:var(--accent); }
-    main { max-width:880px; margin:0 auto; padding:44px 20px 80px; }
+    main { max-width:960px; margin:0 auto; padding:36px 16px 80px; }
     .hero { text-align:center; margin-bottom:30px; }
     .hero h1 { font-size:34px; font-weight:800; letter-spacing:-.5px; margin-bottom:10px; }
     .hero h1 .hl { background:linear-gradient(135deg,var(--accent),var(--navy)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -114,7 +114,7 @@
     .quota .t strong { display:block; font-size:15px; margin-bottom:2px; }
     .quota .t span { color:var(--muted); font-size:13px; }
 
-    ul { list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:11px; margin-bottom:26px; }
+    ul { list-style:none; display:grid; gap:11px; margin-bottom:26px; }
     li { font-size:14px; display:flex; gap:9px; align-items:flex-start; }
     li .ck { color:#16A34A; font-weight:800; flex-shrink:0; }
 
@@ -132,6 +132,20 @@
     .compare-link { text-align:center; margin:26px 0 0; }
     .compare-link a { color:var(--accent); font-weight:700; text-decoration:none; font-size:15px; }
     .trust { display:flex; flex-wrap:wrap; justify-content:center; gap:18px; color:var(--muted); font-size:12.5px; margin-top:28px; }
+    .plans { display:grid; grid-template-columns:1.35fr 1fr; gap:18px; align-items:start; }
+    .plan-pitch { font-size:14px; color:var(--muted); margin:-6px 0 10px; font-weight:600; }
+    .card-agency { border:1px solid var(--border); box-shadow:var(--shadow); }
+    .card-agency .plan-name { color:var(--navy); }
+    .price-devis { font-size:32px; letter-spacing:-.5px; }
+    .agency-texte { font-size:14px; color:var(--text); margin-bottom:20px; }
+    .btn-soft { background:var(--surface2); color:var(--navy); }
+    .btn-soft:hover { background:var(--border); }
+    .btn-lien { display:block; width:100%; margin-top:10px; padding:10px; min-height:44px; background:none; border:none;
+      color:var(--accent); font:inherit; font-weight:700; font-size:14.5px; text-decoration:underline; cursor:pointer; }
+    .recharges { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;
+      background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:14px 18px; margin-top:18px; font-size:14px; }
+    .recharges a { color:var(--accent); font-weight:700; text-decoration:none; white-space:nowrap; }
+    @media (max-width:720px){ .plans { grid-template-columns:1fr; } }
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; }
     .toast.show { opacity:1; }
     @media (max-width:560px){ .price{font-size:44px} .card{padding:24px} }
@@ -162,8 +176,8 @@
 
   <main>
     <div class="hero">
-      <h1>Une seule offre, <span class="hl">tout est inclus</span></h1>
-      <p>Pas de palier, pas de fonctionnalité verrouillée. Sans engagement, annulation en 1 clic.</p>
+      <h1>Comprends ce qui vend, <span class="hl">chaque mois</span></h1>
+      <p>Commence par l'essai : {{ TRIAL_RULE }}</p>
     </div>
 
     <div class="toggle">
@@ -173,36 +187,60 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
-        <div class="plan-name">Qeerah Pro</div>
-        <div class="price" id="price">29<small>,99 €</small></div>
-        <div class="price-unit" id="unit">par mois, TTC</div>
-        <div class="price-note" id="note">Soit {{ eur(PRICE_MONTH_YEARLY) }} € sur un an.</div>
-        <div class="vat">TVA non applicable, article 293 B du CGI.</div>
+    <div class="plans">
+      <div class="card">
+        <div class="card-head">
+          <div class="plan-name">Qeerah Pro</div>
+          <div class="plan-pitch">Tout ce qu'il faut à un créateur</div>
+          <div class="price" id="price">29<small>,99 €</small></div>
+          <div class="price-unit" id="unit">par mois, TTC</div>
+          <div class="price-note" id="note">Soit {{ eur(PRICE_MONTH_YEARLY) }} € sur un an.</div>
+          <div class="vat">TVA non applicable, article 293 B du CGI.</div>
+        </div>
+
+        <div class="quota">
+          <div class="n">{{ ANALYSES_PER_MONTH }}</div>
+          <div class="t"><strong>analyses par mois</strong><span>par lien ou par fichier</span></div>
+        </div>
+
+        <ul>
+          <li><span class="ck">✓</span> <span><strong>{{ CREDITS_PER_MONTH }} crédits IA</strong> par mois &mdash; environ {{ CAROUSELS_PER_MONTH }} carrousels ({{ CREDITS_PER_CAROUSEL }} crédits chacun)</span></li>
+          <li><span class="ck">✓</span> <span><strong>Analyse approfondie</strong> de chaque vidéo</span></li>
+          <li><span class="ck">✓</span> <span>Détection des <strong>CTA visuels et audio</strong></span></li>
+          <li><span class="ck">✓</span> <span><strong>Analyse multi-liens</strong> et patterns récurrents</span></li>
+          <li><span class="ck">✓</span> <span><strong>Coach IA</strong> et script personnalisé</span></li>
+          <li><span class="ck">✓</span> <span><strong>Données marché</strong> et créateurs gagnants</span></li>
+          <li><span class="ck">✓</span> <span><strong>Feed Radar</strong> et recherche de profil</span></li>
+          <li><span class="ck">✓</span> <span><strong>Studio d'accroches IA</strong> et Coach carrousel photo</span></li>
+          <li><span class="ck">✓</span> <span>Historique de tes analyses, sur tous tes appareils</span></li>
+          <li><span class="ck">✓</span> <span>Résiliation à tout moment, en 1 clic</span></li>
+        </ul>
+
+        {#- Le bouton principal dépend de la situation (script plus bas) : visiteur →
+            l'essai (porte d'entrée de /app, Google en un clic) ; compte en essai ou
+            essai fini → Stripe Checkout directement ; abonné → son espace. -#}
+        <button class="btn" id="cta" onclick="ctaPrincipal()">Commencer mon essai gratuit</button>
+        <button type="button" class="btn-lien" id="cta2" onclick="startCheckout()">S'abonner directement</button>
+        <div class="under-btn">Paiement sécurisé par Stripe · Activation immédiate</div>
       </div>
 
-      <ul>
-        <li><span class="ck">✓</span> <span><strong>{{ ANALYSES_PER_MONTH }} vidéos décryptées</strong> par mois</span></li>
-        <li><span class="ck">✓</span> <span><strong>{{ CREDITS_PER_MONTH }} crédits IA</strong> par mois &mdash; environ {{ CAROUSELS_PER_MONTH }} carrousels ({{ CREDITS_PER_CAROUSEL }} crédits chacun)</span></li>
-        <li><span class="ck">✓</span> <span><strong>Analyse approfondie</strong> de chaque vidéo</span></li>
-        <li><span class="ck">✓</span> <span>Détection des <strong>CTA visuels et audio</strong></span></li>
-        <li><span class="ck">✓</span> <span>Analyse par <strong>upload et par lien TikTok</strong></span></li>
-        <li><span class="ck">✓</span> <span><strong>Analyse multi-liens</strong> et patterns récurrents</span></li>
-        <li><span class="ck">✓</span> <span><strong>Coach IA</strong> et script personnalisé</span></li>
-        <li><span class="ck">✓</span> <span><strong>Données marché</strong> et créateurs gagnants</span></li>
-        <li><span class="ck">✓</span> <span><strong>Feed Radar</strong> et recherche de profil</span></li>
-        <li><span class="ck">✓</span> <span><strong>Studio d'accroches IA</strong> et Coach carrousel photo</span></li>
-        <li><span class="ck">✓</span> <span>Historique de tes analyses, sur tous tes appareils</span></li>
-        <li><span class="ck">✓</span> <span>Résiliation à tout moment, en 1 clic</span></li>
-      </ul>
-
-      <button class="btn" id="cta" onclick="startCheckout()">S'abonner à Qeerah Pro →</button>
-      <div class="under-btn">Paiement sécurisé par Stripe · Activation immédiate</div>
+      <div class="card card-agency">
+        <div class="card-head">
+          <div class="plan-name">Agency</div>
+          <div class="plan-pitch">Pour gérer plusieurs comptes</div>
+          <div class="price price-devis">Sur devis</div>
+          <div class="price-unit">selon le nombre de comptes</div>
+        </div>
+        {#- TODO DOPE : contenu exact de l'offre Agency. Rien n'est listé tant qu'il
+            n'est pas défini — aucune fonctionnalité inventée. -#}
+        <p class="agency-texte">Tu gères plusieurs créateurs ou plusieurs boutiques ? Dis-nous combien de comptes : on te prépare une proposition.</p>
+        <a class="btn btn-soft" href="mailto:{{ CONTACT_EMAIL }}?subject=Demande%20de%20devis%20Agency">Nous contacter</a>
+      </div>
     </div>
 
-    <div class="trial">
-      <p>Tu n'as pas encore de compte ? <a href="/#tool" style="color:var(--accent);font-weight:700;text-decoration:none">Analyse ta première vidéo gratuitement</a> — <strong>{{ TRIAL_OFFER_FULL }}</strong>.</p>
+    <div class="recharges">
+      <span><strong>Recharges de crédits en option</strong>, dès {{ RECHARGE_PRIX_MIN }} € — si tu crées beaucoup.</span>
+      <a href="/credits">Voir les recharges →</a>
     </div>
 
     <div class="compare-link"><a href="/pricing/compare">Tout ce qui est inclus →</a></div>
@@ -212,14 +250,23 @@
       <span>Paiement sécurisé (Stripe)</span>
       <span>Activation immédiate</span>
     </div>
+
+    {#- Libellés que le script pose selon la situation, traduits par le serveur
+        comme le reste de la page. -#}
+    <div hidden>
+      <span id="l-essai">Commencer mon essai gratuit</span>
+      <span id="l-pro">Passer à Qeerah Pro</span>
+      <span id="l-espace">Ouvrir mon espace</span>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>
 
-  <script>var BILLING = 'month';
+  <script data-i18n-js>var BILLING = 'month';
 
     function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500); }
 
+    // Mensuel par défaut ; l'annuel affiche son équivalent mensuel.
     function setBilling(p){
       BILLING = (p === 'year') ? 'year' : 'month';
       document.getElementById('btn-month').classList.toggle('active', BILLING==='month');
@@ -236,22 +283,47 @@
       }
     }
 
-    // L'email de session est stocké par l'app. S'il est absent, Stripe le
-    // demandera sur sa page de paiement : on ne bloque pas le parcours ici.
-    function sessionEmail(){
-      try {
-        return localStorage.getItem('user_email')
-            || localStorage.getItem('email')
-            || (JSON.parse(localStorage.getItem('session')||'{}').email)
-            || '';
-      } catch(e){ return ''; }
+    // ── Bouton principal selon la situation ──────────────────────────────
+    var SITUATION = 'visiteur';   // visiteur | essai | abonne
+    function libelle(id){ var el=document.getElementById(id); return el ? el.textContent.trim() : ''; }
+    function jeton(){ try { return localStorage.getItem('tts_token') || ''; } catch(e){ return ''; } }
+
+    function appliquerSituation(){
+      var cta=document.getElementById('cta'), cta2=document.getElementById('cta2');
+      cta.textContent = libelle(SITUATION === 'visiteur' ? 'l-essai' : SITUATION === 'abonne' ? 'l-espace' : 'l-pro');
+      cta2.style.display = SITUATION === 'visiteur' ? '' : 'none';
     }
 
+    function ctaPrincipal(){
+      if(SITUATION === 'abonne'){ location.href='/app'; return; }
+      if(SITUATION === 'essai'){ startCheckout(); return; }
+      if(window.qTrack) qTrack('clic_commencer_essai', {emplacement:'tarifs'});
+      location.href='/app';
+    }
+
+    (function(){
+      var tok = jeton();
+      if(!tok){ appliquerSituation(); return; }
+      SITUATION = 'essai';
+      appliquerSituation();
+      fetch('/api/user-info', {headers:{'Authorization':'Bearer '+tok}})
+        .then(function(r){ return r.json(); })
+        .then(function(u){
+          var t = (u && u.tier) || 'free';
+          if(!u || !u.email){ SITUATION = 'visiteur'; }
+          else if(t !== 'free'){ SITUATION = 'abonne'; }
+          appliquerSituation();
+        }).catch(function(){});
+    })();
+
+    // L'e-mail de la session (jeton) prime côté serveur ; sans compte, Stripe le
+    // demandera sur sa page de paiement : on ne bloque pas le parcours ici.
     async function startCheckout(){
-      var btn=document.getElementById('cta');
+      var btn = SITUATION === 'visiteur' ? document.getElementById('cta2') : document.getElementById('cta');
       btn.disabled=true; var label=btn.textContent; btn.textContent='Redirection…';
+      if(window.qTrack) qTrack('checkout_ouvert', {billing: BILLING, emplacement: 'tarifs'});
       try{
-        var tok=localStorage.getItem('tts_token')||'';
+        var tok=jeton();
         var hdr={'Content-Type':'application/json'};
         if(tok){ hdr['Authorization']='Bearer '+tok; }
         // Contexte publicitaire TikTok : {} sans consentement publicité.
@@ -259,15 +331,14 @@
         var tt=(window.QeerahTikTok && QeerahTikTok.checkoutContext())||{};
         var res=await fetch('/create-checkout-session',{
           method:'POST', headers:hdr,
-          body:JSON.stringify(Object.assign(
-            {plan:'pro', billing:BILLING, email:sessionEmail()||null}, tt))
+          body:JSON.stringify(Object.assign({plan:'pro', billing:BILLING}, tt))
         });
         var data=await res.json().catch(function(){return {};});
         if(!res.ok){ toast(data.detail || "Le paiement est momentanément indisponible."); return; }
         if(data.url){ window.location.href=data.url; return; }
         toast("Le paiement est momentanément indisponible.");
       }catch(e){
-        toast("Connexion impossible. Réessayez dans un instant.");
+        toast("Connexion impossible. Réessaie dans un instant.");
       }finally{
         btn.disabled=false; btn.textContent=label;
       }

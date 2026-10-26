@@ -305,7 +305,34 @@ def test_lavertissement_est_place_avant_le_texte_legal():
             f"{chemin} : l'avertissement n'est pas au-dessus du texte")
 
 
-# ── Le tableau de /pricing/compare, construit en JavaScript ──────────────────
+# ── Le tableau de /pricing/compare, écrit côté serveur ───────────────────────
+# Il était construit en JavaScript : vide pour tout lecteur sans script, et une
+# apostrophe non échappée l'avait déjà vidé en production. Il est désormais
+# rendu par le gabarit — ces contrôles vérifient qu'il le reste.
+def _lignes(html: str) -> list:
+    return re.findall(r'<td class="name">([^<]+)</td>', html)
+
+
+def test_le_tableau_comparatif_est_present_sans_javascript():
+    assert len(_lignes(PAGES["/pricing/compare"]["fr"])) > 20, "tableau comparatif vide ou trop court"
+    assert "<td class=\"name\">" in main._PRICING_COMPARE_HTML
+
+
+def test_le_tableau_comparatif_a_le_meme_nombre_de_lignes_partout():
+    reference = len(_lignes(PAGES["/pricing/compare"]["fr"]))
+    for lang, html in PAGES["/pricing/compare"].items():
+        assert len(_lignes(html)) == reference, f"compare/{lang} : lignes différentes"
+
+
+def test_le_tableau_comparatif_est_traduit():
+    fr = _lignes(PAGES["/pricing/compare"]["fr"])
+    for lang in AUTRES:
+        restees = [l for l in _lignes(PAGES["/pricing/compare"][lang]) if l in fr and l not in (
+            "Feed Radar", "Support")]
+        assert len(restees) < len(fr) // 4, f"compare/{lang} : lignes restées en français {restees[:3]}"
+
+
+# ── Le script de /pricing, traduit (data-i18n-js) ───────────────────────────
 def _script_marque(html: str) -> str:
     m = re.search(r"<script\b[^>]*\bdata-i18n-js\b[^>]*>(.*?)</script>", html, re.S)
     assert m, "script marqué introuvable"
@@ -313,37 +340,20 @@ def _script_marque(html: str) -> str:
 
 
 def test_le_script_traduit_reste_du_javascript_valide():
-    """La panne réelle : « n:'Studio d'accroches IA' » — une apostrophe non
-    échappée dans une chaîne à guillemets simples. Le script entier ne se
-    parsait plus et le tableau comparatif était VIDE en production.
-
-    Les traductions italiennes et espagnoles sont pleines d'apostrophes
-    (« l'app », « all'anno ») : sans échappement à l'écriture, le même
-    tableau retomberait dans le même trou, en sept langues cette fois.
-    """
+    """La panne déjà vue sur le comparatif : une apostrophe non échappée dans une
+    chaîne à guillemets simples (« all'anno », « l'app ») casse tout le script."""
     motif = re.compile(r"'[^'\n]*[a-zA-ZÀ-ÿ]'[a-zA-ZÀ-ÿ]")
-    for lang, html in PAGES["/pricing/compare"].items():
+    for lang, html in PAGES["/pricing"].items():
         fautes = motif.findall(_script_marque(html))
-        assert not fautes, f"compare/{lang} : apostrophe non échappée → {fautes[:2]}"
+        assert not fautes, f"pricing/{lang} : apostrophe non échappée → {fautes[:2]}"
 
 
-def test_le_tableau_comparatif_a_le_meme_nombre_de_lignes_partout():
-    """Un littéral mal refermé décalerait les frontières de chaînes : le
-    nombre de lignes du tableau changerait. C'est un contrôle indirect, mais
-    il attrape ce qu'une relecture ne voit pas."""
-    reference = len(re.findall(r"\{\s*n\s*:", _script_marque(PAGES["/pricing/compare"]["fr"])))
-    assert reference > 20, "tableau comparatif suspicieusement court"
-    for lang, html in PAGES["/pricing/compare"].items():
-        trouve = len(re.findall(r"\{\s*n\s*:", _script_marque(html)))
-        assert trouve == reference, (
-            f"compare/{lang} : {trouve} lignes au lieu de {reference}")
-
-
-def test_le_tableau_comparatif_est_traduit():
-    fr = _script_marque(PAGES["/pricing/compare"]["fr"])
+def test_le_script_de_la_page_tarifs_est_traduit_sans_toucher_au_code():
     for lang in AUTRES:
-        assert _script_marque(PAGES["/pricing/compare"][lang]) != fr, (
-            f"compare/{lang} : tableau resté en français")
+        js = _script_marque(PAGES["/pricing"][lang])
+        assert "par an, TTC" not in js, f"pricing/{lang} : libellé resté en français"
+        for identifiant in ("'visiteur'", "'essai'", "'abonne'", "'tts_token'", "'/create-checkout-session'"):
+            assert identifiant in js, f"pricing/{lang} : identifiant {identifiant} modifié"
 
 
 # ── Le mécanisme lui-même ────────────────────────────────────────────────────

@@ -3682,6 +3682,8 @@ function updateUsageCounter() {
 
   if (!title) return;
   if (banner) banner.classList.toggle('essai', u.kind === 'trial');
+  // Essai terminé : le bilan (carte mission) porte déjà le message et le bouton.
+  if (banner) banner.style.display = u.kind === 'expired' ? 'none' : '';
   if (u.kind === 'trial') {
     // Compteur discret : « Essai : J-4 · 6 analyses restantes ».
     title.textContent = essaiCompteur(u);
