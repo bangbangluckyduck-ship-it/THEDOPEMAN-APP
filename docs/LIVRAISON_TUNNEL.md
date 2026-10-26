@@ -1,7 +1,7 @@
 # Tunnel de vente — livraison (26/10/2026)
 
-Branche `feat/tunnel-vente`, un commit par lot. 173 tests passent en local (dont
-40 nouveaux) ; la CI les lance désormais à chaque poussée. Rien n'est en ligne :
+Branche `feat/tunnel-vente`, un commit par lot. 173 tests passent en local
+(141 au départ) ; la CI les lance désormais à chaque poussée. Rien n'est en ligne :
 la branche n'est ni poussée ni fusionnée.
 
 **Limite importante** : ce poste n'a ni base Supabase ni clés Stripe. Les
