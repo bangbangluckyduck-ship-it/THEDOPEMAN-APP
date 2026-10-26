@@ -19,7 +19,6 @@ from datetime import datetime, timedelta, timezone
 os.environ.setdefault("APP_SIGNING_SECRET", "secret-de-test-non-production")
 
 import essai_emails
-import mission
 
 MAINTENANT = datetime(2026, 9, 25, 9, 0, tzinfo=timezone.utc)
 
@@ -81,37 +80,21 @@ def test_fenetres_de_jours():
     assert due(9) is None
 
 
-# ── Mission ────────────────────────────────────────────────────────────────
-def test_mission_deduite_des_tables():
-    sb = FauxSupabase(
-        analysis_jobs=[{"email": "a@qeerah.fr", "status": "done", "created_at": "2026-09-20T10:00:00+00:00"},
-                       {"email": "a@qeerah.fr", "status": "done", "created_at": "2026-09-24T10:00:00+00:00"}],
-        script_generations=[{"email": "a@qeerah.fr", "created_at": "2026-09-21T10:00:00+00:00"}],
-        user_favorites=[{"email": "a@qeerah.fr", "item_type": "script", "created_at": "2026-09-22T10:00:00+00:00"}],
-    )
-    e = mission.etat(sb, "a@qeerah.fr")
-    assert [x["fait"] for x in e["etapes"]] == [True, True, True, True]
-    assert e["prochaine"] is None
-    # Une analyse AVANT le script gardé ne valide pas l'étape 4.
-    sb.db["analysis_jobs"].pop()
-    assert mission.etat(sb, "a@qeerah.fr")["prochaine"] == 4
-
-
 # ── Contenus ───────────────────────────────────────────────────────────────
 def test_j2_pousse_la_prochaine_etape_sans_parler_de_prix():
-    etat = {"prochaine": 2, "terminees": 1, "bilan": {}}
+    etat = {"prochaine": 3, "terminees": 2, "bilan": {}}
     objet, _titre, corps = essai_emails.contenu("j2", etat, "https://www.qeerah.com")
-    assert "ton produit" in objet.lower()
-    assert "/scripts?mission=2" in corps
+    assert "accroches" in objet.lower()
+    assert "/scripts?mission=3" in corps
     assert "€" not in corps and "Qeerah Pro" not in corps
 
 
 def test_j5_se_tait_si_mission_accomplie():
-    assert essai_emails.contenu("j5", {"prochaine": None, "terminees": 4}, "https://x") is None
+    assert essai_emails.contenu("j5", {"prochaine": None, "terminees": 3}, "https://x") is None
 
 
 def test_j7_bilan_puis_offre():
-    etat = {"bilan": {"videos_decryptees": 3, "generations_scripts": 1, "scripts_gardes": 1}}
+    etat = {"bilan": {"videos": 3, "accroches": 3}}
     objet, _t, corps = essai_emails.contenu("j7", etat, "https://www.qeerah.com")
     assert objet == "Ton essai en chiffres"
     assert corps.index("vidéos décryptées") < corps.index("Passer à Qeerah Pro")
@@ -119,7 +102,7 @@ def test_j7_bilan_puis_offre():
 
 def test_aucun_mot_interdit():
     for etape, etat in (("j2", {"prochaine": 1, "terminees": 0}), ("j5", {"prochaine": 3, "terminees": 2}),
-                        ("j7", {"bilan": {"videos_decryptees": 1}})):
+                        ("j7", {"bilan": {"videos": 1}})):
         _o, _t, corps = essai_emails.contenu(etape, etat, "https://x")
         bas = corps.lower()
         for mot in ("l'ia", "booster", "propulse", "vitesse supérieure", "profite", "vous "):

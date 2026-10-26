@@ -28,6 +28,18 @@ TRIAL_ANALYSES = _ff.TRIAL_ANALYSES       # 10
 # (Studio d'accroches, Coach carrousel) pendant l'essai.
 TRIAL_FREE_USES = 3
 
+# LA RÈGLE D'ESSAI affichée partout de la même façon (accueil, tarifs, fenêtres
+# de connexion, app) — décision du 26/10/2026. Les limites internes des outils
+# de création (TRIAL_FREE_USES) restent en place côté code mais ne s'annoncent
+# plus : un message clair les explique quand elles sont atteintes.
+#
+# ⚠️ TRIAL_OFFER et TRIAL_OFFER_FULL restent en place, inchangées, là où le
+# référencement les lit (données structurées de l'accueil, FAQ structurée,
+# meta description du carrousel, pages d'atterrissage) : y toucher demande
+# l'accord d'Aimeric.
+TRIAL_RULE = (f"{TRIAL_DAYS} jours, {TRIAL_ANALYSES} analyses, tous les outils. "
+              f"Sans carte bancaire.")
+
 # Formulation complète, à utiliser là où le détail doit être explicite (page
 # tarifs, CGV). La promesse courte ne détaille pas les plafonds : les deux
 # doivent rester cohérentes avec l'article 4 des CGV.
@@ -151,6 +163,7 @@ def context() -> dict:
         "TRIAL_OFFER": TRIAL_OFFER,
         "TRIAL_OFFER_SHORT": TRIAL_OFFER_SHORT,
         "TRIAL_OFFER_FULL": TRIAL_OFFER_FULL,
+        "TRIAL_RULE": TRIAL_RULE,
         "TRIAL_DAYS": TRIAL_DAYS,
         "TRIAL_ANALYSES": TRIAL_ANALYSES,
         "TRIAL_FREE_USES": TRIAL_FREE_USES,

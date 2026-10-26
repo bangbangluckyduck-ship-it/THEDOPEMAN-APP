@@ -439,6 +439,271 @@ const TRANSLATIONS = {
   },
 };
 
+// Mission d'essai, comparatif, bilan de fin d'essai et compteur d'essai.
+// Fusionné dans TRANSLATIONS : `en-ie` et `es-mx` retombent sur `en` et `es`
+// (cf. normaliserLangue).
+const TRANSLATIONS_MISSION = {
+  fr: {
+    mission_titre: 'Fais ton premier diagnostic en 60 secondes',
+    mission_e1_titre: 'Analyse une vidéo qui vend',
+    mission_e1_texte: 'Choisis une vidéo qui vend en ce moment et découvre pourquoi elle marche.',
+    mission_e1_btn: 'Analyser une vidéo qui vend',
+    mission_e2_titre: 'Analyse TA dernière vidéo',
+    mission_e2_texte: 'Colle le lien de ta dernière vidéo ou envoie le fichier : tu vas voir où les gens décrochent.',
+    mission_e2_btn: 'Analyser ma dernière vidéo',
+    mission_e3_titre: 'Génère 3 accroches pour ton produit',
+    mission_e3_texte: 'Transforme ce que tu viens de comprendre en 3 accroches prêtes à tester.',
+    mission_e3_btn: 'Générer mes 3 accroches',
+    mission_toast_e1: 'Choisis une vidéo qui vend et touche « 🔍 Décrypter ».',
+    mission_toast_e2: 'Colle le lien de ta dernière vidéo, ou envoie le fichier.',
+    mission_toast_decrypter: "Indique le produit de la vidéo et son prix, puis lance l'analyse.",
+    mission_bravo_titre: '🎉 Mission terminée',
+    mission_bravo_texte: "Tu sais maintenant ce qui sépare ta vidéo d'une vidéo qui vend, et quoi changer. Prochaine étape : trouve ce qui vend aujourd'hui dans ton pays.",
+    mission_feedradar_btn: "Ce qui vend aujourd'hui dans ton pays →",
+    mission_compacte: '✓ Mission terminée',
+    comp_titre: 'Ta vidéo face à une vidéo qui vend',
+    comp_ref: 'Vidéo qui vend', comp_perso: 'Ta vidéo',
+    comp_score: 'Score', comp_accroche: "Force de l'accroche", comp_cta: "Appel à l'action",
+    comp_cta_s: 'à {s} s', comp_cta_absent: 'non repéré',
+    comp_diff_titre: 'Ce qui fait la différence',
+    comp_aucune: 'Ta vidéo tient la comparaison sur tous les points analysés.',
+    dim_hook: 'Accroche', dim_retention: 'Rétention', dim_mecanismes_vente: 'Arguments de vente',
+    dim_positionnement: 'Positionnement', dim_format_visuel: 'Format visuel', dim_emotion_dominante: 'Émotion',
+    dim_conversion_shop: "Passage à l'achat", dim_algorithme: "Signaux pour l'algorithme",
+    bilan_titre: 'Ton essai en chiffres', bilan_sous: 'Voilà ce que tu as fait pendant ton essai :',
+    bilan_videos: 'vidéos analysées', bilan_videos_1: 'vidéo analysée',
+    bilan_leviers: 'leviers de vente identifiés', bilan_leviers_1: 'levier de vente identifié',
+    bilan_accroches: 'accroches générées', bilan_accroches_1: 'accroche générée',
+    bilan_meilleur: 'ta meilleure vidéo',
+    bilan_suite: 'Pour continuer à comprendre ce qui vend et à le reproduire chaque mois, continue avec Qeerah Pro. Tes analyses restent là.',
+    bilan_btn: 'Continue avec Qeerah Pro',
+    bilan_vide_titre: 'Ton essai est terminé',
+    bilan_vide_texte: "Pas eu le temps d'analyser une vidéo ? Avec Qeerah Pro, tu comprends chaque mois pourquoi les vidéos TikTok Shop vendent, et quoi reproduire dans les tiennes.",
+    essai_compteur: 'Essai : {jours} · {analyses}',
+    essai_jours: 'J-{j}', essai_jours_0: 'dernier jour',
+    essai_analyses: '{n} analyses restantes', essai_analyses_1: '1 analyse restante', essai_analyses_0: "plus d'analyse",
+    limite_titre: 'Tu as utilisé tes {n} essais de cet outil', limite_texte: 'Avec Qeerah Pro, cet outil reste ouvert chaque mois, comme tous les autres.', limite_btn: 'Passer à Qeerah Pro',
+  },
+  en: {
+    mission_titre: 'Run your first diagnosis in 60 seconds',
+    mission_e1_titre: 'Analyse a video that sells',
+    mission_e1_texte: 'Pick a video that is selling right now and find out why it works.',
+    mission_e1_btn: 'Analyse a video that sells',
+    mission_e2_titre: 'Analyse YOUR latest video',
+    mission_e2_texte: 'Paste the link to your latest video or upload the file: you will see where people drop off.',
+    mission_e2_btn: 'Analyse my latest video',
+    mission_e3_titre: 'Write 3 hooks for your product',
+    mission_e3_texte: 'Turn what you just understood into 3 hooks ready to test.',
+    mission_e3_btn: 'Get my 3 hooks',
+    mission_toast_e1: 'Pick a video that sells and tap “🔍 Decode”.',
+    mission_toast_e2: 'Paste the link to your latest video, or upload the file.',
+    mission_toast_decrypter: 'Enter the product in the video and its price, then start the analysis.',
+    mission_bravo_titre: '🎉 Mission complete',
+    mission_bravo_texte: 'You now know what separates your video from a video that sells, and what to change. Next step: find what is selling today in your country.',
+    mission_feedradar_btn: 'What is selling today in your country →',
+    mission_compacte: '✓ Mission complete',
+    comp_titre: 'Your video next to a video that sells',
+    comp_ref: 'Video that sells', comp_perso: 'Your video',
+    comp_score: 'Score', comp_accroche: 'Hook strength', comp_cta: 'Call to action',
+    comp_cta_s: 'at {s}s', comp_cta_absent: 'not found',
+    comp_diff_titre: 'What makes the difference',
+    comp_aucune: 'Your video holds up on every point analysed.',
+    dim_hook: 'Hook', dim_retention: 'Retention', dim_mecanismes_vente: 'Selling arguments',
+    dim_positionnement: 'Positioning', dim_format_visuel: 'Visual format', dim_emotion_dominante: 'Emotion',
+    dim_conversion_shop: 'Path to purchase', dim_algorithme: 'Signals for the algorithm',
+    bilan_titre: 'Your trial in numbers', bilan_sous: 'Here is what you did during your trial:',
+    bilan_videos: 'videos analysed', bilan_videos_1: 'video analysed',
+    bilan_leviers: 'selling levers identified', bilan_leviers_1: 'selling lever identified',
+    bilan_accroches: 'hooks written', bilan_accroches_1: 'hook written',
+    bilan_meilleur: 'your best video',
+    bilan_suite: 'To keep understanding what sells and reproducing it every month, continue with Qeerah Pro. Your analyses stay right here.',
+    bilan_btn: 'Continue with Qeerah Pro',
+    bilan_vide_titre: 'Your trial has ended',
+    bilan_vide_texte: 'Did not get the chance to analyse a video? With Qeerah Pro, you understand every month why TikTok Shop videos sell, and what to reproduce in yours.',
+    essai_compteur: 'Trial: {jours} · {analyses}',
+    essai_jours: '{j} days left', essai_jours_1: '1 day left', essai_jours_0: 'last day',
+    essai_analyses: '{n} analyses left', essai_analyses_1: '1 analysis left', essai_analyses_0: 'no analyses left',
+    limite_titre: 'You have used your {n} tries of this tool', limite_texte: 'With Qeerah Pro, this tool stays open every month, like all the others.', limite_btn: 'Upgrade to Qeerah Pro',
+  },
+  'pt-br': {
+    mission_titre: 'Faça seu primeiro diagnóstico em 60 segundos',
+    mission_e1_titre: 'Analise um vídeo que vende',
+    mission_e1_texte: 'Escolha um vídeo que está vendendo agora e descubra por que ele funciona.',
+    mission_e1_btn: 'Analisar um vídeo que vende',
+    mission_e2_titre: 'Analise o SEU último vídeo',
+    mission_e2_texte: 'Cole o link do seu último vídeo ou envie o arquivo: você vai ver onde as pessoas desistem.',
+    mission_e2_btn: 'Analisar meu último vídeo',
+    mission_e3_titre: 'Crie 3 ganchos para o seu produto',
+    mission_e3_texte: 'Transforme o que você acabou de entender em 3 ganchos prontos para testar.',
+    mission_e3_btn: 'Criar meus 3 ganchos',
+    mission_toast_e1: 'Escolha um vídeo que vende e toque em “🔍 Decifrar”.',
+    mission_toast_e2: 'Cole o link do seu último vídeo ou envie o arquivo.',
+    mission_toast_decrypter: 'Informe o produto do vídeo e o preço, depois inicie a análise.',
+    mission_bravo_titre: '🎉 Missão concluída',
+    mission_bravo_texte: 'Agora você sabe o que separa o seu vídeo de um vídeo que vende, e o que mudar. Próximo passo: descubra o que está vendendo hoje no seu país.',
+    mission_feedradar_btn: 'O que está vendendo hoje no seu país →',
+    mission_compacte: '✓ Missão concluída',
+    comp_titre: 'Seu vídeo ao lado de um vídeo que vende',
+    comp_ref: 'Vídeo que vende', comp_perso: 'Seu vídeo',
+    comp_score: 'Pontuação', comp_accroche: 'Força do gancho', comp_cta: 'Chamada para ação',
+    comp_cta_s: 'aos {s} s', comp_cta_absent: 'não encontrada',
+    comp_diff_titre: 'O que faz a diferença',
+    comp_aucune: 'Seu vídeo se compara bem em todos os pontos analisados.',
+    dim_hook: 'Gancho', dim_retention: 'Retenção', dim_mecanismes_vente: 'Argumentos de venda',
+    dim_positionnement: 'Posicionamento', dim_format_visuel: 'Formato visual', dim_emotion_dominante: 'Emoção',
+    dim_conversion_shop: 'Caminho até a compra', dim_algorithme: 'Sinais para o algoritmo',
+    bilan_titre: 'Seu teste em números', bilan_sous: 'Veja o que você fez durante o teste:',
+    bilan_videos: 'vídeos analisados', bilan_videos_1: 'vídeo analisado',
+    bilan_leviers: 'alavancas de venda identificadas', bilan_leviers_1: 'alavanca de venda identificada',
+    bilan_accroches: 'ganchos criados', bilan_accroches_1: 'gancho criado',
+    bilan_meilleur: 'seu melhor vídeo',
+    bilan_suite: 'Para continuar entendendo o que vende e reproduzir isso todo mês, continue com o Qeerah Pro. Suas análises continuam aqui.',
+    bilan_btn: 'Continuar com o Qeerah Pro',
+    bilan_vide_titre: 'Seu teste terminou',
+    bilan_vide_texte: 'Não deu tempo de analisar um vídeo? Com o Qeerah Pro, você entende todo mês por que os vídeos do TikTok Shop vendem e o que reproduzir nos seus.',
+    essai_compteur: 'Teste: {jours} · {analyses}',
+    essai_jours: 'faltam {j} dias', essai_jours_1: 'falta 1 dia', essai_jours_0: 'último dia',
+    essai_analyses: '{n} análises restantes', essai_analyses_1: '1 análise restante', essai_analyses_0: 'nenhuma análise restante',
+    limite_titre: 'Você usou seus {n} testes desta ferramenta', limite_texte: 'Com o Qeerah Pro, esta ferramenta fica liberada todo mês, como todas as outras.', limite_btn: 'Passar para o Qeerah Pro',
+  },
+  es: {
+    mission_titre: 'Haz tu primer diagnóstico en 60 segundos',
+    mission_e1_titre: 'Analiza un vídeo que vende',
+    mission_e1_texte: 'Elige un vídeo que está vendiendo ahora y descubre por qué funciona.',
+    mission_e1_btn: 'Analizar un vídeo que vende',
+    mission_e2_titre: 'Analiza TU último vídeo',
+    mission_e2_texte: 'Pega el enlace de tu último vídeo o sube el archivo: vas a ver dónde la gente deja de mirar.',
+    mission_e2_btn: 'Analizar mi último vídeo',
+    mission_e3_titre: 'Crea 3 ganchos para tu producto',
+    mission_e3_texte: 'Convierte lo que acabas de entender en 3 ganchos listos para probar.',
+    mission_e3_btn: 'Crear mis 3 ganchos',
+    mission_toast_e1: 'Elige un vídeo que vende y toca «🔍 Descifrar».',
+    mission_toast_e2: 'Pega el enlace de tu último vídeo o sube el archivo.',
+    mission_toast_decrypter: 'Indica el producto del vídeo y su precio, y lanza el análisis.',
+    mission_bravo_titre: '🎉 Misión cumplida',
+    mission_bravo_texte: 'Ya sabes qué separa tu vídeo de un vídeo que vende, y qué cambiar. Siguiente paso: descubre lo que se vende hoy en tu país.',
+    mission_feedradar_btn: 'Lo que se vende hoy en tu país →',
+    mission_compacte: '✓ Misión cumplida',
+    comp_titre: 'Tu vídeo frente a un vídeo que vende',
+    comp_ref: 'Vídeo que vende', comp_perso: 'Tu vídeo',
+    comp_score: 'Puntuación', comp_accroche: 'Fuerza del gancho', comp_cta: 'Llamada a la acción',
+    comp_cta_s: 'a los {s} s', comp_cta_absent: 'no detectada',
+    comp_diff_titre: 'Lo que marca la diferencia',
+    comp_aucune: 'Tu vídeo aguanta la comparación en todos los puntos analizados.',
+    dim_hook: 'Gancho', dim_retention: 'Retención', dim_mecanismes_vente: 'Argumentos de venta',
+    dim_positionnement: 'Posicionamiento', dim_format_visuel: 'Formato visual', dim_emotion_dominante: 'Emoción',
+    dim_conversion_shop: 'Paso a la compra', dim_algorithme: 'Señales para el algoritmo',
+    bilan_titre: 'Tu prueba en cifras', bilan_sous: 'Esto es lo que hiciste durante tu prueba:',
+    bilan_videos: 'vídeos analizados', bilan_videos_1: 'vídeo analizado',
+    bilan_leviers: 'palancas de venta identificadas', bilan_leviers_1: 'palanca de venta identificada',
+    bilan_accroches: 'ganchos creados', bilan_accroches_1: 'gancho creado',
+    bilan_meilleur: 'tu mejor vídeo',
+    bilan_suite: 'Para seguir entendiendo lo que vende y reproducirlo cada mes, continúa con Qeerah Pro. Tus análisis siguen aquí.',
+    bilan_btn: 'Continuar con Qeerah Pro',
+    bilan_vide_titre: 'Tu prueba ha terminado',
+    bilan_vide_texte: '¿No te dio tiempo a analizar un vídeo? Con Qeerah Pro entiendes cada mes por qué venden los vídeos de TikTok Shop y qué reproducir en los tuyos.',
+    essai_compteur: 'Prueba: {jours} · {analyses}',
+    essai_jours: 'quedan {j} días', essai_jours_1: 'queda 1 día', essai_jours_0: 'último día',
+    essai_analyses: 'quedan {n} análisis', essai_analyses_1: 'queda 1 análisis', essai_analyses_0: 'sin análisis restantes',
+    limite_titre: 'Has usado tus {n} pruebas de esta herramienta', limite_texte: 'Con Qeerah Pro, esta herramienta sigue abierta cada mes, como todas las demás.', limite_btn: 'Pasar a Qeerah Pro',
+  },
+  it: {
+    mission_titre: 'Fai la tua prima diagnosi in 60 secondi',
+    mission_e1_titre: 'Analizza un video che vende',
+    mission_e1_texte: 'Scegli un video che sta vendendo adesso e scopri perché funziona.',
+    mission_e1_btn: 'Analizza un video che vende',
+    mission_e2_titre: 'Analizza il TUO ultimo video',
+    mission_e2_texte: 'Incolla il link del tuo ultimo video o carica il file: vedrai dove le persone smettono di guardare.',
+    mission_e2_btn: 'Analizza il mio ultimo video',
+    mission_e3_titre: 'Crea 3 ganci per il tuo prodotto',
+    mission_e3_texte: 'Trasforma quello che hai appena capito in 3 ganci pronti da testare.',
+    mission_e3_btn: 'Crea i miei 3 ganci',
+    mission_toast_e1: 'Scegli un video che vende e tocca «🔍 Decifra».',
+    mission_toast_e2: 'Incolla il link del tuo ultimo video o carica il file.',
+    mission_toast_decrypter: "Indica il prodotto del video e il prezzo, poi avvia l'analisi.",
+    mission_bravo_titre: '🎉 Missione completata',
+    mission_bravo_texte: 'Ora sai cosa separa il tuo video da un video che vende, e cosa cambiare. Prossimo passo: scopri cosa vende oggi nel tuo paese.',
+    mission_feedradar_btn: 'Cosa vende oggi nel tuo paese →',
+    mission_compacte: '✓ Missione completata',
+    comp_titre: 'Il tuo video accanto a un video che vende',
+    comp_ref: 'Video che vende', comp_perso: 'Il tuo video',
+    comp_score: 'Punteggio', comp_accroche: 'Forza del gancio', comp_cta: "Invito all'azione",
+    comp_cta_s: 'a {s} s', comp_cta_absent: 'non trovato',
+    comp_diff_titre: 'Cosa fa la differenza',
+    comp_aucune: 'Il tuo video regge il confronto su tutti i punti analizzati.',
+    dim_hook: 'Gancio', dim_retention: 'Ritenzione', dim_mecanismes_vente: 'Argomenti di vendita',
+    dim_positionnement: 'Posizionamento', dim_format_visuel: 'Formato visivo', dim_emotion_dominante: 'Emozione',
+    dim_conversion_shop: "Passaggio all'acquisto", dim_algorithme: "Segnali per l'algoritmo",
+    bilan_titre: 'La tua prova in cifre', bilan_sous: 'Ecco cosa hai fatto durante la prova:',
+    bilan_videos: 'video analizzati', bilan_videos_1: 'video analizzato',
+    bilan_leviers: 'leve di vendita individuate', bilan_leviers_1: 'leva di vendita individuata',
+    bilan_accroches: 'ganci creati', bilan_accroches_1: 'gancio creato',
+    bilan_meilleur: 'il tuo video migliore',
+    bilan_suite: 'Per continuare a capire cosa vende e a riprodurlo ogni mese, continua con Qeerah Pro. Le tue analisi restano qui.',
+    bilan_btn: 'Continua con Qeerah Pro',
+    bilan_vide_titre: 'La tua prova è finita',
+    bilan_vide_texte: 'Non hai avuto tempo di analizzare un video? Con Qeerah Pro capisci ogni mese perché i video di TikTok Shop vendono e cosa riprodurre nei tuoi.',
+    essai_compteur: 'Prova: {jours} · {analyses}',
+    essai_jours: 'mancano {j} giorni', essai_jours_1: 'manca 1 giorno', essai_jours_0: 'ultimo giorno',
+    essai_analyses: '{n} analisi rimaste', essai_analyses_1: '1 analisi rimasta', essai_analyses_0: 'nessuna analisi rimasta',
+    limite_titre: 'Hai usato le tue {n} prove di questo strumento', limite_texte: 'Con Qeerah Pro, questo strumento resta aperto ogni mese, come tutti gli altri.', limite_btn: 'Passa a Qeerah Pro',
+  },
+  de: {
+    mission_titre: 'Mach deine erste Diagnose in 60 Sekunden',
+    mission_e1_titre: 'Analysiere ein Video, das verkauft',
+    mission_e1_texte: 'Wähle ein Video, das gerade verkauft, und finde heraus, warum es funktioniert.',
+    mission_e1_btn: 'Ein Video analysieren, das verkauft',
+    mission_e2_titre: 'Analysiere DEIN letztes Video',
+    mission_e2_texte: 'Füge den Link zu deinem letzten Video ein oder lade die Datei hoch: Du siehst, wo die Leute abspringen.',
+    mission_e2_btn: 'Mein letztes Video analysieren',
+    mission_e3_titre: 'Schreib 3 Hooks für dein Produkt',
+    mission_e3_texte: 'Mach aus dem, was du gerade verstanden hast, 3 Hooks, die du sofort testen kannst.',
+    mission_e3_btn: 'Meine 3 Hooks erstellen',
+    mission_toast_e1: 'Wähle ein Video, das verkauft, und tippe auf „🔍 Entschlüsseln“.',
+    mission_toast_e2: 'Füge den Link zu deinem letzten Video ein oder lade die Datei hoch.',
+    mission_toast_decrypter: 'Gib das Produkt im Video und seinen Preis an und starte dann die Analyse.',
+    mission_bravo_titre: '🎉 Mission erfüllt',
+    mission_bravo_texte: 'Jetzt weißt du, was dein Video von einem Video unterscheidet, das verkauft, und was du ändern solltest. Nächster Schritt: Finde heraus, was heute in deinem Land verkauft.',
+    mission_feedradar_btn: 'Was heute in deinem Land verkauft →',
+    mission_compacte: '✓ Mission erfüllt',
+    comp_titre: 'Dein Video neben einem Video, das verkauft',
+    comp_ref: 'Video, das verkauft', comp_perso: 'Dein Video',
+    comp_score: 'Score', comp_accroche: 'Stärke des Hooks', comp_cta: 'Call-to-Action',
+    comp_cta_s: 'bei {s} s', comp_cta_absent: 'nicht gefunden',
+    comp_diff_titre: 'Was den Unterschied macht',
+    comp_aucune: 'Dein Video hält in allen analysierten Punkten mit.',
+    dim_hook: 'Hook', dim_retention: 'Bindung', dim_mecanismes_vente: 'Verkaufsargumente',
+    dim_positionnement: 'Positionierung', dim_format_visuel: 'Visuelles Format', dim_emotion_dominante: 'Emotion',
+    dim_conversion_shop: 'Weg zum Kauf', dim_algorithme: 'Signale für den Algorithmus',
+    bilan_titre: 'Dein Test in Zahlen', bilan_sous: 'Das hast du während deines Tests gemacht:',
+    bilan_videos: 'analysierte Videos', bilan_videos_1: 'analysiertes Video',
+    bilan_leviers: 'erkannte Verkaufshebel', bilan_leviers_1: 'erkannter Verkaufshebel',
+    bilan_accroches: 'erstellte Hooks', bilan_accroches_1: 'erstellter Hook',
+    bilan_meilleur: 'dein bestes Video',
+    bilan_suite: 'Um weiter zu verstehen, was verkauft, und es jeden Monat umzusetzen, mach mit Qeerah Pro weiter. Deine Analysen bleiben erhalten.',
+    bilan_btn: 'Mit Qeerah Pro weitermachen',
+    bilan_vide_titre: 'Dein Test ist vorbei',
+    bilan_vide_texte: 'Keine Zeit gehabt, ein Video zu analysieren? Mit Qeerah Pro verstehst du jeden Monat, warum TikTok-Shop-Videos verkaufen und was du in deinen übernehmen kannst.',
+    essai_compteur: 'Test: {jours} · {analyses}',
+    essai_jours: 'noch {j} Tage', essai_jours_1: 'noch 1 Tag', essai_jours_0: 'letzter Tag',
+    essai_analyses: 'noch {n} Analysen', essai_analyses_1: 'noch 1 Analyse', essai_analyses_0: 'keine Analysen mehr',
+    limite_titre: 'Du hast deine {n} Versuche mit diesem Tool genutzt', limite_texte: 'Mit Qeerah Pro bleibt dieses Tool jeden Monat offen, wie alle anderen.', limite_btn: 'Zu Qeerah Pro wechseln',
+  },
+};
+Object.keys(TRANSLATIONS_MISSION).forEach(l => Object.assign(TRANSLATIONS[l], TRANSLATIONS_MISSION[l]));
+
+// Variante d'une clef selon un nombre : `cle_0` ou `cle_1` quand la langue en
+// définit une, sinon la clef de base (« J-1 » se dit comme « J-4 »).
+function tn(key, n) {
+  const lang = TRANSLATIONS[currentLanguage] || TRANSLATIONS.fr;
+  if (n === 0 || n === 1) {
+    const k = `${key}_${n}`;
+    if (lang[k] !== undefined) return lang[k];
+    if (lang[key] === undefined && TRANSLATIONS.fr[k] !== undefined) return TRANSLATIONS.fr[k];
+  }
+  return t(key);
+}
+
 function t(key) {
   const lang = TRANSLATIONS[currentLanguage] || TRANSLATIONS.fr;
   return lang[key] ?? TRANSLATIONS.fr[key] ?? key;
@@ -1737,6 +2002,7 @@ async function analyzeVideo() {
       saveToHistory(data, currentFilename);
       console.log('[DEBUG] About to call showResults');
       showResults(data);
+      missionApresAnalyse(data, 'upload');
 
       if (data.donnees_marche && hasFullAccess()) {
         renderMarketSection(data.donnees_marche);
@@ -1843,6 +2109,7 @@ async function analyzeSingleUrl() {
     }
     saveToHistory(completeData, url);
     showResults(completeData);
+    missionApresAnalyse(completeData, 'url');
     if (completeData.donnees_marche && hasFullAccess()) {
       renderMarketSection(completeData.donnees_marche);
       const ms = document.getElementById('market-section'); if (ms) ms.style.display = 'block';
@@ -1963,6 +2230,7 @@ async function analyzeUrls() {
     if (total === 1 || !_canPatterns) {
       // Analyse simple (ou pas assez de vidéos réussies pour des patterns) → rapport complet.
       showResults(lastData);
+      missionApresAnalyse(lastData, 'url');
       if (lastData.donnees_marche && hasFullAccess()) {
         renderMarketSection(lastData.donnees_marche);
         document.getElementById('market-section').style.display = 'block';
@@ -2409,8 +2677,6 @@ function showResults(d) {
   if (window.qTrackResultatAffiche) qTrackResultatAffiche();
   console.log('[DEBUG] showResults called with data:', d);
   window._lastAnalysis = d;   // pour le partage du score (Feature 4)
-  // La mission avance : l'analyse vient d'être enregistrée côté serveur.
-  setTimeout(() => { try { loadMission(); } catch (e) {} }, 1500);
   renderModerationAndScript(d);
   renderErrorTimeline(d);
   console.log('[DEBUG] score_global value:', d.score_global);
@@ -3236,6 +3502,18 @@ function resetAnalysis() {
 // ── USAGE COUNTER ─────────────────────────────────────────────
 function getUsage()       { return parseInt(localStorage.getItem(USAGE_KEY) || '0', 10); }
 function incrementUsage() { localStorage.setItem(USAGE_KEY, getUsage() + 1); updateUsageCounter(); }
+
+// « Essai : J-4 · 6 analyses restantes » — jours comptés jusqu'à la fin de l'essai
+// (reset_at), arrondis au jour supérieur : il reste 1 jour tant qu'on est avant la fin.
+function essaiCompteur(u) {
+  const fin = u.reset_at ? new Date(u.reset_at) : null;
+  const j = fin && !isNaN(fin) ? Math.max(0, Math.ceil((fin - Date.now()) / 86400000) - 1) : null;
+  const n = Math.max(0, parseInt(u.remaining, 10) || 0);
+  const jours = j === null ? '' : tn('essai_jours', j).replace('{j}', j);
+  const analyses = tn('essai_analyses', n).replace('{n}', n);
+  return jours ? t('essai_compteur').replace('{jours}', jours).replace('{analyses}', analyses)
+               : t('essai_compteur').replace('{jours} · ', '').replace('{analyses}', analyses);
+}
 function updateUsageCounter() {
   const el = document.getElementById('usage-count');
   if (!el) return;
@@ -3257,12 +3535,16 @@ function updateUsageCounter() {
   const banner = document.getElementById('freemium-banner');
   const title  = document.getElementById('freemium-title');
   const label  = document.getElementById('freemium-count-label');
-  if (label) label.textContent = 'Analyses ce mois-ci :';
+  if (label) { label.textContent = 'Analyses ce mois-ci :'; label.style.display = ''; }
+  el.style.display = '';
 
   if (!title) return;
+  if (banner) banner.classList.toggle('essai', u.kind === 'trial');
   if (u.kind === 'trial') {
-    title.textContent = "🎁 Essai gratuit — accès complet";
-    if (label) label.textContent = "Analyses d'essai :";
+    // Compteur discret : « Essai : J-4 · 6 analyses restantes ».
+    title.textContent = essaiCompteur(u);
+    if (label) label.style.display = 'none';
+    el.style.display = 'none';
   } else if (u.kind === 'expired') {
     title.textContent = "Essai terminé — abonne-toi pour continuer";
     if (banner) banner.style.cursor = 'pointer';
@@ -4830,7 +5112,9 @@ async function generatePhotoSlide() {
     });
     if (!res.ok) {
       let msg = 'Erreur de génération.';
-      try { msg = (await res.json()).detail || msg; } catch (e) {}
+      let j = {};
+      try { j = await res.json(); msg = j.detail || msg; } catch (e) {}
+      if (j.reason === 'essai_outil_epuise') { _psStopTimer(); afficherLimiteOutil(out, j); return; }
       _psStopTimer(); out.innerHTML = `<div style="color:#DC2626;padding:12px">${escapeHtml(msg)}</div>`;
       return;
     }
@@ -5183,6 +5467,7 @@ async function generateVideoPrompt() {
     const res = await fetch('/api/video-prompt/generate', { method: 'POST', headers: token ? { 'Authorization': 'Bearer ' + token } : {}, body: fd });
     if (res.status === 402) {
       const j = await res.json();
+      if (j.reason === 'essai_outil_epuise') { afficherLimiteOutil(out, j); return; }
       out.innerHTML = `<div style="text-align:center;padding:18px;background:rgba(255,215,0,.10);border:1px dashed rgba(255,200,40,.6);border-radius:12px">
         <strong style="color:#d4a017">Crédits insuffisants</strong>
         <div style="font-size:13px;color:var(--muted);margin:6px 0 12px">Coût : ${j.cost} · Disponible : ${j.available}</div>
@@ -6184,6 +6469,7 @@ async function runUploadAnalysisAsyncInline() {
     setLoadingInfo(null);
     document.getElementById('loading-section').style.display = 'none';
     if (typeof showResults === 'function') showResults(result);
+    missionApresAnalyse(result, 'upload');
     setTimeout(() => {
       const target = document.getElementById('results-section');
       if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6417,25 +6703,16 @@ window.openJobResult = openJobResult;
 })();
 
 // ══════════════════════════════════════════════════════════════
-// 🎯 MISSION D'ESSAI — de « je comprends » à « je publie »
+// 🎯 MISSION D'ESSAI — « Fais ton premier diagnostic en 60 secondes »
 // ══════════════════════════════════════════════════════════════
-// Remplace l'arrivée « à vide » dans l'app. L'état vient de /api/mission,
-// qui le DÉDUIT des données existantes (analyses, scripts générés, scripts
-// gardés) : rien à cocher à la main, rien de perdu d'un appareil à l'autre.
-// Essai terminé → la même carte devient le bilan de l'essai, AVANT l'offre.
+// 1. une vidéo qui vend · 2. SA dernière vidéo · 3. 3 accroches pour son produit.
+// L'état vient de /api/mission (table trial_mission, cf. mission.py) : il suit
+// le créateur sur tous ses appareils. Dès que 1 et 2 sont faites, la carte
+// compare les deux vidéos — c'est le déclic. Essai terminé → bilan, puis l'offre.
 const MISSION_ETAPES = [
-  { id: 1, titre: 'Décrypte une vidéo qui vend',
-    texte: "Choisis une vidéo qui vend en ce moment dans le Feed Radar et découvre pourquoi elle marche.",
-    bouton: 'Choisir une vidéo qui vend', action: () => missionEtape1() },
-  { id: 2, titre: 'Et pour ton produit ?',
-    texte: "Transforme ce que tu as compris en angles et en accroches pour TON produit.",
-    bouton: 'Trouver mes angles', action: () => { location.href = '/scripts?mission=2'; } },
-  { id: 3, titre: 'Prépare ta prochaine vidéo',
-    texte: "Garde le script que tu vas tourner : touche « 🎬 Je tourne celui-là ».",
-    bouton: 'Choisir mon script', action: () => { location.href = '/scripts?mission=3'; } },
-  { id: 4, titre: 'Reviens décrypter ta vidéo publiée',
-    texte: "Une fois ta vidéo en ligne, colle son lien : tu vois ce qui a marché et ce que tu changes ensuite.",
-    bouton: 'Décrypter ma vidéo', action: () => missionEtape4() },
+  { id: 1, titre: 'mission_e1_titre', texte: 'mission_e1_texte', bouton: 'mission_e1_btn', action: () => missionEtape1() },
+  { id: 2, titre: 'mission_e2_titre', texte: 'mission_e2_texte', bouton: 'mission_e2_btn', action: () => missionEtape2() },
+  { id: 3, titre: 'mission_e3_titre', texte: 'mission_e3_texte', bouton: 'mission_e3_btn', action: () => missionEtape3() },
 ];
 
 // Étape 1 : si une vidéo vient d'être décryptée sur l'accueil (avant
@@ -6445,15 +6722,26 @@ function missionEtape1() {
   try { derniere = localStorage.getItem('qeerah_derniere_video'); } catch (_) {}
   if (derniere) { decrypterVideo(derniere); return; }
   switchTab('feedradar');
-  showToast('Choisis une vidéo et touche « 🔍 Décrypter ».');
+  showToast(t('mission_toast_e1'));
 }
 
-function missionEtape4() {
+// Étape 2 : le champ du lien, ouvert et prêt. L'analyse qui suit sera
+// comptée comme SA vidéo (cf. missionApresAnalyse).
+function missionEtape2() {
+  try { sessionStorage.setItem('qeerah_mission_mienne', '1'); } catch (_) {}
+  window.__missionMienne = true;
   switchTab('analyze');
   const block = document.getElementById('url-single-block');
   if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const input = document.getElementById('tiktok-url-single');
-  if (input) setTimeout(() => input.focus({ preventScroll: true }), 400);
+  if (input) { input.value = ''; setTimeout(() => input.focus({ preventScroll: true }), 400); }
+  showToast(t('mission_toast_e2'));
+}
+
+// Étape 3 : le générateur d'accroches, déjà prérempli avec le produit détecté.
+function missionEtape3() {
+  const produit = (window.__missionEtat && window.__missionEtat.produit) || '';
+  location.href = '/scripts?mission=3' + (produit ? '&produit=' + encodeURIComponent(produit) : '');
 }
 
 // Pré-remplit l'analyse « 1 lien » avec une vidéo (Feed Radar, mission…).
@@ -6467,9 +6755,39 @@ function decrypterVideo(url) {
   if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const prod = document.getElementById('single-product');
   if (prod) setTimeout(() => prod.focus({ preventScroll: true }), 400);
-  showToast('Indique le produit de la vidéo et son prix, puis lance le décryptage.');
+  showToast(t('mission_toast_decrypter'));
 }
 window.decrypterVideo = decrypterVideo;
+
+// Après une analyse fraîche (pas une analyse rouverte depuis l'historique) :
+// première analyse → étape 1 ; analyse lancée depuis l'étape 2, ou fichier
+// envoyé une fois l'étape 1 faite → étape 2.
+async function missionApresAnalyse(d, source) {
+  const token = localStorage.getItem('tts_token');
+  if (!token || !d || d.score_global === undefined || d.score_global === null) return;
+  let mienne = !!window.__missionMienne;
+  try { mienne = mienne || sessionStorage.getItem('qeerah_mission_mienne') === '1'; } catch (_) {}
+  const etat = window.__missionEtat;
+  const faites = new Set(((etat && etat.etapes) || []).filter(e => e.fait).map(e => e.id));
+  let etape = 1;
+  if (faites.has(1)) {
+    if (faites.has(2) || !(mienne || source === 'upload')) { loadMission(); return; }
+    etape = 2;
+  } else if (etat === undefined && mienne) {
+    etape = 2;   // état pas encore chargé : le serveur ramène à 1 si besoin
+  }
+  try { sessionStorage.removeItem('qeerah_mission_mienne'); } catch (_) {}
+  window.__missionMienne = false;
+  try {
+    await fetch('/api/mission/etape', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ etape, resultat: d }),
+    });
+  } catch (_) {}
+  loadMission();
+}
+window.missionApresAnalyse = missionApresAnalyse;
 
 // Suivi : une étape qui passe à « faite » depuis la dernière visite.
 function _missionSuivre(etapes) {
@@ -6492,9 +6810,38 @@ async function loadMission() {
     data = await r.json().catch(() => null);
     if (!r.ok || !data || !data.ok) { card.style.display = 'none'; return; }
   } catch (_) { card.style.display = 'none'; return; }
+  window.__missionEtat = data;
+  if (data.usage) { window.__usage = data.usage; updateUsageCounter(); }
   _renderMission(card, data);
 }
 window.loadMission = loadMission;
+
+// « à 8 s » / « non détecté »
+function _ctaLibelle(s) {
+  return (s === null || s === undefined) ? t('comp_cta_absent') : t('comp_cta_s').replace('{s}', s);
+}
+
+// Comparatif côte à côte : la vidéo qui vend face à la sienne.
+function _renderComparatif(c) {
+  if (!c || !c.ref || !c.perso) return '';
+  const ligne = (lib, a, b) => `<div class="comp-ligne"><span class="comp-lib">${escapeHtml(lib)}</span>` +
+    `<strong>${escapeHtml(String(a))}</strong><strong>${escapeHtml(String(b))}</strong></div>`;
+  const force = (v) => (v === null || v === undefined) ? '—' : v + '/10';
+  const diffs = (c.differences || []).map(d => `
+      <li><div class="comp-diff-titre">${escapeHtml(t('dim_' + d.dimension))}
+        <span>${d.ref} → ${d.perso}</span></div>
+        ${d.pourquoi ? `<div class="comp-diff-texte">${escapeHtml(d.pourquoi)}</div>` : ''}</li>`).join('');
+  return `
+    <div class="comp">
+      <div class="comp-titre">${escapeHtml(t('comp_titre'))}</div>
+      <div class="comp-ligne comp-entete"><span></span><span>${escapeHtml(t('comp_ref'))}</span><span>${escapeHtml(t('comp_perso'))}</span></div>
+      ${ligne(t('comp_score'), c.ref.score + '/100', c.perso.score + '/100')}
+      ${ligne(t('comp_accroche'), force(c.ref.hook_force), force(c.perso.hook_force))}
+      ${ligne(t('comp_cta'), _ctaLibelle(c.ref.cta_s), _ctaLibelle(c.perso.cta_s))}
+      <div class="comp-diff-h">${escapeHtml(t('comp_diff_titre'))}</div>
+      ${diffs ? `<ul class="comp-diffs">${diffs}</ul>` : `<p class="mission-sous">${escapeHtml(t('comp_aucune'))}</p>`}
+    </div>`;
+}
 
 function _renderMission(card, data) {
   const usage = data.usage || {};
@@ -6502,26 +6849,42 @@ function _renderMission(card, data) {
 
   _missionSuivre(data.etapes || []);
   const faites = new Set((data.etapes || []).filter(e => e.fait).map(e => e.id));
+  const total = data.total || MISSION_ETAPES.length;
   const n = faites.size;
-  const essai = usage.kind === 'trial';
-  let masquee = false;
-  try { masquee = localStorage.getItem('qeerah_mission_masquee') === '1'; } catch (_) {}
-  // Abonné qui a tout fait, ou qui a masqué la carte : on ne l'encombre plus.
-  // En essai, la carte reste : c'est le fil conducteur de l'essai.
-  if (!essai && (n === 4 || masquee)) { card.style.display = 'none'; return; }
+
+  // Mission terminée : un mot de félicitations la première fois, puis la carte
+  // se réduit et laisse la place à ce qui vend aujourd'hui (Feed Radar).
+  if (data.terminee) {
+    let vue = false;
+    try { vue = localStorage.getItem('qeerah_mission_bravo') === '1'; } catch (_) {}
+    card.innerHTML = vue ? `
+      <div class="mission-compacte">
+        <span>${escapeHtml(t('mission_compacte'))}</span>
+        <button type="button" class="mission-lien" data-radar="1">${escapeHtml(t('mission_feedradar_btn'))}</button>
+      </div>` : `
+      <h2 class="mission-titre">${escapeHtml(t('mission_bravo_titre'))}</h2>
+      <p class="mission-sous">${escapeHtml(t('mission_bravo_texte'))}</p>
+      <button type="button" class="mission-btn" data-radar="1" style="width:100%">${escapeHtml(t('mission_feedradar_btn'))}</button>`;
+    card.classList.toggle('reduite', vue);
+    card.style.display = 'block';
+    try { localStorage.setItem('qeerah_mission_bravo', '1'); } catch (_) {}
+    card.querySelectorAll('[data-radar]').forEach(b => b.addEventListener('click', () => {
+      if (window.qTrack) qTrack('clic_mission_feedradar');
+      switchTab('feedradar');
+    }));
+    return;
+  }
+  card.classList.remove('reduite');
 
   const prochaine = MISSION_ETAPES.find(e => !faites.has(e.id));
-  const sous = n === 4
-    ? "Mission accomplie : tu sais trouver ce qui vend, le comprendre, l'adapter et vérifier ce que ça donne. C'est ce que Qeerah Pro te fait refaire chaque mois."
-    : "Quatre étapes pour passer d'une vidéo qui vend à TA prochaine vidéo.";
-
+  const comparatif = (faites.has(1) && faites.has(2)) ? _renderComparatif(data.comparatif) : '';
   card.innerHTML = `
     <div class="mission-head">
-      <h2 class="mission-titre">${n === 4 ? '🎉 Mission accomplie' : '🎯 Ta mission'}</h2>
-      <span class="mission-compte">${n}/4</span>
+      <h2 class="mission-titre">🎯 ${escapeHtml(t('mission_titre'))}</h2>
+      <span class="mission-compte">${n}/${total}</span>
     </div>
-    <p class="mission-sous">${escapeHtml(sous)}</p>
-    <div class="mission-barre" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${n}"><span style="width:${n * 25}%"></span></div>
+    <div class="mission-barre" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><span style="width:${Math.round(n / total * 100)}%"></span></div>
+    ${comparatif}
     <ol class="mission-etapes">
       ${MISSION_ETAPES.map(e => {
         const fait = faites.has(e.id);
@@ -6529,18 +6892,13 @@ function _renderMission(card, data) {
         return `<li class="mission-etape${fait ? ' faite' : ''}${active ? ' active' : ''}">
           <span class="mission-num" aria-hidden="true">${fait ? '✓' : e.id}</span>
           <div>
-            <div class="mission-etape-titre">${escapeHtml(e.titre)}</div>
-            ${active ? `<div class="mission-etape-texte">${escapeHtml(e.texte)}</div>
-            <button type="button" class="mission-btn" data-etape="${e.id}">${escapeHtml(e.bouton)}</button>` : ''}
+            <div class="mission-etape-titre">${escapeHtml(t(e.titre))}</div>
+            ${active ? `<div class="mission-etape-texte">${escapeHtml(t(e.texte))}</div>
+            <button type="button" class="mission-btn" data-etape="${e.id}">${escapeHtml(t(e.bouton))}</button>` : ''}
           </div>
         </li>`;
       }).join('')}
-    </ol>
-    ${n === 4 && essai ? '<button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>' : ''}
-    <div class="mission-pied">
-      <span>${essai && usage.reset_label ? `Essai : ${escapeHtml(String(usage.remaining ?? ''))} analyses restantes · jusqu'au ${escapeHtml(usage.reset_label)}` : ''}</span>
-      ${essai ? '' : '<button type="button" data-masquer="1">Masquer</button>'}
-    </div>`;
+    </ol>`;
   card.style.display = 'block';
 
   card.querySelectorAll('[data-etape]').forEach(b => b.addEventListener('click', () => {
@@ -6548,36 +6906,55 @@ function _renderMission(card, data) {
     if (window.qTrack) qTrack('clic_mission_etape', { etape: e.id });
     e.action();
   }));
-  const pro = card.querySelector('[data-pro]');
-  if (pro) pro.addEventListener('click', () => { if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'mission' }); switchTab('pricing'); });
-  const masquer = card.querySelector('[data-masquer]');
-  if (masquer) masquer.addEventListener('click', () => {
-    try { localStorage.setItem('qeerah_mission_masquee', '1'); } catch (_) {}
-    card.style.display = 'none';
-  });
 }
 
 // Fin d'essai : d'abord ce que le créateur a OBTENU, ensuite seulement l'offre.
 function _renderBilanFinEssai(card, data) {
   const b = data.bilan || {};
-  const v = b.videos_decryptees || 0, g = b.generations_scripts || 0, s = b.scripts_gardes || 0;
-  const pl = (x) => (x > 1 ? 's' : '');
-  if (window.qTrack) qTrack('bilan_fin_essai_affiche', { videos: v });
-  card.innerHTML = (!v && !g && !s) ? `
-    <h2 class="mission-titre">Ton essai est terminé</h2>
-    <p class="mission-sous">Pas eu le temps de décrypter une vidéo ? Avec Qeerah Pro, tu vois chaque mois pourquoi les vidéos TikTok Shop vendent — et quoi reproduire dans les tiennes.</p>
-    <button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>` : `
-    <h2 class="mission-titre">Ton essai en chiffres</h2>
-    <p class="mission-sous">Voilà ce que tu as fait pendant ton essai :</p>
-    <div class="bilan-chiffres">
-      <div class="bilan-chiffre"><strong>${v}</strong><span>vidéo${pl(v)} décryptée${pl(v)}</span></div>
-      <div class="bilan-chiffre"><strong>${g}</strong><span>série${pl(g)} d'angles pour ton produit</span></div>
-      <div class="bilan-chiffre"><strong>${s}</strong><span>script${pl(s)} prêt${pl(s)} à tourner</span></div>
-    </div>
-    <p class="mission-sous">Pour continuer à comprendre ce qui vend et à le reproduire chaque mois, passe à Qeerah Pro. Tes analyses et tes favoris restent là.</p>
-    <button type="button" class="mission-btn" data-pro="1" style="width:100%">Passer à Qeerah Pro</button>`;
+  const lignes = [
+    ['videos', 'bilan_videos'], ['leviers', 'bilan_leviers'],
+    ['accroches', 'bilan_accroches'], ['meilleur', 'bilan_meilleur'],
+  ].filter(([cle]) => b[cle]).map(([cle, lib]) =>
+    `<div class="bilan-chiffre"><strong>${b[cle]}${cle === 'meilleur' ? '<small>/100</small>' : ''}</strong><span>${escapeHtml(cle === 'meilleur' ? t(lib) : tn(lib, b[cle]))}</span></div>`);
+  if (window.qTrack) qTrack('bilan_fin_essai_affiche', { videos: b.videos || 0 });
+  card.innerHTML = lignes.length ? `
+    <h2 class="mission-titre">${escapeHtml(t('bilan_titre'))}</h2>
+    <p class="mission-sous">${escapeHtml(t('bilan_sous'))}</p>
+    <div class="bilan-chiffres">${lignes.join('')}</div>
+    <p class="mission-sous">${escapeHtml(t('bilan_suite'))}</p>
+    <button type="button" class="mission-btn" data-pro="1" style="width:100%">${escapeHtml(t('bilan_btn'))}</button>` : `
+    <h2 class="mission-titre">${escapeHtml(t('bilan_vide_titre'))}</h2>
+    <p class="mission-sous">${escapeHtml(t('bilan_vide_texte'))}</p>
+    <button type="button" class="mission-btn" data-pro="1" style="width:100%">${escapeHtml(t('bilan_btn'))}</button>`;
+  card.classList.remove('reduite');
   card.style.display = 'block';
   const pro = card.querySelector('[data-pro]');
-  if (pro) pro.addEventListener('click', () => { if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'bilan_essai' }); switchTab('pricing'); });
+  if (pro) pro.addEventListener('click', () => {
+    if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'bilan_essai' });
+    ouvrirCheckoutPro(pro);
+  });
 }
 window._renderMission = _renderMission;
+
+// Abonnement en un clic depuis l'app : Stripe Checkout directement, e-mail
+// prérempli par le serveur (session). Le bouton reste inerte pendant l'appel.
+function ouvrirCheckoutPro(btn) {
+  if (btn) btn.disabled = true;
+  Promise.resolve(startCheckout('pro')).finally(() => { if (btn) btn.disabled = false; });
+}
+window.ouvrirCheckoutPro = ouvrirCheckoutPro;
+
+// Limite d'essai d'un outil de création : ce qu'il a utilisé, ce que Pro
+// débloque, un seul bouton (Stripe Checkout directement).
+function afficherLimiteOutil(out, j) {
+  out.innerHTML = `<div class="limite-outil">
+    <strong>${escapeHtml(t('limite_titre').replace('{n}', j.utilises || 3))}</strong>
+    <p>${escapeHtml(t('limite_texte'))}</p>
+    <button type="button" class="mission-btn">${escapeHtml(t('limite_btn'))}</button></div>`;
+  const b = out.querySelector('button');
+  b.addEventListener('click', () => {
+    if (window.qTrack) qTrack('clic_passer_pro', { emplacement: 'limite_outil' });
+    ouvrirCheckoutPro(b);
+  });
+}
+window.afficherLimiteOutil = afficherLimiteOutil;

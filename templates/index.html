@@ -284,6 +284,9 @@
       font-size: 12px; color: var(--text);
     }
     .freemium-banner strong { display: block; margin-bottom: 2px; color: #8B6914; }
+    /* Essai : un compteur discret sur une ligne (« Essai : J-4 · 6 analyses restantes »). */
+    .freemium-banner.essai { background: none; border: none; padding: 0 2px; margin-bottom: 10px; }
+    .freemium-banner.essai strong { display: inline; margin: 0; color: var(--muted); font-weight: 600; }
     .usage-count { color: var(--navy); font-weight: 700; }
 
     /* ── UPLOAD ── */
@@ -1141,10 +1144,31 @@
     }
     .mission-pied { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--muted); }
     .mission-pied button { background: none; border: none; color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 6px 0; }
-    .bilan-chiffres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+    .bilan-chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; }
     .bilan-chiffre { background: var(--surface2); border-radius: 12px; padding: 10px 6px; text-align: center; }
     .bilan-chiffre strong { display: block; font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .bilan-chiffre strong small { font-size: 13px; font-weight: 700; color: var(--muted); }
     .bilan-chiffre span { font-size: 11.5px; color: var(--muted); line-height: 1.3; display: block; margin-top: 4px; }
+    /* Limite d'essai d'un outil de création. */
+    .limite-outil { text-align: center; padding: 18px; background: rgba(212,175,55,.08); border: 1px solid rgba(212,175,55,.45); border-radius: 12px; }
+    .limite-outil strong { display: block; font-size: 15px; color: var(--text); }
+    .limite-outil p { font-size: 13px; color: var(--muted); margin: 6px 0 4px; line-height: 1.45; }
+    /* Mission terminée : la carte se réduit à une ligne. */
+    .mission-card.reduite { padding: 10px 14px; box-shadow: none; }
+    .mission-compacte { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--text); }
+    .mission-lien { background: none; border: none; padding: 8px 0; min-height: 36px; cursor: pointer; color: var(--gold-ink); font-weight: 800; font-size: 13px; text-align: left; }
+    /* Comparatif côte à côte : vidéo qui vend / sa vidéo. */
+    .comp { background: var(--surface2); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .comp-titre { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .comp-ligne { display: grid; grid-template-columns: minmax(0, 1.2fr) 1fr 1fr; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .comp-ligne strong { color: var(--text); font-size: 14px; }
+    .comp-entete { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 0; }
+    .comp-lib { color: var(--muted); }
+    .comp-diff-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--gold-ink); margin: 12px 0 6px; }
+    .comp-diffs { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .comp-diff-titre { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+    .comp-diff-titre span { color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .comp-diff-texte { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
     .fr-decrypter {
       display: block; width: 100%; margin-top: 6px; border: none; border-radius: 8px; padding: 8px; min-height: 36px; cursor: pointer;
       background: linear-gradient(135deg, var(--primary), var(--primary-dk)); color: #fff; font-weight: 800; font-size: 12px;
@@ -1951,7 +1975,7 @@
       <h2>Questions fréquentes</h2>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div><strong style="font-size:14px">🤔 C'est quoi Qeerah exactement ?</strong><br><span style="font-size:13px;color:var(--muted)">Qeerah analyse les vidéos et produits qui <strong>vendent le plus sur TikTok Shop</strong>, puis génère à partir d'un simple lien des carrousels, accroches et prompts optimisés pour convertir. Découvre ce qui marche, recrée-le sur ton produit.</span></div>
-        <div><strong style="font-size:14px">🆓 Je peux tester sans payer ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui : <strong>{{ TRIAL_OFFER_FULL }}</strong>. Tu passes à un abonnement seulement si tu veux continuer au-delà.</span></div>
+        <div><strong style="font-size:14px">🆓 Je peux tester sans payer ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui : <strong>{{ TRIAL_RULE }}</strong> Tu passes à un abonnement seulement si tu veux continuer au-delà.</span></div>
         <div><strong style="font-size:14px">💎 Comment fonctionnent les crédits ?</strong><br><span style="font-size:13px;color:var(--muted)">Un pot unique de crédits IA partagé entre <strong>Studio d'accroches IA</strong> et <strong>Photo Slide</strong> (1 carrousel ≈ 10 crédits), renouvelé chaque mois. Des packs d'appoint sont achetables dès 9€ depuis ton Compte.</span></div>
         <div><strong style="font-size:14px">📊 D'où viennent tes données TikTok Shop ?</strong><br><span style="font-size:13px;color:var(--muted)">Des ventes réelles observées sur les <strong>30 derniers jours</strong>, par pays. Tu vois les créateurs et produits qui performent vraiment — pas des estimations au doigt mouillé.</span></div>
         <div><strong style="font-size:14px">🔒 Mes produits et générations sont-ils privés ?</strong><br><span style="font-size:13px;color:var(--muted)">Oui. Tes générations sont rattachées à ton compte et ne sont jamais partagées. Hébergement conforme RGPD.</span></div>
@@ -2073,7 +2097,7 @@
       <ul style="list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px;font-size:13.5px;color:var(--text)">
         <li>✅ <strong>31 leviers de vente décodés</strong> (biais cognitifs, hooks, frameworks narratifs) — calibrés marché par marché.</li>
         <li>✅ Chaque script dans une formule <strong>différente</strong> (anti-répétition) — idéal pour tester plusieurs angles.</li>
-        <li>✅ <strong>3 générations gratuites/mois</strong>, puis illimité avec un plan Pro (compteur séparé de tes analyses).</li>
+        <li>✅ Inclus dans ton essai, sans limite avec Qeerah Pro — et ça n'entame pas tes analyses.</li>
       </ul>
     </div>
   </div>

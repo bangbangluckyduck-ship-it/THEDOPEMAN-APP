@@ -49,36 +49,28 @@ FENETRES = {
 _ETAPES = {
     1: {
         "objet": "Tu n'as pas encore vu pourquoi elle vend",
-        "titre": "Décrypte une vidéo qui vend",
+        "titre": "Analyse une vidéo qui vend",
         "texte": ("Choisis une vidéo qui vend en ce moment dans le Feed Radar, colle son lien, "
                   "et regarde ce que tu n'avais pas vu : l'accroche, l'argument, la seconde où "
                   "tout bascule. C'est la base de tout le reste."),
-        "bouton": "Décrypter une vidéo qui vend",
+        "bouton": "Analyser une vidéo qui vend",
         "chemin": "/app",
     },
     2: {
-        "objet": "Et pour ton produit, ça donne quoi ?",
-        "titre": "Et pour ton produit ?",
-        "texte": ("Tu as vu pourquoi une vidéo vend. Maintenant, entre TON produit : tu reçois "
-                  "plusieurs angles, chacun avec son accroche, prêts à tester."),
-        "bouton": "Trouver mes angles",
-        "chemin": "/scripts?mission=2",
+        "objet": "Et ta vidéo à toi, ça donne quoi ?",
+        "titre": "Analyse ta dernière vidéo",
+        "texte": ("Colle le lien de ta dernière vidéo : tu vas voir où les gens décrochent, "
+                  "et ce qui la sépare de la vidéo qui vend."),
+        "bouton": "Analyser ma dernière vidéo",
+        "chemin": "/app",
     },
     3: {
-        "objet": "Ta prochaine vidéo est presque écrite",
-        "titre": "Prépare ta prochaine vidéo",
-        "texte": ("Choisis le script que tu vas tourner et garde-le (« Je tourne celui-là »). "
-                  "Tu n'as plus qu'à filmer."),
-        "bouton": "Choisir mon script",
+        "objet": "Tes 3 prochaines accroches",
+        "titre": "Génère 3 accroches pour ton produit",
+        "texte": ("Transforme ce que tu as compris en 3 accroches pour ton produit, "
+                  "prêtes à tester dans ta prochaine vidéo."),
+        "bouton": "Générer mes 3 accroches",
         "chemin": "/scripts?mission=3",
-    },
-    4: {
-        "objet": "Ta vidéo est en ligne ? Regarde ce qu'elle donne",
-        "titre": "Reviens décrypter ta vidéo",
-        "texte": ("Colle le lien de la vidéo que tu as publiée : tu vois ce qui a marché, ce qui "
-                  "a fait décrocher, et ce que tu changes dans la suivante."),
-        "bouton": "Décrypter ma vidéo",
-        "chemin": "/app",
     },
 }
 
@@ -116,8 +108,8 @@ def contenu(etape: str, etat: dict, app_url: str) -> tuple[str, str, str] | None
             return None          # mission accomplie : pas de relance inutile
         e = _ETAPES[prochaine]
         n = etat.get("terminees", 0)
-        avance = (f"<p>Tu en es à <strong>{n}/4</strong> dans ta mission. Prochaine étape :</p>"
-                  if n else "<p>Ta mission d'essai tient en 4 étapes. La première :</p>")
+        avance = (f"<p>Tu en es à <strong>{n}/3</strong> dans ta mission. Prochaine étape :</p>"
+                  if n else "<p>Ta mission d'essai tient en 3 étapes. La première :</p>")
         corps = (
             "<p>Salut,</p>"
             f"{avance}"
@@ -130,8 +122,8 @@ def contenu(etape: str, etat: dict, app_url: str) -> tuple[str, str, str] | None
 
     if etape == "j7":
         b = etat.get("bilan", {})
-        v, g, s = b.get("videos_decryptees", 0), b.get("generations_scripts", 0), b.get("scripts_gardes", 0)
-        if not (v or g or s):
+        v, a = b.get("videos", 0), b.get("accroches", 0)
+        if not (v or a):
             corps = (
                 "<p>Salut,</p>"
                 "<p>Ton essai se termine. Tu n'as pas eu le temps de décrypter une vidéo ?</p>"
@@ -147,8 +139,7 @@ def contenu(etape: str, etat: dict, app_url: str) -> tuple[str, str, str] | None
             "<p>Ton essai se termine. Voilà ce que tu as fait :</p>"
             "<ul style=\"padding-left:18px;line-height:1.9;\">"
             f"<li><strong>{v}</strong> vidéo{pl(v)} décryptée{pl(v)}</li>"
-            f"<li><strong>{g}</strong> série{pl(g)} d'angles pour ton produit</li>"
-            f"<li><strong>{s}</strong> script{pl(s)} prêt{pl(s)} à tourner</li>"
+            f"<li><strong>{a}</strong> accroche{pl(a)} pour ton produit</li>"
             "</ul>"
             "<p>Pour continuer à comprendre ce qui vend et à le reproduire chaque mois, passe à "
             "Qeerah Pro. Tes analyses et tes favoris restent là.</p>"

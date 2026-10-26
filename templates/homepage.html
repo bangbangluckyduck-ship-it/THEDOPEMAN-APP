@@ -1171,7 +1171,7 @@
 
       <div class="hero-cta-wrap">
         <a href="#tool" class="hero-cta" id="hero-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</a>
-        <p class="hero-cta-note" data-i18n="hero_cta_note">Sans carte bancaire</p>
+        <p class="hero-cta-note" data-i18n="hero_cta_note" data-var-regle="{{ TRIAL_RULE }}">{{ TRIAL_RULE }}</p>
       </div>
 
       <div class="social-proof">
@@ -1722,7 +1722,7 @@
         <button class="btn-analyze" id="analyze-btn" disabled data-i18n="tool_analyze_file">Analyser ce fichier</button>
       </div>
 
-      <p class="tool-note" data-i18n="tool_note" data-var-trial="{{ TRIAL_OFFER }}">{{ TRIAL_OFFER }}</p>
+      <p class="tool-note" data-i18n="tool_note" data-var-regle="{{ TRIAL_RULE }}">{{ TRIAL_RULE }}</p>
     </div>
 
     <div class="loading" id="loading">
@@ -2190,7 +2190,7 @@
     </div>
 
     <p style="text-align:center;font-size:14px;color:var(--muted);margin-top:20px">
-      <span data-i18n-html="pr_essai" data-var-trial="{{ TRIAL_OFFER }}" data-var-a="{{ TRIAL_ANALYSES }}">Commence sans payer : <strong>{{ TRIAL_OFFER }}</strong>, avec {{ TRIAL_ANALYSES }} vidéos à décrypter.</span>
+      <span data-i18n-html="pr_essai" data-var-regle="{{ TRIAL_RULE }}">Commence sans payer : <strong>{{ TRIAL_RULE }}</strong></span>
     </p>
     <p style="text-align:center;margin-top:12px">
       <a href="/pricing/compare" style="color:var(--accent);font-weight:700;text-decoration:none;font-size:14px" data-i18n="pr_compare">Tout ce qui est inclus &rarr;</a>
@@ -2485,7 +2485,7 @@
         ? auth('l-au-title-signup', 'Créer mon compte')
         : auth('l-au-title', 'Accès à mon espace'));
     set('hp-auth-sub',     'textContent', inscription
-        ? auth('l-au-sub-signup', "7 jours d'accès complet, sans carte bancaire.")
+        ? auth('l-au-sub-signup', '7 jours, 10 analyses, tous les outils. Sans carte bancaire.')
         : auth('l-au-sub', 'Connecte-toi à ton compte Qeerah.'));
     set('hp-submit-btn',   'textContent', inscription
         ? auth('l-au-title-signup', 'Créer mon compte')
@@ -3320,7 +3320,7 @@
 <div id="auth-labels" hidden>
   <span id="l-au-title-signup" data-i18n="au_title_signup">Créer mon compte</span>
   <span id="l-au-title" data-i18n="au_title">Accès à mon espace</span>
-  <span id="l-au-sub-signup" data-i18n="au_sub_signup" data-var-trial_full="{{ TRIAL_OFFER_FULL }}">{{ TRIAL_OFFER_FULL }}.</span>
+  <span id="l-au-sub-signup" data-i18n="au_sub_signup" data-var-regle="{{ TRIAL_RULE }}">{{ TRIAL_RULE }}</span>
   <span id="l-au-sub" data-i18n="au_sub">Connecte-toi à ton compte Qeerah.</span>
   <span id="l-au-submit" data-i18n="au_submit">Se connecter</span>
   <span id="l-au-switch-label-login" data-i18n="au_switch_label_login">Tu as déjà un compte ?</span>

@@ -78,7 +78,6 @@
     <select id="sp-n"><option value="5">5 angles (recommandé)</option><option value="4">4 angles</option><option value="3">3 angles</option></select>
 
     <button class="btn btn-primary" id="sp-go" style="margin-top:16px" onclick="generate()">Générer mes scripts</button>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">3 générations offertes pendant l'essai — sans limite avec Qeerah Pro.</div>
   </div>
 
   <div id="sp-out"></div>
@@ -161,12 +160,20 @@ async function generate(){
       })
     });
     if(res.status===401){ out.innerHTML='<div class="upsell"><strong>Session expirée</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Reconnecte-toi pour continuer.</div><a class="btn btn-gold" href="/">Se reconnecter</a></div>'; return; }
-    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>Tes 3 générations offertes sont utilisées</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Passe à Qeerah Pro pour générer des scripts sans limite.</div><a class="btn btn-gold" href="/pricing">Passer à Qeerah Pro</a></div>'; return; }
+    if(res.status===402){ out.innerHTML='<div class="upsell"><strong>Tu as utilisé les 3 générations de ton essai</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Avec Qeerah Pro, tu génères des accroches et des scripts pour tous tes produits, sans limite.</div><a class="btn btn-gold" href="/pricing">Passer à Qeerah Pro</a></div>'; return; }
     if(res.status===403){ out.innerHTML='<div class="upsell"><strong>Momentanément indisponible</strong><div style="font-size:13px;color:var(--muted);margin:8px 0">Le générateur ne répond pas. Réessaie dans un instant.</div><a class="btn btn-gold" href="/app">Retour à mon espace</a></div>'; return; }
     var d = await res.json().catch(function(){return {};});
     if(!res.ok || d.ok===false){ out.innerHTML='<div class="banner err">'+esc((d && (d.detail||d.error))||'Génération indisponible pour le moment. Réessaie dans un instant.')+'</div>'; return; }
     if(!d.scripts || !d.scripts.length){ out.innerHTML='<div class="banner err">Aucun script généré. Réessaie avec un nom de produit plus précis.</div>'; return; }
     renderResult(d);
+    // Étape 3 de la mission validée par le serveur : on le dit, avec le retour.
+    if(d.mission && d.mission.nouvelle && el('sp-mission')){
+      var m = el('sp-mission');
+      m.style.display = 'block';
+      m.innerHTML = d.mission.terminee
+        ? "<strong>🎉 Mission terminée.</strong> Tes accroches sont prêtes à tester. <a href=\"/app\" style=\"font-weight:700\">Retour à mon espace →</a>"
+        : "<strong>Tes accroches sont prêtes.</strong> <a href=\"/app\" style=\"font-weight:700\">Retour à ma mission →</a>";
+    }
   }catch(e){
     out.innerHTML='<div class="banner err">Erreur réseau. Vérifie ta connexion et réessaie.</div>';
   }finally{
@@ -196,7 +203,7 @@ async function garderScript(btn){
     var m = el('sp-mission');
     if(m){
       m.style.display = 'block';
-      m.innerHTML = "<strong>Script gardé.</strong> Tu le retrouves dans tes favoris. Tourne-le, publie-le, puis reviens décrypter ta vidéo : c'est la dernière étape de ta mission. <a href=\"/app\" style=\"font-weight:700\">Retour à ma mission →</a>";
+      m.innerHTML = "<strong>Script gardé.</strong> Tu le retrouves dans tes favoris. Tourne-le, publie-le, puis reviens l'analyser pour voir ce qu'il donne. <a href=\"/app\" style=\"font-weight:700\">Retour à mon espace →</a>";
       m.scrollIntoView({behavior:'smooth', block:'center'});
     }
   }catch(e){
@@ -204,15 +211,19 @@ async function garderScript(btn){
   }
 }
 
-// Arrivée depuis la mission (/scripts?mission=2 ou 3) : on dit quoi faire ici.
+// Arrivée depuis la mission (/scripts?mission=3&produit=…) : le formulaire est
+// déjà prêt — le produit détecté sur sa vidéo, 3 angles — il ne reste qu'à générer.
 document.addEventListener('DOMContentLoaded', function(){
-  var etape = new URLSearchParams(location.search).get('mission');
+  var q = new URLSearchParams(location.search);
   var m = el('sp-mission');
-  if(!m || !etape) return;
+  if(!m || q.get('mission') !== '3') return;
+  var produit = (q.get('produit') || '').trim().slice(0, 120);
+  if(produit && el('sp-product')) el('sp-product').value = produit;
+  if(el('sp-n')) el('sp-n').value = '3';
   m.style.display = 'block';
-  m.innerHTML = etape === '3'
-    ? "<strong>Étape 3 — Prépare ta prochaine vidéo.</strong> Génère tes angles, puis touche « 🎬 Je tourne celui-là » sur le script que tu vas filmer."
-    : "<strong>Étape 2 — Et pour ton produit ?</strong> Entre <u>ton</u> produit : tu reçois plusieurs angles, chacun avec son accroche, prêts à tester.";
+  m.innerHTML = "<strong>Étape 3 — Génère 3 accroches pour ton produit.</strong> "
+    + (produit ? "Vérifie le nom du produit, puis lance la génération." : "Indique ton produit, puis lance la génération.");
+  var go = el('sp-go'); if(go && produit) go.focus({preventScroll:true});
 });
 
 // Entrée clavier : Enter dans le champ produit lance la génération.

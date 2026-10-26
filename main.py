@@ -2448,6 +2448,9 @@ async def scripts_multi_angle(request: Request):
 
     # Comptage dédié (pour tous) — remplace l'ancien increment_usage sur les analyses.
     _record_script_generation(email, product, price, user_role, tier, len(result.get("scripts") or []))
+    # Étape 3 de la mission : des accroches générées pour son produit.
+    import mission
+    result["mission"] = mission.marquer(supabase_client, email, 3)
 
     used_after = _scripts_month_count(email)
     result["quota"] = {
@@ -5229,6 +5232,20 @@ async def push_unsubscribe(request: Request):
     return {"ok": True}
 
 
+def _limite_outil_402(tier: str, cost: int, bal: dict) -> JSONResponse:
+    """Réponse quand un outil de création n'a plus de quoi générer.
+
+    En essai, ce ne sont pas des « crédits insuffisants » : ce sont les essais
+    offerts sur cet outil qui sont utilisés. On le dit tel quel, avec ce que Pro
+    débloque, et l'app n'affiche qu'un bouton (cf. app_v3.js, carousel.html).
+    """
+    if (tier or "free").lower() == "free":
+        return JSONResponse({"ok": False, "reason": "essai_outil_epuise",
+                             "utilises": credits_mod.TRIAL_FREE_USES}, status_code=402)
+    return JSONResponse({"ok": False, "reason": "insufficient_credits",
+                         "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+
+
 @app.get("/api/video-prompt/history")
 async def video_prompt_history(request: Request):
     user = get_user_from_request(request)
@@ -5291,8 +5308,7 @@ async def video_prompt_generate(
                                        "video_prompt_generations") > 0:
             cost = 0
         else:
-            return JSONResponse({"ok": False, "reason": "insufficient_credits",
-                                 "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+            return _limite_outil_402(tier, cost, bal)
 
     img = (image or "").strip()
     if img.lower().startswith("data:") and "," in img:
@@ -5600,8 +5616,7 @@ async def carousel_generate(
                                            "photo_slide_generations") > 0:
                 cost = 0          # essai : génération offerte, aucun débit
             else:
-                return JSONResponse({"ok": False, "reason": "insufficient_credits",
-                                     "cost": cost, "available": bal.get("total_available", 0)}, status_code=402)
+                return _limite_outil_402(tier, cost, bal)
         payment_method = "credits"
     else:
         # Mode A : quota FREE = 3/mois
@@ -5699,6 +5714,30 @@ async def mission_etat(request: Request):
     import mission
     etat = mission.etat(supabase_client, user["email"])
     return {"ok": True, **etat, "usage": usage_info(user)}
+
+
+@app.post("/api/mission/etape")
+async def mission_valider_etape(request: Request):
+    """Valide l'étape 1 ou 2 après une analyse faite dans l'app.
+
+    Les analyses passent par plusieurs routes (lien, fichier, arrière-plan) : c'est
+    l'app, qui sait depuis quel bouton l'analyse a été lancée, qui signale l'étape.
+    `resultat` est l'analyse obtenue, résumée côté serveur pour le comparatif.
+    Rien d'autre que la progression du compte connecté n'est en jeu.
+    """
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    etape = body.get("etape")
+    if etape not in (1, 2):
+        raise HTTPException(status_code=422, detail="Étape inconnue.")
+    resultat = body.get("resultat") if isinstance(body.get("resultat"), dict) else None
+    import mission
+    return mission.marquer(supabase_client, user["email"], etape, resultat)
 
 
 # ════════════════════════════════════════════════════════════════════════════

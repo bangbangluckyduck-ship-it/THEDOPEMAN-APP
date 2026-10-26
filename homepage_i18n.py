@@ -151,7 +151,7 @@ T: dict[str, dict[str, str]] = {
         "hero_h1": "You know your video flopped. <span style=\"white-space:nowrap\">Not why.</span> So you go and make the same one again.",
         "hero_sub": "Paste the link of a video that sells. In 30 seconds, you'll see what you missed: the hook, the pitch, the exact second it tips — and how to adapt it to your product.",
         "hero_cta": "Analyse my first video for free",
-        "hero_cta_note": "No credit card",
+        "hero_cta_note": "{regle}",
         "brand_line": "Don't copy the videos that work.<br><strong>Understand why they work.</strong>",
         "pb_title": "The problem isn't always your product.",
         "pb_p": "A video can flop because of its first seconds, its angle, its demo, its selling points, its structure or its call to action. Until you see which one, you're fixing things at random.",
@@ -190,7 +190,7 @@ T: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Hooks and scripts</strong> ready to film for your products",
         "pr_res3": "<strong>What's selling today</strong> in your country: videos, products, creators",
         "pr_res4": "Breakdowns of <strong>your own videos</strong>, one at a time or several at once",
-        "pr_essai": "Start without paying: <strong>{trial}</strong>, with {a} videos to break down.",
+        "pr_essai": "Start without paying: <strong>{regle}</strong>",
         "hero_social": "Built by creators, for TikTok Shop creators",
 
         "auth_eyebrow": "Proven in the field",
@@ -251,7 +251,7 @@ T: dict[str, dict[str, str]] = {
         "tool_drop": "Click or drop your video here",
         "tool_drop_hint": "MP4, MOV • 500 MB maximum",
         "tool_analyze_file": "Analyse this file",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Extracting images…",
         "results_counter": "{trial} — create your account to use it",
         "res_score_label": "Persuasion score / 100",
@@ -375,7 +375,7 @@ T: dict[str, dict[str, str]] = {
         "au_title": "Sign in to your account",
         "au_sub": "Log in to your Qeerah account.",
         "au_title_signup": "Create my account",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "you@email.com",
         "au_pwd_ph": "Password",
         "au_pwd_ph_signup": "Choose a password (min. 6 characters)",
@@ -393,6 +393,7 @@ T: dict[str, dict[str, str]] = {
         "fp_submit": "Send me the reset link",
         "fp_note": "Secure link sent by email (valid for 24h).",
         "hd_account": "👤 My account",
+        "trial_rule": "7 days, 10 analyses, every tool. No credit card.",
     },
 
     # ═══════════════════════════ PORTUGAIS (BRÉSIL) ═══════════════════════════
@@ -414,7 +415,7 @@ T: dict[str, dict[str, str]] = {
         "hero_h1": "Você sabe que seu vídeo não vendeu. <span style=\"white-space:nowrap\">Não sabe por quê.</span> Aí grava o mesmo de novo.",
         "hero_sub": "Cole o link de um vídeo que vende. Em 30 segundos, você enxerga o que tinha passado batido: o gancho, o argumento, o segundo em que tudo vira — e como adaptar isso pro seu produto.",
         "hero_cta": "Analisar meu primeiro vídeo grátis",
-        "hero_cta_note": "Sem cartão de crédito",
+        "hero_cta_note": "{regle}",
         "brand_line": "Não copie os vídeos que dão certo.<br><strong>Entenda por que eles dão certo.</strong>",
         "pb_title": "O problema nem sempre é o seu produto.",
         "pb_p": "Um vídeo pode flopar por causa dos primeiros segundos, do ângulo, da demonstração, dos argumentos, da estrutura ou da chamada pra ação. Enquanto você não enxerga qual, fica corrigindo no chute.",
@@ -453,7 +454,7 @@ T: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Ganchos e roteiros</strong> prontos pra gravar com os seus produtos",
         "pr_res3": "<strong>O que está vendendo hoje</strong> no seu país: vídeos, produtos, criadores",
         "pr_res4": "O diagnóstico dos <strong>seus próprios vídeos</strong>, um por um ou vários de uma vez",
-        "pr_essai": "Comece sem pagar: <strong>{trial}</strong>, com {a} vídeos pra destrinchar.",
+        "pr_essai": "Comece sem pagar: <strong>{regle}</strong>",
         "hero_social": "Feito por criador, para criador do TikTok Shop",
 
         "auth_eyebrow": "Método testado na prática",
@@ -515,7 +516,7 @@ T: dict[str, dict[str, str]] = {
         "tool_drop": "Clique ou arraste seu vídeo aqui",
         "tool_drop_hint": "MP4, MOV • 500 MB no máximo",
         "tool_analyze_file": "Analisar este arquivo",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Extraindo as imagens…",
         "results_counter": "{trial} — crie sua conta para aproveitar",
         "res_score_label": "Nota de persuasão / 100",
@@ -638,7 +639,7 @@ T: dict[str, dict[str, str]] = {
         "au_title": "Acessar minha conta",
         "au_sub": "Entre na sua conta Qeerah.",
         "au_title_signup": "Criar minha conta",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "voce@email.com",
         "au_pwd_ph": "Senha",
         "au_pwd_ph_signup": "Escolha uma senha (mín. 6 caracteres)",
@@ -656,6 +657,7 @@ T: dict[str, dict[str, str]] = {
         "fp_submit": "Receber o link de redefinição",
         "fp_note": "Link seguro enviado por e-mail (válido por 24h).",
         "hd_account": "👤 Minha conta",
+        "trial_rule": "7 dias, 10 análises, todas as ferramentas. Sem cartão de crédito.",
     },
 
     # ═══════════════════════════ ESPAGNOL ═══════════════════════════
@@ -677,7 +679,7 @@ T: dict[str, dict[str, str]] = {
         "hero_h1": "Sabes que tu vídeo no vendió. <span style=\"white-space:nowrap\">No por qué.</span> Así que grabas otra vez el mismo.",
         "hero_sub": "Pega el enlace de un vídeo que vende. En 30 segundos verás lo que se te escapaba: el gancho, el argumento, el segundo en que todo cambia — y cómo adaptarlo a tu producto.",
         "hero_cta": "Analizar mi primer vídeo gratis",
-        "hero_cta_note": "Sin tarjeta",
+        "hero_cta_note": "{regle}",
         "brand_line": "No copies los vídeos que funcionan.<br><strong>Entiende por qué funcionan.</strong>",
         "pb_title": "El problema no siempre es tu producto.",
         "pb_p": "Un vídeo puede fallar por sus primeros segundos, su ángulo, su demostración, sus argumentos, su estructura o su llamada a la acción. Mientras no veas cuál, corriges a ciegas.",
@@ -716,7 +718,7 @@ T: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Ganchos y guiones</strong> listos para grabar con tus productos",
         "pr_res3": "<strong>Lo que vende hoy</strong> en tu país: vídeos, productos, creadores",
         "pr_res4": "El análisis de <strong>tus propios vídeos</strong>, uno a uno o varios a la vez",
-        "pr_essai": "Empieza sin pagar: <strong>{trial}</strong>, con {a} vídeos para descifrar.",
+        "pr_essai": "Empieza sin pagar: <strong>{regle}</strong>",
         "hero_social": "Hecho por creadores, para creadores de TikTok Shop",
 
         "auth_eyebrow": "Método probado sobre el terreno",
@@ -778,7 +780,7 @@ T: dict[str, dict[str, str]] = {
         "tool_drop": "Haz clic o suelta aquí tu vídeo",
         "tool_drop_hint": "MP4, MOV • 500 MB máximo",
         "tool_analyze_file": "Analizar este archivo",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Extrayendo las imágenes…",
         "results_counter": "{trial} — crea tu cuenta para aprovecharlo",
         "res_score_label": "Puntuación de persuasión / 100",
@@ -899,7 +901,7 @@ T: dict[str, dict[str, str]] = {
         "au_title": "Acceder a mi cuenta",
         "au_sub": "Entra en tu cuenta de Qeerah.",
         "au_title_signup": "Crear mi cuenta",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "tu@email.com",
         "au_pwd_ph": "Contraseña",
         "au_pwd_ph_signup": "Elige una contraseña (mín. 6 caracteres)",
@@ -917,6 +919,7 @@ T: dict[str, dict[str, str]] = {
         "fp_submit": "Recibir el enlace de restablecimiento",
         "fp_note": "Enlace seguro enviado por correo (válido 24 h).",
         "hd_account": "👤 Mi cuenta",
+        "trial_rule": "7 días, 10 análisis, todas las herramientas. Sin tarjeta.",
     },
 
     # ═══════════════════════════ ITALIEN ═══════════════════════════
@@ -938,7 +941,7 @@ T: dict[str, dict[str, str]] = {
         "hero_h1": "Sai che il tuo video non ha venduto. <span style=\"white-space:nowrap\">Non perché.</span> Così ne giri un altro uguale.",
         "hero_sub": "Incolla il link di un video che vende. In 30 secondi vedi quello che ti era sfuggito: il gancio, l'argomento, il secondo in cui tutto cambia — e come adattarlo al tuo prodotto.",
         "hero_cta": "Analizza il mio primo video gratis",
-        "hero_cta_note": "Senza carta di credito",
+        "hero_cta_note": "{regle}",
         "brand_line": "Non copiare i video che funzionano.<br><strong>Capisci perché funzionano.</strong>",
         "pb_title": "Il problema non è sempre il tuo prodotto.",
         "pb_p": "Un video può non funzionare per i primi secondi, l'angolo, la dimostrazione, gli argomenti, la struttura o la call to action. Finché non vedi quale, correggi a caso.",
@@ -977,7 +980,7 @@ T: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Ganci e script</strong> pronti da girare per i tuoi prodotti",
         "pr_res3": "<strong>Cosa vende oggi</strong> nel tuo paese: video, prodotti, creator",
         "pr_res4": "L'analisi dei <strong>tuoi video</strong>, uno alla volta o più insieme",
-        "pr_essai": "Inizia senza pagare: <strong>{trial}</strong>, con {a} video da decifrare.",
+        "pr_essai": "Inizia senza pagare: <strong>{regle}</strong>",
         "hero_social": "Fatto da creator, per i creator di TikTok Shop",
 
         "auth_eyebrow": "Metodo provato sul campo",
@@ -1040,7 +1043,7 @@ T: dict[str, dict[str, str]] = {
         "tool_drop": "Clicca o trascina qui il tuo video",
         "tool_drop_hint": "MP4, MOV • 500 MB massimo",
         "tool_analyze_file": "Analizza questo file",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Estrazione delle immagini…",
         "results_counter": "{trial} — crea il tuo account per approfittarne",
         "res_score_label": "Punteggio di persuasione / 100",
@@ -1161,7 +1164,7 @@ T: dict[str, dict[str, str]] = {
         "au_title": "Accedi al tuo spazio",
         "au_sub": "Entra nel tuo account Qeerah.",
         "au_title_signup": "Crea il mio account",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "tu@email.com",
         "au_pwd_ph": "Password",
         "au_pwd_ph_signup": "Scegli una password (min. 6 caratteri)",
@@ -1179,6 +1182,7 @@ T: dict[str, dict[str, str]] = {
         "fp_submit": "Ricevi il link di reimpostazione",
         "fp_note": "Link sicuro inviato per email (valido 24 h).",
         "hd_account": "👤 Il mio account",
+        "trial_rule": "7 giorni, 10 analisi, tutti gli strumenti. Senza carta di credito.",
     },
 
     # ═══════════════════════════ ALLEMAND ═══════════════════════════
@@ -1200,7 +1204,7 @@ T: dict[str, dict[str, str]] = {
         "hero_h1": "Du weißt, dass dein Video nichts verkauft hat. <span style=\"white-space:nowrap\">Nur nicht, warum.</span> Also drehst du das gleiche nochmal.",
         "hero_sub": "Füge den Link eines Videos ein, das verkauft. In 30 Sekunden siehst du, was dir entgangen ist: den Hook, das Argument, die Sekunde, in der alles kippt — und wie du das auf dein Produkt überträgst.",
         "hero_cta": "Mein erstes Video kostenlos analysieren",
-        "hero_cta_note": "Ohne Kreditkarte",
+        "hero_cta_note": "{regle}",
         "brand_line": "Kopier keine Videos, die funktionieren.<br><strong>Versteh, warum sie funktionieren.</strong>",
         "pb_title": "Das Problem ist nicht immer dein Produkt.",
         "pb_p": "Ein Video kann an den ersten Sekunden scheitern, am Blickwinkel, an der Demo, an den Argumenten, an der Struktur oder am Call-to-Action. Solange du nicht siehst, woran es liegt, korrigierst du ins Blaue.",
@@ -1239,7 +1243,7 @@ T: dict[str, dict[str, str]] = {
         "pr_res2": "<strong>Hooks und Skripte</strong> zum Drehen für deine Produkte",
         "pr_res3": "<strong>Was heute verkauft</strong> in deinem Land: Videos, Produkte, Creator",
         "pr_res4": "Die Analyse <strong>deiner eigenen Videos</strong>, einzeln oder mehrere auf einmal",
-        "pr_essai": "Starte ohne zu zahlen: <strong>{trial}</strong>, mit {a} Videos zum Entschlüsseln.",
+        "pr_essai": "Starte ohne zu zahlen: <strong>{regle}</strong>",
         "hero_social": "Von Creators gemacht, für TikTok-Shop-Creators",
 
         "auth_eyebrow": "In der Praxis erprobt",
@@ -1302,7 +1306,7 @@ T: dict[str, dict[str, str]] = {
         "tool_drop": "Klick hier oder zieh dein Video rein",
         "tool_drop_hint": "MP4, MOV • maximal 500 MB",
         "tool_analyze_file": "Diese Datei analysieren",
-        "tool_note": "{trial}",
+        "tool_note": "{regle}",
         "loading_text": "Bilder werden extrahiert…",
         "results_counter": "{trial} — erstelle dein Konto, um es zu nutzen",
         "res_score_label": "Überzeugungswertung / 100",
@@ -1423,7 +1427,7 @@ T: dict[str, dict[str, str]] = {
         "au_title": "Zu meinem Konto",
         "au_sub": "Melde dich bei deinem Qeerah-Konto an.",
         "au_title_signup": "Konto erstellen",
-        "au_sub_signup": "{trial_full}.",
+        "au_sub_signup": "{regle}",
         "au_email_ph": "du@email.com",
         "au_pwd_ph": "Passwort",
         "au_pwd_ph_signup": "Passwort wählen (mind. 6 Zeichen)",
@@ -1441,6 +1445,7 @@ T: dict[str, dict[str, str]] = {
         "fp_submit": "Link zum Zurücksetzen schicken",
         "fp_note": "Sicherer Link per E-Mail (24 Std. gültig).",
         "hd_account": "👤 Mein Konto",
+        "trial_rule": "7 Tage, 10 Analysen, alle Tools. Ohne Kreditkarte.",
     },
 }
 
@@ -1481,8 +1486,9 @@ def t(key: str, lang: str) -> str | None:
     return T.get(lang, {}).get(key)
 
 
-# Jetons `{...}` : le nom `trial` renvoie vers la clef `trial_offer`.
-_ALIAS = {"trial": "trial_offer"}
+# Jetons `{...}` : `trial` renvoie vers la clef `trial_offer`, `regle` vers
+# `trial_rule` (la règle d'essai unique, cf. site_content.TRIAL_RULE).
+_ALIAS = {"trial": "trial_offer", "regle": "trial_rule"}
 
 
 def _fill(value: str, dvars: dict[str, str], lang: str) -> str:

@@ -203,7 +203,7 @@ def test_aucun_jeton_de_traduction_non_resolu():
     """{trial}, {count}, {dims}… doivent tous avoir été remplacés."""
     for lang in homepage_i18n.LANGS:
         restants = re.findall(
-            r"\{(trial|trial_full|count|dims|m|y)\}", PAGES[lang]
+            r"\{(trial|trial_full|regle|count|dims|m|y)\}", PAGES[lang]
         )
         assert not restants, f"{lang} : jetons non résolus {set(restants)}"
 

@@ -249,6 +249,13 @@ async function ccGenerate(){
 }
 
 function ccPaywall(j){
+  // Essais de l'outil utilisés pendant l'essai : ce qu'il a utilisé, ce que Pro
+  // débloque, un seul bouton.
+  if(j.reason==='essai_outil_epuise'){
+    return `<div class="upsell"><strong>Tu as utilisé tes ${esc(j.utilises||3)} essais de cet outil</strong>
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">Avec Qeerah Pro, cet outil reste ouvert chaque mois, comme tous les autres.</div>
+      <a class="btn btn-gold" href="/pricing">Passer à Qeerah Pro</a></div>`;
+  }
   if(j.reason==='free_used'||j.reason==='free_quota'){
     return `<div class="upsell"><strong>${esc(j.message||'Essai gratuit utilisé')}</strong>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
@@ -365,7 +372,7 @@ function ccRender(r){
   // Upsell post-génération
   if(!token()){
     h+=`<div class="upsell"><strong>Tu as aimé ?</strong>
-      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">Crée un compte gratuit : 3 prompts/mois, historique sauvegardé, et plus.</div>
+      <div style="font-size:13px;color:var(--muted);margin:6px 0 10px">Crée ton compte : {{ TRIAL_RULE }}</div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <a class="btn btn-primary" style="width:auto" href="/app">Créer mon compte gratuit</a>
         <a class="btn btn-gold" href="/pricing">S'abonner à Qeerah Pro</a>
