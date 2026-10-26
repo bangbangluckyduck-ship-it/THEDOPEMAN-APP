@@ -1149,6 +1149,25 @@
     .bilan-chiffre strong { display: block; font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
     .bilan-chiffre strong small { font-size: 13px; font-weight: 700; color: var(--muted); }
     .bilan-chiffre span { font-size: 11.5px; color: var(--muted); line-height: 1.3; display: block; margin-top: 4px; }
+    /* Paiement en retard. */
+    .ab-bandeau { gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 12px 14px; margin-bottom: 14px;
+      border-radius: 12px; background: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; font-size: 13.5px; font-weight: 600; line-height: 1.45; }
+    .ab-bandeau .mission-btn { margin-top: 0; }
+    /* Fenêtre « Résilier » : pause, continuer, annuler. */
+    .res-fond { position: fixed; inset: 0; z-index: 10060; background: rgba(15,23,42,.55); display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+    @media (min-width: 600px) { .res-fond { align-items: center; } }
+    .res-fenetre { background: var(--surface); border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
+    .res-fenetre h2 { font-size: 19px; font-weight: 800; margin: 0 0 6px; color: var(--text); }
+    .res-sous { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; }
+    .res-q { font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .res-choix { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .res-choix button { border: 1px solid var(--border); background: var(--surface2); color: var(--text); border-radius: 999px; padding: 8px 12px; font-size: 13px; cursor: pointer; min-height: 38px; }
+    .res-choix button.actif { border-color: var(--primary); background: rgba(212,175,55,.15); font-weight: 700; }
+    .res-detail { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 16px; margin-bottom: 6px; background: var(--bg); color: var(--text); }
+    .res-fenetre .res-pause { width: 100%; margin-top: 10px; }
+    .res-continuer, .res-annuler { display: block; width: 100%; margin-top: 8px; padding: 12px; min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .res-continuer { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .res-annuler { background: none; border: none; color: var(--muted); text-decoration: underline; }
     /* Limite d'essai d'un outil de création. */
     .limite-outil { text-align: center; padding: 18px; background: rgba(212,175,55,.08); border: 1px solid rgba(212,175,55,.45); border-radius: 12px; }
     .limite-outil strong { display: block; font-size: 15px; color: var(--text); }
@@ -1464,6 +1483,8 @@
 
   <!-- MISSION D'ESSAI / BILAN DE FIN D'ESSAI — rempli par loadMission() (app_v3.js).
        Remplace l'arrivée « à vide » : le créateur sait tout de suite quoi faire. -->
+  <!-- Paiement en retard : bandeau rempli par afficherBandeauAbonnement() (app_v3.js). -->
+  <div id="abonnement-bandeau" class="ab-bandeau" style="display:none" role="status"></div>
   <div id="mission-card" class="mission-card" style="display:none" aria-live="polite"></div>
 
   <!-- BETA MESSAGE -->

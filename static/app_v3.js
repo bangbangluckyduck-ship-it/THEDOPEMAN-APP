@@ -506,6 +506,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "Si un compte existe pour cette adresse, le lien vient de partir. Pense à regarder dans tes indésirables.",
     gate_erreur_reseau: "Connexion impossible. Réessaie dans un instant.",
     gate_champs: "Remplis ton e-mail et ton mot de passe.",
+    ab_retard_texte: "Ton dernier paiement n'est pas passé. Mets ta carte à jour pour garder ton accès.",
+    ab_retard_btn: "Mettre à jour ma carte",
+    ab_pause_titre: "Ton abonnement est en pause",
+    ab_pause_texte: "Reprise prévue le {date}. Tes analyses et tes favoris restent là.",
+    ab_reprendre_btn: "Reprendre maintenant",
+    ab_reprise_ok: "C'est reparti : ton abonnement reprend.",
+    ab_resilier_btn: "Résilier",
+    res_titre: "Avant de partir",
+    res_sous: "Tu peux mettre ton abonnement en pause un mois au lieu de le résilier : tu ne paies rien pendant la pause, et tu reprends quand tu veux.",
+    res_question: "Pourquoi tu pars ? (facultatif)",
+    res_r_trop_cher: "Trop cher",
+    res_r_pas_assez_utilise: "Pas assez utilisé",
+    res_r_il_manque: "Il manque quelque chose",
+    res_r_autre: "Autre",
+    res_detail_ph: "Dis-nous en un mot (facultatif)",
+    res_pause_btn: "Mettre en pause 1 mois",
+    res_continuer_btn: "Continuer la résiliation",
+    res_annuler_btn: "Annuler",
+    res_pause_ok: "C'est fait : facturation en pause jusqu'au {date}.",
+    hebdo_titre: "📬 L'e-mail de la semaine",
+    hebdo_texte: "Chaque lundi, les 3 vidéos qui vendent dans ton pays, et pourquoi.",
+    hebdo_case: "Le recevoir",
+    erreur_generique: "Ça n'a pas marché. Réessaie dans un instant.",
   },
   en: {
     mission_titre: 'Run your first diagnosis in 60 seconds',
@@ -570,6 +593,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "If an account exists for this address, the link is on its way. Check your spam folder too.",
     gate_erreur_reseau: "Could not connect. Try again in a moment.",
     gate_champs: "Fill in your email and password.",
+    ab_retard_texte: "Your last payment did not go through. Update your card to keep your access.",
+    ab_retard_btn: "Update my card",
+    ab_pause_titre: "Your subscription is paused",
+    ab_pause_texte: "It resumes on {date}. Your analyses and favourites stay right here.",
+    ab_reprendre_btn: "Resume now",
+    ab_reprise_ok: "Done: your subscription is back on.",
+    ab_resilier_btn: "Cancel",
+    res_titre: "Before you go",
+    res_sous: "You can pause your subscription for a month instead of cancelling: you pay nothing during the pause, and you pick up whenever you want.",
+    res_question: "Why are you leaving? (optional)",
+    res_r_trop_cher: "Too expensive",
+    res_r_pas_assez_utilise: "Not using it enough",
+    res_r_il_manque: "Something is missing",
+    res_r_autre: "Other",
+    res_detail_ph: "Tell us in a few words (optional)",
+    res_pause_btn: "Pause for 1 month",
+    res_continuer_btn: "Continue cancelling",
+    res_annuler_btn: "Keep my subscription",
+    res_pause_ok: "Done: billing paused until {date}.",
+    hebdo_titre: "📬 The weekly email",
+    hebdo_texte: "Every Monday, the 3 videos selling in your country, and why.",
+    hebdo_case: "Receive it",
+    erreur_generique: "That did not work. Try again in a moment.",
   },
   'pt-br': {
     mission_titre: 'Faça seu primeiro diagnóstico em 60 segundos',
@@ -634,6 +680,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "Se existir uma conta com este endereço, o link já foi enviado. Confira também o spam.",
     gate_erreur_reseau: "Não foi possível conectar. Tente de novo em instantes.",
     gate_champs: "Preencha seu e-mail e sua senha.",
+    ab_retard_texte: "Seu último pagamento não foi aprovado. Atualize seu cartão para manter o acesso.",
+    ab_retard_btn: "Atualizar meu cartão",
+    ab_pause_titre: "Sua assinatura está pausada",
+    ab_pause_texte: "Retomada prevista em {date}. Suas análises e favoritos continuam aqui.",
+    ab_reprendre_btn: "Retomar agora",
+    ab_reprise_ok: "Pronto: sua assinatura voltou.",
+    ab_resilier_btn: "Cancelar assinatura",
+    res_titre: "Antes de ir embora",
+    res_sous: "Você pode pausar sua assinatura por um mês em vez de cancelar: não paga nada durante a pausa e volta quando quiser.",
+    res_question: "Por que você está saindo? (opcional)",
+    res_r_trop_cher: "Caro demais",
+    res_r_pas_assez_utilise: "Não uso o suficiente",
+    res_r_il_manque: "Falta alguma coisa",
+    res_r_autre: "Outro",
+    res_detail_ph: "Conte em poucas palavras (opcional)",
+    res_pause_btn: "Pausar por 1 mês",
+    res_continuer_btn: "Continuar o cancelamento",
+    res_annuler_btn: "Manter minha assinatura",
+    res_pause_ok: "Pronto: cobrança pausada até {date}.",
+    hebdo_titre: "📬 O e-mail da semana",
+    hebdo_texte: "Toda segunda-feira, os 3 vídeos que vendem no seu país, e por quê.",
+    hebdo_case: "Receber",
+    erreur_generique: "Não deu certo. Tente de novo em instantes.",
   },
   es: {
     mission_titre: 'Haz tu primer diagnóstico en 60 segundos',
@@ -698,6 +767,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "Si existe una cuenta con esta dirección, el enlace ya está en camino. Revisa también el correo no deseado.",
     gate_erreur_reseau: "No se pudo conectar. Vuelve a intentarlo en un momento.",
     gate_champs: "Escribe tu correo y tu contraseña.",
+    ab_retard_texte: "Tu último pago no se ha completado. Actualiza tu tarjeta para mantener tu acceso.",
+    ab_retard_btn: "Actualizar mi tarjeta",
+    ab_pause_titre: "Tu suscripción está en pausa",
+    ab_pause_texte: "Se reanuda el {date}. Tus análisis y favoritos siguen aquí.",
+    ab_reprendre_btn: "Reanudar ahora",
+    ab_reprise_ok: "Listo: tu suscripción se reanuda.",
+    ab_resilier_btn: "Cancelar suscripción",
+    res_titre: "Antes de irte",
+    res_sous: "Puedes pausar tu suscripción un mes en lugar de cancelarla: no pagas nada durante la pausa y vuelves cuando quieras.",
+    res_question: "¿Por qué te vas? (opcional)",
+    res_r_trop_cher: "Demasiado caro",
+    res_r_pas_assez_utilise: "No lo uso lo suficiente",
+    res_r_il_manque: "Falta algo",
+    res_r_autre: "Otro",
+    res_detail_ph: "Cuéntanos en pocas palabras (opcional)",
+    res_pause_btn: "Pausar 1 mes",
+    res_continuer_btn: "Seguir con la cancelación",
+    res_annuler_btn: "Mantener mi suscripción",
+    res_pause_ok: "Listo: cobro en pausa hasta el {date}.",
+    hebdo_titre: "📬 El correo de la semana",
+    hebdo_texte: "Cada lunes, los 3 vídeos que venden en tu país, y por qué.",
+    hebdo_case: "Recibirlo",
+    erreur_generique: "No ha funcionado. Vuelve a intentarlo en un momento.",
   },
   it: {
     mission_titre: 'Fai la tua prima diagnosi in 60 secondi',
@@ -762,6 +854,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "Se esiste un account con questo indirizzo, il link è in arrivo. Controlla anche lo spam.",
     gate_erreur_reseau: "Connessione impossibile. Riprova tra un momento.",
     gate_champs: "Inserisci la tua email e la password.",
+    ab_retard_texte: "Il tuo ultimo pagamento non è andato a buon fine. Aggiorna la carta per mantenere l'accesso.",
+    ab_retard_btn: "Aggiorna la mia carta",
+    ab_pause_titre: "Il tuo abbonamento è in pausa",
+    ab_pause_texte: "Riprende il {date}. Le tue analisi e i tuoi preferiti restano qui.",
+    ab_reprendre_btn: "Riprendi ora",
+    ab_reprise_ok: "Fatto: il tuo abbonamento riparte.",
+    ab_resilier_btn: "Disdici",
+    res_titre: "Prima di andare",
+    res_sous: "Puoi mettere in pausa l'abbonamento per un mese invece di disdirlo: non paghi nulla durante la pausa e riprendi quando vuoi.",
+    res_question: "Perché te ne vai? (facoltativo)",
+    res_r_trop_cher: "Troppo caro",
+    res_r_pas_assez_utilise: "Non lo uso abbastanza",
+    res_r_il_manque: "Manca qualcosa",
+    res_r_autre: "Altro",
+    res_detail_ph: "Dicci in poche parole (facoltativo)",
+    res_pause_btn: "Metti in pausa 1 mese",
+    res_continuer_btn: "Continua la disdetta",
+    res_annuler_btn: "Mantieni l'abbonamento",
+    res_pause_ok: "Fatto: fatturazione in pausa fino al {date}.",
+    hebdo_titre: "📬 L'email della settimana",
+    hebdo_texte: "Ogni lunedì, i 3 video che vendono nel tuo paese, e perché.",
+    hebdo_case: "Riceverla",
+    erreur_generique: "Non ha funzionato. Riprova tra un momento.",
   },
   de: {
     mission_titre: 'Mach deine erste Diagnose in 60 Sekunden',
@@ -826,6 +941,29 @@ const TRANSLATIONS_MISSION = {
     gate_oubli_ok: "Wenn es ein Konto mit dieser Adresse gibt, ist der Link unterwegs. Schau auch im Spam-Ordner nach.",
     gate_erreur_reseau: "Verbindung nicht möglich. Versuch es gleich noch einmal.",
     gate_champs: "Gib deine E-Mail und dein Passwort ein.",
+    ab_retard_texte: "Deine letzte Zahlung ist nicht durchgegangen. Aktualisiere deine Karte, um deinen Zugang zu behalten.",
+    ab_retard_btn: "Meine Karte aktualisieren",
+    ab_pause_titre: "Dein Abo ist pausiert",
+    ab_pause_texte: "Es geht am {date} weiter. Deine Analysen und Favoriten bleiben erhalten.",
+    ab_reprendre_btn: "Jetzt fortsetzen",
+    ab_reprise_ok: "Erledigt: Dein Abo läuft wieder.",
+    ab_resilier_btn: "Kündigen",
+    res_titre: "Bevor du gehst",
+    res_sous: "Du kannst dein Abo einen Monat pausieren, statt zu kündigen: Während der Pause zahlst du nichts, und du machst weiter, wann du willst.",
+    res_question: "Warum gehst du? (optional)",
+    res_r_trop_cher: "Zu teuer",
+    res_r_pas_assez_utilise: "Zu wenig genutzt",
+    res_r_il_manque: "Es fehlt etwas",
+    res_r_autre: "Anderes",
+    res_detail_ph: "Sag es uns in ein paar Worten (optional)",
+    res_pause_btn: "1 Monat pausieren",
+    res_continuer_btn: "Kündigung fortsetzen",
+    res_annuler_btn: "Abo behalten",
+    res_pause_ok: "Erledigt: Abrechnung pausiert bis {date}.",
+    hebdo_titre: "📬 Die Wochen-E-Mail",
+    hebdo_texte: "Jeden Montag die 3 Videos, die in deinem Land verkaufen, und warum.",
+    hebdo_case: "Erhalten",
+    erreur_generique: "Das hat nicht geklappt. Versuch es gleich noch einmal.",
   },
 };
 Object.keys(TRANSLATIONS_MISSION).forEach(l => Object.assign(TRANSLATIONS[l], TRANSLATIONS_MISSION[l]));
@@ -4066,13 +4204,25 @@ function renderAccountPage() {
   // Historique des analyses : déplacé vers "📊 Mes analyses" (DB Supabase
   // cross-device). L'ancien bloc localStorage n'est plus rendu ici.
 
+  // 📬 E-mail de la semaine (abonnés et comptes en essai)
+  html += `
+      <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">${escapeHtml(t('hebdo_titre'))}</div>
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--muted);cursor:pointer">
+          <span>${escapeHtml(t('hebdo_texte'))}</span>
+          <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--text);font-weight:600">
+            <input type="checkbox" id="hebdo-case" checked style="width:18px;height:18px"> ${escapeHtml(t('hebdo_case'))}</span>
+        </label>
+      </div>`;
+
   // Buttons
   if (tier !== 'free' && tier !== 'admin') {
     html += `
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="openCustomerPortal()" style="flex:1">💳 Gérer l'abonnement</button>
         <button class="btn btn-accent" onclick="window.logout()" style="flex:1">🚪 Déconnexion</button>
-      </div>`;
+      </div>
+      <button type="button" onclick="ouvrirResiliation()" style="display:block;margin:14px auto 0;background:none;border:none;padding:8px;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer">${escapeHtml(t('ab_resilier_btn'))}</button>`;
   } else if (tier === 'free') {
     html += `
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -4091,6 +4241,7 @@ function renderAccountPage() {
   initPushUI();              // opt-in notifications
   renderAccountCredits();    // balance + packs crédits
   renderAffiliate();         // 🤝 programme d'affiliation
+  initPreferenceHebdo();     // 📬 e-mail de la semaine
 }
 
 /* ── 🤝 PROGRAMME D'AFFILIATION (espace client) ─────────────────────────── */
@@ -7043,6 +7194,7 @@ async function loadMission() {
   } catch (_) { card.style.display = 'none'; return; }
   window.__missionEtat = data;
   if (data.usage) { window.__usage = data.usage; updateUsageCounter(); }
+  afficherBandeauAbonnement(data.abonnement);
   _renderMission(card, data);
 }
 window.loadMission = loadMission;
@@ -7076,6 +7228,7 @@ function _renderComparatif(c) {
 
 function _renderMission(card, data) {
   const usage = data.usage || {};
+  if (data.abonnement && data.abonnement.pause_fin) { _renderPause(card, data.abonnement); return; }
   if (usage.kind === 'expired') { _renderBilanFinEssai(card, data); return; }
 
   _missionSuivre(data.etapes || []);
@@ -7189,3 +7342,124 @@ function afficherLimiteOutil(out, j) {
   });
 }
 window.afficherLimiteOutil = afficherLimiteOutil;
+
+// ══════════════════════════════════════════════════════════════
+// 🔁 GARDER LES ABONNÉS — paiement en retard, pause, résiliation, hebdo
+// ══════════════════════════════════════════════════════════════
+// L'état vient de /api/mission (champ `abonnement`, cf. fidelisation.py).
+function _dateLocale(iso) {
+  try { return new Date(iso).toLocaleDateString(currentLanguage === 'pt-br' ? 'pt-BR' : currentLanguage, { day: 'numeric', month: 'long' }); }
+  catch (_) { return String(iso || '').slice(0, 10); }
+}
+
+// Bandeau « mets ta carte à jour » : l'accès est gardé pendant les relances
+// Stripe, mais l'abonné doit le savoir AVANT qu'elles s'arrêtent.
+function afficherBandeauAbonnement(ab) {
+  const el = document.getElementById('abonnement-bandeau');
+  if (!el) return;
+  if (!ab || !ab.paiement_en_retard) { el.style.display = 'none'; return; }
+  el.innerHTML = `<span>${escapeHtml(t('ab_retard_texte'))}</span>
+    <button type="button" class="mission-btn">${escapeHtml(t('ab_retard_btn'))}</button>`;
+  el.style.display = 'flex';
+  el.querySelector('button').addEventListener('click', () => {
+    if (window.qTrack) qTrack('clic_maj_carte');
+    openCustomerPortal();
+  });
+}
+
+// Abonnement en pause : pas de bilan « essai terminé », mais la date de reprise
+// et « Reprendre maintenant ».
+function _renderPause(card, ab) {
+  card.innerHTML = `
+    <h2 class="mission-titre">⏸️ ${escapeHtml(t('ab_pause_titre'))}</h2>
+    <p class="mission-sous">${escapeHtml(t('ab_pause_texte').replace('{date}', _dateLocale(ab.pause_fin)))}</p>
+    <button type="button" class="mission-btn" style="width:100%">${escapeHtml(t('ab_reprendre_btn'))}</button>`;
+  card.classList.remove('reduite');
+  card.style.display = 'block';
+  const b = card.querySelector('button');
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      const r = await fetch('/api/abonnement/reprendre', { method: 'POST', headers: _AUTH_HEADER() });
+      if (!r.ok) throw new Error();
+      showToast(t('ab_reprise_ok'));
+      loadMission();
+    } catch (_) { showToast(t('erreur_generique')); b.disabled = false; }
+  });
+}
+
+// « Résilier » : une fenêtre, trois choix — pause d'un mois, continuer (portail
+// Stripe), annuler — et une question facultative dans la même fenêtre. Deux
+// clics suffisent toujours pour résilier : pas de parcours piège.
+function ouvrirResiliation() {
+  if (window.qTrack) qTrack('clic_resilier');
+  const raisons = ['trop_cher', 'pas_assez_utilise', 'il_manque', 'autre'];
+  const fond = document.createElement('div');
+  fond.className = 'res-fond';
+  fond.innerHTML = `
+    <div class="res-fenetre" role="dialog" aria-modal="true" aria-labelledby="res-titre">
+      <h2 id="res-titre">${escapeHtml(t('res_titre'))}</h2>
+      <p class="res-sous">${escapeHtml(t('res_sous'))}</p>
+      <div class="res-q">${escapeHtml(t('res_question'))}</div>
+      <div class="res-choix">${raisons.map(r => `<button type="button" data-raison="${r}">${escapeHtml(t('res_r_' + r))}</button>`).join('')}</div>
+      <input type="text" class="res-detail" maxlength="300" placeholder="${escapeHtml(t('res_detail_ph'))}" style="display:none">
+      <button type="button" class="mission-btn res-pause">${escapeHtml(t('res_pause_btn'))}</button>
+      <button type="button" class="res-continuer">${escapeHtml(t('res_continuer_btn'))}</button>
+      <button type="button" class="res-annuler">${escapeHtml(t('res_annuler_btn'))}</button>
+    </div>`;
+  document.body.appendChild(fond);
+  let raison = null;
+  const detail = fond.querySelector('.res-detail');
+  const fermer = () => fond.remove();
+  fond.addEventListener('click', (e) => { if (e.target === fond) fermer(); });
+  fond.querySelectorAll('[data-raison]').forEach(b => b.addEventListener('click', () => {
+    raison = raison === b.dataset.raison ? null : b.dataset.raison;
+    fond.querySelectorAll('[data-raison]').forEach(x => x.classList.toggle('actif', x.dataset.raison === raison));
+    detail.style.display = (raison === 'il_manque' || raison === 'autre') ? 'block' : 'none';
+  }));
+  const envoyerRaison = () => raison ? fetch('/api/abonnement/raison', {
+    method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, _AUTH_HEADER()),
+    body: JSON.stringify({ raison, detail: detail.value || null }),
+  }).catch(() => {}) : Promise.resolve();
+  fond.querySelector('.res-annuler').addEventListener('click', fermer);
+  fond.querySelector('.res-pause').addEventListener('click', async (e) => {
+    const b = e.currentTarget; b.disabled = true;
+    await envoyerRaison();
+    try {
+      const r = await fetch('/api/abonnement/pause', { method: 'POST', headers: _AUTH_HEADER() });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.detail);
+      if (window.qTrack) qTrack('pause_abonnement');
+      showToast(t('res_pause_ok').replace('{date}', _dateLocale(d.pause_fin)));
+      fermer(); loadMission();
+    } catch (_) { showToast(t('erreur_generique')); b.disabled = false; }
+  });
+  fond.querySelector('.res-continuer').addEventListener('click', async () => {
+    await envoyerRaison();
+    if (window.qTrack) qTrack('resiliation_portail');
+    openCustomerPortal();
+  });
+}
+window.ouvrirResiliation = ouvrirResiliation;
+
+// Réglage de l'e-mail hebdo (onglet Compte).
+async function initPreferenceHebdo() {
+  const caseHebdo = document.getElementById('hebdo-case');
+  if (!caseHebdo) return;
+  try {
+    const r = await fetch('/api/abonnement', { headers: _AUTH_HEADER() });
+    const d = await r.json();
+    if (r.ok) caseHebdo.checked = d.hebdo !== false;
+  } catch (_) {}
+  caseHebdo.addEventListener('change', async () => {
+    try {
+      const r = await fetch('/api/preferences/hebdo', {
+        method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, _AUTH_HEADER()),
+        body: JSON.stringify({ actif: caseHebdo.checked }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error();
+    } catch (_) { caseHebdo.checked = !caseHebdo.checked; showToast(t('erreur_generique')); }
+  });
+}
+window.initPreferenceHebdo = initPreferenceHebdo;

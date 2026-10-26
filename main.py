@@ -1440,7 +1440,7 @@ async def clic_email(cle: str, r: str = Query("/app")):
 
 
 @app.get("/unsubscribe", response_class=HTMLResponse)
-async def unsubscribe(e: str = Query(""), s: str = Query("")):
+async def unsubscribe(e: str = Query(""), s: str = Query(""), type: str = Query("")):
     """Désinscription des emails promotionnels (lien signé dans les emails). RGPD.
 
     Paramètres volontairement OPTIONNELS : déclarés obligatoires, FastAPI
@@ -1450,13 +1450,23 @@ async def unsubscribe(e: str = Query(""), s: str = Query("")):
     from auth import verify_unsubscribe_token
     email = (e or "").strip().lower()
     ok = bool(email) and verify_unsubscribe_token(email, s)
+    hebdo_seul = type == "hebdo"
     if ok and supabase_client:
-        try:
-            supabase_client.table("users").update({"marketing_opt_out": True}).eq("email", email).execute()
-        except Exception as ex:
-            print(f"[unsubscribe] KO: {ex}")
-            ok = False
-    msg = ("Tu es bien désinscrit des emails promotionnels. Tu continueras à recevoir les emails "
+        # `type=hebdo` : ne coupe que l'e-mail de la semaine. Sans la colonne
+        # (migration non jouée), on coupe tout plutôt que de ne rien couper.
+        champs = [{"hebdo_opt_out": True}, {"marketing_opt_out": True}] if hebdo_seul \
+            else [{"marketing_opt_out": True}]
+        ok = False
+        for champ in champs:
+            try:
+                supabase_client.table("users").update(champ).eq("email", email).execute()
+                ok = True
+                break
+            except Exception as ex:
+                print(f"[unsubscribe] {champ} KO : {ex}")
+    msg = ("Tu ne recevras plus l'e-mail de la semaine. Tu peux le réactiver dans ton espace, "
+           "onglet Compte." if ok and hebdo_seul else
+           "Tu es bien désinscrit des emails promotionnels. Tu continueras à recevoir les emails "
            "essentiels (sécurité, mot de passe)." if ok else
            "Lien de désinscription invalide ou expiré. Écris-nous si besoin.")
     return HTMLResponse(
@@ -3693,6 +3703,9 @@ async def stripe_webhook_v1(request: Request):
         # renouvellement, pack de crédits), avant la logique d'abonnement.
         if email:
             _commission_affilie(obj, email)
+            # Paiement passé : plus de bandeau « mets ta carte à jour ».
+            import fidelisation
+            fidelisation.paiement_regle(supabase_client, email)
         if email and sub_id:
             try:
                 sub = stripe.Subscription.retrieve(sub_id)
@@ -3716,6 +3729,19 @@ async def stripe_webhook_v1(request: Request):
     elif etype == "invoice.payment_failed":
         print(f"stripe_webhook_v1: paiement échoué "
               f"(customer={obj.get('customer')}, invoice={obj.get('id')})")
+        # Bandeau dans l'app + accès gardé jusqu'à la prochaine relance Stripe
+        # (cf. fidelisation.py : l'échéance coupait l'accès dès le lendemain).
+        import fidelisation
+        if fidelisation.paiement_echoue(supabase_client, obj):
+            import entonnoir
+            entonnoir.enregistrer(supabase_client, "paiement_echoue")
+
+    # ── Abonnement modifié : retour à la normale, pause posée ou levée (depuis
+    #    l'app, le portail ou le tableau de bord Stripe). ⚠️ Événement à cocher
+    #    dans Stripe → Webhooks pour cet endpoint. ──
+    elif etype == "customer.subscription.updated":
+        import fidelisation
+        fidelisation.abonnement_modifie(supabase_client, obj)
 
     # ── Remboursement → commission d'affiliation réduite ou annulée ──
     # ⚠️ Événement à cocher dans Stripe → Webhooks pour cet endpoint.
@@ -3732,6 +3758,8 @@ async def stripe_webhook_v1(request: Request):
         if cust_id:
             from auth import revoke_by_customer
             revoke_by_customer(cust_id)
+            import entonnoir
+            entonnoir.enregistrer(supabase_client, "resiliation")
 
     return {"received": True}
 
@@ -5839,8 +5867,71 @@ async def mission_etat(request: Request):
     if not user.get("valid"):
         raise HTTPException(status_code=401, detail="Connexion requise.")
     import mission
+    import fidelisation
     etat = mission.etat(supabase_client, user["email"])
-    return {"ok": True, **etat, "usage": usage_info(user)}
+    return {"ok": True, **etat, "usage": usage_info(user),
+            "abonnement": fidelisation.etat(supabase_client, user["email"])}
+
+
+def _abonne_connecte(request: Request) -> str:
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    return user["email"]
+
+
+@app.get("/api/abonnement")
+async def abonnement_etat(request: Request):
+    """Paiement en retard, pause en cours, préférence de l'e-mail hebdo."""
+    import fidelisation
+    return {"ok": True, **fidelisation.etat(supabase_client, _abonne_connecte(request))}
+
+
+@app.post("/api/abonnement/pause")
+async def abonnement_pause(request: Request):
+    """« Mettre en pause 1 mois » : facturation suspendue après la période payée."""
+    import fidelisation
+    email = _abonne_connecte(request)
+    r = fidelisation.mettre_en_pause(supabase_client, email)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("detail") or "Pause impossible.")
+    import entonnoir
+    entonnoir.enregistrer(supabase_client, "pause")
+    return r
+
+
+@app.post("/api/abonnement/reprendre")
+async def abonnement_reprendre(request: Request):
+    import fidelisation
+    r = fidelisation.reprendre(supabase_client, _abonne_connecte(request))
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("detail") or "Reprise impossible.")
+    return r
+
+
+@app.post("/api/abonnement/raison")
+async def abonnement_raison(request: Request):
+    """Raison facultative avant une résiliation (choix courts)."""
+    import fidelisation
+    email = _abonne_connecte(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    ok = fidelisation.enregistrer_raison(supabase_client, email, str(body.get("raison") or ""),
+                                         body.get("detail"))
+    return {"ok": ok}
+
+
+@app.post("/api/preferences/hebdo")
+async def preference_hebdo(request: Request):
+    import fidelisation
+    email = _abonne_connecte(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    return {"ok": fidelisation.preference_hebdo(supabase_client, email, bool(body.get("actif")))}
 
 
 @app.post("/api/analyse-anonyme/rattacher")
