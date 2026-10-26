@@ -894,6 +894,22 @@
 
     .btn-pricing:hover { transform: translateY(-2px); }
 
+    .btn-pricing-alt {
+      display: block;
+      margin-top: 10px;
+      padding: 11px;
+      border: 2px solid var(--primary);
+      border-radius: 10px;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 14px;
+      text-align: center;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .btn-pricing-alt:hover { background: rgba(212,175,55,0.1); transform: translateY(-2px); }
+
     /* ═══ FOOTER ═══ */
     footer {
       background: var(--text);
@@ -2158,6 +2174,10 @@
           <li data-i18n-html="pr_res4">Le décryptage de <strong>tes propres vidéos</strong>, une par une ou plusieurs d'un coup</li>
         </ul>
         <button type="button" class="btn-pricing" id="pr-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</button>
+        {#- Pour qui veut payer tout de suite, sans passer par l'essai : même
+            paiement Stripe que /pricing (un compte n'est pas nécessaire). Masqué
+            pour un compte connecté, dont #pr-cta mène déjà à /pricing. -#}
+        <a href="/pricing" class="btn-pricing-alt" id="pr-subscribe" data-i18n="pr_subscribe">S'abonner maintenant</a>
         {#- Ordre de grandeur en devise locale, rempli par le serveur uniquement
             sur les marchés hors zone euro (cf. homepage_i18n._price_block).
             Reste vide — donc invisible — en France, en Allemagne, en Espagne et
@@ -2917,7 +2937,8 @@
   }
 
   // ── APPELS À L'ACTION D'UN COMPTE CONNECTÉ ──────────────────
-  // Visiteur : un seul appel partout, « Analyser ma première vidéo gratuitement ».
+  // Visiteur : « Analyser ma première vidéo gratuitement » partout, plus
+  // « S'abonner maintenant » (#pr-subscribe) sur la carte tarifaire.
   // Compte connecté (essai ou abonné) : « Continuer ma mission » (hero, écran
   // « Le problème ») et « Passer à Qeerah Pro » (tarif). Libellés traduits par
   // le serveur dans #fr-labels.
@@ -2933,6 +2954,7 @@
     var note = document.querySelector('.hero-cta-note'); if (note) note.style.display = 'none';
     var pr = document.getElementById('pr-cta');
     if (pr) { pr.textContent = lib('l-cta-pro', 'Passer à Qeerah Pro'); pr.dataset.connecte = '1'; pr.dataset.href = '/pricing'; }
+    var abo = document.getElementById('pr-subscribe'); if (abo) abo.style.display = 'none';
   }
   window.appliquerCtaConnecte = appliquerCtaConnecte;
   appliquerCtaConnecte();
