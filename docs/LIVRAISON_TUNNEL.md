@@ -104,10 +104,10 @@ Toutes rejouables sans risque, accès refusé à la clé publique (comme `users`
   n'est pas posé. L'e-mail de bienvenue historique, lui, continue de partir.
 - Après relecture des textes : `ESSAI_EMAILS_ACTIFS=1` sur le **service web**
   (bienvenue à l'inscription) **et** sur le cron « upsell-j3 ».
-- Cron « upsell-j3 » : passer le planning à `0 * * * *` (chaque heure).
-- Nouveau cron « hebdo » : `python3 cron_hebdo.py`, `0 8 * * 1`, mêmes variables
-  que « upsell-j3 » ; `HEBDO_ACTIF=1` une fois les textes validés.
-- Vérifier la valeur de `FEED_RADAR_REGIONS` : l'e-mail du jour 3 et l'hebdo ne
+- ~~Cron « upsell-j3 » : passer le planning à `0 * * * *`~~ — fait le 26/10 (chaque heure).
+- E-mail hebdo : lancé par le cron « upsell-j3 » le lundi à 8 h UTC (pas de
+  cron de plus) ; poser `HEBDO_ACTIF=1` sur « upsell-j3 » une fois les textes validés.
+- `FEED_RADAR_REGIONS` n'est posée ni sur le service web ni sur le cron de collecte : seule la France est collectée. À élargir si tu veux des vidéos par pays : l'e-mail du jour 3 et l'hebdo ne
   montrent que des vidéos du pays de l'utilisateur ; sans données pour son pays,
   le jour 3 renvoie au Feed Radar et l'hebdo ne part pas.
 

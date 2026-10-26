@@ -1,7 +1,8 @@
 """Entrée CRON de l'e-mail hebdo « Ce qui vend cette semaine » (hebdo.py).
 
-Configuration Render :
-    Cron Job « hebdo »
+Normalement lancé par le cron horaire « upsell-j3 » (cron_upsell.py), le lundi à
+8 h UTC — pas de service Render de plus. Ce script reste utile pour un envoi à la
+main ou si un cron dédié est créé un jour :
     Command  : python3 cron_hebdo.py
     Schedule : "0 8 * * 1"   (lundi, 8 h UTC)
     Env      : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_PUBLIC_URL,
