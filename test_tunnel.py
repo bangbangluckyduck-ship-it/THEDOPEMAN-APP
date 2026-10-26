@@ -99,7 +99,10 @@ def test_le_state_sans_suite_reste_valide():
 def test_un_state_falsifie_ne_donne_aucune_suite():
     s = google_oauth.make_state("/en")
     payload, sig = s.rsplit(".", 1)
-    assert google_oauth.suite_du_state(payload + ".0" + sig[1:]) is None
+    # Premier caractère toujours CHANGÉ (« 0 » → « 1 », sinon → « 0 ») : remplacer
+    # par « 0 » un caractère qui vaut déjà « 0 » laissait la signature valide.
+    falsifie = ("1" if sig[0] == "0" else "0") + sig[1:]
+    assert google_oauth.suite_du_state(payload + "." + falsifie) is None
 
 
 # ── Liens des e-mails ──────────────────────────────────────────────────────
