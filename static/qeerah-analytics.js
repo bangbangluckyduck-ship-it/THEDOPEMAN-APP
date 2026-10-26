@@ -20,17 +20,26 @@
   // identifiant, seulement le nom de l'étape. Il existe parce que GA4 et le
   // pixel ne voient que les visiteurs qui acceptent les cookies — les taux de
   // passage entre marches y sont faux par construction.
+  // Le navigateur n'envoie que ce qu'il est seul à voir (visite, clics). Les
+  // analyses, résultats, inscriptions, étapes de mission et paiements sont
+  // comptés par le serveur, là où ils sont certains.
   var INTERNE = {
-    page_vue_accueil: 'accueil_vue',
+    page_vue_accueil: 'visite_accueil',
     clic_cta_principal: 'cta_clic',
-    analyse_demarree: 'analyse_lancee',
-    resultat_partiel_affiche: 'resultat_partiel',
-    clic_debloquer_resultat: 'debloquer_clic',
+    clic_debloquer_resultat: 'clic_debloquer',
     clic_decrypter_feed_radar: 'feedradar_decrypter'
   };
   // Une seule fois par onglet : un visiteur qui recharge ou reclique ne doit
   // pas gonfler la marche.
-  var UNE_FOIS_PAR_ONGLET = { accueil_vue: 1, cta_clic: 1 };
+  var UNE_FOIS_PAR_ONGLET = { visite_accueil: 1, cta_clic: 1 };
+
+  // Langue de la page (l'accueil existe en 8 langues), ou celle choisie dans l'app.
+  function langue() {
+    try {
+      if (location.pathname.indexOf('/app') === 0) return (localStorage.getItem('dv_lang') || 'fr').toLowerCase();
+    } catch (e) {}
+    return (document.documentElement.lang || 'fr').toLowerCase();
+  }
 
   function interne(etape) {
     try {
@@ -41,7 +50,7 @@
       }
     } catch (e) { /* stockage indisponible : on compte quand même */ }
     try {
-      var corps = JSON.stringify({ e: etape });
+      var corps = JSON.stringify({ e: etape, l: langue() });
       if (navigator.sendBeacon) {
         navigator.sendBeacon('/api/evt', new Blob([corps], { type: 'application/json' }));
       } else {
@@ -56,17 +65,18 @@
   // leurs propres envois (CompleteRegistration navigateur, CompletePayment
   // serveur).
   var PIXEL = {
-    cta_clic: ['ClickButton', { content_name: 'analyser_premiere_video' }],
-    analyse_lancee: ['SubmitForm', { content_name: 'analyse_video' }],
+    clic_cta_principal: ['ClickButton', { content_name: 'analyser_premiere_video' }],
+    analyse_demarree: ['SubmitForm', { content_name: 'analyse_video' }],
     analyse_terminee: ['AnalyseTerminee', {}],
     mission_1: ['MissionEtape1', {}],
     mission_2: ['MissionEtape2', {}],
-    mission_3: ['MissionEtape3', {}],
-    mission_4: ['MissionEtape4', {}]
+    mission_3: ['MissionEtape3', {}]
   };
-  function pixel(etape) {
+  function pixel(nom, props) {
     try {
-      var p = PIXEL[etape];
+      if (nom === 'analyse_terminee' && !(props && props.resultat === 'succes')) return;
+      if (nom === 'mission_etape_terminee') nom = props && props.etape ? 'mission_' + props.etape : '';
+      var p = PIXEL[nom];
       if (p && window.QeerahTikTok && typeof window.QeerahTikTok.track === 'function') {
         window.QeerahTikTok.track(p[0], p[1], { event_id: window.QeerahTikTok.newEventId ? window.QeerahTikTok.newEventId() : undefined });
       }
@@ -76,9 +86,8 @@
   /** Émet un événement : GA4 (si consentement), entonnoir interne, pixel. */
   function track(nom, props) {
     var etape = INTERNE[nom];
-    if (nom === 'analyse_terminee' && props && props.resultat === 'succes') etape = 'analyse_terminee';
-    if (nom === 'mission_etape_terminee' && props && props.etape) etape = 'mission_' + props.etape;
-    if (etape) { interne(etape); pixel(etape); }
+    if (etape) interne(etape);
+    pixel(nom, props);
     try {
       if (typeof window.gtag !== 'function') return;
       window.gtag('event', nom, props || {});

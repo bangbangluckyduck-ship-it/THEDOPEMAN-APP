@@ -461,10 +461,10 @@ def deja_envoye(supabase, email: str, cle: str) -> bool:
         return True
 
 
-def journaliser(supabase, email: str, cle: str) -> None:
+def journaliser(supabase, email: str, cle: str, statut: str = "envoye") -> None:
     maintenant = datetime.now(timezone.utc)
     try:
-        supabase.table("email_log").insert({"email": email, "cle": cle, "statut": "envoye",
+        supabase.table("email_log").insert({"email": email, "cle": cle, "statut": statut,
                                             "envoye_le": maintenant.isoformat()}).execute()
         return
     except Exception:
@@ -558,6 +558,11 @@ async def run(supabase, maintenant: datetime | None = None) -> dict:
         if not moment:
             compte["skipped"] += 1
             continue
+        if moment == "j7" and not deja_envoye(supabase, email, "essai_expire"):
+            # Mesure (lot 6) : une fois par compte, que les e-mails partent ou non.
+            import entonnoir
+            entonnoir.enregistrer(supabase, "essai_expire", lang=langue(u.get("lang")))
+            journaliser(supabase, email, "essai_expire", statut="evenement")
         etat = mission.etat(supabase, email)
         cle = choisir(moment, etat)
         if not cle:

@@ -191,8 +191,11 @@ def _partiel_anonyme(result: dict, anon_id: Optional[str]) -> dict:
     }
 
 
-def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = None) -> dict:
+def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = None,
+                     lang: Optional[str] = None) -> dict:
     """Garde le rapport complet 48 h et renvoie la version partielle."""
+    import entonnoir
+    entonnoir.enregistrer(supabase_client, "resultat_affiche", detail=source, lang=lang)
     anon_id = uuid.uuid4().hex
     try:
         if not supabase_client:
@@ -1774,7 +1777,7 @@ async def register(request: Request):
         print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
 
     import entonnoir
-    entonnoir.enregistrer(supabase, "compte_cree")
+    entonnoir.enregistrer(supabase_client, "inscription", detail="email", lang=lang)
 
     token = create_access_token(email)
     return {"ok": True, "email": email, "tier": "free", "created": True, "token": token}
@@ -2007,6 +2010,9 @@ async def analyze_stream_sse(
     # Utilisateur ANONYME (pas de token) => limite stricte par IP, fenêtre glissante 24h.
     if not user["valid"]:
         _consume_anon_quota(request)
+        import entonnoir
+        entonnoir.enregistrer(supabase_client, "analyse_anonyme_lancee", detail="fichier",
+                              lang=_langue_requete(request))
 
     try: frames_list: list[str] = json.loads(frames)
     except json.JSONDecodeError as e: raise HTTPException(status_code=400, detail="Frames JSON invalide.")
@@ -2348,7 +2354,7 @@ async def analyze_stream_sse(
             )
 
             if not user["valid"]:
-                result = _reponse_anonyme(result, source="upload")
+                result = _reponse_anonyme(result, source="upload", lang=_langue_requete(request))
             yield 'event: complete\n'
             yield f'data: {json.dumps(result)}\n\n'
 
@@ -2672,6 +2678,8 @@ async def analyze_url(request: Request):
         # prend deux secondes, envoyer un fichier de 500 Mo, non.
         if not user.get("valid"):
             _consume_anon_quota(request)
+            import entonnoir
+            entonnoir.enregistrer(supabase_client, "analyse_anonyme_lancee", detail="lien", lang=lang)
         else:
             raise HTTPException(
                 status_code=402,
@@ -2719,7 +2727,7 @@ async def analyze_url(request: Request):
                 _persist_sync_analysis(user, cached, source="url", source_url=url,
                                        title=url[:60], depuis_cache=True)
             else:
-                return JSONResponse(_reponse_anonyme(cached, source="url", source_url=url))
+                return JSONResponse(_reponse_anonyme(cached, source="url", source_url=url, lang=lang))
             return JSONResponse(cached)
 
     loop = asyncio.get_event_loop()
@@ -2846,7 +2854,7 @@ async def analyze_url(request: Request):
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, 0)  # frames_analyzed n'a plus de sens avec Gemini natif
         if not user["valid"]:
-            return JSONResponse(_reponse_anonyme(result, source="url", source_url=url))
+            return JSONResponse(_reponse_anonyme(result, source="url", source_url=url, lang=lang))
         return JSONResponse(result)
 
     finally:
@@ -3682,7 +3690,10 @@ async def stripe_webhook_v1(request: Request):
         await _tiktok_complete_payment(obj, email)
         try:
             import entonnoir
-            entonnoir.enregistrer(supabase_client, "abonnement")
+            _billing = ((obj.get("metadata") or {}).get("billing") or "month")
+            entonnoir.enregistrer(supabase_client, "abonnement",
+                                  detail="annuel" if _billing == "year" else "mensuel",
+                                  email=obj.get("customer_email") or obj.get("client_reference_id"))
         except Exception as _e:
             print(f"[entonnoir] abonnement : {_e}")
 
@@ -3732,9 +3743,10 @@ async def stripe_webhook_v1(request: Request):
         # Bandeau dans l'app + accès gardé jusqu'à la prochaine relance Stripe
         # (cf. fidelisation.py : l'échéance coupait l'accès dès le lendemain).
         import fidelisation
-        if fidelisation.paiement_echoue(supabase_client, obj):
+        _email_echec = fidelisation.paiement_echoue(supabase_client, obj)
+        if _email_echec:
             import entonnoir
-            entonnoir.enregistrer(supabase_client, "paiement_echoue")
+            entonnoir.enregistrer(supabase_client, "paiement_echoue", email=_email_echec)
 
     # ── Abonnement modifié : retour à la normale, pause posée ou levée (depuis
     #    l'app, le portail ou le tableau de bord Stripe). ⚠️ Événement à cocher
@@ -3837,8 +3849,8 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
     # indiscernable d'une simple reconnexion côté mesure.
     if is_new_account:
         import entonnoir
-        entonnoir.enregistrer(supabase_client, "compte_cree")
         lang = _noter_langue(email, request)
+        entonnoir.enregistrer(supabase_client, "inscription", detail="google", lang=lang)
         try:
             import essai_emails
             await essai_emails.bienvenue(supabase_client, email, lang)
@@ -5847,8 +5859,10 @@ async def evenement_entonnoir(request: Request):
     except Exception:
         body = {}
     e = str((body or {}).get("e") or "").strip()
+    e = entonnoir.ANCIENS_NOMS.get(e, e)
     if e not in entonnoir.DEPUIS_NAVIGATEUR:
         return JSONResponse({"ok": False}, status_code=400)
+    lang = str((body or {}).get("l") or "").strip().lower() or None
     ip = request.client.host if request.client else "?"
     maintenant = time.time()
     recents = [t for t in _EVT_PAR_IP.get(ip, []) if maintenant - t < _EVT_FENETRE]
@@ -5857,7 +5871,7 @@ async def evenement_entonnoir(request: Request):
         return JSONResponse({"ok": False}, status_code=429)
     recents.append(maintenant)
     _EVT_PAR_IP[ip] = recents
-    entonnoir.enregistrer(supabase_client, e)
+    entonnoir.enregistrer(supabase_client, e, lang=lang)
     return {"ok": True}
 
 
@@ -5896,7 +5910,7 @@ async def abonnement_pause(request: Request):
     if not r.get("ok"):
         raise HTTPException(status_code=400, detail=r.get("detail") or "Pause impossible.")
     import entonnoir
-    entonnoir.enregistrer(supabase_client, "pause")
+    entonnoir.enregistrer(supabase_client, "pause", email=email)
     return r
 
 

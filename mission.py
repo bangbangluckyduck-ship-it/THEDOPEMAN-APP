@@ -234,6 +234,11 @@ def marquer(supabase, email: str, etape: int, resultat: dict | None = None) -> d
     except Exception as e:
         print(f"[mission] marquer étape {etape} ({email}) : {e}")
         return {"ok": False, "nouvelle": False, "etape": etape, "terminee": False}
+    import entonnoir
+    if nouvelle:
+        entonnoir.enregistrer(supabase, f"mission_etape_{etape}", email=email)
+    if "termine_at" in maj:
+        entonnoir.enregistrer(supabase, "mission_terminee", email=email)
     return {"ok": True, "nouvelle": nouvelle, "etape": etape, "terminee": terminee}
 
 
