@@ -63,10 +63,10 @@ APP_URL = os.getenv("APP_PUBLIC_URL", "https://qeerah.com")
 # ════════════════════════════════════════════════════════════════════════════
 # GABARIT HTML COMMUN — design épuré, responsive, inline CSS (compatibilité mail)
 # ════════════════════════════════════════════════════════════════════════════
-def _wrap(title: str, body_html: str) -> str:
+def _wrap(title: str, body_html: str, lang: str = "fr") -> str:
     """Enveloppe un contenu HTML dans un gabarit d'email propre et sobre."""
     return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a2e;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0;">
@@ -81,7 +81,7 @@ def _wrap(title: str, body_html: str) -> str:
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #ecedf2;text-align:center;">
           <p style="font-size:12px;color:#9a9ab0;margin:0;">
-            Qeerah · l'intelligence derrière les vidéos qui vendent · <a href="mailto:{SUPPORT_EMAIL}" style="color:#8B6914;text-decoration:none;">{SUPPORT_EMAIL}</a>
+            Qeerah · <a href="mailto:{SUPPORT_EMAIL}" style="color:#8B6914;text-decoration:none;">{SUPPORT_EMAIL}</a>
           </p>
         </td></tr>
       </table>

@@ -100,3 +100,17 @@ def test_un_state_falsifie_ne_donne_aucune_suite():
     s = google_oauth.make_state("/en")
     payload, sig = s.rsplit(".", 1)
     assert google_oauth.suite_du_state(payload + ".0" + sig[1:]) is None
+
+
+# ── Liens des e-mails ──────────────────────────────────────────────────────
+def test_le_clic_d_un_email_reste_sur_le_site():
+    for mauvais in ("https://evil.com", "//evil.com", "/\evil.com"):
+        r = client.get("/e/j7", params={"r": mauvais}, follow_redirects=False)
+        assert r.status_code == 302 and r.headers["location"] == "/app", mauvais
+    r = client.get("/e/h24", params={"r": "/app?mission=2"}, follow_redirects=False)
+    assert r.headers["location"] == "/app?mission=2"
+
+
+def test_un_lien_de_paiement_mal_signe_mene_aux_tarifs():
+    r = client.get("/abonnement/payer", params={"e": "a@b.fr", "s": "faux"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/pricing"

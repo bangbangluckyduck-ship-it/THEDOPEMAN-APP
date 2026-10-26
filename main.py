@@ -1085,6 +1085,22 @@ def _langue_requete(request: Request) -> str:
     return analyzer.normaliser_langue(brut)
 
 
+def _noter_langue(email: str, request: Request) -> str:
+    """Enregistre la langue du compte (users.lang) et la renvoie.
+
+    Mise à jour séparée de la création du compte : tant que la migration
+    supabase_migrations_emails_essai_v2.sql n'est pas jouée, la colonne n'existe
+    pas — l'inscription, elle, ne doit jamais échouer pour autant.
+    """
+    lang = _langue_requete(request)
+    try:
+        if supabase_client:
+            supabase_client.table("users").update({"lang": lang}).eq("email", email).execute()
+    except Exception as e:
+        print(f"[langue] non enregistrée pour {email} : {e}")
+    return lang
+
+
 def _reponse_langue(html: str, lang: str) -> HTMLResponse:
     """Réponse HTML dans une langue donnée, cookie de langue posé.
 
@@ -1399,6 +1415,28 @@ async def _maybe_upsell_free_quota(user: dict) -> None:
                 {"upsell_quota_email_month": month}).eq("email", email).execute()
     except Exception as e:
         print(f"[upsell] quota KO: {e}")
+
+
+# Clés d'e-mail dont on compte les clics (séquence d'essai, e-mail hebdo).
+_CLES_EMAIL = re.compile(r"^(bienvenue|h24|j3_radar|j3_feed|j3_creation|j6|j7|j10|hebdo)$")
+_PAGE_INTERNE = re.compile(r"^/(?!/)[^\s\\]{0,400}$")
+
+
+@app.get("/e/{cle}", include_in_schema=False)
+async def clic_email(cle: str, r: str = Query("/app")):
+    """Clic sur le bouton d'un e-mail : compté (sans donnée personnelle), puis la page.
+
+    Seules des pages du site sont acceptées : sans ce contrôle, le lien servirait
+    de redirection ouverte à n'importe qui.
+    """
+    page = r if _PAGE_INTERNE.match(r or "") else "/app"
+    if _CLES_EMAIL.match(cle or ""):
+        try:
+            import entonnoir
+            entonnoir.enregistrer(supabase_client, "email_clique", detail=cle)
+        except Exception as e:
+            print(f"[clic e-mail] non compté : {e}")
+    return RedirectResponse(page, status_code=302)
 
 
 @app.get("/unsubscribe", response_class=HTMLResponse)
@@ -1716,10 +1754,12 @@ async def register(request: Request):
     except Exception as _ref_err:
         print(f"[register] attribution affiliation ignorée : {_ref_err}")
 
-    # Email de bienvenue best-effort (un échec ne bloque jamais l'inscription).
+    # Langue de l'utilisateur (e-mails d'essai), puis bienvenue — best-effort :
+    # un échec ne bloque jamais l'inscription.
+    lang = _noter_langue(email, request)
     try:
-        from email_service import email_service
-        await email_service.send_welcome_email(email)
+        import essai_emails
+        await essai_emails.bienvenue(supabase_client, email, lang)
     except Exception as mail_err:
         print(f"[email] bienvenue non envoyé à {email} : {mail_err}")
 
@@ -3770,6 +3810,12 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
     if is_new_account:
         import entonnoir
         entonnoir.enregistrer(supabase_client, "compte_cree")
+        lang = _noter_langue(email, request)
+        try:
+            import essai_emails
+            await essai_emails.bienvenue(supabase_client, email, lang)
+        except Exception as mail_err:
+            print(f"[email] bienvenue Google non envoyé à {email} : {mail_err}")
     frag = f"gauth={token}" + ("&nouveau=1" if is_new_account else "")
     suite = google_oauth.suite_du_state(state) or "/app"
     return RedirectResponse(f"{app_url}{suite}#{frag}")

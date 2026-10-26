@@ -1551,6 +1551,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initSessionState();
   // Analyse faite sans compte sur l'accueil, puis inscription ici : on la rattache.
   setTimeout(rattacherAnalyseAnonyme, 0);
+  // Liens des e-mails : l'action demandée s'ouvre directement.
+  setTimeout(appliquerLienEntree, 700);
 
   // Set up UI to match session state
   updateSessionUI();
@@ -6976,6 +6978,24 @@ async function missionApresAnalyse(d, source) {
   loadMission();
 }
 window.missionApresAnalyse = missionApresAnalyse;
+
+// Liens d'entrée (e-mails d'essai) : /app?mission=2 ouvre le champ du lien,
+// /app?analyser=<lien> préremplit l'analyse, /app?onglet=feedradar ouvre le
+// Feed Radar. Le paramètre est retiré de l'adresse une fois appliqué.
+function appliquerLienEntree() {
+  const q = new URLSearchParams(location.search);
+  if (!localStorage.getItem('tts_token')) return;
+  const etape = q.get('mission'), video = q.get('analyser'), onglet = q.get('onglet');
+  if (!etape && !video && !onglet) return;
+  if (video && /^https:\/\/([a-z0-9-]+\.)?tiktok\.com\//i.test(video)) decrypterVideo(video);
+  else if (etape === '1') missionEtape1();
+  else if (etape === '2') missionEtape2();
+  else if (etape === '3') missionEtape3();
+  else if (onglet === 'feedradar') switchTab('feedradar');
+  ['mission', 'analyser', 'onglet'].forEach(k => q.delete(k));
+  const reste = q.toString();
+  history.replaceState(null, '', location.pathname + (reste ? '?' + reste : '') + location.hash);
+}
 
 // Analyse faite sans compte sur l'accueil (identifiant gardé par la page
 // d'accueil) : rattachée au compte dès qu'il existe — elle apparaît dans

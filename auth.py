@@ -260,6 +260,20 @@ def make_unsubscribe_token(email: str) -> str:
 def verify_unsubscribe_token(email: str, token: str) -> bool:
     return hmac.compare_digest(token or "", make_unsubscribe_token(email))
 
+
+def make_payment_token(email: str) -> str:
+    """Signature du lien « continuer avec Qeerah Pro » des e-mails de fin d'essai.
+
+    Le lien ouvre Stripe Checkout pour CE compte, sans connexion préalable (le
+    clic se fait souvent depuis un autre appareil). Usage distinct de la
+    désinscription : une signature ne vaut pas pour l'autre.
+    """
+    return hmac.new(SECRET_KEY, ("payer:" + (email or "").lower()).encode(), hashlib.sha256).hexdigest()
+
+
+def verify_payment_token(email: str, token: str) -> bool:
+    return hmac.compare_digest(token or "", make_payment_token(email))
+
 def get_user_from_request(request: Request) -> dict:
     """
     Extrait et valide l'utilisateur depuis le header Authorization.

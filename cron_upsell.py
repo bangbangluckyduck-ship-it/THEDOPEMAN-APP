@@ -14,7 +14,7 @@ envoyés apparaît directement dans les logs du job.
 Configuration Render :
     Cron Job « upsell-j3 »
     Command  : python3 cron_upsell.py
-    Schedule : par ex. "0 9 * * *"
+    Schedule : "0 * * * *" — CHAQUE HEURE (séquence d'essai v2, fenêtres de 24 h)
     Env      : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_PUBLIC_URL,
                APP_SIGNING_SECRET (signature du lien de désinscription),
                et la configuration d'envoi d'e-mails (Resend / SMTP).
@@ -32,10 +32,10 @@ load_dotenv()
 
 
 def main() -> int:
-    # Le job Render s'appelle toujours « upsell-j3 », mais il exécute désormais la
-    # séquence d'essai J2 / J5 / J7 calée sur la mission (essai_emails.py), qui
-    # remplace l'ancienne relance J+3 promotionnelle. Aucun réglage Render à
-    # changer. Arrêt d'urgence : ESSAI_EMAILS_ACTIFS=0 (mode simulation).
+    # Le job Render s'appelle toujours « upsell-j3 », mais il exécute la séquence
+    # d'essai v2 (essai_emails.py) : bienvenue, +24 h, jour 3, 6, 7 et 10, selon ce
+    # que l'utilisateur a fait. À passer en horaire sur Render ("0 * * * *").
+    # MODE TEST par défaut : rien ne part tant que ESSAI_EMAILS_ACTIFS ≠ 1.
     from supabase_client import supabase_service
     import essai_emails
 
