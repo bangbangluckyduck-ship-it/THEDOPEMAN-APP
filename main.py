@@ -14,6 +14,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Res
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import time
+import re
+import uuid
 
 load_dotenv()
 
@@ -146,6 +148,68 @@ def _persist_sync_analysis(user: dict, result: dict, *, source: str,
         )
     except Exception as e:
         print(f"[_persist_sync_analysis] KO: {e}")
+
+
+# ── ANALYSE SANS COMPTE : résultat partiel, complet gardé pour l'inscription ──
+#
+# Le visiteur sans compte voit le score, le verdict, UNE force et UNE faiblesse,
+# plus le début de sa première action. Le reste n'est PAS envoyé au navigateur
+# (un flou CSS se retire avec l'inspecteur) : le rapport complet est gardé 48 h
+# côté serveur, sous un identifiant aléatoire, et rattaché au compte juste après
+# l'inscription (POST /api/analyse-anonyme/rattacher) — y compris pour un fichier,
+# qui n'a pas de cache par lien.
+_ANON_PREFIXE = "anon_analyse:"
+_ANON_DUREE = timedelta(hours=48)
+_ANON_ID_RX = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _debut_de_phrase(texte: str, mots: int = 7) -> str:
+    """« Dis ton appel à l'action à 0:08, juste… » — de quoi donner envie."""
+    morceaux = (texte or "").split()
+    if len(morceaux) <= mots:
+        return " ".join(morceaux[:max(1, len(morceaux) // 2)]) + "…" if morceaux else ""
+    return " ".join(morceaux[:mots]) + "…"
+
+
+def _partiel_anonyme(result: dict, anon_id: Optional[str]) -> dict:
+    """Ce que le visiteur sans compte reçoit. Rien d'autre ne quitte le serveur."""
+    det = result.get("detection") or {}
+    a1 = (result.get("ameliorations_prioritaires") or [{}])[0] or {}
+    action = a1.get("action") or ((result.get("conseils_concrets") or [""])[0] or "")
+    return {
+        "partiel": True,
+        "anon_id": anon_id,
+        "score_global": result.get("score_global"),
+        "verdict": result.get("verdict"),
+        "points_forts": (result.get("points_forts") or [])[:1],
+        "points_ameliorer": (result.get("points_ameliorer") or [])[:1],
+        "detection": {k: det.get(k) for k in ("produit", "prix_estime", "hook_type", "hook_force")},
+        "apercu_action": _debut_de_phrase(str(action)),
+        "source": result.get("source"),
+        "source_url": result.get("source_url"),
+        "usage": {"tracked": False},
+    }
+
+
+def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = None) -> dict:
+    """Garde le rapport complet 48 h et renvoie la version partielle."""
+    anon_id = uuid.uuid4().hex
+    try:
+        if not supabase_client:
+            raise RuntimeError("Supabase indisponible")
+        maintenant = datetime.now(timezone.utc)
+        supabase_client.table("market_cache").upsert({
+            "cache_key": _ANON_PREFIXE + anon_id,
+            "payload": {"result": result, "source": source, "source_url": source_url,
+                        "cree_le": maintenant.isoformat(), "rattache_a": None},
+            "expires_at": (maintenant + _ANON_DUREE).isoformat(),
+        }).execute()
+    except Exception as e:
+        # Sans stockage, le lien reste rattachable via le cache d'analyse
+        # (/analyze-url resert le rapport à un compte connecté).
+        print(f"[analyse anonyme] stockage impossible : {e}")
+        anon_id = None
+    return _partiel_anonyme(result, anon_id)
 
 
 # ── SUPERVISION DES ERREURS ──────────────────────────────────────────────────
@@ -285,8 +349,8 @@ def _consume_anon_quota(request: Request) -> None:
         _ANON_IP_USAGE[client_ip] = timestamps
         raise HTTPException(
             status_code=429,
-            detail="Tu as utilisé ton essai sans compte. Crée un compte gratuit "
-                   "pour continuer — 7 jours d'accès complet, sans carte bancaire.",
+            detail="Tu as utilisé ton essai sans compte. Crée ton compte pour "
+                   "continuer : 7 jours, 10 analyses, tous les outils. Sans carte bancaire.",
         )
     timestamps.append(now)
     _ANON_IP_USAGE[client_ip] = timestamps
@@ -2233,6 +2297,8 @@ async def analyze_stream_sse(
                 duration_ms=analysis_duration_ms,
             )
 
+            if not user["valid"]:
+                result = _reponse_anonyme(result, source="upload")
             yield 'event: complete\n'
             yield f'data: {json.dumps(result)}\n\n'
 
@@ -2602,6 +2668,8 @@ async def analyze_url(request: Request):
             if user.get("valid"):
                 _persist_sync_analysis(user, cached, source="url", source_url=url,
                                        title=url[:60], depuis_cache=True)
+            else:
+                return JSONResponse(_reponse_anonyme(cached, source="url", source_url=url))
             return JSONResponse(cached)
 
     loop = asyncio.get_event_loop()
@@ -2727,6 +2795,8 @@ async def analyze_url(request: Request):
 
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, 0)  # frames_analyzed n'a plus de sens avec Gemini natif
+        if not user["valid"]:
+            return JSONResponse(_reponse_anonyme(result, source="url", source_url=url))
         return JSONResponse(result)
 
     finally:
@@ -3645,13 +3715,18 @@ def _google_redirect_uri(request: Request) -> str:
 
 
 @app.get("/api/auth/google/login")
-async def google_login(request: Request):
-    """Démarre le flux Google et redirige vers l'écran de consentement."""
+async def google_login(request: Request, suite: Optional[str] = Query(None)):
+    """Démarre le flux Google et redirige vers l'écran de consentement.
+
+    `suite` : page du site où revenir après Google (ex. « /en?rattacher=… » depuis
+    l'accueil, pour déverrouiller l'analyse faite sans compte sur la même page).
+    Portée par le state signé ; absente ou invalide → /app, comme avant.
+    """
     if not google_oauth.is_configured():
         raise HTTPException(status_code=503,
                             detail="Connexion Google indisponible (configuration manquante).")
     ru = _google_redirect_uri(request)
-    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state(), ru))
+    return RedirectResponse(google_oauth.build_authorize_url(google_oauth.make_state(suite), ru))
 
 
 @app.get("/api/auth/google/callback")
@@ -3696,7 +3771,8 @@ async def google_callback(request: Request, code: Optional[str] = Query(None),
         import entonnoir
         entonnoir.enregistrer(supabase_client, "compte_cree")
     frag = f"gauth={token}" + ("&nouveau=1" if is_new_account else "")
-    return RedirectResponse(f"{app_url}/app#{frag}")
+    suite = google_oauth.suite_du_state(state) or "/app"
+    return RedirectResponse(f"{app_url}{suite}#{frag}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -5714,6 +5790,59 @@ async def mission_etat(request: Request):
     import mission
     etat = mission.etat(supabase_client, user["email"])
     return {"ok": True, **etat, "usage": usage_info(user)}
+
+
+@app.post("/api/analyse-anonyme/rattacher")
+async def rattacher_analyse_anonyme(request: Request):
+    """Rattache au compte l'analyse faite sans compte, juste après l'inscription.
+
+    Renvoie le rapport COMPLET (déverrouillé sur la même page), l'enregistre dans
+    « Mes analyses » et valide l'étape 1 de la mission. Idempotent : le même
+    compte peut rappeler la route (retour arrière, double clic) sans doublon.
+    404 si l'analyse a expiré (48 h) ou a déjà été rattachée à un autre compte.
+    """
+    user = get_user_from_request(request)
+    if not user.get("valid"):
+        raise HTTPException(status_code=401, detail="Connexion requise.")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    anon_id = str((body or {}).get("anon_id") or "").strip().lower()
+    if not _ANON_ID_RX.match(anon_id) or not supabase_client:
+        raise HTTPException(status_code=404, detail="Analyse introuvable.")
+    email = user["email"].lower()
+    cle = _ANON_PREFIXE + anon_id
+    try:
+        r = (supabase_client.table("market_cache").select("payload,expires_at")
+             .eq("cache_key", cle).limit(1).execute())
+        ligne = (r.data or [None])[0]
+    except Exception as e:
+        print(f"[rattacher] lecture : {e}")
+        ligne = None
+    payload = (ligne or {}).get("payload") or {}
+    fin = analysis_quota._parse_dt((ligne or {}).get("expires_at"))
+    deja = payload.get("rattache_a")
+    if (not payload.get("result") or (fin and fin < datetime.now(timezone.utc))
+            or (deja and deja != email)):
+        raise HTTPException(status_code=404, detail="Cette analyse a expiré.")
+
+    result = dict(payload["result"])
+    if not deja:
+        _persist_sync_analysis(user, result, source=payload.get("source") or "url",
+                               source_url=payload.get("source_url"),
+                               title=(payload.get("source_url") or "Vidéo analysée")[:60],
+                               depuis_cache=True)
+        import mission
+        mission.marquer(supabase_client, email, 1, result)
+        try:
+            supabase_client.table("market_cache").update(
+                {"payload": {**payload, "rattache_a": email}}).eq("cache_key", cle).execute()
+        except Exception as e:
+            print(f"[rattacher] marquage : {e}")
+    result["usage"] = usage_info(user)
+    result["rattachee"] = True
+    return JSONResponse(result)
 
 
 @app.post("/api/mission/etape")

@@ -19,6 +19,7 @@ import base64
 import hashlib
 import hmac
 import os
+import re
 import time
 from typing import Optional
 from urllib.parse import urlencode
@@ -45,10 +46,23 @@ def is_configured() -> bool:
 
 
 # ── State signé (anti-CSRF, TTL 10 min) ──────────────────────────────────────
-def make_state() -> str:
+# Page où revenir après Google : un chemin du site, rien d'autre (pas d'hôte,
+# pas de fragment) — sinon le retour deviendrait une redirection ouverte.
+_SUITE_RX = re.compile(r"^/(?!/)[A-Za-z0-9/_\-.?=&%]{0,180}$")
+
+
+def suite_valide(suite: Optional[str]) -> Optional[str]:
+    suite = (suite or "").strip()
+    return suite if _SUITE_RX.match(suite) else None
+
+
+def make_state(suite: Optional[str] = None) -> str:
     ts = str(int(time.time()))
     nonce = base64.urlsafe_b64encode(os.urandom(12)).decode().rstrip("=")
     payload = f"{ts}|{nonce}"
+    suite = suite_valide(suite)
+    if suite:
+        payload += "|" + base64.urlsafe_b64encode(suite.encode()).decode().rstrip("=")
     sig = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}.{sig}"
 
@@ -59,10 +73,24 @@ def verify_state(state: str) -> bool:
         expected = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(sig, expected):
             return False
-        ts, _nonce = payload.split("|", 1)
+        ts = payload.split("|", 1)[0]
         return (int(time.time()) - int(ts)) <= _STATE_TTL_SECONDS
     except Exception:
         return False
+
+
+def suite_du_state(state: str) -> Optional[str]:
+    """Chemin de retour porté par un state VALIDE, ou None (→ /app)."""
+    if not verify_state(state):
+        return None
+    try:
+        parts = state.rsplit(".", 1)[0].split("|")
+        if len(parts) < 3:
+            return None
+        brut = parts[2] + "=" * (-len(parts[2]) % 4)
+        return suite_valide(base64.urlsafe_b64decode(brut).decode())
+    except Exception:
+        return None
 
 
 # ── URL d'autorisation ───────────────────────────────────────────────────────
