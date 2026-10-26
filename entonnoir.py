@@ -54,8 +54,12 @@ DEPUIS_NAVIGATEUR = {
 }
 
 
-def enregistrer(supabase, evenement: str) -> bool:
-    """Ajoute un événement. Ne lève jamais : la mesure ne casse rien."""
+def enregistrer(supabase, evenement: str, detail: str | None = None,
+                lang: str | None = None) -> bool:
+    """Ajoute un événement. Ne lève jamais : la mesure ne casse rien.
+
+    `detail` (ex. la clé d'un e-mail, la méthode d'inscription) et `lang` ne sont
+    pas encore stockés ici : cf. le lot 6 (table funnel_events)."""
     if not supabase or not evenement:
         return False
     try:

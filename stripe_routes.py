@@ -27,6 +27,7 @@ import re
 import stripe
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from auth import set_user_tier, get_customer_id, revoke_by_customer, get_user_from_request
 
@@ -148,6 +149,37 @@ def _ref_metadata(request: Request) -> dict:
 @router.post("/create-checkout-session")
 async def create_checkout_session(body: CheckoutRequest, request: Request):
     """Crée une session Stripe Checkout et retourne l'URL de paiement."""
+    return {"url": _session_checkout(body, request)}
+
+
+@router.get("/abonnement/payer")
+async def payer_depuis_un_email(request: Request, e: str = "", s: str = "", billing: str = "month"):
+    """Lien « Continuer avec Qeerah Pro » des e-mails de fin d'essai (J7, J10).
+
+    Ouvre Stripe Checkout directement, e-mail prérempli, sans connexion préalable :
+    le clic se fait souvent depuis la boîte mail d'un téléphone où l'app n'est pas
+    ouverte. Le lien est signé (auth.make_payment_token) : il ne vaut que pour le
+    compte à qui il a été envoyé. Lien invalide ou paiement indisponible → page
+    tarifs, jamais une erreur brute.
+    """
+    from auth import verify_payment_token
+    email = (e or "").strip().lower()
+    if not email or not verify_payment_token(email, s):
+        return RedirectResponse("/pricing", status_code=303)
+    try:
+        corps = CheckoutRequest(plan="pro", billing=billing, email=email)
+        return RedirectResponse(_session_checkout(corps, request, email_force=email), status_code=303)
+    except HTTPException as ex:
+        print(f"[payer] checkout indisponible pour {email} : {ex.detail}")
+        return RedirectResponse("/pricing", status_code=303)
+
+
+def _session_checkout(body: CheckoutRequest, request: Request, email_force: Optional[str] = None) -> str:
+    """URL d'une session Checkout Qeerah Pro. Lève HTTPException si impossible.
+
+    `email_force` : adresse déjà vérifiée par l'appelant (lien signé) ; sinon
+    l'e-mail de la session prime toujours sur celui du corps de requête.
+    """
     if not stripe.api_key:
         raise HTTPException(503, detail="Stripe non configuré (STRIPE_SECRET_KEY manquant).")
 
@@ -203,7 +235,7 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     # et l'adresse facturée est forcément celle qui recevra l'abonnement.
     # `client_reference_id` rattache la session Stripe au compte : si l'acheteur
     # saisit malgré tout une autre adresse, le webhook sait à qui créditer.
-    buyer_email = _session_email(request) or (body.email or "")
+    buyer_email = email_force or _session_email(request) or (body.email or "")
     if buyer_email:
         params["customer_email"] = buyer_email
         params["client_reference_id"] = buyer_email
@@ -238,7 +270,7 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
                 raise HTTPException(500, detail=str(e2.user_message or e2))
         else:
             raise HTTPException(500, detail=str(e.user_message or e))
-    return {"url": session.url}
+    return session.url
 
 
 # ── PACKS DE CRÉDITS (paiement one-time) ───────────────────────
