@@ -2784,10 +2784,23 @@ async def analyze_url(request: Request):
         # ── 5. Pipeline NATIF Gemini Pro vidéo (visuel + audio en un appel) ──
         from analyzer import analyze_video_native
         analysis_start = time.time()
-        visual_result = await asyncio.wait_for(
-            loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang),
-            timeout=180.0,  # Gemini Pro sur vidéo complète peut être plus lent que sur frames
-        )
+        try:
+            visual_result = await asyncio.wait_for(
+                loop.run_in_executor(None, analyze_video_native, downscaled_path, product, price, lang),
+                timeout=180.0,  # Gemini Pro sur vidéo complète peut être plus lent que sur frames
+            )
+        except ai_providers.VideoRefusee as e:
+            # Refus de Google sur CETTE vidéo : l'utilisateur doit en choisir une autre.
+            raise HTTPException(status_code=422, detail=str(e))
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail="L'analyse a pris trop longtemps. Relance-la dans un instant.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            # Message déjà formulé pour l'utilisateur (ai_providers._video_failure) :
+            # une 502 lisible plutôt qu'un « Internal Server Error » brut.
+            print(f"[analyze-url] analyse vidéo impossible : {e}")
+            raise HTTPException(status_code=502, detail=str(e)[:300])
         # Le transcript est retourné par Gemini Pro directement
         transcript = visual_result.get("transcript")
 

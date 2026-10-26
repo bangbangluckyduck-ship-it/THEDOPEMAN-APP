@@ -55,6 +55,18 @@ def _is_transient(e: Exception) -> bool:
     return any(m in msg for m in _TRANSIENT_MARKERS)
 
 
+class VideoRefusee(Exception):
+    """Google refuse d'analyser CETTE vidéo (filtre de contenu : « prompt bloqué »).
+
+    Relancer ne change rien ; le message le dit et propose d'en essayer une autre.
+    Constaté le 26/10/2026 sur la vidéo la plus vue du Feed Radar France
+    (BlockedReason.OTHER), sur les deux modèles."""
+
+
+MESSAGE_VIDEO_REFUSEE = ("Cette vidéo ne peut pas être analysée : le service d'analyse la refuse "
+                         "(contenu protégé ou jugé sensible). Essaie avec une autre vidéo.")
+
+
 def _video_failure(err: Optional[Exception]) -> Exception:
     """Échec définitif d'analyse vidéo, formulé pour l'utilisateur final.
 
@@ -339,6 +351,7 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     deadline = _t.monotonic() + float(os.getenv("VIDEO_ANALYSIS_DEADLINE", "90"))
 
     last_err = None
+    bloquee = False   # un modèle a refusé la vidéo elle-même (filtre de contenu de Google)
     for model_name in models_to_try:
         # 2 tentatives par modèle, reprise courte, puis on passe au suivant.
         for delay in (0, 1.5):
@@ -358,9 +371,13 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
                 raison = _raison_reponse_vide(resp)
                 print(f"[ai] {model_name} : réponse vidéo vide ({raison}) → modèle suivant", flush=True)
                 last_err = Exception(f"réponse Gemini vidéo vide ({raison})")
+                bloquee = bloquee or "bloqué" in raison
                 break
             except Exception as e:
                 last_err = e
+                # Journalisé : seule l'erreur finale l'était, celle du modèle de
+                # secours disparaissait (enquête du 26/10/2026 impossible).
+                print(f"[ai] {model_name} : échec vidéo — {type(e).__name__}: {str(e)[:200]}", flush=True)
                 if _is_transient(e):
                     continue
                 # Erreur non-récupérable → on passe au modèle suivant directement
@@ -370,6 +387,8 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     # Message lisible pour l'utilisateur (il le reçoit par email), cause technique
     # chaînée pour Sentry. Avant, c'est « 503 UNAVAILABLE. {'error': {...}} » qui
     # partait dans l'email d'échec d'un client payant.
+    if bloquee:
+        raise VideoRefusee(MESSAGE_VIDEO_REFUSEE) from last_err
     raise _video_failure(last_err) from last_err
 
 

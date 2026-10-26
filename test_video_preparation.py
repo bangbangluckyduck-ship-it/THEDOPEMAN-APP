@@ -101,3 +101,32 @@ def test_reponse_vide_passe_au_modele_de_secours(monkeypatch, tmp_path):
     out = ai_providers.video_complete(str(f), "prompt")
     assert out == '{"ok": true}'
     assert appels[-1] == "modele-de-secours" and len(appels) == 2
+
+
+def test_video_bloquee_par_google_message_clair(monkeypatch, tmp_path):
+    """Les deux modèles refusent la vidéo (« prompt bloqué ») : relancer ne sert à
+    rien, l'utilisateur doit l'apprendre et choisir une autre vidéo."""
+    f = tmp_path / "v.mp4"
+    f.write_bytes(b"0" * 2048)
+    bloque = types.SimpleNamespace(text="", candidates=[],
+                                   prompt_feedback=types.SimpleNamespace(block_reason="OTHER"))
+
+    class Modeles:
+        def generate_content(self, model, contents, config=None):
+            return bloque
+
+    class Fichiers:
+        def upload(self, file, config=None):
+            return types.SimpleNamespace(state=types.SimpleNamespace(name="ACTIVE"), uri="u", name="n")
+
+        def get(self, name):
+            return self.upload(None)
+
+        def delete(self, name):
+            return None
+
+    from google import genai
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    monkeypatch.setattr(genai, "Client", lambda **_k: types.SimpleNamespace(models=Modeles(), files=Fichiers()))
+    with pytest.raises(ai_providers.VideoRefusee, match="Essaie avec une autre vidéo"):
+        ai_providers.video_complete(str(f), "prompt")
