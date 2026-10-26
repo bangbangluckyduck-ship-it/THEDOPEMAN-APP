@@ -269,7 +269,7 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
     # Modèles à tester en cascade :
     # 1. Modèle primaire (Flash 2.5 par défaut — cf. GEMINI_VIDEO_MODEL), ou le
     #    modèle explicitement demandé par l'appelant (escalade qualité vers Pro).
-    # 2. Fallback Flash 2.0 (plus ancien, généralement plus stable côté capacité)
+    # 2. Secours : le modèle d'analyse d'images (GEMINI_MODEL), autre génération
     # Override possible par env GEMINI_VIDEO_FALLBACK_MODEL.
     if model:
         # Escalade ciblée : on veut CE modèle et rien d'autre. Retomber sur un
@@ -277,7 +277,11 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
         # déjà un résultat de première passe si celle-ci échoue.
         models_to_try = [model]
     else:
-        fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", "gemini-2.0-flash")
+        # gemini-2.0-flash a été RETIRÉ par Google (404 « no longer available »,
+        # constaté en production le 26/10/2026) : le secours n'aboutissait plus
+        # jamais. Par défaut, le modèle déjà utilisé pour l'analyse d'images
+        # (GEMINI_MODEL) — une seule référence à tenir à jour.
+        fallback_model = os.getenv("GEMINI_VIDEO_FALLBACK_MODEL", GEMINI_VISION_MODEL)
         models_to_try = [GEMINI_VIDEO_MODEL]
         if fallback_model and fallback_model != GEMINI_VIDEO_MODEL:
             models_to_try.append(fallback_model)
