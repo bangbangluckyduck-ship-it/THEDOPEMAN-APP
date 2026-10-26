@@ -16,7 +16,8 @@ Un envoi par personne et par semaine (journal email_log, clé « hebdo:AAAA-Sss 
 MODE TEST PAR DÉFAUT : rien ne part tant que HEBDO_ACTIF ≠ 1 — les e-mails sont
 écrits dans les journaux du cron.
 
-    Cron Job Render « hebdo » : python3 cron_hebdo.py — "0 8 * * 1" (lundi 8 h UTC)
+    Lancé par le cron horaire « upsell-j3 » (cron_upsell.py) le lundi à 8 h UTC ;
+    cron_hebdo.py permet un envoi à la main.
 """
 from __future__ import annotations
 

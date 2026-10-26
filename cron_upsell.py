@@ -46,7 +46,19 @@ def main() -> int:
 
     resultat = asyncio.run(essai_emails.run(supabase_service))
     print("Séquence d'essai terminée :", resultat)
-    return 0 if resultat.get("ok") else 1
+    ok = bool(resultat.get("ok"))
+
+    # E-mail hebdo (hebdo.py) : porté par ce cron horaire plutôt que par un cron
+    # Render de plus (service facturé). Le lundi à 8 h UTC ; le journal email_log
+    # (une clé par semaine) empêche tout doublon si l'heure est rejouée.
+    from datetime import datetime, timezone
+    maintenant = datetime.now(timezone.utc)
+    if maintenant.weekday() == 0 and maintenant.hour == 8:
+        import hebdo
+        r = asyncio.run(hebdo.run(supabase_service, maintenant))
+        print("E-mail hebdo :", r)
+        ok = ok and bool(r.get("ok"))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
