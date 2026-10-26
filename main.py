@@ -676,7 +676,7 @@ _PRICING_COMPARE_HTML = _render("pricing_compare.html")
 _CREDITS_HTML = _render("credits.html")
 # Témoignages (Feature 2)
 _AVIS_HTML = _render("avis.html")
-_TEMOIGNAGES_HTML = _render("temoignages.html")
+# /temoignages : rendu à chaque visite (cf. temoignages_page), pas au démarrage.
 # Back-office admin isolé (vue + JS dédiés, hors espace client)
 _DOPE_ADMIN_HTML = _bust(Path("templates/dope_admin.html").read_text(encoding="utf-8"))
 
@@ -836,17 +836,17 @@ async def mentions_legales_page():
 
 @app.get("/temoignages", response_class=HTMLResponse)
 async def temoignages_page():
-    """Vitrine des témoignages.
+    """Vitrine des témoignages, rendue côté serveur à chaque visite.
 
-    Tant qu'aucun témoignage n'est publié, la page redirige vers le formulaire
-    d'avis plutôt que d'afficher une grille vide : une section de preuve sociale
-    vide dessert plus qu'elle ne sert. Rebasculer se fait en passant
-    site_content.TESTIMONIALS_ENABLED à True, sans toucher au code.
+    La liste n'apparaît qu'à partir de site_content.TESTIMONIALS_MIN avis
+    publiés ; en dessous, un état vide propre avec l'appel à donner son avis.
+    Rendu à la visite (et non au démarrage) : un avis validé depuis /dope-admin
+    apparaît tout de suite, sans redéploiement. Même URL, même balises.
     """
     import site_content
-    if not site_content.TESTIMONIALS_ENABLED:
-        return RedirectResponse("/avis", status_code=302)
-    return HTMLResponse(_TEMOIGNAGES_HTML)
+    html = _JINJA_ENV.get_template("temoignages.html").render(
+        **site_content.context(), temoignages=_temoignages_publies())
+    return HTMLResponse(_inject_tiktok_pixel(_bust(html)))
 
 # ── Fichier de vérification de propriété TikTok (méthode « préfixe d'URL ») ───
 # TikTok fournit un fichier de signature à héberger à la racine du domaine. On le
@@ -5217,8 +5217,8 @@ async def list_hooks(request: Request, category: Optional[str] = Query(None)):
 
 
 # ── FEATURE 2 — Témoignages (public) ────────────────────────────────────────
-@app.get("/api/temoignages")
-async def list_temoignages(featured: Optional[int] = Query(None), limit: Optional[int] = Query(None)):
+def _temoignages_publies(featured: Optional[int] = None, limit: Optional[int] = None) -> list[dict]:
+    """Avis publiés, champs publics uniquement. [] si la base est indisponible."""
     rows = []
     try:
         q = (supabase_client.table("temoignages").select("*")
@@ -5232,9 +5232,14 @@ async def list_temoignages(featured: Optional[int] = Query(None), limit: Optiona
     except Exception as e:
         print(f"[temoignages] list error: {e}")
     # On n'expose que les champs publics
-    items = [{"nom": r.get("nom"), "texte": r.get("texte"), "lien_tiktok": r.get("lien_tiktok"),
-              "photo_url": r.get("photo_url"), "metrique": r.get("metrique"), "note": r.get("note")}
-             for r in rows]
+    return [{"nom": r.get("nom"), "texte": r.get("texte"), "lien_tiktok": r.get("lien_tiktok"),
+             "photo_url": r.get("photo_url"), "metrique": r.get("metrique"), "note": r.get("note")}
+            for r in rows]
+
+
+@app.get("/api/temoignages")
+async def list_temoignages(featured: Optional[int] = Query(None), limit: Optional[int] = Query(None)):
+    items = _temoignages_publies(featured, limit)
     return {"ok": True, "count": len(items), "items": items}
 
 

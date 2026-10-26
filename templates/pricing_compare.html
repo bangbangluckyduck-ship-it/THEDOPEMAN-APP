@@ -45,6 +45,16 @@
       font-size:13.5px; cursor:pointer; text-decoration:none; font-family:inherit; }
     .btn-primary { background:var(--accent); color:#fff; }
     .btn-soft { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .tag-soft { background:var(--navy); }
+    /* Téléphone : le tableau défile dans son cadre, la colonne des noms reste visible. */
+    td.name, thead th:first-child { position:sticky; left:0; background:var(--surface); z-index:1; }
+    tr.section td { position:static; }
+    @media (max-width:600px){
+      main { padding:28px 12px 60px; } h1 { font-size:25px; }
+      table { min-width:500px; }
+      td, thead th { padding:9px 6px; font-size:12.5px; } td.name { min-width:128px; }
+      th .price { font-size:16px; }
+    }
     .vat { text-align:center; font-size:12.5px; color:var(--muted); margin-top:16px; }
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff;
       padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; }
@@ -76,31 +86,92 @@
 
   <main>
     <h1>Tout ce qui est inclus</h1>
-    <p class="sub">Une offre unique, sans fonctionnalité verrouillée. Les besoins multi-comptes se traitent sur devis.</p>
+    <p class="sub">L'essai ouvre tous les outils pendant {{ TRIAL_DAYS }} jours. Qeerah Pro les garde ouverts chaque mois. Les besoins multi-comptes se traitent sur devis.</p>
+
+    {#- Tableau écrit côté serveur : il était construit en JavaScript, donc vide
+        pour tout lecteur sans script (aperçus de liens, assistants, robots).
+        Chaque ligne correspond à une fonctionnalité présente dans le code.
+        ⚠️ TODO DOPE : la colonne Agency reprend l'ancien tableau, à confirmer. -#}
+    {%- set OUI = "✓" -%}
+    {%- set SECTIONS = [
+      ("Analyse vidéo", [
+        ("Analyses de vidéos", TRIAL_ANALYSES ~ " pendant l'essai", ANALYSES_PER_MONTH ~ " par mois", "Sur mesure"),
+        ("Analyse par lien TikTok", OUI, OUI, OUI),
+        ("Analyse par envoi de fichier", OUI, OUI, OUI),
+        ("Score sur 100 et analyse multi-dimensions", OUI, OUI, OUI),
+        ("Détection des CTA visuels et audio", OUI, OUI, OUI),
+        ("Analyse multi-liens et patterns", OUI, OUI, OUI),
+        ("Analyse en arrière-plan + e-mail", OUI, OUI, OUI),
+        ("Historique sur tous tes appareils", OUI, OUI, OUI),
+      ]),
+      ("Coaching et création", [
+        ("Coach IA et script personnalisé", OUI, OUI, OUI),
+        ("Accroches et scripts multi-angles pour ton produit", OUI, OUI, OUI),
+        ("Studio d'accroches IA (prompts vidéo)", OUI, OUI, OUI),
+        ("Coach carrousel photo (carrousels)", OUI, OUI, OUI),
+        ("Banque de hooks", OUI, OUI, OUI),
+      ]),
+      ("Données marché", [
+        ("Feed Radar (vidéos qui vendent dans ton pays)", OUI, OUI, OUI),
+        ("Recherche de profil TikTok", OUI, OUI, OUI),
+        ("Créateurs gagnants et tendances", OUI, OUI, OUI),
+        ("Produits et vidéos recommandés", OUI, OUI, OUI),
+      ]),
+      ("Compte et facturation", [
+        ("Nombre d'utilisateurs", "1", "1", "Plusieurs"),
+        ("Sans carte bancaire", OUI, "—", "—"),
+        ("Facture avec TVA et n° d'entreprise", "—", OUI, OUI),
+        ("Sans engagement", OUI, OUI, "Selon contrat"),
+        ("Résiliation en 1 clic", "—", OUI, "Selon contrat"),
+        ("Support", "E-mail", "E-mail", "Dédié"),
+      ]),
+      ("Crédits IA", [
+        ("Crédits inclus chaque mois", "Inclus pendant l'essai", CREDITS_PER_MONTH ~ " par mois", "Sur mesure"),
+        ("Recharges de crédits", "—", "En option, dès " ~ RECHARGE_PRIX_MIN ~ " €", "En option"),
+      ]),
+    ] -%}
 
     <div class="wrap">
       <table>
         <thead>
           <tr>
             <th style="text-align:left">Fonctionnalité</th>
+            <th>
+              <h3>Essai</h3>
+              <div class="quote">{{ TRIAL_DAYS }} jours, sans carte bancaire</div>
+            </th>
             <th class="feat">
-              <span class="tag">Notre offre</span>
+              <span class="tag">Pour un créateur</span>
               <h3>Qeerah Pro</h3>
               <div class="price">29,99 €<span> TTC/mois</span></div>
               <div class="quote">ou 299 € TTC/an</div>
             </th>
             <th>
+              <span class="tag tag-soft">Plusieurs comptes</span>
               <h3>Agency</h3>
               <div class="quote">Sur devis</div>
             </th>
           </tr>
         </thead>
-        <tbody id="tbody"></tbody>
+        <tbody>
+          {%- for titre, lignes in SECTIONS %}
+          <tr class="section"><td colspan="4">{{ titre }}</td></tr>
+          {%- for nom, essai, pro, agency in lignes %}
+          <tr>
+            <td class="name">{{ nom }}</td>
+            {%- for valeur, classe in ((essai, ""), (pro, "feat"), (agency, "")) %}
+            <td class="{{ classe }}">{% if valeur == OUI %}<span class="yes" aria-label="inclus">✓</span>{% elif valeur == "—" %}<span class="no" aria-label="non">—</span>{% else %}{{ valeur }}{% endif %}</td>
+            {%- endfor %}
+          </tr>
+          {%- endfor %}
+          {%- endfor %}
+        </tbody>
         <tfoot>
           <tr>
             <td></td>
+            <td><a class="btn btn-soft" href="/app">Commencer mon essai</a></td>
             <td class="feat"><a class="btn btn-primary" href="/pricing">S'abonner →</a></td>
-            <td><a class="btn btn-soft" href="mailto:contact@qeerah.com?subject=Demande%20de%20devis%20Agency">Nous contacter</a></td>
+            <td><a class="btn btn-soft" href="mailto:{{ CONTACT_EMAIL }}?subject=Demande%20de%20devis%20Agency">Nous contacter</a></td>
           </tr>
         </tfoot>
       </table>
@@ -110,69 +181,5 @@
   </main>
 
   <div class="toast" id="toast"></div>
-
-  {#- `data-i18n-js` : ce script porte le contenu du tableau, pas seulement du
-      code. Le serveur y traduit les libellés déclarés au dictionnaire de la
-      page (cf. pages_i18n.traduire_script) ; tout le reste est laissé intact. -#}
-  <script data-i18n-js>
-    // « — » côté Agency = à définir avec le client, pas une absence de fonctionnalité.
-    var SECTIONS = [
-      { t:'Analyse vidéo', rows:[
-        { n:'Analyses de vidéos',                     pro:true,   agency:'Sur mesure' },
-        { n:'Score détaillé sur 100',                 pro:true,   agency:true },
-        { n:'Analyse approfondie multi-dimensions',   pro:true,   agency:true },
-        { n:'Détection des CTA visuels et audio',     pro:true,   agency:true },
-        { n:'Analyse par upload de fichier',          pro:true,   agency:true },
-        { n:'Analyse par lien TikTok',                pro:true,   agency:true },
-        { n:'Analyse multi-liens et patterns',        pro:true,   agency:true },
-        { n:'Analyse en arrière-plan + e-mail',       pro:true,   agency:true },
-        { n:'Historique sur tous tes appareils',      pro:true,   agency:true },
-      ]},
-      { t:'Coaching et création', rows:[
-        { n:'Coach IA et script personnalisé',        pro:true,   agency:true },
-        { n:'Structures gagnantes détectées',         pro:true,   agency:true },
-        { n:'Studio d\'accroches IA (prompts vidéo)',      pro:true,   agency:true },
-        { n:'Coach carrousel photo (carrousels)',         pro:true,   agency:true },
-        { n:'Générateur de carrousels par IA',        pro:true,   agency:true },
-      ]},
-      { t:'Données marché', rows:[
-        { n:'Feed Radar (vidéos qui percent)',        pro:true,   agency:true },
-        { n:'Recherche de profil TikTok',             pro:true,   agency:true },
-        { n:'Créateurs gagnants et tendances',        pro:true,   agency:true },
-        { n:'Produits et vidéos recommandés',         pro:true,   agency:true },
-      ]},
-      { t:'Compte et facturation', rows:[
-        { n:'Nombre d\'utilisateurs',                 pro:'1',    agency:'Plusieurs' },
-        { n:'Facture avec TVA et n° d\'entreprise',   pro:true,   agency:true },
-        { n:'Sans engagement',                        pro:true,   agency:'Selon contrat' },
-        { n:'Résiliation en 1 clic',                  pro:true,   agency:'Selon contrat' },
-        { n:'Support',                                pro:'E-mail', agency:'Dédié' },
-      ]},
-      { t:'Crédits IA (achat facultatif)', rows:[
-        { n:'Packs de crédits pour les images IA',    pro:'En option', agency:'En option' },
-      ]},
-    ];
-
-    function cell(v){
-      if (v === true)  return '<span class="yes">✓</span>';
-      if (v === false) return '<span class="no">✗</span>';
-      return v;
-    }
-
-    var tb = document.getElementById('tbody');
-    SECTIONS.forEach(function(s){
-      var hr = document.createElement('tr');
-      hr.className = 'section';
-      hr.innerHTML = '<td colspan="3">' + s.t + '</td>';
-      tb.appendChild(hr);
-      s.rows.forEach(function(r){
-        var tr = document.createElement('tr');
-        tr.innerHTML = '<td class="name">' + r.n + '</td>' +
-                       '<td class="feat">' + cell(r.pro) + '</td>' +
-                       '<td>' + cell(r.agency) + '</td>';
-        tb.appendChild(tr);
-      });
-    });
-  </script>
 </body>
 </html>

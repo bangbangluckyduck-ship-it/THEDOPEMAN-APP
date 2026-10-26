@@ -1919,12 +1919,12 @@
       <button class="btn btn-primary" onclick="switchTab('analyze')">Commencer l'analyse →</button>
     </div>
 
-    <!-- Offre unique Qeerah Pro -->
+    <!-- Qeerah Pro (Agency sur devis et recharges en option, sous la carte) -->
     <div style="text-align:center;padding:20px 0 24px">
       <h2 style="font-size:26px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.5px;display:block">
         Passe à <span style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Qeerah Pro</span>
       </h2>
-      <p style="color:var(--muted);font-size:14px">Tout est inclus &middot; Sans engagement &middot; Annulation en 1 clic</p>
+      <p style="color:var(--muted);font-size:14px">Tout ce qu'il faut à un créateur &middot; Sans engagement &middot; Annulation en 1 clic</p>
 
       <div class="billing-toggle" role="group" aria-label="Période de facturation">
         <button type="button" class="billing-toggle-btn active" data-period="month" onclick="setBilling('month')">Mensuel</button>
@@ -1948,13 +1948,23 @@
           <li>&#9989; Des <strong>accroches et des scripts</strong> prêts à tourner pour tes produits</li>
           <li>&#9989; <strong>Ce qui vend aujourd'hui</strong> dans ton pays : vidéos, produits, créateurs</li>
           <li>&#9989; Le décryptage de <strong>tes propres vidéos</strong>, une par une ou plusieurs d'un coup</li>
-          <li>&#9989; <strong>Tout est inclus</strong>, rien n'est verrouillé</li>
         </ul>
 
-        <button class="btn pc-btn pc-btn-accent" onclick="startCheckout('pro')">S'abonner &rarr;</button>
+        <button class="btn pc-btn pc-btn-accent" onclick="ouvrirCheckoutPro(this)">Passer à Qeerah Pro &rarr;</button>
         <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px">
           TVA non applicable, article 293 B du CGI.
         </div>
+      </div>
+    </div>
+
+    <div style="max-width:520px;margin:0 auto 18px;display:grid;gap:10px;font-size:13.5px;color:var(--text)">
+      <div style="padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+        <strong>Agency</strong> — pour gérer plusieurs comptes, sur devis.
+        <a href="mailto:{{ CONTACT_EMAIL }}?subject=Demande%20de%20devis%20Agency" style="color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap">Nous contacter</a>
+      </div>
+      <div style="padding:12px 14px;border:1px dashed var(--border);border-radius:12px">
+        <strong>Recharges de crédits en option</strong>, dès {{ RECHARGE_PRIX_MIN }} € — si tu crées beaucoup.
+        <a href="/credits" style="color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap">Voir les recharges →</a>
       </div>
     </div>
 

@@ -189,7 +189,7 @@ def _session_checkout(body: CheckoutRequest, request: Request, email_force: Opti
         # silencieux : un ancien bouton oublié quelque part doit se voir.
         raise HTTPException(
             400,
-            detail="Une seule offre est disponible : Qeerah Pro.",
+            detail="Seul Qeerah Pro se souscrit en ligne ; l'offre Agency est sur devis.",
         )
 
     billing = "year" if (body.billing or "month").lower().startswith("year") else "month"

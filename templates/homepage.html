@@ -823,6 +823,16 @@
       animation-fill-mode: both;
     }
 
+    /* Pro + Agency côte à côte, empilées sur téléphone. */
+    .pr-offres { grid-template-columns: 1.3fr 1fr; max-width: 860px; margin: 0 auto; align-items: start; }
+    @media (max-width: 720px) { .pr-offres { grid-template-columns: 1fr; } }
+    .pr-pitch { font-size: 14px; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
+    .pr-agency { box-shadow: none; }
+    .pr-devis { font-size: 30px !important; }
+    .pr-agency-texte { font-size: 14px; line-height: 1.55; color: var(--text); margin: 10px 0 16px; }
+    .pr-recharges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; max-width: 860px; margin: 18px auto 0;
+      padding: 12px 16px; border: 1px dashed var(--border); border-radius: 12px; font-size: 14px; color: var(--text); text-align: center; }
+    .pr-recharges a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
     .pricing-card:nth-child(1) { animation-delay: 0.1s; }
     .pricing-card:nth-child(2) { animation-delay: 0.15s; }
     .pricing-card:nth-child(3) { animation-delay: 0.2s; }
@@ -876,17 +886,21 @@
       margin-bottom: 24px;
     }
 
+    /* Bloc + coche en position absolue : un <li> en flex éclatait chaque
+       morceau de texte (<strong>, texte) en colonne sur téléphone. */
     .features-list li {
       font-size: 14px;
+      line-height: 1.5;
       color: var(--text);
-      padding: 10px 0;
-      display: flex;
-      gap: 8px;
+      padding: 8px 0 8px 28px;
+      position: relative;
     }
 
     .features-list li::before {
       content: '✅';
-      flex-shrink: 0;
+      position: absolute;
+      left: 0;
+      top: 8px;
     }
 
     .features-list li.disabled {
@@ -1233,6 +1247,8 @@
         .authority-stats{
           display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px;
         }
+        /* Trois chiffres : le dernier prend toute la largeur. */
+        .authority-stat:last-child:nth-child(odd){ grid-column:1 / -1; }
         .authority-stat{
           background:var(--bg); border:1px solid var(--border); border-radius:12px;
           padding:12px 10px; text-align:center;
@@ -1289,12 +1305,11 @@
             <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="31">31</span></div>
             <div class="authority-stat-label" data-i18n="auth_stat_2">leviers de vente décodés</div>
           </div>
+          {#- « +10 créateurs TikTok Shop FR » masqué (TODO DOPE : chiffre à
+              confirmer). Le nombre de marchés vient de la liste affichée
+              juste dessous (site_content.MARCHES_ANALYSES). -#}
           <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="10">10</span></div>
-            <div class="authority-stat-label" data-i18n="auth_stat_3">créateurs TikTok Shop FR ont mis leur expertise dans l'appli</div>
-          </div>
-          <div class="authority-stat">
-            <div><span class="authority-stat-prefix">+</span><span class="authority-stat-num" data-target="6">6</span></div>
+            <div><span class="authority-stat-num" data-target="{{ MARCHES_ANALYSES|length }}">{{ MARCHES_ANALYSES|length }}</span></div>
             <div class="authority-stat-label" data-i18n="auth_stat_4">marchés analysés</div>
           </div>
         </div>
@@ -2161,7 +2176,9 @@
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function stars(n){ n=parseInt(n)||0; return n? '★'.repeat(n)+'☆'.repeat(5-n):''; }
   fetch('/api/temoignages?limit=4').then(function(r){return r.json();}).then(function(d){
-    var items=(d&&d.items)||[]; if(!items.length) return;
+    // En dessous de {{ TESTIMONIALS_MIN }} avis publiés, la section (et son lien vers
+    // /temoignages) reste masquée : pas de « Chargement… », pas de vide.
+    var items=(d&&d.items)||[]; if(items.length < {{ TESTIMONIALS_MIN }}) return;
     var sec=document.getElementById('temoignages-section'); var g=document.getElementById('temoignages-grid');
     g.innerHTML=items.map(function(t){
       var initial=(t.nom||'?').trim().charAt(0).toUpperCase();
@@ -2182,13 +2199,14 @@
 <section class="pricing" id="pricing">
   <div style="max-width: 900px; margin: 0 auto; padding: 0 20px;">
     <h2 class="section-title" data-i18n="pr_title">Continue à comprendre ce qui vend, chaque mois</h2>
-    <p class="section-subtitle" data-i18n="pr_sub">Une seule offre. Tout est inclus, rien n'est verrouillé.</p>
+    <p class="section-subtitle" data-i18n="pr_sub">Commence par l'essai. Continue avec Qeerah Pro.</p>
 
-    <div class="pricing-grid" style="grid-template-columns:1fr;max-width:520px;margin:0 auto">
+    <div class="pricing-grid pr-offres">
       <div class="pricing-card popular" data-plan="pro">
         <span class="pricing-badge">QEERAH PRO</span>
+        <div class="pr-pitch" data-i18n="pr_pitch_pro">Tout ce qu'il faut à un créateur</div>
         <div class="price" id="hp-pro-price">29<span style="font-size:20px">,99&euro;</span></div>
-        <div class="period" data-i18n="pr_period">par mois, TTC &mdash; ou 299 &euro; TTC/an (2 mois offerts)</div>
+        <div class="period" data-i18n="pr_period">par mois, TTC &mdash; ou 299 &euro; TTC/an (2 mois offerts, soit 24,92 &euro; par mois)</div>
         <ul class="features-list">
           <li data-i18n-html="pr_res1" data-var-n="{{ ANALYSES_PER_MONTH }}"><strong>{{ ANALYSES_PER_MONTH }} vidéos décryptées</strong> par mois — par lien ou par fichier</li>
           <li data-i18n-html="pr_res2">Des <strong>accroches et des scripts</strong> prêts à tourner pour tes produits</li>
@@ -2196,10 +2214,11 @@
           <li data-i18n-html="pr_res4">Le décryptage de <strong>tes propres vidéos</strong>, une par une ou plusieurs d'un coup</li>
         </ul>
         <button type="button" class="btn-pricing" id="pr-cta" data-i18n="hero_cta">Analyser ma première vidéo gratuitement</button>
-        {#- Pour qui veut payer tout de suite, sans passer par l'essai : même
-            paiement Stripe que /pricing (un compte n'est pas nécessaire). Masqué
-            pour un compte connecté, dont #pr-cta mène déjà à /pricing. -#}
-        <a href="/pricing" class="btn-pricing-alt" id="pr-subscribe" data-i18n="pr_subscribe">S'abonner maintenant</a>
+        {#- Pour qui veut payer tout de suite, sans passer par l'essai : Stripe
+            Checkout directement (un compte n'est pas nécessaire, Stripe demande
+            l'e-mail) ; /pricing si le script ne tourne pas. Masqué pour un compte
+            connecté, dont #pr-cta ouvre déjà le paiement. -#}
+        <a href="/pricing" class="btn-pricing-alt" id="pr-subscribe" data-i18n="pr_subscribe">S'abonner directement</a>
         {#- Ordre de grandeur en devise locale, rempli par le serveur uniquement
             sur les marchés hors zone euro (cf. homepage_i18n._price_block).
             Reste vide — donc invisible — en France, en Allemagne, en Espagne et
@@ -2209,7 +2228,22 @@
             formulation neutre ailleurs. L'identifiant sert au remplacement. -#}
         <div id="pr-vat" style="font-size:12px;color:var(--muted);margin-top:10px" data-i18n="pr_vat">TVA non applicable, article 293 B du CGI.</div>
       </div>
+
+      {#- TODO DOPE : contenu exact de l'offre Agency — rien n'est listé tant qu'il
+          n'est pas défini, aucune fonctionnalité inventée. -#}
+      <div class="pricing-card pr-agency" data-plan="agency">
+        <span class="pricing-badge">AGENCY</span>
+        <div class="pr-pitch" data-i18n="pr_agency_pitch">Pour gérer plusieurs comptes</div>
+        <div class="price pr-devis" data-i18n="pr_agency_devis">Sur devis</div>
+        <p class="pr-agency-texte" data-i18n="pr_agency_texte">Tu gères plusieurs créateurs ou plusieurs boutiques ? Dis-nous combien de comptes : on te prépare une proposition.</p>
+        <a class="btn-pricing-alt" href="mailto:{{ CONTACT_EMAIL }}?subject=Demande%20de%20devis%20Agency" data-i18n="pr_agency_btn">Nous contacter</a>
+      </div>
     </div>
+
+    <p class="pr-recharges">
+      <span data-i18n-html="pr_recharges" data-var-prix="{{ RECHARGE_PRIX_MIN }}"><strong>Recharges de crédits en option</strong>, dès {{ RECHARGE_PRIX_MIN }} € — si tu crées beaucoup.</span>
+      <a href="/credits" data-i18n="pr_recharges_lien">Voir les recharges →</a>
+    </p>
 
     <p style="text-align:center;font-size:14px;color:var(--muted);margin-top:20px">
       <span data-i18n-html="pr_essai" data-var-regle="{{ TRIAL_RULE }}">Commence sans payer : <strong>{{ TRIAL_RULE }}</strong></span>
@@ -2929,9 +2963,10 @@
   // du lien reçoit le focus — sur mobile, le clavier s'ouvre directement.
   document.querySelectorAll('.hero-cta, #nav-cta, #pr-cta').forEach(function (a) {
     a.addEventListener('click', function (e) {
-      // Compte connecté : le lien mène à /app (mission) ou /pricing — on le suit.
+      // Compte connecté : le lien mène à /app (mission), ou au paiement.
       if (a.dataset.connecte === '1') {
-        if (a.tagName === 'BUTTON') location.href = a.dataset.href;
+        if (a.dataset.checkout === '1') { e.preventDefault(); ouvrirCheckoutAccueil(a); }
+        else if (a.tagName === 'BUTTON') location.href = a.dataset.href;
         return;
       }
       e.preventDefault();
@@ -2969,10 +3004,33 @@
     });
     var note = document.querySelector('.hero-cta-note'); if (note) note.style.display = 'none';
     var pr = document.getElementById('pr-cta');
-    if (pr) { pr.textContent = lib('l-cta-pro', 'Passer à Qeerah Pro'); pr.dataset.connecte = '1'; pr.dataset.href = '/pricing'; }
+    if (pr) { pr.textContent = lib('l-cta-pro', 'Passer à Qeerah Pro'); pr.dataset.connecte = '1'; pr.dataset.checkout = '1'; }
     var abo = document.getElementById('pr-subscribe'); if (abo) abo.style.display = 'none';
   }
   window.appliquerCtaConnecte = appliquerCtaConnecte;
+
+  // Stripe Checkout depuis l'accueil, sans passer par /pricing. Compte connecté :
+  // l'e-mail de la session est prérempli ; visiteur : Stripe le demande. En cas
+  // d'échec, la page tarifs prend le relais.
+  async function ouvrirCheckoutAccueil(btn) {
+    if (btn) btn.style.opacity = '.6';
+    if (window.qTrack) qTrack('checkout_ouvert', { emplacement: 'accueil' });
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('tts_token');
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const tt = (window.QeerahTikTok && QeerahTikTok.checkoutContext()) || {};
+      const r = await fetch('/create-checkout-session', {
+        method: 'POST', headers, body: JSON.stringify(Object.assign({ plan: 'pro', billing: 'month' }, tt))
+      });
+      const d = await r.json().catch(function () { return {}; });
+      if (r.ok && d.url) { location.href = d.url; return; }
+    } catch (_) {}
+    location.href = '/pricing';
+  }
+  window.ouvrirCheckoutAccueil = ouvrirCheckoutAccueil;
+  const lienAbo = document.getElementById('pr-subscribe');
+  if (lienAbo) lienAbo.addEventListener('click', function (e) { e.preventDefault(); ouvrirCheckoutAccueil(lienAbo); });
   appliquerCtaConnecte();
 
   // ── DÉBLOCAGE DU RÉSULTAT PAR UN COMPTE GRATUIT ─────────────

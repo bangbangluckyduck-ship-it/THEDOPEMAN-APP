@@ -3,9 +3,11 @@ from __future__ import annotations
 """
 💰 Offre commerciale — source de vérité unique des prix affichés.
 
-Une seule offre publique : **Qeerah Pro**, 29,99 €/mois ou 299 €/an.
-Aucun palier intermédiaire, aucune offre agence publique, aucun prix barré,
-aucun prix qui varie selon la date.
+Une offre souscrite en ligne : **Qeerah Pro**, 29,99 €/mois ou 299 €/an.
+Depuis le 26/10/2026, l'offre **Agency** (plusieurs comptes) est affichée à côté,
+SUR DEVIS — elle n'a ni prix ni paiement en ligne. Les recharges de crédits
+restent en option (credits.CREDIT_PACKS). Aucun prix barré, aucun prix qui
+varie selon la date.
 
 Ce module remplace l'ancien système de lancement échelonné (PRO 9,99 → 11,99 →
 12,99 €, GOLD, AGENCY, LTD, roadmap datée). Les fonctions publiques sont

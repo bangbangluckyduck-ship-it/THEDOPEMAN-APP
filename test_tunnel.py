@@ -104,7 +104,7 @@ def test_un_state_falsifie_ne_donne_aucune_suite():
 
 # ── Liens des e-mails ──────────────────────────────────────────────────────
 def test_le_clic_d_un_email_reste_sur_le_site():
-    for mauvais in ("https://evil.com", "//evil.com", "/\evil.com"):
+    for mauvais in ("https://evil.com", "//evil.com", "/\\evil.com"):
         r = client.get("/e/j7", params={"r": mauvais}, follow_redirects=False)
         assert r.status_code == 302 and r.headers["location"] == "/app", mauvais
     r = client.get("/e/h24", params={"r": "/app?mission=2"}, follow_redirects=False)
@@ -114,3 +114,24 @@ def test_le_clic_d_un_email_reste_sur_le_site():
 def test_un_lien_de_paiement_mal_signe_mene_aux_tarifs():
     r = client.get("/abonnement/payer", params={"e": "a@b.fr", "s": "faux"}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/pricing"
+
+
+# ── Témoignages ────────────────────────────────────────────────────────────
+def _avis(n):
+    return [{"nom": f"Créateur {i}", "texte": "<script>alert(1)</script> Super", "lien_tiktok": "venus.999",
+             "photo_url": None, "metrique": None, "note": 5} for i in range(n)]
+
+
+def test_temoignages_en_dessous_du_seuil_etat_vide_propre(monkeypatch):
+    monkeypatch.setattr(main, "_temoignages_publies", lambda *a, **k: _avis(2))
+    html = client.get("/temoignages").text
+    assert "Chargement" not in html and "Créateur 0" not in html
+    assert "Partager mon avis" in html
+
+
+def test_temoignages_a_partir_du_seuil_sans_injection(monkeypatch):
+    monkeypatch.setattr(main, "_temoignages_publies", lambda *a, **k: _avis(3))
+    html = client.get("/temoignages").text
+    assert html.count('class="card"') == 3
+    assert "<script>alert(1)</script>" not in html
+    assert 'href="https://www.tiktok.com/@venus.999"' in html
