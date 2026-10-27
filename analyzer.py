@@ -1678,13 +1678,19 @@ def synthesize_apercu(visual_result: dict, transcript: Optional[str],
     prompt = corps + APERCU_PROMPT_BLOCK + _directive_langue(lang)
     import time as _time
     _t = _time.monotonic()
+    # Le 27/10 en production, la consigne seule n'a pas suffi : Claude a suivi le
+    # format du rapport complet, coupé à 1500 tokens AVANT d'arriver au score
+    # (rangé en fin de format) → aperçu rejeté, rapport complet rédigé en
+    # direct, 203 s d'attente. Le début de réponse imposé ouvre le JSON réduit
+    # par le score ; même coupé, ce qui est écrit commence par l'essentiel.
     raw = ai_providers.text_complete(
         prompt,
         timeout=float(os.getenv("APERCU_TIMEOUT", "60")),
-        max_tokens=1500,
+        max_tokens=2000,
         provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "claude"),
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
         temperature=0.0,
+        prefill='{"score_global":',
     )
     print(f"[analyzer] ⏱ aperçu : {_time.monotonic() - _t:.1f}s "
           f"— réponse {len(raw or '')} car.", flush=True)
