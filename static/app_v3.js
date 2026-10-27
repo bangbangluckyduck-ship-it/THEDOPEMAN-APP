@@ -7159,15 +7159,21 @@ async function rattacherAnalyseAnonyme() {
   const token = localStorage.getItem('tts_token');
   if (!a || !a.id || !token) return;
   try {
-    const r = await fetch('/api/analyse-anonyme/rattacher', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ anon_id: a.id }),
-    });
-    if (r.ok || r.status === 404) {
+    let r = null;
+    // 202 : rapport complet encore en rédaction (aperçu rapide) — on rappelle.
+    for (let essai = 0; essai < 12; essai++) {
+      r = await fetch('/api/analyse-anonyme/rattacher', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anon_id: a.id }),
+      });
+      if (r.status !== 202) break;
+      await new Promise(ok => setTimeout(ok, 2000));
+    }
+    if (r.ok && r.status !== 202 || r.status === 404) {
       try { localStorage.removeItem('qeerah_analyse_anonyme'); } catch (_) {}
     }
-    if (r.ok) loadMission();
+    if (r.ok && r.status !== 202) loadMission();
   } catch (_) {}
 }
 

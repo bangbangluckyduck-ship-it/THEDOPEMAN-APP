@@ -130,3 +130,39 @@ def test_video_bloquee_par_google_message_clair(monkeypatch, tmp_path):
     monkeypatch.setattr(genai, "Client", lambda **_k: types.SimpleNamespace(models=Modeles(), files=Fichiers()))
     with pytest.raises(ai_providers.VideoRefusee, match="Essaie avec une autre vidéo"):
         ai_providers.video_complete(str(f), "prompt")
+
+
+def _choix_format(formats):
+    """Format que yt-dlp retiendrait, sans réseau (sélecteur appliqué à une liste)."""
+    import yt_dlp
+    ydl = yt_dlp.YoutubeDL({"quiet": True})
+    info = {"id": "x", "extractor": "TikTok", "formats": formats}
+    ydl.sort_formats(info)
+    choix = list(ydl.build_format_selector(video_processor.YDL_FORMAT_VIDEO)(
+        {"formats": info["formats"], "has_merged_format": True, "incomplete_formats": False}))
+    return choix[0]["format_id"]
+
+
+def _fmt(fid, vcodec, w, h, tbr, pref=None):
+    return {"format_id": fid, "ext": "mp4", "vcodec": vcodec, "acodec": "aac", "width": w,
+            "height": h, "tbr": tbr, "url": f"https://x/{fid}", "protocol": "https",
+            **({"preference": pref} if pref is not None else {})}
+
+
+def test_telechargement_prefere_le_h264():
+    """Liste réelle relevée le 27/10 : `best` prenait la 1080p H.265, ré-encodée
+    ensuite pendant 60 s. Le H.264 natif doit gagner."""
+    formats = [
+        _fmt("download", "h264", None, None, None, pref=-2),   # filigrane
+        _fmt("h264_540p_968752-0", "h264", 576, 1024, 968),
+        _fmt("h264_540p_1754343-0", "h264", 576, 1024, 1754),
+        _fmt("bytevc1_720p_785474-0", "h265", 720, 1280, 785),
+        _fmt("bytevc1_1080p_1261782-0", "h265", 1080, 1920, 1261),
+    ]
+    assert _choix_format(formats) == "h264_540p_1754343-0"
+
+
+def test_sans_h264_on_garde_le_meilleur_mp4():
+    formats = [_fmt("bytevc1_720p", "h265", 720, 1280, 785),
+               _fmt("bytevc1_1080p", "h265", 1080, 1920, 1261)]
+    assert _choix_format(formats) == "bytevc1_1080p"

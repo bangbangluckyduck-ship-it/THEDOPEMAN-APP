@@ -297,6 +297,7 @@ T_EXTRA: dict[str, dict[str, str]] = {
         "au_google": "Continuar con Google",
         "au_or_email": "o con tu correo",
         "claim_expire": "Este análisis expiró. Vuelve a lanzarlo: con tu cuenta, lo ves completo.",
+        "claim_attente": "Tu reporte completo se está terminando, unos segundos más…",
         "pr_pitch_pro": "Todo lo que necesita un creador",
         "pr_agency_pitch": "Para manejar varias cuentas",
         "pr_agency_devis": "Bajo cotización",

@@ -3088,7 +3088,10 @@
     const bloc = document.getElementById('res-debloquer');
     if (bloc) bloc.style.opacity = '.5';
     let r = null, data = {};
-    if (a.id) {
+    // 202 : le rapport complet se rédige encore (il démarre quand l'aperçu
+    // s'affiche) — le serveur patiente ~25 s par appel, on rappelle.
+    const attente = document.getElementById('res-rattacher-erreur');
+    for (let essai = 0; a.id && essai < 12; essai++) {
       try {
         r = await fetch('/api/analyse-anonyme/rattacher', {
           method: 'POST',
@@ -3097,7 +3100,14 @@
         });
         data = await r.json().catch(function () { return {}; });
       } catch (_) { r = null; }
+      if (!r || r.status !== 202) break;
+      if (attente) {
+        attente.textContent = auth('l-claim-attente', 'Ton rapport complet se termine, encore quelques secondes…');
+        attente.style.display = 'block';
+      }
+      await new Promise(function (ok) { setTimeout(ok, 2000); });
     }
+    if (attente && r && r.status !== 202) attente.style.display = 'none';
     if (r && r.ok) {
       anonOublier();
       if (window.qTrack) qTrack('analyse_rattachee');
@@ -3502,6 +3512,7 @@
   <span id="l-au-err-auth" data-i18n="au_err_auth">Erreur d'authentification</span>
   <span id="l-hd-account" data-i18n="hd_account">👤 Mon compte</span>
   <span id="l-claim-expire" data-i18n="claim_expire">Cette analyse a expiré. Relance-la : avec ton compte, elle s'affiche en entier.</span>
+  <span id="l-claim-attente" data-i18n="claim_attente">Ton rapport complet se termine, encore quelques secondes…</span>
 </div>
 
 <div id="login-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
