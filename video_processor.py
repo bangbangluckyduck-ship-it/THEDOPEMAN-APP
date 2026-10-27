@@ -53,6 +53,37 @@ class PasDeVideo(Exception):
 MESSAGE_PAS_DE_VIDEO = ("Cette publication TikTok est un carrousel photo : il n'y a pas "
                         "de vidéo à analyser. Colle le lien d'une vidéo.")
 
+
+def est_une_video(url: str) -> Optional[bool]:
+    """La publication TikTok a-t-elle une vraie vidéo ? Sans rien télécharger.
+
+    True = vidéo, False = publication photo (seule la bande son est proposée),
+    None = impossible à savoir (TikTok injoignable…) — l'appelant décide.
+
+    Pourquoi : le fournisseur du Feed Radar ne signale pas toujours les
+    publications photo (`image_post_info` absent). Les 3 exemples de l'accueil
+    en étaient le 27/10 : chaque visiteur qui cliquait recevait « carrousel
+    photo ». yt-dlp, lui, liste ce que TikTok sert réellement.
+    """
+    try:
+        import yt_dlp
+        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "noplaylist": True,
+                               "extractor_args": YDL_TIKTOK_EXTRACTOR_ARGS}) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception:
+        return None
+    formats = (info or {}).get("formats") or []
+    if not formats:
+        return None
+    images = [f for f in formats if (f.get("vcodec") or "none") != "none"]
+    if not images:
+        return False          # bande son seule : publication photo
+    # Le format « download » (filigrané, sans résolution) ne prouve rien : seule
+    # une vraie piste avec hauteur connue tranche (cf. YDL_FORMAT_VIDEO).
+    if any((f.get("height") or 0) > 0 for f in images):
+        return True
+    return None
+
 _EXT_AUDIO = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".opus", ".flac"}
 
 
