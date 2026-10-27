@@ -263,3 +263,22 @@ def test_claude_continue_le_debut_impose(monkeypatch):
     out = ai_providers._claude_text("prompt", 10, prefill='{"score_global":')
     assert json.loads(out) == {"score_global": 80, "verdict": "V"}
     assert envoyes[0][-1] == {"role": "assistant", "content": '{"score_global":'}
+
+
+def test_apercu_s_arrete_avant_le_rapport_complet(monkeypatch):
+    vus = {}
+    monkeypatch.setattr(ai_providers, "text_complete", lambda p, **k: vus.update(k) or json.dumps(APERCU_BRUT))
+    analyzer.synthesize_apercu({}, None)
+    assert '"analyse_8_dimensions"' in vus["stop"] and '"contexte_temporel"' in vus["stop"]
+    # aucune clé de l'aperçu ne doit arrêter la réponse
+    for cle in ("score_global", "verdict", "point_fort", "point_a_ameliorer", "action_prioritaire", "detection"):
+        assert f'"{cle}"' not in vus["stop"]
+
+
+def test_apercu_arrete_net_puis_repare(monkeypatch):
+    # Réponse arrêtée sur une clé du rapport : virgule pendante, objet non fermé.
+    arrete = ('{"score_global": 64, "verdict": "V.", "point_fort": "F", "point_a_ameliorer": "A", '
+              '"action_prioritaire": "Fais X", "detection": {"produit": "P", "hook_force": 6}, ')
+    monkeypatch.setattr(ai_providers, "text_complete", lambda *a, **k: arrete)
+    a = analyzer.synthesize_apercu({}, None)
+    assert a["score_global"] == 64 and a["detection"]["produit"] == "P"
