@@ -162,6 +162,17 @@ def test_telechargement_prefere_le_h264():
     assert _choix_format(formats) == "h264_540p_1754343-0"
 
 
+def test_le_format_filigrane_n_est_jamais_pris_pour_du_h264():
+    """Seul H.264 proposé : le « download » filigrané, sans résolution. On garde
+    alors l'ancien choix (la meilleure version mp4), pas ce fichier-là."""
+    formats = [
+        _fmt("download", "h264", None, None, None, pref=-2),
+        _fmt("bytevc1_720p_785474-0", "h265", 720, 1280, 785),
+        _fmt("bytevc1_1080p_1261782-0", "h265", 1080, 1920, 1261),
+    ]
+    assert _choix_format(formats) == "bytevc1_1080p_1261782-0"
+
+
 def test_sans_h264_on_garde_le_meilleur_mp4():
     formats = [_fmt("bytevc1_720p", "h265", 720, 1280, 785),
                _fmt("bytevc1_1080p", "h265", 1080, 1920, 1261)]

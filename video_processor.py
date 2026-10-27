@@ -30,7 +30,13 @@ YDL_TIKTOK_EXTRACTOR_ARGS = {"tiktok": {"app_info": [""]}}
 # native (576×1024) est prête à partir, et plus nette que ce ré-encodage.
 # Pas de H.264 proposé → on retombe sur l'ancien choix, et le ré-encodage reste
 # le filet.
-YDL_FORMAT_VIDEO = "best[ext=mp4][vcodec~='^(avc1|h264)']/best[ext=mp4]/best"
+#
+# `[height>0]` écarte le format « download » (H.264 lui aussi, mais filigrané,
+# « Untested », sans résolution connue). Sans ce filtre, une vraie vidéo de 50 s
+# est ressortie en « carrousel photo » en production le 27/10 : quand les 540p
+# manquent, c'est lui que le filtre H.264 retenait. Un champ absent fait échouer
+# le filtre dans yt-dlp : ce format n'est donc jamais choisi par la 1re règle.
+YDL_FORMAT_VIDEO = "best[ext=mp4][vcodec~='^(avc1|h264)'][height>0]/best[ext=mp4]/best"
 
 
 class PasDeVideo(Exception):
