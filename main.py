@@ -400,6 +400,17 @@ def _consume_anon_quota(request: Request) -> None:
     timestamps.append(now)
     _ANON_IP_USAGE[client_ip] = timestamps
 
+
+def _rendre_anon_quota(request: Request) -> None:
+    """Rend l'essai décompté par _consume_anon_quota quand le LIEN est refusé
+    (publication photo, lien illisible) : le visiteur n'a rien reçu, il ne doit
+    pas avoir perdu l'un de ses deux essais. Les refus coûteux (vidéo refusée
+    par Google après analyse) restent décomptés."""
+    client_ip = request.client.host if request.client else "unknown"
+    timestamps = _ANON_IP_USAGE.get(client_ip) or []
+    if timestamps:
+        timestamps.pop()
+
 # ⚠️ Middleware ASGI PUR (et non BaseHTTPMiddleware) : BaseHTTPMiddleware bufferise
 # les réponses en streaming (il accumule tout le corps avant de l'envoyer), ce qui
 # casse le SSE (analyse vidéo + Photo Slide). En ASGI pur on ne touche jamais au
@@ -2714,12 +2725,14 @@ async def analyze_url(request: Request):
     # ── SÉCURITÉ : tier requis ──
     user = get_user_from_request(request)
     tier = user.get("tier", "free")
+    essai_anonyme_pris = False
     if not has_full_access(user):
         # Visiteur anonyme : premier essai offert, décompté par IP. C'est le
         # geste qui convertit le mieux — coller un lien depuis un téléphone
         # prend deux secondes, envoyer un fichier de 500 Mo, non.
         if not user.get("valid"):
             _consume_anon_quota(request)
+            essai_anonyme_pris = True
             import entonnoir
             entonnoir.enregistrer(supabase_client, "analyse_anonyme_lancee", detail="lien", lang=lang)
         else:
@@ -2801,9 +2814,13 @@ async def analyze_url(request: Request):
         except asyncio.TimeoutError:
             raise HTTPException(status_code=504, detail="Le téléchargement de la vidéo a pris trop longtemps.")
         except Exception as e:
+            if essai_anonyme_pris:
+                _rendre_anon_quota(request)   # lien illisible : rien n'a été analysé
             raise HTTPException(status_code=422, detail=f"Impossible de récupérer cette vidéo TikTok : {str(e)[:160]}")
 
         if not video_path or not os.path.exists(video_path):
+            if essai_anonyme_pris:
+                _rendre_anon_quota(request)
             raise HTTPException(status_code=422, detail="Vidéo introuvable après téléchargement.")
 
         # ── 2. Limite de débit serveur (réutilise le sémaphore global anti-crash) ──
@@ -2816,6 +2833,10 @@ async def analyze_url(request: Request):
             downscaled_path = await loop.run_in_executor(None, downscale_720p, video_path)
         except PasDeVideo as e:
             # Publication en mode photo : erreur de l'utilisateur, pas du serveur.
+            # L'essai est rendu, et la publication sort des exemples du Feed Radar.
+            if essai_anonyme_pris:
+                _rendre_anon_quota(request)
+            _marquer_publication_photo(url)
             raise HTTPException(status_code=422, detail=str(e))
 
         # ── 4. Contexte marché : scraper retiré (données marché via KeyAPI côté UI) ──
@@ -4691,6 +4712,65 @@ async def tt_thumb(u: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
+_TEASER_PREFIXE = "feedradar::teaser::v5::"
+_TEASER_CANDIDATS = 8          # vérifiés en parallèle pour en garder 3
+_NATURE_PREFIXE = "feedradar::nature::"
+
+
+def _nature_publication(row: dict) -> Optional[bool]:
+    """Vidéo (True), photo (False) ou inconnu (None) — verdict gardé en cache."""
+    vid = str(row.get("video_id") or "")
+    connu = _market_cache_get(_NATURE_PREFIXE + vid) if vid else None
+    if isinstance(connu, dict) and isinstance(connu.get("video"), bool):
+        return connu["video"]
+    from video_processor import est_une_video
+    verdict = est_une_video(row.get("video_url") or "") if row.get("video_url") else None
+    if verdict is not None and vid:
+        _market_cache_set(_NATURE_PREFIXE + vid, {"video": verdict}, hours=24 * 30)
+        if verdict is False:
+            _marquer_feed_radar_photo(vid)
+    return verdict
+
+
+async def _exemples_video(rows: list) -> list:
+    """Les 3 premiers exemples qui sont de vraies vidéos. Un verdict inconnu
+    (TikTok injoignable) ne retire rien : mieux vaut un exemple incertain qu'un
+    encart vide."""
+    loop = asyncio.get_event_loop()
+    try:
+        verdicts = await asyncio.wait_for(asyncio.gather(
+            *(loop.run_in_executor(None, _nature_publication, r) for r in rows)), timeout=25.0)
+    except Exception as e:
+        print(f"/api/feed-radar/teaser vérification impossible : {e}")
+        verdicts = [None] * len(rows)
+    return [r for r, v in zip(rows, verdicts) if v is not False][:3]
+
+
+def _marquer_feed_radar_photo(video_id: str) -> None:
+    try:
+        supabase_client.table("feed_radar_videos").update({"is_carousel": True}) \
+            .eq("video_id", video_id).execute()
+    except Exception as e:
+        print(f"[feed radar] marquage photo impossible ({video_id}) : {e}")
+
+
+def _marquer_publication_photo(url: str) -> None:
+    """Une analyse vient de tomber sur une publication photo : elle sort des
+    exemples du Feed Radar (verdict gardé, ligne marquée, exemples recalculés)."""
+    if not supabase_client:
+        return
+    try:
+        _nu, vid = normalize_tiktok_url(url)
+        if not vid or not vid.isdigit():
+            return
+        _market_cache_set(_NATURE_PREFIXE + vid, {"video": False}, hours=24 * 30)
+        _marquer_feed_radar_photo(vid)
+        supabase_client.table("market_cache").delete() \
+            .like("cache_key", f"{_MARKET_CACHE_VER}:{_TEASER_PREFIXE}%").execute()
+    except Exception as e:
+        print(f"[feed radar] publication photo non répercutée : {e}")
+
+
 @app.get("/api/feed-radar/teaser")
 async def feed_radar_teaser(region: Optional[str] = Query(None)):
     """3 vidéos top pour la homepage publique. Pas d'auth. Cache 6h.
@@ -4700,7 +4780,9 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     # v2 : ajoute video_url (bouton « Décrypter » de l'accueil). Nouvelle clef pour
     # ne pas resservir pendant 6 h un aperçu en cache sans lien.
     # v4 : sans carrousels photo (rien à « décrypter » : l'analyse vidéo échoue).
-    cache_key = f"feedradar::teaser::v4::{region or 'all'}"
+    # v5 : chaque exemple est vérifié (_exemples_video) — le filtre de la v4 ne
+    #      voyait rien quand le fournisseur ne signale pas la publication photo.
+    cache_key = f"{_TEASER_PREFIXE}{region or 'all'}"
     teaser = _market_cache_get(cache_key)
     if teaser is None:
         cols = "video_id,video_url,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
@@ -4717,14 +4799,15 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
                     return q
             rows: list = []
             if region:
-                rows = (requete().eq("region", region).order("views", desc=True).limit(3)
-                        .execute().data or [])
+                rows = (requete().eq("region", region).order("views", desc=True)
+                        .limit(_TEASER_CANDIDATS).execute().data or [])
             if not rows:
-                rows = (requete().order("views", desc=True).limit(3).execute().data or [])
+                rows = (requete().order("views", desc=True).limit(_TEASER_CANDIDATS)
+                        .execute().data or [])
             return rows
 
         try:
-            teaser = _fetch(cols)
+            teaser = await _exemples_video(_fetch(cols))
             # Lien propre : l'URL collectée porte les paramètres de partage de
             # celui qui l'a partagée (u_code, sharer_language…). Inutiles pour
             # l'analyse, et rien à faire dans le champ d'un visiteur.
@@ -4735,7 +4818,7 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
             # Migration supabase_migrations_feed_radar_real_gmv.sql pas encore appliquée.
             print(f"/api/feed-radar/teaser real-gmv-cols fallback: {e}")
             try:
-                teaser = _fetch(fallback_cols)
+                teaser = _fetch(fallback_cols)[:3]
             except Exception as e2:
                 print(f"/api/feed-radar/teaser error: {e2}")
                 teaser = []
