@@ -34,7 +34,7 @@ import tiktok_oauth
 import google_oauth
 import market_creators
 import recherche_quota
-from video_processor import YDL_TIKTOK_EXTRACTOR_ARGS
+from video_processor import YDL_TIKTOK_EXTRACTOR_ARGS, YDL_FORMAT_VIDEO
 import photo_slide
 import product_store
 import credits as credits_mod
@@ -191,11 +191,13 @@ def _partiel_anonyme(result: dict, anon_id: Optional[str]) -> dict:
     }
 
 
-def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = None,
-                     lang: Optional[str] = None) -> dict:
-    """Garde le rapport complet 48 h et renvoie la version partielle."""
-    import entonnoir
-    entonnoir.enregistrer(supabase_client, "resultat_affiche", detail=source, lang=lang)
+def _stocker_anonyme(result: Optional[dict], *, source: str,
+                     source_url: Optional[str] = None) -> Optional[str]:
+    """Garde le rapport 48 h sous un identifiant aléatoire. None si impossible.
+
+    `result=None` : le rapport est encore en rédaction (aperçu rapide) ; il est
+    déposé ensuite par _terminer_rapport_anonyme.
+    """
     anon_id = uuid.uuid4().hex
     try:
         if not supabase_client:
@@ -204,15 +206,55 @@ def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = N
         supabase_client.table("market_cache").upsert({
             "cache_key": _ANON_PREFIXE + anon_id,
             "payload": {"result": result, "source": source, "source_url": source_url,
+                        "en_cours": result is None,
                         "cree_le": maintenant.isoformat(), "rattache_a": None},
             "expires_at": (maintenant + _ANON_DUREE).isoformat(),
         }).execute()
+        return anon_id
     except Exception as e:
-        # Sans stockage, le lien reste rattachable via le cache d'analyse
-        # (/analyze-url resert le rapport à un compte connecté).
         print(f"[analyse anonyme] stockage impossible : {e}")
-        anon_id = None
+        return None
+
+
+def _reponse_anonyme(result: dict, *, source: str, source_url: Optional[str] = None,
+                     lang: Optional[str] = None) -> dict:
+    """Garde le rapport complet 48 h et renvoie la version partielle."""
+    import entonnoir
+    entonnoir.enregistrer(supabase_client, "resultat_affiche", detail=source, lang=lang)
+    # Sans stockage (anon_id None), le lien reste rattachable via le cache
+    # d'analyse (/analyze-url resert le rapport à un compte connecté).
+    anon_id = _stocker_anonyme(result, source=source, source_url=source_url)
     return _partiel_anonyme(result, anon_id)
+
+
+# ── Aperçu rapide : le rapport complet se rédige pendant l'inscription ──
+#
+# Le visiteur reçoit l'aperçu (~10-15 s de rédaction) au lieu d'attendre les
+# ~100 s du rapport complet, dont il ne verrait que cinq lignes. Le rapport est
+# rédigé en arrière-plan, puis déposé sous le même anon_id ; la route de
+# rattachement attend qu'il soit prêt. APERCU_RAPIDE=0 (Render) rétablit
+# l'ancien parcours sans redéploiement.
+_TACHES_FOND: set = set()        # garde une référence : asyncio ne le fait pas
+_RAPPORT_PERDU_APRES = timedelta(minutes=6)   # redémarrage pendant la rédaction
+
+
+def _apercu_actif() -> bool:
+    return (os.getenv("APERCU_RAPIDE", "1") or "").strip().lower() not in ("0", "false", "off", "no")
+
+
+def _lancer_en_fond(coro) -> None:
+    tache = asyncio.create_task(coro)
+    _TACHES_FOND.add(tache)
+    tache.add_done_callback(_TACHES_FOND.discard)
+
+
+def _deposer_rapport_anonyme(anon_id: str, maj: dict) -> None:
+    cle = _ANON_PREFIXE + anon_id
+    r = (supabase_client.table("market_cache").select("payload")
+         .eq("cache_key", cle).limit(1).execute())
+    payload = ((r.data or [None])[0] or {}).get("payload") or {}
+    supabase_client.table("market_cache").update(
+        {"payload": {**payload, **maj, "en_cours": False}}).eq("cache_key", cle).execute()
 
 
 # ── SUPERVISION DES ERREURS ──────────────────────────────────────────────────
@@ -2741,10 +2783,8 @@ async def analyze_url(request: Request):
             import yt_dlp
             ydl_opts = {
                 "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
-                # mp4 exigé : l'upload Gemini annonce « video/mp4 » en dur. Le
-                # filtre height<=720 ne matchait jamais (TikTok est vertical,
-                # 1080×1920) et laissait passer n'importe quel conteneur via `best`.
-                "format": "best[ext=mp4]/best",
+                # H.264 en mp4 d'abord : voir YDL_FORMAT_VIDEO.
+                "format": YDL_FORMAT_VIDEO,
                 "merge_output_format": "mp4",
                 "quiet": True,
                 "no_warnings": True,
@@ -2804,69 +2844,41 @@ async def analyze_url(request: Request):
         # Le transcript est retourné par Gemini Pro directement
         transcript = visual_result.get("transcript")
 
+        # ── 6 bis. Visiteur sans compte : aperçu tout de suite, rapport en fond ──
+        if not user["valid"] and _apercu_actif():
+            from analyzer import synthesize_apercu
+            try:
+                apercu = await asyncio.wait_for(
+                    loop.run_in_executor(None, synthesize_apercu, visual_result, transcript,
+                                         product, price, user_role, lang),
+                    timeout=75.0)
+            except Exception as e:
+                # Rien de perdu : on rédige le rapport complet, comme avant.
+                print(f"[analyze-url] aperçu impossible, rapport complet direct : {e}")
+                apercu = None
+            # Sans stockage, rien à rattacher plus tard : parcours complet.
+            anon_id = _stocker_anonyme(None, source="url", source_url=url) if apercu else None
+            if anon_id:
+                _lancer_en_fond(_terminer_rapport_anonyme(
+                    anon_id, apercu, visual_result=visual_result, transcript=transcript,
+                    market_context=market_context, product=product, tier=tier, price=price,
+                    user_role=user_role, lang=lang, url=url, performance=performance,
+                    cache_key=cache_key, analysis_start=analysis_start, user=user))
+                import entonnoir
+                entonnoir.enregistrer(supabase_client, "resultat_affiche", detail="url", lang=lang)
+                security_logger.analyze_ok(request.client.host if request.client else "unknown", 0)
+                return JSONResponse(_partiel_anonyme(
+                    {**apercu, "source": "url", "source_url": url}, anon_id))
+
         # ── 6. Synthèse via Claude Haiku (provider sélectionné selon tier) ──
         result = await asyncio.wait_for(
             loop.run_in_executor(None, synthesize_analysis, visual_result, transcript, market_context, product, tier, price, user_role, lang),
             timeout=140.0,
         )
-        analysis_duration_ms = int((time.time() - analysis_start) * 1000)
-
-        if user["valid"]:
-            increment_usage(user["email"])
-
-        _record_analyzed_product(result)   # 🧠 mémoire produits (anonyme)
-
-        # 🎯 Flux URL : on récupère le VRAI product_id taggé dans la vidéo (Video
-        # Products) → mémoire produits précise + exposé au front. Best-effort.
-        try:
-            _nu, _vid = normalize_tiktok_url(url)
-            if _vid and _vid != "unknown":
-                _vps = await market_creators.get_video_products(_vid)
-                if _vps:
-                    _vp = _vps[0]
-                    _det = result.get("detection") or {}
-                    product_store.record_product(
-                        supabase_client, product_id=_vp.get("product_id"),
-                        name=_det.get("produit"), category=_det.get("categorie_marche"),
-                        region=_vp.get("region"), price=_det.get("prix_estime"), sales=_vp.get("sales"))
-                    result["video_product"] = _vp
-        except Exception as e:
-            print(f"video_products enrich error: {e}")
-
-        result["transcript"] = transcript
-        result["pipeline"] = "gemini-pro-native"
-        result["cta_visuel"] = visual_result.get("cta_visuel")
-        result["cta_audio"] = visual_result.get("cta_audio")
-        result["usage"] = usage_info(user)
-        result["analysis_duration_ms"] = analysis_duration_ms
-        result["source"] = "url"
-        result["source_url"] = url
-        result["performance"] = performance  # None pour l'instant (futur : stats TikTok)
-        result["from_cache"] = False
-
-        # Nourrit la base de connaissances (anonymisé) — best effort.
-        try: save_insight(result, product=product, price=price)
-        except Exception: pass
-        # 🏆 Structures gagnantes (Gold/Agency) si score < 75.
-        try:
-            winning = build_winning_payload(result, tier, product=product, price=price)
-            if winning: result["structures_gagnantes"] = winning
-        except Exception: pass
-
-        # ── Cache store (seulement si l'utilisateur n'a pas fourni d'input custom) ──
-        if cache_key:
-            try:
-                analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
-            except Exception as e:
-                print(f"[analyze-url] cache store error: {e}")
-
-        # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
-        _persist_sync_analysis(
-            user, result, source="url", source_url=url,
-            product=product, price=price,
-            title=product or url[:60],
-            duration_ms=analysis_duration_ms,
-        )
+        result = await _finaliser_analyse_url(
+            result, visual_result=visual_result, transcript=transcript, product=product,
+            tier=tier, price=price, url=url, performance=performance, cache_key=cache_key,
+            analysis_start=analysis_start, user=user, lang=lang)
 
         ip = request.client.host if request.client else "unknown"
         security_logger.analyze_ok(ip, 0)  # frames_analyzed n'a plus de sens avec Gemini natif
@@ -2895,6 +2907,101 @@ async def analyze_url(request: Request):
             gc.collect()
         except Exception:
             pass
+
+
+async def _terminer_rapport_anonyme(anon_id: str, apercu: dict, **ctx) -> None:
+    """Rédige le rapport complet d'un visiteur (en fond) et le dépose sous son anon_id.
+
+    Le rapport reprend l'aperçu déjà affiché (`imposes`). Sur échec, la ligne est
+    marquée en erreur : le rattachement répond alors « expirée » et la page
+    relance l'analyse avec le compte.
+    """
+    loop = asyncio.get_event_loop()
+    try:
+        result = await asyncio.wait_for(loop.run_in_executor(
+            None, lambda: synthesize_analysis(
+                ctx["visual_result"], ctx["transcript"], ctx["market_context"], ctx["product"],
+                ctx["tier"], ctx["price"], ctx["user_role"], ctx["lang"], imposes=apercu)),
+            timeout=180.0)
+        if result.get("error"):
+            raise RuntimeError(result["error"])
+        result = await _finaliser_analyse_url(
+            result, **{k: ctx[k] for k in ("visual_result", "transcript", "product", "tier",
+                                           "price", "url", "performance", "cache_key",
+                                           "analysis_start", "user", "lang")})
+        await loop.run_in_executor(None, _deposer_rapport_anonyme, anon_id, {"result": result})
+    except Exception as e:
+        print(f"[analyse anonyme] rapport complet impossible ({anon_id[:8]}) : {e}")
+        try:
+            await loop.run_in_executor(None, _deposer_rapport_anonyme, anon_id, {"erreur": str(e)[:200]})
+        except Exception as e2:
+            print(f"[analyse anonyme] marquage de l'échec impossible : {e2}")
+
+
+async def _finaliser_analyse_url(result: dict, *, visual_result: dict, transcript, product,
+                                 tier, price, url: str, performance, cache_key,
+                                 analysis_start: float, user: dict, lang: str) -> dict:
+    """Tout ce qui suit la rédaction d'une analyse par lien : enrichissements,
+    cache, « Mes analyses ». Commun au parcours direct et au rapport en fond."""
+    import analysis_cache
+    analysis_duration_ms = int((time.time() - analysis_start) * 1000)
+    if user["valid"]:
+        increment_usage(user["email"])
+
+    _record_analyzed_product(result)   # 🧠 mémoire produits (anonyme)
+
+    # 🎯 Flux URL : on récupère le VRAI product_id taggé dans la vidéo (Video
+    # Products) → mémoire produits précise + exposé au front. Best-effort.
+    try:
+        _nu, _vid = normalize_tiktok_url(url)
+        if _vid and _vid != "unknown":
+            _vps = await market_creators.get_video_products(_vid)
+            if _vps:
+                _vp = _vps[0]
+                _det = result.get("detection") or {}
+                product_store.record_product(
+                    supabase_client, product_id=_vp.get("product_id"),
+                    name=_det.get("produit"), category=_det.get("categorie_marche"),
+                    region=_vp.get("region"), price=_det.get("prix_estime"), sales=_vp.get("sales"))
+                result["video_product"] = _vp
+    except Exception as e:
+        print(f"video_products enrich error: {e}")
+
+    result["transcript"] = transcript
+    result["pipeline"] = "gemini-pro-native"
+    result["cta_visuel"] = visual_result.get("cta_visuel")
+    result["cta_audio"] = visual_result.get("cta_audio")
+    result["usage"] = usage_info(user)
+    result["analysis_duration_ms"] = analysis_duration_ms
+    result["source"] = "url"
+    result["source_url"] = url
+    result["performance"] = performance  # None pour l'instant (futur : stats TikTok)
+    result["from_cache"] = False
+
+    # Nourrit la base de connaissances (anonymisé) — best effort.
+    try: save_insight(result, product=product, price=price)
+    except Exception: pass
+    # 🏆 Structures gagnantes (Gold/Agency) si score < 75.
+    try:
+        winning = build_winning_payload(result, tier, product=product, price=price)
+        if winning: result["structures_gagnantes"] = winning
+    except Exception: pass
+
+    # ── Cache store (seulement si l'utilisateur n'a pas fourni d'input custom) ──
+    if cache_key:
+        try:
+            analysis_cache.store(cache_key, result, pipeline="pro", lang=lang)
+        except Exception as e:
+            print(f"[analyze-url] cache store error: {e}")
+
+    # Persiste dans analysis_jobs pour qu'elle apparaisse dans Mes analyses
+    _persist_sync_analysis(
+        user, result, source="url", source_url=url,
+        product=product, price=price,
+        title=product or url[:60],
+        duration_ms=analysis_duration_ms,
+    )
+    return result
 
 
 @app.post("/analyze-url/stream")
@@ -3022,10 +3129,8 @@ async def analyze_url_stream(request: Request):
                 import yt_dlp
                 ydl_opts = {
                     "outtmpl": os.path.join(tmpdir, "video.%(ext)s"),
-                    # mp4 exigé : l'upload Gemini annonce « video/mp4 » en dur. Le
-                    # filtre height<=720 ne matchait jamais (TikTok est vertical,
-                    # 1080×1920) et laissait passer n'importe quel conteneur via `best`.
-                    "format": "best[ext=mp4]/best",
+                    # H.264 en mp4 d'abord : voir YDL_FORMAT_VIDEO.
+                    "format": YDL_FORMAT_VIDEO,
                     "merge_output_format": "mp4",
                     "quiet": True, "no_warnings": True, "noplaylist": True,
                     "max_filesize": 150 * 1024 * 1024,
@@ -5993,14 +6098,31 @@ async def rattacher_analyse_anonyme(request: Request):
         raise HTTPException(status_code=404, detail="Analyse introuvable.")
     email = user["email"].lower()
     cle = _ANON_PREFIXE + anon_id
-    try:
-        r = (supabase_client.table("market_cache").select("payload,expires_at")
-             .eq("cache_key", cle).limit(1).execute())
-        ligne = (r.data or [None])[0]
-    except Exception as e:
-        print(f"[rattacher] lecture : {e}")
-        ligne = None
+
+    def _lire():
+        try:
+            r = (supabase_client.table("market_cache").select("payload,expires_at")
+                 .eq("cache_key", cle).limit(1).execute())
+            return (r.data or [None])[0]
+        except Exception as e:
+            print(f"[rattacher] lecture : {e}")
+            return None
+
+    # Aperçu rapide : le rapport complet peut être encore en rédaction (il
+    # démarre quand l'aperçu s'affiche, ~100 s). On attend un peu ici, puis la
+    # page rappelle la route sur un 202.
+    loop = asyncio.get_event_loop()
+    ligne = await loop.run_in_executor(None, _lire)
+    fin_attente = time.monotonic() + float(os.getenv("RATTACHER_ATTENTE_S", "25"))
+    while ((ligne or {}).get("payload") or {}).get("en_cours") and time.monotonic() < fin_attente:
+        await asyncio.sleep(2)
+        ligne = await loop.run_in_executor(None, _lire)
     payload = (ligne or {}).get("payload") or {}
+    if payload.get("en_cours"):
+        cree = analysis_quota._parse_dt(payload.get("cree_le"))
+        if not cree or datetime.now(timezone.utc) - cree < _RAPPORT_PERDU_APRES:
+            return JSONResponse({"en_cours": True}, status_code=202)
+        payload = {}   # serveur redémarré pendant la rédaction : rapport perdu
     fin = analysis_quota._parse_dt((ligne or {}).get("expires_at"))
     deja = payload.get("rattache_a")
     if (not payload.get("result") or (fin and fin < datetime.now(timezone.utc))

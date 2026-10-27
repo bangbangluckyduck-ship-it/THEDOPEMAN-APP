@@ -1408,34 +1408,15 @@ def _format_market_context(market: dict) -> str:
         return ""
 
 
-def synthesize_analysis(
-    visual_result: dict,
-    transcript: Optional[str],
-    market_context: Optional[dict] = None,
-    product: Optional[str] = None,
-    user_tier: str = "free",
-    price: Optional[str] = None,
-    user_role: Optional[str] = None,
-    lang: str = "fr",
-) -> dict:
+def _prompt_synthese(visual_result: dict, transcript: Optional[str],
+                     market_context: Optional[dict], product: Optional[str],
+                     price: Optional[str], user_role: Optional[str]):
+    """Prompt de rédaction, SANS la consigne de langue (à ajouter en dernier).
+
+    Partagé par le rapport complet et l'aperçu : les deux notent la vidéo avec
+    exactement les mêmes consignes.
+    Retourne (prompt, momentum_status, produit_de_reference, cal_ctx, saison_produit).
     """
-    Synthèse text-only via mistral-small : combine vision + transcript + marché.
-    Bcp + rapide que pixtral car pas d'images à traiter (8-15s vs 30-60s).
-
-    `user_tier` est résolu côté serveur (token JWT / Supabase). Pour les plans
-    Gold / Agency (+ beta / admin), on concatène le bloc PREMIUM qui génère la
-    section « 🎯 Ton plan pour vendre ce produit » (persona + script de vente).
-
-    `user_role` ∈ {"affilie", "vendeur"} : choisi par l'utilisateur à chaque analyse
-    (dropdown frontend). Change l'angle des conseils / du script réécrit, jamais le
-    calcul des scores. Valeur inconnue/absente → aucun ciblage de rôle appliqué.
-    """
-    user_role = (user_role or "").strip().lower() or None
-    if user_role not in ROLE_TARGETING_BLOCKS:
-        user_role = None
-    if not ai_providers.any_ai_key():
-        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
-
     # base_prompt : instructions d'analyse standard (tous les plans)
     base_prompt = SYNTHESIS_PROMPT
     # Le bloc premium est ajouté À LA FIN du prompt (recency) pour maximiser la
@@ -1540,10 +1521,53 @@ def synthesize_analysis(
     if is_premium:
         parts.append(PREMIUM_PROMPT_BLOCK)
 
+    return "\n".join(parts), momentum_status, product_hint_for_momentum, cal_ctx, saison_produit
+
+
+def synthesize_analysis(
+    visual_result: dict,
+    transcript: Optional[str],
+    market_context: Optional[dict] = None,
+    product: Optional[str] = None,
+    user_tier: str = "free",
+    price: Optional[str] = None,
+    user_role: Optional[str] = None,
+    lang: str = "fr",
+    imposes: Optional[dict] = None,
+) -> dict:
+    """
+    Synthèse text-only via mistral-small : combine vision + transcript + marché.
+
+    Bcp + rapide que pixtral car pas d'images à traiter (8-15s vs 30-60s).
+
+    `imposes` : l'aperçu déjà montré au visiteur (synthesize_apercu). Le rapport
+    le reprend tel quel — score, verdict, première force, première faiblesse,
+    première action — pour que rien ne change sous ses yeux après l'inscription.
+
+    `user_tier` est résolu côté serveur (token JWT / Supabase). Pour les plans
+    Gold / Agency (+ beta / admin), on concatène le bloc PREMIUM qui génère la
+    section « 🎯 Ton plan pour vendre ce produit » (persona + script de vente).
+
+    `user_role` ∈ {"affilie", "vendeur"} : choisi par l'utilisateur à chaque analyse
+    (dropdown frontend). Change l'angle des conseils / du script réécrit, jamais le
+    calcul des scores. Valeur inconnue/absente → aucun ciblage de rôle appliqué.
+    """
+    user_role = (user_role or "").strip().lower() or None
+    if user_role not in ROLE_TARGETING_BLOCKS:
+        user_role = None
+    if not ai_providers.any_ai_key():
+        raise Exception("Aucune clé IA configurée (MISTRAL / GEMINI / ANTHROPIC)")
+
+    corps, momentum_status, product_hint_for_momentum, cal_ctx, saison_produit = _prompt_synthese(
+        visual_result, transcript, market_context, product, price, user_role)
+    is_premium = True
+    if imposes:
+        corps += _bloc_imposes(imposes)
+
     # La consigne de langue est ajoutée en TOUT DERNIER : c'est la synthèse qui
     # produit le verdict et les recommandations, donc l'essentiel de ce que lit
     # l'abonné. Placée en fin de prompt, elle prime sur les consignes plus haut.
-    full_prompt = "\n".join(parts) + _directive_langue(lang)
+    full_prompt = corps + _directive_langue(lang)
 
     # Synthèse — provider dépend du tier :
     # Claude Haiku 4.5 pour tout le monde (raisonnement supérieur sur la
@@ -1599,7 +1623,141 @@ def synthesize_analysis(
     if not is_premium:
         parsed.pop("strategie_conversion_premium", None)
 
-    return _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit, manual_price=price, user_role=user_role)
+    result = _post_process(parsed, market_context, visual_result, cal_ctx, saison_produit, manual_price=price, user_role=user_role)
+    if imposes:
+        _appliquer_imposes(result, imposes)
+    return result
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# APERÇU RAPIDE (visiteur sans compte)
+#
+# Le visiteur sans compte ne voit que le score, le verdict, une force, une
+# faiblesse et le début de la première action (main._partiel_anonyme). Lui faire
+# attendre les ~100 s de rédaction du rapport complet (28 000 caractères mesurés
+# le 26/10) pour en montrer cinq lignes coûtait l'essentiel de son attente.
+#
+# L'aperçu lit EXACTEMENT le même prompt que le rapport (mêmes grilles de
+# notation) et n'écrit que ces cinq éléments. Le rapport complet est rédigé
+# ensuite, en arrière-plan, en reprenant l'aperçu tel quel (`imposes`).
+# ════════════════════════════════════════════════════════════════════════════
+APERCU_PROMPT_BLOCK = """
+
+████████████████████████████████████████████████████████████████████████████████
+█  FORMAT DE SORTIE RÉDUIT — APERÇU (PRIORITAIRE SUR LE FORMAT JSON CI-DESSUS)
+████████████████████████████████████████████████████████████████████████████████
+
+N'écris PAS le rapport complet. Évalue la vidéo avec exactement les mêmes grilles
+et les mêmes exigences que ci-dessus, puis produis UNIQUEMENT ce JSON :
+{"score_global": <0-100, noté exactement comme dans le rapport complet>,
+ "verdict": "<3-4 phrases, mêmes règles que le verdict du rapport complet>",
+ "point_fort": "<la force principale, formulée comme un élément de points_forts>",
+ "point_a_ameliorer": "<la faiblesse principale, formulée comme un élément de points_ameliorer>",
+ "action_prioritaire": "<l'amélioration n°1, formulée comme ameliorations_prioritaires[0].action>",
+ "detection": {"produit": "<nom>", "prix_estime": "<prix EUR ou non détecté>",
+               "hook_type": "<>", "hook_force": <0-10>}}
+Ces éléments seront repris mot pour mot dans le rapport complet : ils doivent
+pouvoir en être la tête.
+"""
+
+
+def synthesize_apercu(visual_result: dict, transcript: Optional[str],
+                      product: Optional[str] = None, price: Optional[str] = None,
+                      user_role: Optional[str] = None, lang: str = "fr") -> dict:
+    """Aperçu du rapport en ~10-15 s : les seuls éléments montrés sans compte.
+
+    Retourne un dict au format du rapport (score_global, verdict, points_forts,
+    points_ameliorer, ameliorations_prioritaires, detection) réduit à ces
+    éléments. Lève une exception si la réponse est inexploitable : l'appelant
+    retombe alors sur le rapport complet, comme avant.
+    """
+    user_role = (user_role or "").strip().lower() or None
+    if user_role not in ROLE_TARGETING_BLOCKS:
+        user_role = None
+    corps, *_ = _prompt_synthese(visual_result, transcript, None, product, price, user_role)
+    prompt = corps + APERCU_PROMPT_BLOCK + _directive_langue(lang)
+    import time as _time
+    _t = _time.monotonic()
+    raw = ai_providers.text_complete(
+        prompt,
+        timeout=float(os.getenv("APERCU_TIMEOUT", "60")),
+        max_tokens=1500,
+        provider=os.getenv("ANALYSIS_TEXT_PROVIDER", "claude"),
+        model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
+        temperature=0.0,
+    )
+    print(f"[analyzer] ⏱ aperçu : {_time.monotonic() - _t:.1f}s "
+          f"— réponse {len(raw or '')} car.", flush=True)
+    d = _extract_json(raw)
+    score = d.get("score_global")
+    if isinstance(score, str) and score.strip().isdigit():
+        score = int(score.strip())
+    verdict = str(d.get("verdict") or "").strip()
+    if isinstance(score, bool) or not isinstance(score, (int, float)) or not 0 <= score <= 100 or not verdict:
+        raise ValueError("aperçu incomplet (score ou verdict manquant)")
+    det = d.get("detection") if isinstance(d.get("detection"), dict) else {}
+    det = {k: det.get(k) for k in ("produit", "prix_estime", "hook_type", "hook_force")}
+    if price and str(price).strip():
+        det["prix_estime"] = str(price).strip()   # le prix saisi fait autorité
+    fort = str(d.get("point_fort") or "").strip()
+    faible = str(d.get("point_a_ameliorer") or "").strip()
+    action = str(d.get("action_prioritaire") or "").strip()
+    return {
+        "score_global": round(score),
+        "verdict": verdict,
+        "points_forts": [fort] if fort else [],
+        "points_ameliorer": [faible] if faible else [],
+        "ameliorations_prioritaires": [{"rang": 1, "action": action}] if action else [],
+        "detection": det,
+    }
+
+
+def _bloc_imposes(apercu: dict) -> str:
+    """Consigne au rapport complet : reprendre l'aperçu déjà montré."""
+    a1 = (apercu.get("ameliorations_prioritaires") or [{}])[0] or {}
+    imposes = {
+        "score_global": apercu.get("score_global"),
+        "verdict": apercu.get("verdict"),
+        "points_forts[0]": (apercu.get("points_forts") or [None])[0],
+        "points_ameliorer[0]": (apercu.get("points_ameliorer") or [None])[0],
+        "ameliorations_prioritaires[0].action": a1.get("action"),
+    }
+    imposes = {k: v for k, v in imposes.items() if v not in (None, "")}
+    return ("\n\n████████████████████████████████████████████████████████████████████████████████"
+            "\n█  ÉLÉMENTS DÉJÀ COMMUNIQUÉS À L'UTILISATEUR — À REPRENDRE TELS QUELS"
+            "\n████████████████████████████████████████████████████████████████████████████████\n"
+            "L'utilisateur a déjà lu ces éléments. Reprends-les MOT POUR MOT aux emplacements "
+            "indiqués, et rends le reste du rapport cohérent avec eux (les scores détaillés "
+            "doivent justifier ce score global) :\n"
+            + json.dumps(imposes, ensure_ascii=False, indent=2))
+
+
+def _appliquer_imposes(result: dict, apercu: dict) -> None:
+    """Garantie en code de ce que _bloc_imposes demande au modèle."""
+    if apercu.get("score_global") is not None:
+        result["score_global"] = apercu["score_global"]
+    if apercu.get("verdict"):
+        result["verdict"] = apercu["verdict"]
+    for cle in ("points_forts", "points_ameliorer"):
+        premier = (apercu.get(cle) or [None])[0]
+        if premier:
+            existants = list(result.get(cle) or [])
+            # Le modèle a recopié l'élément ailleurs qu'en tête, ou l'a reformulé
+            # en tête : on remplace la tête, sans doublon.
+            reste = [p for p in existants[1:] if p != premier]
+            result[cle] = [premier] + reste
+    action = ((apercu.get("ameliorations_prioritaires") or [{}])[0] or {}).get("action")
+    if action:
+        ams = list(result.get("ameliorations_prioritaires") or [])
+        if ams and isinstance(ams[0], dict):
+            ams[0] = {**ams[0], "action": action}
+        else:
+            ams.insert(0, {"rang": 1, "action": action})
+        result["ameliorations_prioritaires"] = ams
+    det = result.setdefault("detection", {})
+    for k, v in (apercu.get("detection") or {}).items():
+        if v not in (None, ""):
+            det[k] = v
 
 
 # ════════════════════════════════════════════════════════════════════════════

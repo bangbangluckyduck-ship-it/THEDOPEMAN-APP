@@ -21,6 +21,17 @@ from typing import List, Optional
 # À passer tel quel dans les `ydl_opts` de TOUT appel yt-dlp sur TikTok.
 YDL_TIKTOK_EXTRACTOR_ARGS = {"tiktok": {"app_info": [""]}}
 
+# Format à demander à yt-dlp pour TOUTE vidéo envoyée à l'analyse.
+#
+# TikTok sert souvent la même vidéo en H.265 (« bytevc1 », jusqu'en 1080p) ET en
+# H.264 (540p). `best` prenait la 1080p H.265 — que Google n'accepte pas sous
+# l'étiquette « video/mp4 » : downscale_720p la ré-encodait donc, 30 à 60 s
+# mesurées en production le 26/10 pour descendre… en 405×720. La version H.264
+# native (576×1024) est prête à partir, et plus nette que ce ré-encodage.
+# Pas de H.264 proposé → on retombe sur l'ancien choix, et le ré-encodage reste
+# le filet.
+YDL_FORMAT_VIDEO = "best[ext=mp4][vcodec~='^(avc1|h264)']/best[ext=mp4]/best"
+
 
 class PasDeVideo(Exception):
     """Le fichier n'a aucune image à analyser.
