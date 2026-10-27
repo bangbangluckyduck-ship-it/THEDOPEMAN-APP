@@ -4712,8 +4712,8 @@ async def tt_thumb(u: str = Query(...)):
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-_TEASER_PREFIXE = "feedradar::teaser::v5::"
-_TEASER_CANDIDATS = 8          # vérifiés en parallèle pour en garder 3
+_TEASER_PREFIXE = "feedradar::teaser::v6::"
+_TEASER_CANDIDATS = 8          # vérifiés un par un jusqu'à 3 vidéos confirmées
 _NATURE_PREFIXE = "feedradar::nature::"
 
 
@@ -4732,18 +4732,33 @@ def _nature_publication(row: dict) -> Optional[bool]:
     return verdict
 
 
-async def _exemples_video(rows: list) -> list:
-    """Les 3 premiers exemples qui sont de vraies vidéos. Un verdict inconnu
-    (TikTok injoignable) ne retire rien : mieux vaut un exemple incertain qu'un
-    encart vide."""
+async def _exemples_video(rows: list) -> tuple[list, bool]:
+    """Les 3 exemples à montrer, et s'ils sont tous des vidéos confirmées.
+
+    Vérifiés UN PAR UN, arrêt dès 3 vidéos confirmées : lancées en parallèle,
+    les vérifications se faisaient refuser par TikTok (403 dès la 3e, constaté
+    le 27/10) et rendaient toutes « inconnu » — les publications photo restaient.
+    Les vidéos confirmées passent devant ; un verdict inconnu ne sert qu'à
+    compléter (mieux vaut un exemple incertain qu'un encart vide).
+    """
     loop = asyncio.get_event_loop()
-    try:
-        verdicts = await asyncio.wait_for(asyncio.gather(
-            *(loop.run_in_executor(None, _nature_publication, r) for r in rows)), timeout=25.0)
-    except Exception as e:
-        print(f"/api/feed-radar/teaser vérification impossible : {e}")
-        verdicts = [None] * len(rows)
-    return [r for r, v in zip(rows, verdicts) if v is not False][:3]
+    fin = time.monotonic() + 25.0
+    confirmees, incertaines = [], []
+    for r in rows:
+        if len(confirmees) >= 3 or time.monotonic() > fin:
+            break
+        try:
+            verdict = await asyncio.wait_for(
+                loop.run_in_executor(None, _nature_publication, r),
+                timeout=max(1.0, fin - time.monotonic()))
+        except Exception as e:
+            print(f"/api/feed-radar/teaser vérification impossible ({r.get('video_id')}) : {e}")
+            verdict = None
+        if verdict is True:
+            confirmees.append(r)
+        elif verdict is None:
+            incertaines.append(r)
+    return (confirmees + incertaines)[:3], len(confirmees) >= 3
 
 
 def _marquer_feed_radar_photo(video_id: str) -> None:
@@ -4786,6 +4801,7 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
     teaser = _market_cache_get(cache_key)
     if teaser is None:
         cols = "video_id,video_url,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated,gmv_real,gmv_source"
+        tout_verifie = False
         fallback_cols = "video_id,oembed_thumbnail_url,oembed_author_name,views,gmv_estimated"
 
         def _fetch(cols_to_use: str) -> list:
@@ -4807,7 +4823,7 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
             return rows
 
         try:
-            teaser = await _exemples_video(_fetch(cols))
+            teaser, tout_verifie = await _exemples_video(_fetch(cols))
             # Lien propre : l'URL collectée porte les paramètres de partage de
             # celui qui l'a partagée (u_code, sharer_language…). Inutiles pour
             # l'analyse, et rien à faire dans le champ d'un visiteur.
@@ -4825,7 +4841,9 @@ async def feed_radar_teaser(region: Optional[str] = Query(None)):
         # Ne jamais mettre un résultat VIDE en cache : une lecture qui échoue
         # momentanément gèlerait un teaser vide pour toute la durée de vie.
         if teaser:
-            _market_cache_set(cache_key, teaser, hours=6)
+            # Exemples non tous confirmés : on retentera dans l'heure plutôt que
+            # de figer une publication photo pour la journée.
+            _market_cache_set(cache_key, teaser, hours=6 if tout_verifie else 0.25)
     return {"ok": True, "videos": teaser or []}
 
 
