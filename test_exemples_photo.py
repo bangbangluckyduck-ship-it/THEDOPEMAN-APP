@@ -72,11 +72,21 @@ def test_tiktok_injoignable_verdict_inconnu(monkeypatch):
 
 # ── Exemples de l'accueil ──────────────────────────────────────────────────
 def test_les_exemples_ne_gardent_que_des_videos(monkeypatch):
-    verdicts = {"1": False, "2": True, "3": None, "4": True, "5": True}
-    monkeypatch.setattr(main, "_nature_publication", lambda r: verdicts[r["video_id"]])
+    verdicts = {"1": False, "2": True, "3": None, "4": True, "5": True, "6": True}
+    vus = []
+    monkeypatch.setattr(main, "_nature_publication", lambda r: vus.append(r["video_id"]) or verdicts[r["video_id"]])
     rows = [{"video_id": k} for k in verdicts]
-    gardes = asyncio.run(main._exemples_video(rows))
-    assert [r["video_id"] for r in gardes] == ["2", "3", "4"]
+    gardes, tout_verifie = asyncio.run(main._exemples_video(rows))
+    # vidéos confirmées d'abord ; l'incertaine ne sert qu'à compléter
+    assert [r["video_id"] for r in gardes] == ["2", "4", "5"] and tout_verifie
+    assert vus == ["1", "2", "3", "4", "5"]      # un par un, arrêt à 3 confirmées
+
+
+def test_incertain_complete_mais_cache_court(monkeypatch):
+    verdicts = {"1": None, "2": True, "3": False}
+    monkeypatch.setattr(main, "_nature_publication", lambda r: verdicts[r["video_id"]])
+    gardes, tout_verifie = asyncio.run(main._exemples_video([{"video_id": k} for k in verdicts]))
+    assert [r["video_id"] for r in gardes] == ["2", "1"] and not tout_verifie
 
 
 class _Base:
@@ -120,7 +130,7 @@ def test_une_analyse_photo_retire_la_publication_des_exemples(monkeypatch):
     assert ("eq", "video_id", "7548578503013190918") in base.ops
     assert any(o[0] == "upsert" and o[2].endswith("feedradar::nature::7548578503013190918")
                and o[3] == {"video": False} for o in base.ops)
-    assert any(o[0] == "like" and "feedradar::teaser::v5::" in o[2] for o in base.ops)
+    assert any(o[0] == "like" and "feedradar::teaser::v6::" in o[2] for o in base.ops)
 
 
 # ── Essai sans compte ──────────────────────────────────────────────────────
