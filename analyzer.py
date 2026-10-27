@@ -1691,6 +1691,12 @@ def synthesize_apercu(visual_result: dict, transcript: Optional[str],
         model=os.getenv("SYNTHESIS_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
         temperature=0.0,
         prefill='{"score_global":',
+        # Même ouvert par le score, Claude enchaînait sur les sections du rapport
+        # complet jusqu'au plafond (24 s pour ~5 s utiles, mesuré le 27/10). Ces
+        # clés n'existent que dans le rapport : les voir arriver, c'est que
+        # l'aperçu est fini — le JSON coupé là est réparé par _extract_json.
+        stop=['"contexte_temporel"', '"analyse_8_dimensions"', '"viral_potential"',
+              '"structure_vente"', '"recommendations_hooks"', '"conseils_concrets"'],
     )
     print(f"[analyzer] ⏱ aperçu : {_time.monotonic() - _t:.1f}s "
           f"— réponse {len(raw or '')} car.", flush=True)

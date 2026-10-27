@@ -399,7 +399,7 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
 def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
                  temperature: Optional[float] = None, model: Optional[str] = None,
-                 prefill: Optional[str] = None) -> str:
+                 prefill: Optional[str] = None, stop: Optional[list] = None) -> str:
     import anthropic
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=timeout)
     cblocks = []
@@ -422,6 +422,8 @@ def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
                     "messages": [{"role": "user", "content": cblocks}]}
     if temperature is not None:
         kwargs["temperature"] = temperature
+    if stop:
+        kwargs["stop_sequences"] = list(stop)
     if prefill:
         # Début de réponse imposé : le modèle CONTINUE ce texte. Refusé (400) par
         # les modèles Claude récents — on relance alors sans, la consigne du
@@ -506,16 +508,18 @@ def video_complete(video_path: str, prompt: str, timeout: float = 90.0,
 
 def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 8192,
                   temperature: Optional[float] = None, model: Optional[str] = None,
-                  provider: Optional[str] = None, prefill: Optional[str] = None) -> str:
+                  provider: Optional[str] = None, prefill: Optional[str] = None,
+                  stop: Optional[list] = None) -> str:
     """Rédaction d'analyses / plans (texte, image éventuelle). Claude si dispo, sinon
     Mistral small. `model` force un modèle Claude précis (ex. Haiku pour la vitesse).
     `provider` force un fournisseur ('mistral' / 'claude') — utile en secours.
-    `prefill` : début de réponse imposé à Claude (ignoré par Mistral)."""
+    `prefill` : début de réponse imposé à Claude ; `stop` : textes qui arrêtent
+    Claude net (tous deux ignorés par Mistral)."""
     chosen = provider if provider in ("mistral", "claude") else _resolve("text")
     if chosen == "claude":
         try:
             out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature,
-                               model=model, prefill=prefill)
+                               model=model, prefill=prefill, stop=stop)
             if out and out.strip():
                 _LAST["text"] = "claude:" + CLAUDE_TEXT_MODEL
                 return out
