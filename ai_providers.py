@@ -398,7 +398,8 @@ def _gemini_video(video_path: str, prompt: str, timeout: float,
 
 # ── Claude Sonnet 4.6 (texte, multimodal possible) ───────────────────────────
 def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
-                 temperature: Optional[float] = None, model: Optional[str] = None) -> str:
+                 temperature: Optional[float] = None, model: Optional[str] = None,
+                 prefill: Optional[str] = None) -> str:
     import anthropic
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=timeout)
     cblocks = []
@@ -421,7 +422,20 @@ def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
                     "messages": [{"role": "user", "content": cblocks}]}
     if temperature is not None:
         kwargs["temperature"] = temperature
-    msg = client.messages.create(**kwargs)
+    if prefill:
+        # Début de réponse imposé : le modèle CONTINUE ce texte. Refusé (400) par
+        # les modèles Claude récents — on relance alors sans, la consigne du
+        # prompt restant seule à guider le format.
+        kwargs["messages"].append({"role": "assistant", "content": prefill})
+        try:
+            msg = client.messages.create(**kwargs)
+        except anthropic.BadRequestError as e:
+            print(f"[ai] début de réponse imposé refusé par {kwargs['model']} : {e}", flush=True)
+            kwargs["messages"].pop()
+            prefill = None
+            msg = client.messages.create(**kwargs)
+    else:
+        msg = client.messages.create(**kwargs)
     # Une réponse coupée au plafond ne lève AUCUNE erreur : elle revient
     # tronquée, silencieusement, et casse tout parsing JSON en aval. On le dit
     # haut et fort (incident du 04/09/2026 : analyse livrée vide, marquée réussie).
@@ -431,7 +445,7 @@ def _claude_text(content: Any, timeout: float, max_tokens: int = 4096,
         _LAST["text_truncated"] = True
     else:
         _LAST["text_truncated"] = False
-    return "".join(p.text for p in msg.content if getattr(p, "type", "") == "text")
+    return (prefill or "") + "".join(p.text for p in msg.content if getattr(p, "type", "") == "text")
 
 
 # ── Résolution du fournisseur ────────────────────────────────────────────────
@@ -492,14 +506,16 @@ def video_complete(video_path: str, prompt: str, timeout: float = 90.0,
 
 def text_complete(content: Any, timeout: float = 60.0, max_tokens: int = 8192,
                   temperature: Optional[float] = None, model: Optional[str] = None,
-                  provider: Optional[str] = None) -> str:
+                  provider: Optional[str] = None, prefill: Optional[str] = None) -> str:
     """Rédaction d'analyses / plans (texte, image éventuelle). Claude si dispo, sinon
     Mistral small. `model` force un modèle Claude précis (ex. Haiku pour la vitesse).
-    `provider` force un fournisseur ('mistral' / 'claude') — utile en secours."""
+    `provider` force un fournisseur ('mistral' / 'claude') — utile en secours.
+    `prefill` : début de réponse imposé à Claude (ignoré par Mistral)."""
     chosen = provider if provider in ("mistral", "claude") else _resolve("text")
     if chosen == "claude":
         try:
-            out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature, model=model)
+            out = _claude_text(content, timeout, max_tokens=max_tokens, temperature=temperature,
+                               model=model, prefill=prefill)
             if out and out.strip():
                 _LAST["text"] = "claude:" + CLAUDE_TEXT_MODEL
                 return out

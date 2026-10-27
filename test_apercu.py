@@ -226,3 +226,40 @@ def test_le_rapport_en_fond_en_echec_est_signale(base, apercu, monkeypatch):
     payload = base.lignes[main._ANON_PREFIXE + anon_id]["payload"]
     assert payload["en_cours"] is False and "Claude indisponible" in payload["erreur"]
     assert _rattacher(anon_id).status_code == 404
+
+
+# ── Début de réponse imposé (incident du 27/10 : aperçu coupé avant le score) ──
+def test_apercu_impose_le_debut_de_reponse(monkeypatch):
+    vus = {}
+
+    def faux(prompt, **k):
+        vus.update(k)
+        return json.dumps(APERCU_BRUT)
+
+    monkeypatch.setattr(ai_providers, "text_complete", faux)
+    analyzer.synthesize_apercu({}, None)
+    assert vus["prefill"] == '{"score_global":'
+
+
+def test_apercu_coupe_garde_score_et_verdict(monkeypatch):
+    coupe = '{"score_global": 71, "verdict": "La démo porte la vente.", "point_fort": "Accroche nette", "point_a_am'
+    monkeypatch.setattr(ai_providers, "text_complete", lambda *a, **k: coupe)
+    a = analyzer.synthesize_apercu({}, None)
+    assert a["score_global"] == 71 and a["verdict"] == "La démo porte la vente."
+    assert a["points_forts"] == ["Accroche nette"]
+
+
+def test_claude_continue_le_debut_impose(monkeypatch):
+    import anthropic
+    envoyes = []
+
+    class Messages:
+        def create(self, **k):
+            envoyes.append(k["messages"])
+            return type("M", (), {"stop_reason": "end_turn", "content": [
+                type("B", (), {"type": "text", "text": ' 80, "verdict": "V"}'})()]})()
+
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **k: type("C", (), {"messages": Messages()})())
+    out = ai_providers._claude_text("prompt", 10, prefill='{"score_global":')
+    assert json.loads(out) == {"score_global": 80, "verdict": "V"}
+    assert envoyes[0][-1] == {"role": "assistant", "content": '{"score_global":'}
