@@ -6299,6 +6299,8 @@ async function loadFeedRadarTab() {
       return;
     }
     grid.innerHTML = videos.map(renderFeedRadarCard).join('');
+    // Lecteur officiel TikTok à la place de la miniature, chargé au défilement.
+    if (window.ttLecteurs) window.ttLecteurs.observer(grid);
 
     if (data.preview) {
       upsell.style.display = 'block';
@@ -6338,8 +6340,8 @@ function renderFeedRadarCard(v) {
     <div class="feedradar-card" data-video-id="${v.video_id}" onclick="hydrateFeedRadarCard('${v.video_id}', this)"
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
       ${heart}
-      <div style="position:relative">
-        <img src="/api/feed-radar/${encodeURIComponent(v.video_id)}/thumb" alt="Miniature TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">
+      <div class="tt-lecteur" data-tt-player="${escapeHtml(String(v.video_id))}" data-tt-titre="Vidéo TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}">
+        <img class="tt-lecteur-repli" src="/static/placeholder-thumb.svg" alt="Miniature TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}" loading="lazy">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
           <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
         </div>
