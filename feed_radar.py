@@ -3,7 +3,13 @@ Feed Radar — feed de vidéos TikTok Shop virales (≥ seuil de vues), enrichie
 d'un thumbnail oEmbed officiel TikTok, d'un GMV estimé et d'une tendance
 créateur. Gold/Agency/Beta/Admin = complet, Free/Pro = aperçu (cf. main.py).
 
-Découverte CRÉATEUR-CENTRIQUE (pas d'endpoint "vidéos tendance" générique) :
+Découverte par CLASSEMENT DES VENTES (défaut depuis le 28/10/2026) :
+/video/ranking/analytics donne, par région, les vidéos qui ont le plus vendu sur
+une journée — ventes réelles, produits tagués et stats inclus. Quelques appels
+par région au lieu de ~13 700 par run, et uniquement des vidéos qui vendent.
+Les publications photo (aweme_type 150) sont écartées.
+
+Ancienne découverte CRÉATEUR-CENTRIQUE, gardée en repli (FEED_RADAR_SOURCE=createurs) :
 top créateurs (ranking déjà utilisé par market_creators.get_top_creators) →
 leurs vidéos (/influencer/videos) → filtre vues.
 
@@ -74,21 +80,32 @@ FEED_RADAR_CREATOR_PAGES = int(os.getenv("FEED_RADAR_CREATOR_PAGES", "3"))
 # leurs vidéos augmente donc le rendement en vidéos Shop réelles. La boucle s'arrête
 # dès qu'une page revient vide. Override via env pour arbitrer rendement ↔ coût KeyAPI.
 FEED_RADAR_VIDEO_PAGES = int(os.getenv("FEED_RADAR_VIDEO_PAGES", "2"))
-# ⚠️ Défaut ramené de 9 régions à la seule FR. Chaque région multiplie le coût du
-# run à l'identique : les huit autres représentaient 8/9 du budget KeyAPI pour des
-# marchés qui ne sont pas l'audience de Qeerah (créateurs TikTok Shop français).
-# Un utilisateur d'une autre région voit son feed se remplir dès qu'on rajoute sa
-# région ici — c'est un arbitrage de coût, pas une limite technique.
+# Défaut : France + Brésil (marché visé par Aimeric, 28/10/2026). Avec la
+# découverte par classement, une région coûte quelques appels par run : en
+# ajouter une est bon marché. (Avec l'ancienne découverte par créateurs, chaque
+# région coûtait ~13 700 appels, d'où la restriction passée à FR seule.)
 #
-#   FEED_RADAR_REGIONS=FR,US,GB   sur Render pour élargir sans tout rallumer.
+#   FEED_RADAR_REGIONS=FR,BR,US,GB   sur Render pour élargir sans redéployer.
 #
 # ⚠️ Si cette variable est déjà définie sur Render, c'est ELLE qui gagne : ce
 # défaut ne changera rien tant qu'elle n'est pas modifiée là-bas.
 FEED_RADAR_REGIONS = [
     r.strip().upper() for r in os.getenv(
-        "FEED_RADAR_REGIONS", "FR"
+        "FEED_RADAR_REGIONS", "FR,BR"
     ).split(",") if r.strip()
 ]
+
+# Source de la découverte : "classement" (défaut) ou "createurs" (ancienne, repli).
+FEED_RADAR_SOURCE = os.getenv("FEED_RADAR_SOURCE", "classement").strip().lower()
+# Pages du classement lues par jour et par région (10 vidéos par page).
+FEED_RADAR_RANKING_PAGES = int(os.getenv("FEED_RADAR_RANKING_PAGES", "5"))
+# Nombre de journées publiées lues par run, en partant de la plus récente.
+# 1 suffit en régime normal (2 runs/jour) ; monter ponctuellement pour remplir
+# une région qui démarre (ex. 7 = la dernière semaine).
+FEED_RADAR_RANKING_DAYS = int(os.getenv("FEED_RADAR_RANKING_DAYS", "1"))
+# Le classement d'un jour paraît avec ~2 jours de retard : on remonte jusqu'à
+# ce nombre de jours pour trouver le plus récent publié.
+_RANKING_MAX_RECUL = 5
 
 # ── BUDGET D'APPELS KeyAPI ───────────────────────────────────────────────────
 # Mesuré sur la configuration ci-dessus : ~13 700 appels par run, soit ~27 000
@@ -204,10 +221,153 @@ async def discover_candidate_videos(region: str = "US",
     return candidates
 
 
+async def discover_ranked_videos(region: str, today: Optional[date] = None) -> tuple[list[dict], dict]:
+    """Vidéos du classement des ventes pour `region` (cf. market_creators.get_video_ranking).
+
+    Cherche la journée publiée la plus récente (le classement du jour J paraît vers
+    J+2), puis lit FEED_RADAR_RANKING_DAYS journées × FEED_RADAR_RANKING_PAGES pages.
+    Renvoie (vidéos dédoublonnées, compteurs) — les compteurs servent au résumé du run."""
+    today = today or date.today()
+    stats = {"appels": 0, "jours": []}
+    seen: set = set()
+    videos: list[dict] = []
+
+    async def _page(jour: str, page: int) -> list[dict]:
+        stats["appels"] += 1
+        return await mc.get_video_ranking(region, jour, page_num=page)
+
+    # Journée publiée la plus récente
+    recul, premiere = 1, []
+    while recul <= _RANKING_MAX_RECUL:
+        jour = (today - timedelta(days=recul)).isoformat()
+        premiere = await _page(jour, 1)
+        if premiere:
+            break
+        recul += 1
+    if not premiere:
+        print(f"discover_ranked_videos({region}) : aucun classement publié sur {_RANKING_MAX_RECUL} jours")
+        return [], stats
+
+    for j in range(FEED_RADAR_RANKING_DAYS):
+        jour = (today - timedelta(days=recul + j)).isoformat()
+        lignes = premiere if j == 0 else []
+        for page in range(1, FEED_RADAR_RANKING_PAGES + 1):
+            if page > 1 or j > 0:
+                lignes = await _page(jour, page)
+            if not lignes:
+                break
+            for r in lignes:
+                v = mc._clean_ranked_video(r)
+                if v["id"] and v["id"] not in seen:
+                    seen.add(v["id"])
+                    videos.append({**v, "region": region})
+        stats["jours"].append(jour)
+    return videos, stats
+
+
+def _ligne_classement(v: dict, region: str, is_new: bool) -> dict:
+    """Ligne feed_radar_videos d'une vidéo du classement. Le GMV est toujours réel
+    ici : pas d'estimation ni de contexte créateur à payer (4 appels par créateur)."""
+    row = {
+        "video_id": v["id"],
+        "video_url": v["url"],
+        "creator_unique_id": v.get("creator_unique_id"),
+        "creator_nickname": v.get("creator_nickname"),
+        "region": region,
+        "is_carousel": False,
+        "image_count": 0,
+        "views": v.get("views") or 0,
+        "likes": v.get("likes") or 0,
+        "comments": v.get("comments") or 0,
+        "shares": v.get("shares") or 0,
+        "gmv_real": v.get("gmv_real") or 0,
+        "sales_real": v.get("sales_real") or 0,
+        "gmv_source": "real_attribution",
+        "video_products": v.get("video_products") or [],
+        "is_ad": False,
+        # Colonne NOT NULL : 0 = sélection par les ventes, pas par un seuil de vues.
+        "view_threshold_used": 0,
+    }
+    if is_new:
+        row.update({"trend_snapshot": [], "gmv_estimated": None, "ctor_used": None,
+                    "avg_product_price": None})
+    return row
+
+
+async def _collect_region_classement(region: str, supabase, dry_run: bool = False) -> dict:
+    """Collecte d'une région par le classement des ventes : découverte → écarte
+    les publications photo et les vidéos sans produit → oEmbed (nouvelles) → upsert.
+    En `dry_run`, rien n'est écrit : renvoie ce qui serait ajouté."""
+    found, stats = await discover_ranked_videos(region)
+    photos = [v for v in found if v.get("is_photo")]
+    sans_produit = [v for v in found if not v.get("is_photo") and not v.get("video_products")]
+    gardees = [v for v in found
+               if v.get("url") and not v.get("is_photo") and v.get("video_products")]
+
+    existing_ids: set = set()
+    if supabase is not None and gardees:
+        try:
+            rows = supabase.table("feed_radar_videos").select("video_id") \
+                .in_("video_id", [v["id"] for v in gardees]).execute().data or []
+            existing_ids = {str(r["video_id"]) for r in rows}
+        except Exception as e:
+            print(f"_collect_region_classement({region}) existing lookup error: {e}")
+
+    new_count = updated_count = 0
+    apercu: list = []
+    for v in gardees:
+        is_new = v["id"] not in existing_ids
+        row = _ligne_classement(v, region, is_new)
+        if dry_run:
+            apercu.append({"video_id": v["id"], "url": v["url"], "createur": v.get("creator_unique_id"),
+                           "ventes_jour": v.get("sales_day"), "ventes": v.get("sales_real"),
+                           "gmv": v.get("gmv_real"), "vues": v.get("views"), "nouvelle": is_new})
+        else:
+            if is_new:
+                oembed = await fetch_oembed(v["url"])
+                if oembed:
+                    row["oembed_thumbnail_url"] = oembed.get("thumbnail_url")
+                    row["oembed_html"] = oembed.get("html")
+                    row["oembed_author_name"] = oembed.get("author_name")
+                    row["oembed_fetched_at"] = datetime.now(timezone.utc).isoformat()
+            _upsert_ligne(supabase, row, region)
+        if is_new:
+            new_count += 1
+        else:
+            updated_count += 1
+
+    print(f"_collect_region_classement({region}) : {len(found)} classées ({stats['jours']}), "
+          f"{len(photos)} photos et {len(sans_produit)} sans produit écartées, "
+          f"{new_count} nouvelles, {updated_count} déjà connues, {stats['appels']} appels")
+    res = {"found": len(found), "kept": len(gardees), "skipped_photo": len(photos),
+           "skipped_non_shop": len(sans_produit), "new": new_count, "updated": updated_count,
+           "keyapi_calls": stats["appels"], "days": stats["jours"]}
+    if dry_run:
+        res["apercu"] = apercu
+    return res
+
+
+def _upsert_ligne(supabase, row: dict, region: str) -> None:
+    try:
+        supabase.table("feed_radar_videos").upsert(row, on_conflict="video_id").execute()
+    except Exception as e:
+        # Migration(s) pas encore appliquée(s) → retente sans les colonnes récentes pour
+        # ne pas perdre la ligne (les colonnes manquantes seront renseignées à la
+        # prochaine collecte, une fois la migration passée).
+        try:
+            row2 = {k: v for k, v in row.items() if k not in (
+                "is_carousel", "image_count",
+                "gmv_real", "sales_real", "gmv_source", "video_products", "is_ad",
+            )}
+            supabase.table("feed_radar_videos").upsert(row2, on_conflict="video_id").execute()
+        except Exception as e2:
+            print(f"_collect_region({region}) upsert error ({row.get('video_id')}): {e2}")
+
+
 _collection_running = False
 
 
-async def run_feed_radar_collection(region: Optional[str] = None) -> dict:
+async def run_feed_radar_collection(region: Optional[str] = None, dry_run: bool = False) -> dict:
     """Point d'entrée du cron : boucle sur FEED_RADAR_REGIONS (tous les marchés
     déjà couverts par KeyAPI, cf. MARKET_COUNTRIES côté frontend) sauf si un
     `region` précis est fourni (utile pour un déclenchement manuel ciblé).
@@ -226,18 +386,21 @@ async def run_feed_radar_collection(region: Optional[str] = None) -> dict:
 
     _collection_running = True
     try:
-        return await _run_collection(region, supabase)
+        return await _run_collection(region, supabase, dry_run=dry_run)
     finally:
         _collection_running = False
 
 
-async def _run_collection(region: Optional[str], supabase) -> dict:
+async def _run_collection(region: Optional[str], supabase, dry_run: bool = False) -> dict:
     regions = [region.upper()] if region else FEED_RADAR_REGIONS
     totals = {"found": 0, "new": 0, "updated": 0}
     by_region = {}
     for r in regions:
         try:
-            res = await _collect_region(r, supabase)
+            if FEED_RADAR_SOURCE == "createurs":
+                res = await _collect_region(r, supabase)
+            else:
+                res = await _collect_region_classement(r, supabase, dry_run=dry_run)
         except Exception as e:
             print(f"run_feed_radar_collection region {r} error: {e}")
             res = {"found": 0, "new": 0, "updated": 0}
@@ -248,6 +411,9 @@ async def _run_collection(region: Optional[str], supabase) -> dict:
         # Run long (~2h, 9 régions) sur une petite instance : on force la collecte
         # du GC entre chaque région pour rendre la RAM à l'OS et limiter le pic.
         gc.collect()
+
+    if dry_run:
+        return {"ok": True, "dry_run": True, **totals, "by_region": by_region}
 
     # Purge des anciennes vidéos non-Shop (produit non taggé) laissées par les
     # collectes d'avant le filtre Shop. Best-effort : ne fait jamais échouer la collecte.
@@ -501,20 +667,7 @@ async def _collect_region(region: str, supabase) -> dict:
         else:
             updated_count += 1
 
-        try:
-            supabase.table("feed_radar_videos").upsert(row, on_conflict="video_id").execute()
-        except Exception as e:
-            # Migration(s) pas encore appliquée(s) → retente sans les colonnes récentes pour
-            # ne pas perdre la ligne (les colonnes manquantes seront renseignées à la
-            # prochaine collecte, une fois la migration passée).
-            try:
-                row2 = {k: v for k, v in row.items() if k not in (
-                    "is_carousel", "image_count",
-                    "gmv_real", "sales_real", "gmv_source", "video_products", "is_ad",
-                )}
-                supabase.table("feed_radar_videos").upsert(row2, on_conflict="video_id").execute()
-            except Exception as e2:
-                print(f"_collect_region({region}) upsert error ({video_id}): {e2}")
+        _upsert_ligne(supabase, row, region)
 
     return {"found": found, "kept": len(candidates), "skipped_non_shop": skipped_non_shop,
             "new": new_count, "updated": updated_count}

@@ -684,6 +684,51 @@ async def get_videos_detail(video_ids: list[str]) -> dict[str, dict]:
     return out
 
 
+
+# ── Classement vidéo (/video/ranking/analytics) ──────────────────────────────
+# Les vidéos qui ont le plus VENDU sur une journée, par région. Testé en direct
+# le 28/10/2026 sur FR, US, GB et DE : 10 vidéos par appel, toutes avec des ventes
+# réelles, produits tagués et stats déjà inclus — sans appel de détail derrière.
+# Le classement du jour J n'est publié qu'avec ~2 jours de retard.
+AWEME_TYPE_PHOTO = 150   # publication photo (carrousel) : durée 0, rien à analyser
+
+
+async def get_video_ranking(region: str, day: str, page_num: int = 1, page_size: int = 10) -> list[dict]:
+    """Une page du classement quotidien des vidéos par ventes. `day` au format AAAA-MM-JJ.
+    Liste vide si le classement de ce jour n'est pas encore publié."""
+    data = await _get("/v1/tiktok/video/ranking/analytics", {
+        "date": day, "region": region, "video_rank_field": 2,   # 2 = ventes
+        "rank_type": 1, "page_num": page_num, "page_size": page_size})   # 1 = jour
+    if isinstance(data, dict):
+        data = data.get("list") or data.get("items") or []
+    return [r for r in (data if isinstance(data, list) else []) if isinstance(r, dict)]
+
+
+def _clean_ranked_video(r: dict) -> dict:
+    """Entrée du classement → même forme que les candidats de la découverte par
+    créateurs, plus les ventes RÉELLES cumulées depuis la publication (les champs
+    sans « history » ne couvrent que la journée classée)."""
+    vid = str(r.get("video_id") or "") or None
+    uid = r.get("unique_id")
+    return {
+        "id": vid,
+        "url": f"https://www.tiktok.com/@{uid}/video/{vid}" if uid and vid else None,
+        "cover": r.get("reflow_cover"),
+        "views": r.get("total_views_history_cnt") or 0,
+        "likes": r.get("total_digg_history_cnt") or 0,
+        "comments": r.get("total_comments_history_cnt") or 0,
+        "shares": r.get("total_shares_history_cnt") or 0,
+        "is_photo": r.get("aweme_type") == AWEME_TYPE_PHOTO,
+        "creator_unique_id": uid,
+        "creator_uid": r.get("user_id"),
+        "creator_nickname": r.get("nick_name"),
+        "region": r.get("region"),
+        "gmv_real": r.get("total_video_sale_gmv_history_amt") or 0,
+        "sales_real": r.get("total_video_sale_history_cnt") or 0,
+        "sales_day": r.get("total_video_sale_cnt") or 0,
+        "video_products": _parse_maybe_json_list(r.get("video_products")),
+    }
+
 async def get_creator_detail(unique_id: str, user_id: str, region: str = "US") -> dict:
     videos: list = []
     products: list = []
