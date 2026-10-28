@@ -17,6 +17,7 @@ du web. Configuration Render :
 Usage manuel / ciblé :
     python3 cron_feed_radar.py            # toutes les régions
     python3 cron_feed_radar.py FR         # une seule région
+    python3 cron_feed_radar.py --essai BR # à blanc : affiche ce qui serait ajouté, n'écrit rien
 """
 from __future__ import annotations
 
@@ -25,9 +26,12 @@ import sys
 
 
 def main() -> int:
-    region = sys.argv[1].strip().upper() if len(sys.argv) > 1 and sys.argv[1].strip() else None
+    args = [a.strip() for a in sys.argv[1:] if a.strip()]
+    dry_run = "--essai" in args
+    args = [a for a in args if a != "--essai"]
+    region = args[0].upper() if args else None
     import feed_radar
-    summary = asyncio.run(feed_radar.run_feed_radar_collection(region))
+    summary = asyncio.run(feed_radar.run_feed_radar_collection(region, dry_run=dry_run))
     print("Feed Radar collect terminé :", summary)
     # Code de sortie non-nul si la collecte a échoué → visible dans les logs Render.
     return 0 if summary.get("ok") else 1
