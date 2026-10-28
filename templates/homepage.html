@@ -1116,6 +1116,7 @@
   <script src="/static/qeerah-consent.js" defer></script>
   <script src="/static/qeerah-analytics.js" defer></script>
   <script src="/static/qeerah-promo.js" defer></script>
+  <script src="/static/tt_player.js" defer></script>
 </head>
 <body>
 
@@ -2106,10 +2107,13 @@
 
     var cartes = visibles.map(function(v){
       var auteur = esc(v.oembed_author_name||'');
+      // Lecteur officiel TikTok (cf. /static/tt_player.js) : l'oEmbed ne donne
+      // plus de miniature. L'image grise reste dessous en repli.
       var thumb = v.video_id
-        ? '<img class="fr-thumb" src="/api/feed-radar/'+encodeURIComponent(v.video_id)+'/thumb" '+
-          'alt="'+esc(tr('l-fr-thumb-alt', 'Miniature de la vidéo TikTok de'))+' @'+auteur+'" loading="lazy" '+
-          'onerror="this.onerror=null;this.src=\'/static/placeholder-thumb.svg\'">'
+        ? '<div class="fr-thumb tt-lecteur" data-tt-player="'+esc(String(v.video_id))+'" '+
+          'data-tt-titre="'+esc(tr('l-fr-thumb-alt', 'Miniature de la vidéo TikTok de'))+' @'+auteur+'">'+
+          '<img class="tt-lecteur-repli" src="/static/placeholder-thumb.svg" '+
+          'alt="'+esc(tr('l-fr-thumb-alt', 'Miniature de la vidéo TikTok de'))+' @'+auteur+'" loading="lazy"></div>'
         : '<div class="fr-thumb"></div>';
       var reel = v.gmv_source === 'real_attribution' && v.gmv_real != null;
       var gmv  = (reel ? v.gmv_real : (v.gmv_estimated || 0)).toLocaleString();
@@ -2137,6 +2141,10 @@
     );
 
     grille.innerHTML = cartes.join('');
+    // tt_player.js est en defer : il est exécuté avant DOMContentLoaded.
+    var lecteurs = function () { if (window.ttLecteurs) window.ttLecteurs.observer(grille); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lecteurs);
+    else lecteurs();
     // « Décrypter » : la vidéo qui vend part directement dans l'outil — l'essai
     // sans compte sert à comprendre CE qui vend aujourd'hui, en un clic.
     Array.prototype.forEach.call(grille.querySelectorAll('.fr-decrypter'), function (b) {
