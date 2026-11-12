@@ -26,6 +26,7 @@ from security import rate_limit_middleware, security_logger
 from auth import (get_user_from_request, check_quota, increment_usage, usage_info,
                   create_access_token, set_user_tier, has_full_access)
 import analysis_quota
+import safe_fetch   # téléchargement d'images sans SSRF (audit 2026-11-12, S4)
 from stripe_routes import router as stripe_router
 from admin_routes import router as admin_router
 from cache_manager import get_cached_analysis, save_to_cache, normalize_tiktok_url
@@ -4653,19 +4654,16 @@ async def feed_radar_thumb(video_id: str):
     if not thumb_url:
         return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
 
-    # 3) Télécharger l'image côté serveur (sans Referer, comme /api/img-proxy).
+    # 3) Télécharger l'image côté serveur, avec les mêmes garde-fous que /api/img-proxy
+    #    (SSRF, audit 2026-11-12 S4) : l'URL renvoyée par oEmbed et chaque redirection
+    #    doivent viser un CDN autorisé à adresse publique.
     try:
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
-            ir = await client.get(thumb_url, headers={
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
-                "Referer": "",
-            })
-        if not ir.is_success or "image" not in ir.headers.get("content-type", ""):
-            return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
-        content = ir.content
-        ct = ir.headers.get("content-type", "image/jpeg")
+        img = await safe_fetch.fetch_image(thumb_url, _IMG_PROXY_ALLOWED, on_reject=_img_fetch_rejet)
     except Exception:
+        img = None
+    if img is None:
         return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+    content, ct = img.content, img.content_type
 
     # 4) Cache mémoire (éviction FIFO simple).
     if content and len(content) <= _IMG_CACHE_ITEM_MAX:
@@ -4706,18 +4704,14 @@ async def tt_thumb(u: str = Query(...)):
         thumb_url = None
     if not thumb_url:
         return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+    # Mêmes garde-fous SSRF que /api/img-proxy (audit 2026-11-12, S4).
     try:
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
-            ir = await client.get(thumb_url, headers={
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
-                "Referer": "",
-            })
-        if not ir.is_success or "image" not in ir.headers.get("content-type", ""):
-            return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
-        content = ir.content
-        ct = ir.headers.get("content-type", "image/jpeg")
+        img = await safe_fetch.fetch_image(thumb_url, _IMG_PROXY_ALLOWED, on_reject=_img_fetch_rejet)
     except Exception:
+        img = None
+    if img is None:
         return RedirectResponse("/static/placeholder-thumb.svg", status_code=302)
+    content, ct = img.content, img.content_type
     if content and len(content) <= _IMG_CACHE_ITEM_MAX:
         while _FEED_THUMB_CACHE and len(_FEED_THUMB_CACHE) >= _FEED_THUMB_CACHE_MAX:
             try: _FEED_THUMB_CACHE.pop(next(iter(_FEED_THUMB_CACHE)))
@@ -5017,6 +5011,13 @@ def _img_proxy_host_allowed(u: str) -> bool:
     return False
 
 
+def _img_fetch_rejet(raison: str, cible: str) -> None:
+    """Journalise un téléchargement d'image refusé (hôte seulement, jamais l'URL signée)."""
+    from urllib.parse import urlparse
+    print(f"[img-fetch] refusé ({raison}) : {(urlparse(cible).hostname or '?')} — si c'est un CDN "
+          f"légitime, ajoute-le à IMG_PROXY_EXTRA_DOMAINS.")
+
+
 _IMG_CACHE: "dict[str, tuple[bytes, str]]" = {}   # url -> (bytes, content_type)
 _IMG_CACHE_MAX = 400
 # Budget RAM total du cache (Render 512 MB) : au-delà, on évince les plus
@@ -5041,24 +5042,17 @@ async def img_proxy(url: str = Query(...)):
     if cached is not None:
         return Response(content=cached[0], media_type=cached[1],
                         headers={"Cache-Control": "public, max-age=86400"})
+    # SSRF (audit 2026-11-12, S4) : chaque redirection est revalidée (liste blanche +
+    # IP publique), et seul un contenu qui EST une image est renvoyé — avant, une
+    # réponse quelconque était re-servie étiquetée image/jpeg.
     try:
-        # Redirections bornées : un CDN autorisé peut légitimement rebondir une ou
-        # deux fois, mais une chaîne longue est le vecteur classique pour sortir de
-        # la liste blanche après coup.
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True,
-                                     max_redirects=3) as client:
-            r = await client.get(u, headers={
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
-                "Referer": "",
-            })
+        img = await safe_fetch.fetch_image(u, _IMG_PROXY_ALLOWED, on_reject=_img_fetch_rejet)
     except Exception:
         raise HTTPException(status_code=502, detail="Image inaccessible.")
-    if not r.is_success:
+    if img is None:
         raise HTTPException(status_code=404, detail="Image introuvable.")
-    ct = r.headers.get("content-type", "image/jpeg")
-    if "image" not in ct:
-        ct = "image/jpeg"
-    content = r.content
+    ct = img.content_type
+    content = img.content
     if len(content) <= _IMG_CACHE_ITEM_MAX:   # ne cache pas les images lourdes
         global _IMG_CACHE_BYTES
         # Éviction FIFO (dict Python = ordre d'insertion) jusqu'à tenir dans
