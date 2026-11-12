@@ -48,22 +48,28 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").lower().strip()
 # forger des tokens valides. Si aucun secret n'est configuré, l'app refuse de
 # démarrer (fail-fast au boot) plutôt que de tourner avec un secret prévisible.
 #
-# ⚠️ SÉCURITÉ (recommandé) : privilégie APP_SIGNING_SECRET, une valeur DÉDIÉE et
-# réellement secrète (ex. `python -c "import secrets; print(secrets.token_urlsafe(48))"`).
-# SUPABASE_ANON_KEY est conservé comme repli pour ne rien casser, MAIS la clé « anon »
-# de Supabase est conçue pour être PUBLIQUE (rôle anon, embarquée côté client) : si elle
-# fuite, un attaquant pourrait forger un token pour n'importe quel email — y compris
-# l'admin, identifié par simple égalité d'email. Définir APP_SIGNING_SECRET coupe ce
-# risque (les sessions existantes devront se reconnecter une fois la variable posée).
-_SECRET_KEY_RAW = (
-    os.getenv("APP_SIGNING_SECRET", "").strip()
-    or os.getenv("SUPABASE_ANON_KEY", "").strip()
-)
+# SÉCURITÉ (audit 2026-11-12, S2) : APP_SIGNING_SECRET est OBLIGATOIRE — une valeur
+# DÉDIÉE et réellement secrète (ex. `python -c "import secrets; print(secrets.token_urlsafe(48))"`).
+# Il n'y a plus de repli sur SUPABASE_ANON_KEY : la clé « anon » de Supabase est conçue
+# pour être PUBLIQUE ; s'en servir comme secret permettrait, si elle fuite, de forger un
+# token pour n'importe quel email — y compris l'admin. Variable confirmée présente sur
+# Render le 2026-11-12 avant ce changement.
+_SECRET_KEY_RAW = os.getenv("APP_SIGNING_SECRET", "").strip()
 if not _SECRET_KEY_RAW:
     raise RuntimeError(
-        "Aucun secret de signature configuré : définis APP_SIGNING_SECRET (recommandé, "
-        "valeur dédiée et secrète) ou, à défaut, SUPABASE_ANON_KEY, dans l'environnement "
-        "(.env / Render) avant de démarrer. Aucun secret par défaut n'est autorisé."
+        "APP_SIGNING_SECRET manquant : définis une valeur dédiée et secrète dans "
+        "l'environnement (.env / Render) avant de démarrer. Aucun secret par défaut ni "
+        "repli sur la clé publique Supabase n'est autorisé."
+    )
+if _SECRET_KEY_RAW == os.getenv("SUPABASE_ANON_KEY", "").strip():
+    raise RuntimeError(
+        "APP_SIGNING_SECRET est identique à SUPABASE_ANON_KEY (clé publique) : "
+        "génère une valeur dédiée."
+    )
+if len(_SECRET_KEY_RAW) < 32:
+    import logging as _logging
+    _logging.getLogger(__name__).warning(
+        "APP_SIGNING_SECRET fait moins de 32 caractères : recommandé ≥ 32 (aléatoire)."
     )
 SECRET_KEY = _SECRET_KEY_RAW.encode()
 
@@ -207,10 +213,8 @@ def create_access_token(email: str) -> str:
     Format v2 : base64(email).timestamp.signature  où
     signature = HMAC(SECRET_KEY, "email|timestamp"). Le timestamp permet
     d'expirer le token (cf. SESSION_TTL_DAYS) — un token volé n'est plus valable
-    indéfiniment. Les anciens tokens (format v1 sans horodatage) restent acceptés
-    en vérification pour ne pas déconnecter brutalement les sessions en cours ;
-    ils disparaissent à la reconnexion (nouveau token v2) ou lors d'une rotation
-    de APP_SIGNING_SECRET."""
+    indéfiniment. L'ancien format v1 (sans horodatage, donc sans expiration) n'est
+    plus accepté depuis l'audit du 2026-11-12."""
     ts = str(int(time()))
     email_b64 = base64.b64encode(email.encode()).decode()
     payload = f"{email}|{ts}"
@@ -240,13 +244,10 @@ def verify_access_token(token: str) -> Optional[str]:
                 if time() - issued > ttl:
                     return None  # token expiré
             return email
-        if len(parts) == 2:
-            # ── Format v1 (legacy, sans horodatage) : accepté en rétro-compat ──
-            email_b64, signature = parts
-            email = base64.b64decode(email_b64).decode()
-            expected = hmac.new(SECRET_KEY, email.encode(), hashlib.sha256).hexdigest()
-            if hmac.compare_digest(signature, expected):
-                return email
+        # Format v1 (email_b64.signature, sans horodatage) : refusé depuis l'audit du
+        # 2026-11-12 (S2) — un jeton v1 volé restait valable à vie. Les sessions v2 existent
+        # depuis le 2026-08-03 et expirent après 30 jours : seule une session jamais
+        # renouvelée depuis plus de 3 mois doit se reconnecter.
     except Exception:
         pass
     return None
