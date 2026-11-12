@@ -479,13 +479,18 @@ def extract_product_id(url: str) -> Optional[str]:
 
 
 async def _resolve_short_url(url: str) -> str:
-    """Suit les redirections des liens courts TikTok (vt/vm.tiktok.com) → URL finale."""
+    """Suit les redirections des liens courts TikTok (vt/vm.tiktok.com) → URL finale.
+
+    SSRF (audit 2026-11-12, S4) : l'URL vient de l'utilisateur. Avant, n'importe quelle
+    adresse était suivie, réseau interne compris. Désormais chaque saut doit rester sur
+    tiktok.com (https, adresse publique) ; sinon l'URL d'origine est rendue telle quelle.
+    """
+    import safe_fetch
     try:
-        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as c:
-            r = await c.get(url, headers={"User-Agent": "Mozilla/5.0"})
-            return str(r.url)
+        final = await safe_fetch.resolve_redirects(url, ("tiktok.com",))
     except Exception:
-        return url
+        final = None
+    return final or url
 
 
 async def get_product_detail_from_url(url: str, regions: Optional[list] = None) -> Optional[dict]:
