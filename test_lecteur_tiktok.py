@@ -42,9 +42,41 @@ def _fonction(src: str, nom: str) -> str:
 def test_cartes_de_l_app_portent_le_lecteur():
     carte = _fonction(APP, "renderFeedRadarCard")
     assert 'class="tt-lecteur" data-tt-player="${escapeHtml(String(v.video_id))}"' in carte
-    assert 'class="tt-lecteur-repli" src="/static/placeholder-thumb.svg"' in carte
+    # Repli : couverture du lien de partage stocké, sinon image grise.
+    assert ('class="tt-lecteur-repli" src="${escapeHtml(_ttCoverFromShareUrl(v.video_url) '
+            "|| '/static/placeholder-thumb.svg')}\"") in carte
+    assert "this.src='/static/placeholder-thumb.svg'" in carte   # couverture expirée → image grise
     assert "/thumb" not in carte          # la miniature oEmbed n'existe plus
     assert "window.ttLecteurs.observer(grid)" in _fonction(APP, "loadFeedRadarTab")
+
+
+def test_couverture_du_lien_de_partage_passe_par_le_proxy():
+    # Les liens TikTok Shop portent une couverture signée ~1 an
+    # (ec_shared_reflux_dynamic_params.placeholder_origin_cover). Elle doit passer
+    # par /api/img-proxy (hôtes CDN filtrés côté serveur), jamais en direct.
+    aide = _fonction(APP, "_ttCoverFromShareUrl")
+    assert "searchParams.get('ec_shared_reflux_dynamic_params')" in aide
+    assert "placeholder_origin_cover" in aide
+    assert "_imgProxy(cover)" in aide and "/^https:\\/\\//.test(cover)" in aide
+    assert "catch (_) { return ''; }" in aide     # lien sans couverture ou mal formé → ''
+
+
+def test_modale_et_autres_grilles_utilisent_le_lecteur_officiel():
+    modale = _fonction(APP, "openTikTokPlayer")
+    assert "https://www.tiktok.com/player/v1/" in modale
+    assert "/embed/v2/" not in APP                 # ancien lecteur non documenté
+    # Lecteur en échec dans la modale → lien vers TikTok au lieu de l'écran d'erreur.
+    assert "d.type !== 'onPlayerError'" in APP and "Ouvrir sur TikTok" in APP
+    # « Ses vidéos » d'un créateur et Favoris chargent le lecteur au défilement.
+    assert APP.count("window.ttLecteurs.observer(box)") == 2
+    assert "/api/tt-thumb?u=" not in _fonction(APP, "renderRechercheResult")
+
+
+def test_fichier_de_verification_tiktok_servi():
+    # Vérification « URL prefix » de l'app TikTok for Developers (Dope Ventures).
+    r = TestClient(main.app).get("/tiktokLSnmYARznglT2e364WVpo74L5CDHzHKt.txt")
+    assert r.status_code == 200
+    assert r.text == "tiktok-developers-site-verification=LSnmYARznglT2e364WVpo74L5CDHzHKt"
 
 
 def test_exemples_de_l_accueil_portent_le_lecteur():
