@@ -1355,12 +1355,19 @@ async def robots_txt():
     return Response(content=body, media_type="text/plain")
 
 # Vérification du domaine pour l'app TikTok for Developers « Qeerah »
-# (organisation Dope Ventures, vérification « URL prefix » de https://qeerah.com/).
-# TikTok relit ce fichier à chaque vérification : ne pas le supprimer.
-@app.get("/tiktokLSnmYARznglT2e364WVpo74L5CDHzHKt.txt", include_in_schema=False)
-async def tiktok_site_verification():
-    return Response(content="tiktok-developers-site-verification=LSnmYARznglT2e364WVpo74L5CDHzHKt",
-                    media_type="text/plain")
+# (organisation Dope Ventures, vérification « URL prefix »). TikTok donne un fichier
+# par préfixe : https://www.qeerah.com/ (celui utilisé, qeerah.com redirige vers www)
+# et https://qeerah.com/. TikTok relit ces fichiers : ne pas les supprimer.
+_TIKTOK_SITE_VERIFICATION = {
+    "ZJSSAnNEMjH61GgDbupDqJ1QKduFCd8l",   # https://www.qeerah.com/
+    "LSnmYARznglT2e364WVpo74L5CDHzHKt",   # https://qeerah.com/
+}
+
+@app.get("/tiktok{jeton}.txt", include_in_schema=False)
+async def tiktok_site_verification(jeton: str):
+    if jeton not in _TIKTOK_SITE_VERIFICATION:
+        raise HTTPException(status_code=404)
+    return Response(content=f"tiktok-developers-site-verification={jeton}", media_type="text/plain")
 
 @app.get("/llms.txt", include_in_schema=False)
 async def llms_txt():

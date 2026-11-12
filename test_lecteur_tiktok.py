@@ -74,9 +74,13 @@ def test_modale_et_autres_grilles_utilisent_le_lecteur_officiel():
 
 def test_fichier_de_verification_tiktok_servi():
     # Vérification « URL prefix » de l'app TikTok for Developers (Dope Ventures).
-    r = TestClient(main.app).get("/tiktokLSnmYARznglT2e364WVpo74L5CDHzHKt.txt")
-    assert r.status_code == 200
-    assert r.text == "tiktok-developers-site-verification=LSnmYARznglT2e364WVpo74L5CDHzHKt"
+    client = TestClient(main.app)
+    for jeton in ("ZJSSAnNEMjH61GgDbupDqJ1QKduFCd8l",    # https://www.qeerah.com/
+                  "LSnmYARznglT2e364WVpo74L5CDHzHKt"):   # https://qeerah.com/
+        r = client.get(f"/tiktok{jeton}.txt")
+        assert r.status_code == 200
+        assert r.text == f"tiktok-developers-site-verification={jeton}"
+    assert client.get("/tiktokINCONNU.txt").status_code == 404   # aucun autre jeton servi
 
 
 def test_exemples_de_l_accueil_portent_le_lecteur():
