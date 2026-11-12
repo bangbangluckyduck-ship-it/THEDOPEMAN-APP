@@ -1354,6 +1354,14 @@ async def robots_txt():
     )
     return Response(content=body, media_type="text/plain")
 
+# Vérification du domaine pour l'app TikTok for Developers « Qeerah »
+# (organisation Dope Ventures, vérification « URL prefix » de https://qeerah.com/).
+# TikTok relit ce fichier à chaque vérification : ne pas le supprimer.
+@app.get("/tiktokLSnmYARznglT2e364WVpo74L5CDHzHKt.txt", include_in_schema=False)
+async def tiktok_site_verification():
+    return Response(content="tiktok-developers-site-verification=LSnmYARznglT2e364WVpo74L5CDHzHKt",
+                    media_type="text/plain")
+
 @app.get("/llms.txt", include_in_schema=False)
 async def llms_txt():
     base = _seo_base_url()
