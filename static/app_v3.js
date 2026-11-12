@@ -4588,20 +4588,37 @@ async function loadTikTokData() {
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;color:var(--text)">${escapeHtml(p.display_name || 'Mon compte TikTok')}</div>
           <div style="font-size:12px;color:var(--muted)">
-            ${fmt(p.follower_count)} abonnés · ${fmt(p.likes_count)} likes · ${fmt(p.video_count)} vidéos
+            ${fmt(p.follower_count)} abonnés · ${fmt(p.following_count)} abonnements · ${fmt(p.likes_count)} likes · ${fmt(p.video_count)} vidéos
           </div>
+          ${p.bio_description ? `<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.4">${escapeHtml(p.bio_description)}</div>` : ''}
+          ${/^https:\/\//.test(p.profile_deep_link || '') ? `<a href="${escapeHtml(p.profile_deep_link)}" target="_blank" rel="noopener" style="font-size:12px;margin-top:4px;display:inline-block">Voir mon profil sur TikTok ↗</a>` : ''}
         </div>
       </div>`;
 
     // Vidéos
     if (videos.length) {
+      // Analyse des vues sur les vidéos récupérées (video.list).
+      const vues = videos.map(v => Number(v.view_count) || 0);
+      const total = vues.reduce((s, n) => s + n, 0);
+      const meilleure = videos[vues.indexOf(Math.max(...vues))] || {};
+      const engagement = total
+        ? (videos.reduce((s, v) => s + (Number(v.like_count) || 0) + (Number(v.comment_count) || 0) + (Number(v.share_count) || 0), 0) / total * 100).toFixed(1)
+        : '0';
+      html += `
+        <div data-tt-analyse style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:11px;color:var(--muted)">Vues (${videos.length} vidéos)</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${fmt(total)}</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:11px;color:var(--muted)">Vues moyennes</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${fmt(Math.round(total / videos.length))}</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:11px;color:var(--muted)">Taux d'engagement</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${engagement} %</div></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px"><div style="font-size:11px;color:var(--muted)">Meilleure vidéo</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${fmt(meilleure.view_count)} vues</div></div>
+        </div>`;
       html += `<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">📹 Tes vidéos récentes (performances réelles)</div>`;
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
       videos.forEach(v => {
-        const cover = v.cover_image_url || '';
+        const cover = v.cover_image_url ? _imgProxy(v.cover_image_url) : '';
         const title = v.title || v.video_description || 'Vidéo';
+        const lien = /^https:\/\//.test(v.share_url || '') ? v.share_url : '';
         html += `
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <a ${lien ? `href="${escapeHtml(lien)}" target="_blank" rel="noopener"` : ''} style="display:block;text-decoration:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
             ${cover ? `<div style="aspect-ratio:9/16;background:#000 url('${escapeHtml(cover)}') center/cover"></div>` : ''}
             <div style="padding:8px">
               <div style="font-size:11px;color:var(--text);line-height:1.3;max-height:2.6em;overflow:hidden">${escapeHtml(title)}</div>
@@ -4609,9 +4626,10 @@ async function loadTikTokData() {
                 <span>👁 ${fmt(v.view_count)}</span>
                 <span>❤️ ${fmt(v.like_count)}</span>
                 <span>💬 ${fmt(v.comment_count)}</span>
+                <span>↗ ${fmt(v.share_count)}</span>
               </div>
             </div>
-          </div>`;
+          </a>`;
       });
       html += '</div>';
     } else {
