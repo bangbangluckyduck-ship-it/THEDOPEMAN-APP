@@ -6115,10 +6115,11 @@ function renderRechercheResult(data) {
     ? attrProducts.map(pr => {
         const vId = pr.video_id ? String(pr.video_id) : '';
         const vUrl = pr.video_url || '';
-        // Vignette oEmbed fraîche (comme Feed Radar) plutôt que la cover KeyAPI qui expire.
-        const thumbSrc = vId && p.unique_id
-          ? ('/api/tt-thumb?u=' + encodeURIComponent('https://www.tiktok.com/@' + p.unique_id + '/video/' + vId))
-          : (pr.video_cover || pr.image ? _imgProxy(pr.video_cover || pr.image) : '');
+        // Depuis oct. 2026 l'oEmbed TikTok ne renvoie plus de vignette (/api/tt-thumb
+        // retombe toujours sur l'image grise) : cover KeyAPI proxifiée, puis placeholder.
+        // La cellule est trop petite pour le lecteur officiel ; le clic ouvre player/v1.
+        const thumbSrc = _ttCoverFromShareUrl(vUrl)
+          || ((pr.video_cover || pr.image) ? _imgProxy(pr.video_cover || pr.image) : '');
         // Vignette vidéo cliquable (ouvre le player in-app) — la vidéo qui a
         // généré le plus de GMV pour ce produit.
         const videoCell = vId
@@ -6219,7 +6220,22 @@ function _frDate(iso) {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '');
 }
 
-/* ── PLAYER TIKTOK IN-APP (modale iframe embed/v2, aucune redirection) ───── */
+/* ── PLAYER TIKTOK IN-APP (modale, lecteur officiel player/v1) ───────────────
+ * Lecteur documenté : https://developers.tiktok.com/docs/en/embed-player
+ * (l'ancien /embed/v2 n'est plus documenté). Aucune clé ni app TikTok requise. */
+// Les liens de partage TikTok Shop stockés contiennent souvent une couverture signée
+// longue durée (ec_shared_reflux_dynamic_params.placeholder_origin_cover, x-expires
+// ~1 an) : c'est la seule vignette fiable depuis que l'oEmbed n'en renvoie plus.
+// Renvoie l'URL passée par /api/img-proxy, ou '' si le lien n'en contient pas.
+function _ttCoverFromShareUrl(url) {
+  try {
+    const raw = new URL(url).searchParams.get('ec_shared_reflux_dynamic_params');
+    if (!raw) return '';
+    const cover = decodeURIComponent(JSON.parse(raw).placeholder_origin_cover || '');
+    return /^https:\/\//.test(cover) ? _imgProxy(cover) : '';
+  } catch (_) { return ''; }
+}
+
 function _tiktokVideoIdFromUrl(url) {
   const m = /\/video\/(\d+)/.exec(url || '');
   return m ? m[1] : null;
@@ -6245,7 +6261,7 @@ function openTikTokPlayer(videoId, fallbackUrl) {
       </div>
       <div style="position:relative;width:100%;height:${maxH}px;border-radius:14px;overflow:hidden;background:#000">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">⏳ Chargement de la vidéo…</div>
-        <iframe src="https://www.tiktok.com/embed/v2/${encodeURIComponent(videoId)}?autoplay=1"
+        <iframe src="https://www.tiktok.com/player/v1/${encodeURIComponent(videoId)}?autoplay=1&rel=0&music_info=1&description=1&native_context_menu=0" title="Vidéo TikTok"
                 style="position:absolute;inset:0;width:100%;height:100%;border:0"
                 allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
       </div>
@@ -6256,6 +6272,26 @@ function openTikTokPlayer(videoId, fallbackUrl) {
 }
 
 function _ttPlayerEsc(e) { if (e.key === 'Escape') closeTikTokPlayer(); }
+
+// Lecteur en échec (vidéo supprimée/privée, ou TikTok renvoie SERVER_ERROR 2001 —
+// constaté le 12/11/2026 sur toutes les vidéos) : on remplace l'écran d'erreur
+// TikTok par un lien direct vers la vidéo.
+window.addEventListener('message', (e) => {
+  if (e.origin !== 'https://www.tiktok.com') return;
+  let d = e.data;
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (_) { return; } }
+  if (!d || !d['x-tiktok-player'] || d.type !== 'onPlayerError') return;
+  const overlay = document.getElementById('tt-player-overlay');
+  const frame = overlay && overlay.querySelector('iframe');
+  if (!frame || frame.contentWindow !== e.source) return;
+  const link = overlay.querySelector('a[href]');
+  const box = frame.parentNode;
+  frame.remove();
+  box.innerHTML = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#ddd;font-size:13px;text-align:center;padding:20px">
+      <div>Le lecteur TikTok ne peut pas afficher cette vidéo ici.</div>
+      ${link ? `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none">Ouvrir sur TikTok ↗</a>` : ''}
+    </div>`;
+});
 
 function closeTikTokPlayer() {
   document.getElementById('tt-player-overlay')?.remove();
@@ -6341,7 +6377,7 @@ function renderFeedRadarCard(v) {
          style="cursor:pointer;border-radius:12px;overflow:hidden;background:var(--surface2);position:relative">
       ${heart}
       <div class="tt-lecteur" data-tt-player="${escapeHtml(String(v.video_id))}" data-tt-titre="Vidéo TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}">
-        <img class="tt-lecteur-repli" src="/static/placeholder-thumb.svg" alt="Miniature TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}" loading="lazy">
+        <img class="tt-lecteur-repli" src="${escapeHtml(_ttCoverFromShareUrl(v.video_url) || '/static/placeholder-thumb.svg')}" alt="Miniature TikTok de @${escapeHtml(v.creator_nickname || v.creator_unique_id || '')}" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'">
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
           <div style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;padding-left:3px">▶</div>
         </div>
@@ -6509,16 +6545,19 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname, refresh) {
         const open = vId
           ? `onclick="openTikTokPlayer('${vId}','${escapeHtml(vUrl)}')" style="cursor:pointer"`
           : `onclick="window.open('${escapeHtml(vUrl)}','_blank','noopener')" style="cursor:pointer"`;
-        // Vignette : on re-résout une image oEmbed FRAÎCHE (comme Feed Radar) au lieu
-        // de la cover KeyAPI qui expire / est sur bucket privé (d'où l'ancienne boîte
-        // noire avec juste le ▶). Repli : cover proxifiée, puis placeholder.
-        const thumbSrc = vId
-          ? ('/api/tt-thumb?u=' + encodeURIComponent('https://www.tiktok.com/@' + uniqueId + '/video/' + vId))
-          : (v.cover ? _imgProxy(v.cover) : '');
+        // Lecteur officiel TikTok (player/v1, cf. tt_player.js) chargé au défilement :
+        // l'oEmbed ne renvoie plus de vignette depuis oct. 2026. Repli : cover KeyAPI
+        // proxifiée, puis placeholder (vidéo privée/supprimée ou lecteur limité).
+        const repli = _ttCoverFromShareUrl(v.url) || (v.cover ? _imgProxy(v.cover) : '/static/placeholder-thumb.svg');
+        const media = vId
+          ? `<div class="tt-lecteur" data-tt-player="${escapeHtml(vId)}" data-tt-titre="Vidéo TikTok de @${escapeHtml(uniqueId || '')}">
+               <img class="tt-lecteur-repli" src="${escapeHtml(repli)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'">
+             </div>`
+          : `<img src="${escapeHtml(repli)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111;display:block">`;
         html += `<div ${open}>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
             <div style="position:relative">
-              ${thumbSrc ? `<img src="${escapeHtml(thumbSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'" style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#111;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+              ${media}
               <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
                 <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;padding-left:3px">▶</div>
               </div>
@@ -6563,6 +6602,7 @@ async function openCreatorDetail(uniqueIdEnc, userIdEnc, nickname, refresh) {
     }
     html += '</div>';
     box.innerHTML = html;
+    if (window.ttLecteurs) window.ttLecteurs.observer(box);
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
     box.innerHTML = '<div class="section"><p style="color:var(--muted)">Erreur de chargement du créateur.</p></div>';
@@ -6701,7 +6741,9 @@ async function loadFavoritesTab() {
       html += `<div style="position:relative;border-radius:12px;overflow:hidden;background:var(--surface2);cursor:pointer"
         onclick="openTikTokPlayer('${escapeHtml(it.item_id)}','${escapeHtml(v.video_url || '')}')">
         ${favBtn('video', it.item_id, v)}
-        ${v.thumb ? `<img src="${escapeHtml(v.thumb)}" onerror="this.style.display='none'" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">` : '<div style="aspect-ratio:9/16;background:#111"></div>'}
+        <div class="tt-lecteur" data-tt-player="${escapeHtml(it.item_id)}" data-tt-titre="Vidéo TikTok de @${escapeHtml(v.creator || '')}">
+          <img class="tt-lecteur-repli" src="${escapeHtml(_ttCoverFromShareUrl(v.video_url) || '/static/placeholder-thumb.svg')}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/placeholder-thumb.svg'">
+        </div>
         <div style="padding:8px"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${escapeHtml(v.creator || '')}</div>
         <div style="font-size:11px;color:var(--muted)">${(v.views || 0).toLocaleString()} vues</div></div>
       </div>`;
@@ -6709,6 +6751,7 @@ async function loadFavoritesTab() {
     html += '</div>';
   }
   box.innerHTML = html;
+  if (window.ttLecteurs) window.ttLecteurs.observer(box);
 }
 
 
