@@ -2842,7 +2842,7 @@ function showLockedCoachingSection(firstCoachingLine) {
     <div style="background:linear-gradient(135deg,rgba(212,175,55,.1),rgba(37,99,235,.1));border:1px solid rgba(212,175,55,.3);border-radius:12px;padding:20px;position:relative">
       <div style="position:absolute;top:16px;right:16px;font-size:24px">🔐</div>
       <h3 style="margin-top:0;margin-bottom:12px;color:var(--navy)">Coach IA personnalisé</h3>
-      <p style="margin:0 0 12px 0;font-size:13px;color:var(--text);line-height:1.5">"${firstCoachingLine}"</p>
+      <p style="margin:0 0 12px 0;font-size:13px;color:var(--text);line-height:1.5">"${escapeHtml(firstCoachingLine)}"</p>
       <div style="background:rgba(0,0,0,.03);border-radius:8px;padding:12px;margin:12px 0;border-left:3px solid var(--primary)">
         <div style="font-size:12px;color:var(--muted)">Cette analyse complète est incluse dans Qeerah Pro</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px">Abonne-toi pour débloquer le coaching IA personnalisé</div>
@@ -2946,7 +2946,7 @@ function renderErrorTimeline(d) {
            ${hasTs && hasLocalVideo ? `onclick="document.getElementById('analysis-video-player').currentTime=${m.timestamp_seconds};document.getElementById('analysis-video-player').play();window.scrollTo({top:document.getElementById('video-timeline-section').offsetTop-10,behavior:'smooth'})"` : ''}
            style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--surface2);border-left:3px solid ${color};border-radius:6px;${hasTs && hasLocalVideo ? 'cursor:pointer' : ''}">
         <strong style="color:${color};min-width:44px">${tsLabel}</strong>
-        <span style="font-size:13px"><strong>${m.pilier || ''}</strong> — ${m.diagnostic}</span>
+        <span style="font-size:13px"><strong>${escapeHtml(m.pilier || '')}</strong> — ${escapeHtml(m.diagnostic)}</span>
       </div>`;
   }).join('');
 }
@@ -2983,21 +2983,23 @@ function showResults(d) {
   const LABELS = getLabels();
   if (d.scores) {
     Object.entries(d.scores).forEach(([k, v]) => {
-      const n   = v.note ?? 0;
+      // Sécurité (audit 2026-11-12, S1) : la note vient de l'IA → forcée en nombre ;
+      // tout texte (clé, commentaire) est échappé avant insertion HTML.
+      const n   = Number(v.note ?? 0) || 0;
       const col = scoreColor(n);
       const card = document.createElement('div');
       card.className = 'score-card';
       const aide = conseilPour(k, n);
       const aideHtml = aide ? `
         <div class="score-aide" style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;font-size:12.5px;line-height:1.5">
-          <div style="color:var(--muted)">${esc(aide.quoi)}</div>
-          <div style="margin-top:6px;font-weight:700">À faire : ${esc(aide.action)}</div>
+          <div style="color:var(--muted)">${escapeHtml(aide.quoi)}</div>
+          <div style="margin-top:6px;font-weight:700">À faire : ${escapeHtml(aide.action)}</div>
         </div>` : '';
       card.innerHTML = `
-        <div class="score-label">${LABELS[k] || k}</div>
+        <div class="score-label">${escapeHtml(LABELS[k] || k)}</div>
         <div class="score-value" style="color:${col}">${n}<span style="font-size:16px;color:var(--muted)">/10</span></div>
         <div class="score-bar"><div class="score-bar-fill" style="width:0%;background:${col}"></div></div>
-        <div class="score-comment">${v.commentaire || ''}</div>
+        <div class="score-comment">${escapeHtml(v.commentaire || '')}</div>
         ${aideHtml}
       `;
       grid.appendChild(card);
@@ -3025,7 +3027,7 @@ function showResults(d) {
     items.forEach(({ label, val, cls }) => {
       const div = document.createElement('div');
       div.className = 'detection-item';
-      div.innerHTML = `<label>${label}</label><strong class="${cls}">${val}</strong>`;
+      div.innerHTML = `<label>${escapeHtml(label)}</label><strong class="${cls}">${escapeHtml(val)}</strong>`;
       detGrid.appendChild(div);
     });
   }
@@ -3059,27 +3061,30 @@ function showResults(d) {
       if (detectedCategory) {
         const isTrending = trendingCategories.includes(detectedCategory);
         const topCount = topCategories.filter(c => c === detectedCategory).length;
+        const catHtml = escapeHtml(detectedCategory);   // texte issu de l'IA (S1)
 
         if (isTrending) {
-          categoryContext = `✅ <strong>${detectedCategory}</strong> est EN CROISSANCE rapide en ce moment. Excellente timing pour tester ce produit !`;
+          categoryContext = `✅ <strong>${catHtml}</strong> est EN CROISSANCE rapide en ce moment. Excellente timing pour tester ce produit !`;
         } else if (topCount > 0) {
-          categoryContext = `📊 <strong>${detectedCategory}</strong> a ${topCount} produit(s) dans le top. C'est une catégorie stable avec une demande constante.`;
+          categoryContext = `📊 <strong>${catHtml}</strong> a ${topCount} produit(s) dans le top. C'est une catégorie stable avec une demande constante.`;
         } else {
-          categoryContext = `⚠️ <strong>${detectedCategory}</strong> n'apparaît pas dans les trending actuels. Stratégie : sois plus agressif sur le hook et le CTA.`;
+          categoryContext = `⚠️ <strong>${catHtml}</strong> n'apparaît pas dans les trending actuels. Stratégie : sois plus agressif sur le hook et le CTA.`;
         }
       }
       document.getElementById('market-category-context').innerHTML = categoryContext;
 
+      // Sécurité (S1) : titres, catégories et comptes viennent de TikTok Shop (choisis par
+      // les vendeurs/créateurs) → toujours échappés avant insertion HTML.
       // === TOP PRODUITS ===
       const topProdsContainer = document.getElementById('market-top-products');
       topProdsContainer.innerHTML = (marketData.top_products || []).map(p => `
         <div class="market-card">
-          <div class="market-card-title">${p.title || p.name || '—'}</div>
+          <div class="market-card-title">${escapeHtml(p.title || p.name || '—')}</div>
           <div class="market-card-meta">
-            <span class="market-badge hot">🔥 ${p.sold_count || '?'} ventes</span>
+            <span class="market-badge hot">🔥 ${escapeHtml(p.sold_count || '?')} ventes</span>
           </div>
           <div style="font-size:11px;color:var(--muted)">
-            ${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}
+            ${escapeHtml(p.category || '')} ${p.current_price ? `• ${escapeHtml(p.current_price)}€` : ''}
           </div>
         </div>
       `).join('');
@@ -3088,12 +3093,12 @@ function showResults(d) {
       const trendingContainer = document.getElementById('market-trending');
       trendingContainer.innerHTML = (marketData.trending || []).map(p => `
         <div class="market-card">
-          <div class="market-card-title">${p.title || p.name || '—'}</div>
+          <div class="market-card-title">${escapeHtml(p.title || p.name || '—')}</div>
           <div class="market-card-meta">
-            <span class="market-badge trend">📈 +${p.growth_percent || '?'}%</span>
+            <span class="market-badge trend">📈 +${escapeHtml(p.growth_percent || '?')}%</span>
           </div>
           <div style="font-size:11px;color:var(--muted)">
-            ${p.category || ''} ${p.current_price ? `• ${p.current_price}€` : ''}
+            ${escapeHtml(p.category || '')} ${p.current_price ? `• ${escapeHtml(p.current_price)}€` : ''}
           </div>
         </div>
       `).join('');
@@ -3105,12 +3110,12 @@ function showResults(d) {
       );
       creatorsContainer.innerHTML = (creatorsByCategory.length > 0 ? creatorsByCategory : marketData.top_creators || []).map(c => `
         <div class="market-card">
-          <div class="market-card-title">@${c.handle || '?'}</div>
+          <div class="market-card-title">@${escapeHtml(c.handle || '?')}</div>
           <div class="market-card-meta">
-            <span class="market-badge">👥 ${c.followers || '?'}</span>
+            <span class="market-badge">👥 ${escapeHtml(c.followers || '?')}</span>
           </div>
           <div style="font-size:11px;color:var(--muted)">
-            ${c.primary_category || '—'}
+            ${escapeHtml(c.primary_category || '—')}
           </div>
         </div>
       `).join('');
@@ -3221,7 +3226,7 @@ function showResults(d) {
     if (amelioEl && d.ameliorations_structure?.length) {
       amelioEl.innerHTML = `
         <h3 style="color:var(--warning);margin-bottom:8px">💡 Améliorer le flux de vente</h3>
-        <ul class="points-list neg">${(d.ameliorations_structure).map(a => `<li>${a}</li>`).join('')}</ul>`;
+        <ul class="points-list neg">${(d.ameliorations_structure).map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`;
     }
   } else {
     document.getElementById('structure-vente-section').style.display = 'none';
