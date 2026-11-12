@@ -19,7 +19,9 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from supabase_client import supabase
+# Client service_role (comme le reste du backend) : la table analyzed_insights n'est
+# plus accessible avec la clé anon depuis supabase_migrations_lockdown_v2.sql.
+from supabase_client import supabase_service as supabase
 
 # Plans habilités à voir les « structures gagnantes ».
 WINNING_TIERS = {"gold", "agency", "beta", "admin"}
