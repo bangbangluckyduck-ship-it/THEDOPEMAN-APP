@@ -125,3 +125,13 @@ def test_mon_compte_tiktok_montre_chaque_permission_demandee():
     assert "data-tt-analyse" in bloc and "v.view_count" in bloc               # video.list → analyse
     assert "_imgProxy(v.cover_image_url)" in bloc                             # couverture via le proxy
     assert "/^https:\/\//.test(v.share_url" in bloc                         # lien vers la vidéo filtré
+
+
+def test_retour_de_tiktok_ouvre_mon_compte():
+    # Après l'autorisation TikTok, l'utilisateur (et le relecteur de la démo) arrive
+    # directement sur le bloc « Mon compte TikTok », pas sur l'accueil de l'app.
+    debut = APP.index("(function handleTikTokCallbackParam()")
+    bloc = APP[debut:APP.index("})();", debut)]
+    assert "t === 'connected'" in bloc and "switchTab('account')" in bloc
+    assert "getElementById('tiktok-shop-status')" in bloc
+    assert "params.delete('provider')" in bloc

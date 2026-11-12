@@ -4724,8 +4724,23 @@ async function loadTikTokInsights() {
     };
     const msg = messages[t] || (t.startsWith('error') ? messages.error : null);
     if (msg && typeof showToast === 'function') setTimeout(() => showToast(msg), 600);
+    // Compte connecté : ouvre « Mon compte » sur le bloc TikTok (profil, stats, vidéos)
+    // une fois le profil utilisateur chargé, au lieu de laisser l'accueil de l'app.
+    if (t === 'connected') {
+      let essais = 0;
+      const ouvrir = () => {
+        if (!window.__userInfo && ++essais < 25) return setTimeout(ouvrir, 200);
+        if (typeof switchTab !== 'function') return;
+        switchTab('account');
+        setTimeout(() => {
+          const bloc = document.getElementById('tiktok-shop-status');
+          if (bloc) bloc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 400);
+      };
+      setTimeout(ouvrir, 300);
+    }
     // Nettoie l'URL pour éviter de re-déclencher le toast au refresh.
-    params.delete('tiktok'); params.delete('reason');
+    params.delete('tiktok'); params.delete('reason'); params.delete('provider');
     const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
     window.history.replaceState({}, '', clean);
   } catch (e) { /* no-op */ }
