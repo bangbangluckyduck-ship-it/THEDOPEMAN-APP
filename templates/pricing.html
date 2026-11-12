@@ -150,6 +150,7 @@
     .toast.show { opacity:1; }
     @media (max-width:560px){ .price{font-size:44px} .card{padding:24px} }
   </style>
+  <link rel="stylesheet" href="/static/qeerah-nav.css">
   <script src="/static/qeerah-consent.js" defer></script>
   <script src="/static/qeerah-analytics.js" defer></script>
   <script src="/static/qeerah-promo.js" defer></script>
@@ -172,6 +173,17 @@
       <a href="/credits">Crédits</a>
       <a href="/app">Ouvrir l'app →</a>
     </nav>
+    {#- Téléphone (≤ 600 px) : action principale + menu compact (audit design D2). -#}
+    <div class="nav-mobile">
+      <a class="nav-cta" href="/app">Ouvrir l'app →</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">☰</summary>
+        <div class="nav-menu-panel">
+          <a href="/pricing/compare">Détail des fonctionnalités</a>
+          <a href="/credits">Crédits</a>
+        </div>
+      </details>
+    </div>
   </header>
 
   <main>

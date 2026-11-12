@@ -34,6 +34,7 @@
     .info{ text-align:center; color:var(--muted); font-size:12.5px; margin-top:20px; }
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; } .toast.show{ opacity:1; }
   </style>
+  <link rel="stylesheet" href="/static/qeerah-nav.css">
   <script src="/static/qeerah-consent.js" defer></script>
   <script src="/static/qeerah-analytics.js" defer></script>
   <script src="/static/qeerah-promo.js" defer></script>
@@ -56,6 +57,17 @@
       <a href="/pricing/compare">Comparer</a>
       <a href="/app">Ouvrir l'app →</a>
     </nav>
+    {#- Téléphone (≤ 600 px) : action principale + menu compact (audit design D2). -#}
+    <div class="nav-mobile">
+      <a class="nav-cta" href="/app">Ouvrir l'app →</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">☰</summary>
+        <div class="nav-menu-panel">
+          <a href="/pricing">Tarifs</a>
+          <a href="/pricing/compare">Comparer</a>
+        </div>
+      </details>
+    </div>
   </header>
 
   <main>
