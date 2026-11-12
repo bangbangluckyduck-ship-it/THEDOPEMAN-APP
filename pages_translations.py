@@ -826,6 +826,12 @@ T_CREDITS: dict[str, dict[str, str]] = {
 }
 
 
+# Bouton du menu mobile (aria-label), commun aux trois pages commerciales (audit design D2).
+# Placé AVANT les copies irlandaise et mexicaine, qui en héritent ainsi (revue Codex PR #24).
+for _dico in (T_PRICING, T_COMPARE, T_CREDITS):
+    for _lang, _menu in {"en": "Menu", "pt-br": "Menu", "es": "Menú", "it": "Menu", "de": "Menü"}.items():
+        _dico[_lang]["Menu"] = _menu
+
 # ── Irlande : même anglais que /en (cf. homepage_i18n) ───────────────────────
 for _dico in (T_PRICING, T_COMPARE, T_CREDITS):
     _dico["en-ie"] = dict(_dico["en"])
@@ -856,11 +862,6 @@ _MX_COMPARE = {
     "Feed Radar (vidéos qui vendent dans ton pays)": "Feed Radar (videos que venden en tu país)",
     "Analyse par envoi de fichier": "Análisis por subida de archivo",
 }
-# Bouton du menu mobile (aria-label), commun aux trois pages commerciales (audit design D2).
-for _dico in (T_PRICING, T_COMPARE, T_CREDITS):
-    for _lang, _menu in {"en": "Menu", "pt-br": "Menu", "es": "Menú", "it": "Menu", "de": "Menü"}.items():
-        _dico[_lang]["Menu"] = _menu
-
 T_PRICING["es-mx"] = {**T_PRICING["es"], **_MX_PRICING}
 T_COMPARE["es-mx"] = {**T_COMPARE["es"], **_MX_COMPARE}
 T_CREDITS["es-mx"] = dict(T_CREDITS["es"])
