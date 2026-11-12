@@ -1,0 +1,42 @@
+/* En-tête mobile commun des pages commerciales (audit design 2026-11-12, D2).
+   Sur téléphone, les liens se repliaient sur deux lignes. Désormais : logo,
+   action principale « Ouvrir l'app » et un menu compact pour le reste.
+   Or (#D4AF37) réservé à l'action, comme sur l'accueil. */
+.nav-mobile { display: none; }
+
+@media (max-width: 600px) {
+  header { padding: 10px 14px; }
+  .nav-links { display: none; }
+  .nav-mobile { display: flex; align-items: center; gap: 8px; }
+
+  .nav-cta {
+    display: inline-flex; align-items: center; min-height: 44px;
+    padding: 0 16px; border-radius: 999px; white-space: nowrap;
+    background: #D4AF37; color: #1A1A1A; text-decoration: none;
+    font-size: 14px; font-weight: 800;
+  }
+  .nav-cta:focus-visible, .nav-menu summary:focus-visible, .nav-menu-panel a:focus-visible {
+    outline: 3px solid #1F3A70; outline-offset: 2px;
+  }
+
+  .nav-menu { position: relative; }
+  .nav-menu summary {
+    list-style: none; cursor: pointer; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #E5E7EB; border-radius: 12px; background: #FFFFFF;
+    font-size: 20px; line-height: 1; color: #1A1A1A;
+  }
+  .nav-menu summary::-webkit-details-marker { display: none; }
+  .nav-menu[open] summary { background: #EEF1F6; }
+  .nav-menu-panel {
+    position: absolute; right: 0; top: 52px; min-width: 220px;
+    display: flex; flex-direction: column; padding: 6px;
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .14);
+  }
+  .nav-menu-panel a {
+    padding: 13px 14px; border-radius: 10px; color: #1A1A1A;
+    text-decoration: none; font-size: 15px; font-weight: 600;
+  }
+  .nav-menu-panel a:hover { background: #EEF1F6; }
+}

@@ -55,11 +55,44 @@
       td, thead th { padding:9px 6px; font-size:12.5px; } td.name { min-width:128px; }
       th .price { font-size:16px; }
     }
+    /* Comparatif sur téléphone (audit design D3) : la colonne Qeerah Pro était coupée et
+       rien n'indiquait qu'il fallait faire défiler. Avec JavaScript, des onglets montrent
+       une offre à la fois, en pleine largeur, Qeerah Pro d'abord. Sans JavaScript, le
+       tableau défilant d'origine reste en place. */
+    .plan-tabs, .plan-cta { display:none; }
+    @media (max-width:600px){
+      .js-plans .plan-tabs { display:flex; gap:4px; padding:4px; margin:0 0 14px; background:var(--surface2);
+        border-radius:999px; position:sticky; top:66px; z-index:5; }
+      .plan-tabs button { flex:1; min-height:44px; border:0; border-radius:999px; background:transparent;
+        font:inherit; font-size:13.5px; font-weight:700; color:var(--muted); cursor:pointer; }
+      .plan-tabs button[aria-selected="true"] { background:var(--surface); color:var(--text);
+        box-shadow:0 1px 4px rgba(0,0,0,.1); }
+      .plan-tabs button:focus-visible { outline:3px solid var(--navy); outline-offset:1px; }
+      .js-plans table { min-width:0; }
+      .js-plans td.name { min-width:0; width:56%; }
+      .js-plans .wrap[data-plan="essai"] :is(th,td):nth-child(3),
+      .js-plans .wrap[data-plan="essai"] :is(th,td):nth-child(4),
+      .js-plans .wrap[data-plan="pro"] :is(th,td):nth-child(2),
+      .js-plans .wrap[data-plan="pro"] :is(th,td):nth-child(4),
+      .js-plans .wrap[data-plan="agency"] :is(th,td):nth-child(2),
+      .js-plans .wrap[data-plan="agency"] :is(th,td):nth-child(3) { display:none; }
+      .js-plans td, .js-plans thead th { padding:11px 10px; font-size:13.5px; }
+      /* Bouton d'action de l'offre affichée, pleine largeur, sous le tableau (le pied de
+         tableau garderait le bouton coincé dans la première colonne). */
+      .js-plans tfoot { display:none; }
+      .js-plans .plan-cta { display:block; margin-top:14px; }
+      .plan-cta .btn { display:none; width:100%; min-height:52px; padding:15px 18px; font-size:15.5px; text-align:center; }
+      .js-plans .plan-cta[data-plan="essai"] .btn[data-plan="essai"],
+      .js-plans .plan-cta[data-plan="pro"] .btn[data-plan="pro"],
+      .js-plans .plan-cta[data-plan="agency"] .btn[data-plan="agency"] { display:block; }
+      .js-plans th .price { font-size:20px; }
+    }
     .vat { text-align:center; font-size:12.5px; color:var(--muted); margin-top:16px; }
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#111; color:#fff;
       padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; }
     .toast.show { opacity:1; }
   </style>
+  <link rel="stylesheet" href="/static/qeerah-nav.css">
   <script src="/static/qeerah-consent.js" defer></script>
   <script src="/static/qeerah-analytics.js" defer></script>
   <script src="/static/qeerah-promo.js" defer></script>
@@ -82,6 +115,17 @@
       <a href="/credits">Crédits</a>
       <a href="/app">Ouvrir l'app →</a>
     </nav>
+    {#- Téléphone (≤ 600 px) : action principale + menu compact (audit design D2). -#}
+    <div class="nav-mobile">
+      <a class="nav-cta" href="/app">Ouvrir l'app →</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">☰</summary>
+        <div class="nav-menu-panel">
+          <a href="/pricing">Tarifs</a>
+          <a href="/credits">Crédits</a>
+        </div>
+      </details>
+    </div>
   </header>
 
   <main>
@@ -131,7 +175,15 @@
       ]),
     ] -%}
 
-    <div class="wrap">
+    {#- Onglets d'offres, visibles sur téléphone seulement (audit design D3). Les libellés
+        reprennent les titres de colonnes, déjà traduits dans toutes les langues. -#}
+    <div class="plan-tabs" role="tablist">
+      <button type="button" role="tab" data-plan="essai" aria-selected="false">Essai</button>
+      <button type="button" role="tab" data-plan="pro" aria-selected="true">Qeerah Pro</button>
+      <button type="button" role="tab" data-plan="agency" aria-selected="false">Agency</button>
+    </div>
+
+    <div class="wrap" data-plan="pro">
       <table>
         <thead>
           <tr>
@@ -177,9 +229,37 @@
       </table>
     </div>
 
+    {#- Téléphone : bouton de l'offre choisie dans les onglets (audit design D3). -#}
+    <div class="plan-cta" data-plan="pro">
+      <a class="btn btn-soft" data-plan="essai" href="/app">Commencer mon essai</a>
+      <a class="btn btn-primary" data-plan="pro" href="/pricing">S'abonner →</a>
+      <a class="btn btn-soft" data-plan="agency" href="mailto:{{ CONTACT_EMAIL }}?subject=Demande%20de%20devis%20Agency">Nous contacter</a>
+    </div>
+
     <p class="vat">Prix TTC. TVA non applicable, article 293 B du CGI. Sans engagement, résiliation à tout moment.</p>
   </main>
 
   <div class="toast" id="toast"></div>
+  <script>
+    // Onglets d'offres du comparatif sur téléphone (audit design D3).
+    (function () {
+      var wrap = document.querySelector('.wrap[data-plan]');
+      var cta = document.querySelector('.plan-cta');
+      var tabs = document.querySelectorAll('.plan-tabs [data-plan]');
+      if (!wrap || !tabs.length) return;
+      function choisir(plan) {
+        wrap.setAttribute('data-plan', plan);
+        if (cta) cta.setAttribute('data-plan', plan);
+        tabs.forEach(function (b) {
+          b.setAttribute('aria-selected', b.getAttribute('data-plan') === plan ? 'true' : 'false');
+        });
+      }
+      tabs.forEach(function (b) {
+        b.addEventListener('click', function () { choisir(b.getAttribute('data-plan')); });
+      });
+      document.documentElement.classList.add('js-plans');
+      choisir('pro');
+    })();
+  </script>
 </body>
 </html>
