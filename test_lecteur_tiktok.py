@@ -26,6 +26,7 @@ os.environ.setdefault("ADMIN_EMAIL", "admin-test@example.com")
 from fastapi.testclient import TestClient
 
 import main
+import tiktok_oauth
 
 ICI = Path(__file__).parent
 APP = (ICI / "static" / "app_v3.js").read_text(encoding="utf-8")
@@ -119,6 +120,7 @@ def test_mon_compte_tiktok_montre_chaque_permission_demandee():
     # scope (user.info.profile, user.info.stats, video.list) et l'analyse des vues.
     bloc = _fonction(APP, "loadTikTokData")
     assert "p.bio_description" in bloc and "p.profile_deep_link" in bloc      # user.info.profile
+    assert "p.is_verified" in bloc and "is_verified" in tiktok_oauth._USER_FIELDS
     assert "p.follower_count" in bloc and "p.likes_count" in bloc             # user.info.stats
     assert "data-tt-analyse" in bloc and "v.view_count" in bloc               # video.list → analyse
     assert "_imgProxy(v.cover_image_url)" in bloc                             # couverture via le proxy

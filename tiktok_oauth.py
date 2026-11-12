@@ -45,7 +45,7 @@ DEFAULT_BUSINESS_SCOPES = (
 
 # ── Champs de données ────────────────────────────────────────────────────────
 _USER_FIELDS = (
-    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,"
+    "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,"
     "follower_count,following_count,likes_count,video_count"
 )
 _VIDEO_FIELDS = (

@@ -4586,7 +4586,7 @@ async function loadTikTokData() {
       <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
         ${p.avatar_url ? `<img src="${escapeHtml(p.avatar_url)}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover">` : ''}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;color:var(--text)">${escapeHtml(p.display_name || 'Mon compte TikTok')}</div>
+          <div style="font-weight:700;color:var(--text)">${escapeHtml(p.display_name || 'Mon compte TikTok')}${p.is_verified ? ' <span title="Compte vérifié" style="color:#20d5ec">✔︎</span>' : ''}</div>
           <div style="font-size:12px;color:var(--muted)">
             ${fmt(p.follower_count)} abonnés · ${fmt(p.following_count)} abonnements · ${fmt(p.likes_count)} likes · ${fmt(p.video_count)} vidéos
           </div>
