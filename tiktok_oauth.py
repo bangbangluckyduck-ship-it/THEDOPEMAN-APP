@@ -129,6 +129,10 @@ def build_authorize_url(state: str, provider: str = "display") -> str:
         "redirect_uri": REDIRECT_URI,
         "state": state,
     }
+    if provider != "business":
+        # Toujours afficher l'écran d'autorisation TikTok (permissions demandées),
+        # même si le créateur a déjà autorisé Qeerah : il voit ce qu'il partage.
+        params["disable_auto_auth"] = 1
     return f"{c['authorize_url']}?{urlencode(params)}"
 
 

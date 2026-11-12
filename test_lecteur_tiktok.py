@@ -135,3 +135,12 @@ def test_retour_de_tiktok_ouvre_mon_compte():
     assert "t === 'connected'" in bloc and "switchTab('account')" in bloc
     assert "getElementById('tiktok-shop-status')" in bloc
     assert "params.delete('provider')" in bloc
+
+
+def test_ecran_d_autorisation_tiktok_toujours_affiche():
+    # Sans disable_auto_auth=1, TikTok saute l'écran des permissions pour un compte
+    # qui a déjà autorisé l'app (vu dans la démo pour la revue) : on le force.
+    from urllib.parse import parse_qs, urlparse
+    url = tiktok_oauth.build_authorize_url("etat", "display")
+    q = parse_qs(urlparse(url).query)
+    assert q["disable_auto_auth"] == ["1"]
